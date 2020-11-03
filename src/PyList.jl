@@ -1,3 +1,8 @@
+"""
+    PyList{T=PyObject}(o=pylist())
+
+Wrap the Python list `o` (or anything satisfying the sequence interface) as a Julia vector with elements of type `T`.
+"""
 struct PyList{T} <: AbstractVector{T}
     o :: PyObject
     PyList{T}(o::AbstractPyObject) where {T} = new{T}(PyObject(o))

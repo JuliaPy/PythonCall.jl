@@ -1,3 +1,8 @@
+"""
+    PyDict{K=PyObject, V=PyObject}(o=pydict())
+
+Wrap the Python dictionary `o` (or anything satisfying the mapping interface) as a Julia dictionary with keys of type `K` and values of type `V`.
+"""
 struct PyDict{K,V} <: AbstractDict{K,V}
     o :: PyObject
     PyDict{K,V}(o::AbstractPyObject) where {K,V} = new{K,V}(PyObject(o))
@@ -9,8 +14,7 @@ export PyDict
 
 pyobject(x::PyDict) = x.o
 
-function Base.iterate(x::PyDict{K,V}, _it=nothing) where {K,V}
-    it = _it===nothing ? pyiter(x.o.items()) : _it
+function Base.iterate(x::PyDict{K,V}, it=pyiter(x.o.items())) where {K,V}
     ptr = cpycall_raw(Val(:PyIter_Next), CPyPtr, it)
     if ptr == C_NULL
         pyerrcheck()

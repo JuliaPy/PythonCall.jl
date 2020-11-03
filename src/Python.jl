@@ -1,19 +1,10 @@
 module Python
 
-using Dates, UnsafePointers
+using Dates, UnsafePointers, Libdl, Conda
 using Base: @kwdef
 
-
-using Libdl, Conda
-using Base: @kwdef
-
-const PYVERSION = v"3.6"
-const PYLIB = "python3"
-const PYHOME = Conda.PYTHONDIR
-const PYWHOME = Base.cconvert(Cwstring, PYHOME)
-const PYLIBPATH = joinpath(PYHOME, PYLIB)
-const PYLIBPTR = Ref(C_NULL)
-const PYISSTACKLESS = false
+# dependencies
+include(joinpath(@__DIR__, "..", "deps", "deps.jl"))
 
 # C API
 include("ctypedefs.jl")

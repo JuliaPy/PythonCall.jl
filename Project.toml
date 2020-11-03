@@ -1,0 +1,10 @@
+name = "Python"
+uuid = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
+authors = ["Christopher Doris <github.com/cjdoris>"]
+version = "0.1.0"
+
+[deps]
+Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+UnsafePointers = "e17b2a0c-0bdf-430a-bd0c-3a23cae4ff39"

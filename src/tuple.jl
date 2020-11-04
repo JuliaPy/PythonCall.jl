@@ -6,7 +6,7 @@ export pyistuple
 
 pytuple() = cpycall_obj(Val(:PyTuple_New), CPy_ssize_t(0))
 pytuple(args...; opts...) = pytupletype(args...; opts...)
-pytuple(x::Union{Tuple,AbstractVector}) = pytuple_fromiter(x)
+pytuple(x::Union{Tuple,AbstractVector,Pair}) = pytuple_fromiter(x)
 export pytuple
 
 function pytuple_fromiter(xs)

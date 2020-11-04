@@ -58,6 +58,7 @@ pyobject(o::AbstractPyObject) = o
 pyobject(args...; opts...) = pyobjecttype(args...; opts...)
 pyobject(o::Nothing) = pynone
 pyobject(o::Tuple) = pytuple(o)
+pyobject(o::Pair) = pytuple(o)
 pyobject(o::AbstractString) = pystr(o)
 pyobject(o::Integer) = pyint(o)
 pyobject(o::Union{Float16,Float32,Float64}) = pyfloat(o)

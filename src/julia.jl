@@ -264,6 +264,12 @@ cpyjlattr(::Val{:__next__}, ::Type{T}) where {T<:Iterator} =
         end
     end  CPyPtr (Ptr{CPyJuliaObject{T}},)
 
+pyjl_attrname_py2jl(x::AbstractString) =
+    replace(x, r"_[_b]" => s -> (s[2]=='b' ? '!' : '_'))
+
+pyjl_attrname_jl2py(x::AbstractString) =
+    replace(replace(x, r"_(?=[_b])" => "__"), '!'=>"_b")
+
 cpyjlattr(::Val{:__getattr__}, ::Type{T}) where {T} =
     @cfunction (_o, _k) -> cpycatch() do
         # first do the generic lookup
@@ -271,7 +277,7 @@ cpyjlattr(::Val{:__getattr__}, ::Type{T}) where {T} =
         (_x == C_NULL && pyerroccurred(pyattributeerror)) || return _x
         # then see if there is a corresponding julia property
         o = cpyjuliavalue(_o)
-        k = Symbol(pystr_asjuliastring(pynewobject(_k, true)))
+        k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(pynewobject(_k, true))))
         if hasproperty(o, k)
             pyerrclear() # the attribute error is still set
             return cpyreturn(CPyPtr, pyobject(getproperty(o, k)))

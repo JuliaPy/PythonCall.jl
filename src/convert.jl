@@ -40,9 +40,17 @@ pytryconvert_rule(::Type{T}, ::Val{:float}, o) where {T} = pyfloat_tryconvert(T,
 pytryconvert_rule(::Type{T}, ::Val{:complex}, o) where {T} = pycomplex_tryconvert(T, o)
 pytryconvert_rule(::Type{T}, ::Val{:Fraction}, o) where {T} = pyfraction_tryconvert(T, o)
 pytryconvert_rule(::Type{T}, ::Val{:range}, o) where {T} = pyrange_tryconvert(T, o)
+# TODO: all the following are not implemented
 pytryconvert_rule(::Type{T}, ::Val{:datetime}, o) where {T} = pydatetime_tryconvert(T, o)
 pytryconvert_rule(::Type{T}, ::Val{:date}, o) where {T} = pydate_tryconvert(T, o)
 pytryconvert_rule(::Type{T}, ::Val{:time}, o) where {T} = pytime_tryconvert(T, o)
+pytryconvert_rule(::Type{T}, ::Val{:bytes}, o) where {T} = pybytes_tryconvert(T, o)
+pytryconvert_rule(::Type{T}, ::Val{:bytearray}, o) where {T} = pybytearray_tryconvert(T, o)
+pytryconvert_rule(::Type{T}, ::Val{:tuple}, o) where {T} = pytuple_tryconvert(T, o)
+pytryconvert_rule(::Type{T}, ::Val{:list}, o) where {T} = pylist_tryconvert(T, o)
+pytryconvert_rule(::Type{T}, ::Val{:dict}, o) where {T} = pydict_tryconvert(T, o)
+pytryconvert_rule(::Type{T}, ::Val{:set}, o) where {T} = pyset_tryconvert(T, o)
+pytryconvert_rule(::Type{T}, ::Val{:frozenset}, o) where {T} = pyfrozenset_tryconvert(T, o)
 
 ### TYPE UTILITIES
 

@@ -60,7 +60,7 @@ function Base.show(io::IO, ::MIME"text/plain", o::AbstractPyObject)
     end
 end
 
-Base.hasproperty(o::AbstractPyObject, k::Symbol) = pyhasattr(o, k)
+Base.hasproperty(o::AbstractPyObject, k::Union{Symbol,AbstractString}) = pyhasattr(o, k)
 
 Base.getproperty(o::AbstractPyObject, k::Symbol) =
     if k == :jl!
@@ -86,8 +86,10 @@ Base.getproperty(o::AbstractPyObject, k::Symbol) =
     else
         pygetattr(o, k)
     end
+Base.getproperty(o::AbstractPyObject, k::AbstractString) =
+    startswith(k, "jl!") ? getproperty(o, Symbol(k)) : pygetattr(o, k)
 
-Base.setproperty!(o::AbstractPyObject, k::Symbol, v) = (pysetattr(o, k, v); o)
+Base.setproperty!(o::AbstractPyObject, k::Union{Symbol,AbstractString}, v) = (pysetattr(o, k, v); o)
 
 function Base.propertynames(o::AbstractPyObject)
     # this follows the logic of rlcompleter.py

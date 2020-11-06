@@ -60,6 +60,7 @@ pyobject(o::Nothing) = pynone
 pyobject(o::Tuple) = pytuple(o)
 pyobject(o::Pair) = pytuple(o)
 pyobject(o::AbstractString) = pystr(o)
+pyobject(o::Bool) = pybool(o)
 pyobject(o::Integer) = pyint(o)
 pyobject(o::Union{Float16,Float32,Float64}) = pyfloat(o)
 pyobject(o::Union{Complex{Float16}, Complex{Float32}, Complex{Float64}}) = pycomplex(o)

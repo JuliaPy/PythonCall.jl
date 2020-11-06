@@ -76,6 +76,8 @@ Base.convert(::Type{AbstractPyObject}, o::AbstractPyObject) = o
 Base.convert(::Type{PyObject}, o::PyObject) = o
 Base.convert(::Type{PyObject}, o) = PyObject(o)
 
+Base.promote_rule(::Type{PyObject}, ::Type{<:AbstractPyObject}) = PyObject
+
 ### ABSTRACT OBJECT API
 
 pyrefcnt(o::AbstractPyObject) = cpyrefcnt(pyptr(o))

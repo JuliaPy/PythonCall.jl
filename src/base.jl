@@ -163,3 +163,6 @@ Base.:(>>)(o1::AbstractPyObject, o2::AbstractPyObject) = pyrshift(o1, o2)
 Base.:(&)(o1::AbstractPyObject, o2::AbstractPyObject) = pyand(o1, o2)
 Base.xor(o1::AbstractPyObject, o2::AbstractPyObject) = pyxor(o1, o2)
 Base.:(|)(o1::AbstractPyObject, o2::AbstractPyObject) = pyor(o1, o2)
+
+Base.zero(::Type{PyObject}) = pyint(0)
+Base.one(::Type{PyObject}) = pyint(1)

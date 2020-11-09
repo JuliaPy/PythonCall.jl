@@ -168,6 +168,7 @@ pydir(o::AbstractPyObject) = cpycall_obj(Val(:PyObject_Dir), o)
 export pydir
 
 pyiter(o) = cpycall_obj(Val(:PyObject_GetIter), o)
+pyiter(args...; opts...) = pybuiltins.iter(args...; opts...)
 export pyiter
 
 pycall(f, args...; kwargs...) =

@@ -51,6 +51,30 @@ pytryconvert_rule(::Type{T}, ::Val{:list}, o) where {T} = pylist_tryconvert(T, o
 pytryconvert_rule(::Type{T}, ::Val{:dict}, o) where {T} = pydict_tryconvert(T, o)
 pytryconvert_rule(::Type{T}, ::Val{:set}, o) where {T} = pyset_tryconvert(T, o)
 pytryconvert_rule(::Type{T}, ::Val{:frozenset}, o) where {T} = pyfrozenset_tryconvert(T, o)
+pytryconvert_rule(::Type{T}, ::Val{:DataFrame}, o) where {T} = pypandasdataframe_tryconvert(T, o)
+
+### SPECIAL CONVERSIONS
+
+pytryconvert_element(o, v) = pytryconvert(eltype(o), v)
+pyconvert_element(args...) =
+    let r = pytryconvert_element(args...)
+        r === PyConvertFail() ? error("cannot convert this to an element") : r
+    end
+
+pytryconvert_key(o, k) = pytryconvert(keytype(o), k)
+pyconvert_key(args...) =
+    let r = pytryconvert_key(args...)
+        r === PyConvertFail() ? error("cannot convert this to a key") : r
+    end
+
+pytryconvert_value(o, k, v) = pytryconvert_value(o, v)
+pytryconvert_value(o, v) = pytryconvert(valtype(o), v)
+pyconvert_value(args...) =
+    let r = pytryconvert_value(args...)
+        r === PyConvertFail() ? error("cannot convert this to a value") : r
+    end
+
+
 
 ### TYPE UTILITIES
 

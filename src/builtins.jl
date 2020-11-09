@@ -2,15 +2,16 @@ const pybuiltins = PyLazyObject(() -> pyimport("builtins"))
 export pybuiltins
 
 # help
-const pyhelpfunc = PyLazyObject(() -> pybuiltins.help)
-
-pyhelp(args...; opts...) = (pyhelpfunc(args...; opts...); nothing)
+pyhelp(args...; opts...) = (pybuiltins.help(args...; opts...); nothing)
 export pyhelp
+
+pyprint(args...; opts...) = (pybuiltins.print(args...; opts...); nothing)
+export pyprint
 
 # other objects
 for p in [
-    # functions
-    :min, :max,
+    # functions (note: some of these may become Julia functions in the future, so don't rely on them being Python objects)
+    :all, :any, :chr, :classmethod, :compile, :enumerate, :eval, :exec, :filter, :format, :hex, :id, :map, :max, :min, :next, :oct, :open, :ord, :property, :reversed, :round, :sorted, :staticmethod, :sum, :super, :vars, :zip,
     # singletons
     :Ellipsis, :NotImplemented,
     # exceptions, errors and warnings

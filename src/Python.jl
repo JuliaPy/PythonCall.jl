@@ -1,10 +1,12 @@
 module Python
 
-using Dates, UnsafePointers, Libdl, Conda
+using Dates, UnsafePointers, Libdl, Conda, Tables
 using Base: @kwdef
 
 # dependencies
 include(joinpath(@__DIR__, "..", "deps", "deps.jl"))
+
+include("utils.jl")
 
 # C API
 include("ctypedefs.jl")
@@ -58,5 +60,8 @@ include("PyIterable.jl")
 include("PyList.jl")
 include("PyDict.jl")
 include("PyObjectArray.jl")
+include("PyBuffer.jl")
+include("PyArray.jl")
+include("PyPandas.jl")
 
 end # module

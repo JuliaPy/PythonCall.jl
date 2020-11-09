@@ -154,7 +154,9 @@ function pyjuliatype(::Type{T}) where {T}
     PYJLGCCACHE[CPyPtr(ptr)] = push!(c, ta)
     r = PYJLTYPES[T] = pynewobject(ptr, true)
 
-    # TODO: register ABCs
+    # register ABC
+    abc = pyjlabc(T)
+    abc === nothing || abc.register(r)
 
     # done
     return r
@@ -228,6 +230,21 @@ cpyerrval(::Type{T}) where {T<:Number} = zero(T)-one(T)
 cpyerrval(::Type{T}) where {T<:Ptr} = T(C_NULL)
 
 ###################################################################################
+# ABSTRACT BASE CLASSES
+
+pyjlabc(::Type{T}) where {T} = nothing
+
+pyjlabc(::Type{T}) where {T<:AbstractVector} = pyimport("collections.abc").Sequence
+pyjlabc(::Type{T}) where {T<:AbstractSet} = pyimport("collections.abc").Set
+pyjlabc(::Type{T}) where {T<:AbstractDict} = pyimport("collections.abc").Mapping
+
+pyjlabc(::Type{T}) where {T<:Number} = pyimport("numbers").Number
+pyjlabc(::Type{T}) where {T<:Complex} = pyimport("numbers").Complex
+pyjlabc(::Type{T}) where {T<:Real} = pyimport("numbers").Real
+pyjlabc(::Type{T}) where {T<:Rational} = pyimport("numbers").Rational
+pyjlabc(::Type{T}) where {T<:Integer} = pyimport("numbers").Integral
+
+###################################################################################
 # ATTRIBUTE DEFINITIONS
 
 function pyjlattrnames(::Type{T}) where {T}
@@ -275,20 +292,45 @@ cpyjlattr(::Val{:__hash__}, ::Type{T}, ::Type{V}) where {T, V} =
         end CPy_hash_t (CPyJlPtr{V},)
     end
 
-cpyjlattr(::Val{:testproperty}, ::Type{T}, ::Type{V}) where {T, V} =
-    :property => Dict(
-        :get => @cfunction (_o, _) -> cpycatch(CPyPtr) do
-            pystr("HALLO THERE")
-        end CPyPtr (CPyJlPtr{V}, Ptr{Cvoid})
-    )
+cpyjlattr(::Val{:__contains__}, ::Type{T}, ::Type{V}) where {T, V} =
+    if hasmethod(in, Tuple{Any, T})
+        @cfunction (_o, _v) -> cpycatch(Cint) do
+            o = cpyjuliavalue(_o)
+            v = pytryconvert_element(o, pynewobject(_v, true))
+            v === PyConvertFail() ? false : in(v, o)
+        end Cint (CPyJlPtr{V}, CPyPtr)
+    end
 
-cpyjlattr(::Val{:testmethod}, ::Type{T}, ::Type{V}) where {T, V} =
-    :method => Dict(
-        :flags => CPy_METH_NOARGS,
-        :meth => @cfunction (_o, _) -> cpycatch(CPyPtr) do
-            pystr("HELLO THERE")
+cpyjlattr(::Val{:__reversed__}, ::Type{T}, ::Type{V}) where {T, V} =
+    if hasmethod(reverse, Tuple{T})
+        :method => Dict(
+            :flags => CPy_METH_NOARGS,
+            :meth => @cfunction (_o, _) -> cpycatch(CPyPtr) do
+                pyjulia(reverse(cpyjuliavalue(_o)))
+            end CPyPtr (CPyJlPtr{V}, CPyPtr)
+        )
+    end
+
+cpyjlattr(::Val{:__getitem__}, ::Type{T}, ::Type{V}) where {T, V} =
+    if hasmethod(getindex, Tuple{T, Any})
+        @cfunction (_o, _k) -> cpycatch(CPyPtr) do
+            o = cpyjuliavalue(_o)
+            k = pyconvert_key(o, pynewobject(_k, true))
+            pyobject(o[k])
         end CPyPtr (CPyJlPtr{V}, CPyPtr)
-    )
+    end
+
+cpyjlattr(::Val{:__setitem__}, ::Type{T}, ::Type{V}) where {T, V} =
+    if hasmethod(setindex!, Tuple{T, Any, Any})
+        @cfunction (_o, _k, _v) -> cpycatch(Cint) do
+            _v == C_NULL && error("deletion not implemented")
+            o = cpyjuliavalue(_o)
+            k = pyconvert_key(o, pynewobject(_k, true))
+            v = pyconvert_value(o, k, pynewobject(_v, true))
+            o[k] = v
+            0
+        end Cint (CPyJlPtr{V}, CPyPtr, CPyPtr)
+    end
 
 mutable struct Iterator{T}
     val :: T
@@ -351,93 +393,75 @@ pyjlisbufferabletype(::Type{T}) where {T<:Tuple} =
 pyjlisbufferabletype(::Type{NamedTuple{names,T}}) where {names,T} =
     pyjlisbufferabletype(T)
 
-function ismutablearray(x::AbstractArray)
-    try
-        i = firstindex(x)
-        y = x[i]
-        x[i] = y
-        true
-    catch
-        false
-    end
-end
-
-pybufferformat(::Type{T}) where {T} =
-    T == Int8 ? "=b" :
-    T == UInt8 ? "=B" :
-    T == Int16 ? "=h" :
-    T == UInt16 ? "=H" :
-    T == Int32 ? "=i" :
-    T == UInt32 ? "=I" :
-    T == Int64 ? "=q" :
-    T == UInt64 ? "=Q" :
-    T == Float16 ? "=e" :
-    T == Float32 ? "=f" :
-    T == Float64 ? "=d" :
-    T == Complex{Float16} ? "=Ze" :
-    T == Complex{Float32} ? "=Zf" :
-    T == Complex{Float64} ? "=Zd" :
-    T == Bool ? "?" :
-    T == Ptr{Cvoid} ? "P" :
-    if isstructtype(T) && isconcretetype(T) && Base.allocatedinline(T)
-        n = fieldcount(T)
-        flds = []
-        for i in 1:n
-            nm = fieldname(T, i)
-            tp = fieldtype(T, i)
-            push!(flds, string(pybufferformat(tp), nm isa Symbol ? ":$nm:" : ""))
-            d = (i==n ? sizeof(T) : fieldoffset(T, i+1)) - (fieldoffset(T, i) + sizeof(tp))
-            @assert d≥0
-            d>0 && push!(flds, "$(d)x")
-        end
-        string("T{", join(flds, " "), "}")
-    else
-        "$(Base.aligned_sizeof(T))x"
-    end
-
 cpyjlattr(::Val{:__getbuffer__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}, V} =
     if hasmethod(pointer, Tuple{A}) && hasmethod(strides, Tuple{A}) && pyjlisbufferabletype(T)
         @cfunction (_o, _b, flags) -> cpycatch(Cint) do
             o = cpyjuliavalue(_o)
             b = UnsafePtr(_b)
             c = []
+
+            # not influenced by flags: obj, buf, len, itemsize, ndim
             b.obj[] = C_NULL
-
-            # buf
             b.buf[] = pointer(o)
-
-            # readonly
-            b.readonly[] = ismutablearray(o) ? 0 : 1
-
-            # itemsize
             b.itemsize[] = elsz = Base.aligned_sizeof(eltype(o))
-
-            # len
             b.len[] = elsz * length(o)
-
-            # format
-            if iszero(flags & CPyBUF_FORMAT)
-                b.format[] = C_NULL
-            else
-                b.format[] = cacheptr!(c, pybufferformat(eltype(o)))
-            end
-
-            # ndim
             b.ndim[] = ndims(o)
 
-            # shape
-            if iszero(flags & CPyBUF_ND)
-                b.shape[] = C_NULL
+            # readonly
+            if !iszero(flags & CPyBUF_WRITABLE)
+                if ismutablearray(o)
+                    b.readonly[] = 1
+                else
+                    pyerrset(pybuffererror, "not writable")
+                    return -1
+                end
             else
+                b.readonly[] = ismutablearray(o) ? 0 : 1
+            end
+
+            # format
+            if !iszero(flags & CPyBUF_FORMAT)
+                b.format[] = cacheptr!(c, pybufferformat(eltype(o)))
+            else
+                b.format[] = C_NULL
+            end
+
+            # shape
+            if !iszero(flags & CPyBUF_ND)
                 b.shape[] = cacheptr!(c, CPy_ssize_t[size(o)...])
+            else
+                b.shape[] = C_NULL
             end
 
             # strides
-            if iszero(flags & CPyBUF_STRIDES)
-                # TODO: error here if not C-contiguous
-                b.strides[] = C_NULL
-            else
+            if !iszero(flags & CPyBUF_STRIDES)
                 b.strides[] = cacheptr!(c, CPy_ssize_t[(strides(o) .* elsz)...])
+            else
+                if !isccontiguous(o)
+                    pyerrset(pybuffererror, "not C contiguous")
+                    return -1
+                end
+                b.strides[] = C_NULL
+            end
+
+            # check contiguity
+            if !iszero(flags & CPyBUF_C_CONTIGUOUS)
+                if !isccontiguous(o)
+                    pyerrset(pybuffererror, "not C contiguous")
+                    return -1
+                end
+            end
+            if !iszero(flags & CPyBUF_F_CONTIGUOUS)
+                if !isfcontiguous(o)
+                    pyerrset(pybuffererror, "not Fortran contiguous")
+                    return -1
+                end
+            end
+            if !iszero(flags & CPyBUF_ANY_CONTIGUOUS)
+                if !isccontiguous(o) && !isfcontiguous(o)
+                    pyerrset(pybuffererror, "not contiguous")
+                    return -1
+                end
             end
 
             # suboffsets

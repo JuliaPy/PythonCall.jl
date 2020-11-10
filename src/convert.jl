@@ -53,6 +53,7 @@ const PYTRYCONVERT_TYPE_RULES = Dict{String,Function}(
 )
 
 Base.convert(::Type{T}, o::AbstractPyObject) where {T} = pyconvert(T, o)
+Base.convert(::Type{Any}, o::AbstractPyObject) = o
 
 ### SPECIAL CONVERSIONS
 

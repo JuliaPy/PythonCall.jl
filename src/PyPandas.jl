@@ -7,6 +7,7 @@ This object satisfies the `Tables.jl` interface.
 """
 struct PyPandasDataFrame
     o :: PyObject
+    # TODO: add options controlling conversion to a Julia table (name of the index, types of each column)
 end
 export PyPandasDataFrame
 
@@ -18,7 +19,7 @@ function pypandasdataframe_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
     end
 end
 
-### Tables.jl integration
+### Tables.jl / TableTraits.jl integration
 
 Tables.istable(::Type{PyPandasDataFrame}) = true
 Tables.columnaccess(::Type{PyPandasDataFrame}) = true
@@ -33,4 +34,8 @@ function Tables.columns(x::PyPandasDataFrame)
     end
     return NamedTuple{Tuple(names)}(Tuple(columns))
 end
-# TODO: Tables.materializer
+
+IteratorInterfaceExtensions.isiterable(x::PyPandasDataFrame) = true
+IteratorInterfaceExtensions.getiterator(x::PyPandasDataFrame) = Tables.rows(x)
+
+TableTraits.isiterabletable(x::PyPandasDataFrame) = true

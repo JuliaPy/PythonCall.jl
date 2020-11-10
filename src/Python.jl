@@ -1,6 +1,6 @@
 module Python
 
-using Dates, UnsafePointers, Libdl, Conda, Tables
+using Dates, UnsafePointers, Libdl, Conda, Tables, TableTraits, IteratorInterfaceExtensions
 using Base: @kwdef
 
 # dependencies

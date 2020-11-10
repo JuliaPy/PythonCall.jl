@@ -67,4 +67,5 @@ pybufferformat_to_type(fmt::AbstractString) =
     fmt == "d" ? Cdouble :
     fmt == "?" ? Bool :
     fmt == "P" ? Ptr{Cvoid} :
+    fmt == "O" ? CPyObjRef :
     error("not implemented: $(repr(fmt))")

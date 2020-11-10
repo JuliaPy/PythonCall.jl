@@ -8,6 +8,10 @@ end
 
 const CPyPtr = Ptr{CPyObject}
 
+struct CPyObjRef
+    ptr :: CPyPtr
+end
+
 cpyrefcnt(o::Ptr) = unsafe_load(CPyPtr(o)).refcnt
 cpytype(o::Ptr) = unsafe_load(CPyPtr(o)).type
 cpyincref(o::Ptr) = cpycall_voidx(Val(:Py_IncRef), o)

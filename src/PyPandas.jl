@@ -23,15 +23,17 @@ function pypandasdataframe(t; opts...)
 end
 export pypandasdataframe
 
+multidict(src) = Dict(k=>v for (ks,v) in src for k in (ks isa Vector ? ks : [ks]))
+
 """
-    PyPandasDataFrame(o; indexname=:index, columntypes=Dict(), copy=false)
+    PyPandasDataFrame(o; indexname=:index, columntypes=(), copy=false)
 
 Wrap the Pandas dataframe `o` as a Julia table.
 
 This object satisfies the `Tables.jl` and `TableTraits.jl` interfaces.
 
 - `:indexname` is the name of the index column when converting this to a table, and may be `nothing` to exclude the index.
-- `:columntypes` is a dictionary mapping column names to types, mainly used to convert columns of type `object` to a corresponding Julia type.
+- `:columntypes` is an iterable of `columnname=>type` or `[columnnames...]=>type` pairs, used when converting to a table.
 - `:copy` is true to copy columns on conversion.
 """
 struct PyPandasDataFrame
@@ -40,7 +42,7 @@ struct PyPandasDataFrame
     columntypes :: Dict{Symbol, Type}
     copy :: Bool
 end
-PyPandasDataFrame(o::AbstractPyObject; indexname=:index, columntypes=Dict(), copy=false) = PyPandasDataFrame(o, indexname, columntypes, copy)
+PyPandasDataFrame(o::AbstractPyObject; indexname=:index, columntypes=(), copy=false) = PyPandasDataFrame(o, indexname, multidict(columntypes), copy)
 export PyPandasDataFrame
 
 function pypandasdataframe_tryconvert(::Type{T}, o::AbstractPyObject) where {T}

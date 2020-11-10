@@ -87,9 +87,8 @@ Base.getproperty(o::AbstractPyObject, k::Symbol) =
         () -> PyBuffer(o)
     elseif k == :jl!array
         (args...) -> PyArray{args...}(o)
-    elseif k == :jl!table
-        # more table types could be added here
-        () -> pyconvert(PyPandasDataFrame, o)
+    elseif k == :jl!pandastable
+        (; opts...) -> PyPandasDataFrame(o; opts...)
     else
         pygetattr(o, k)
     end

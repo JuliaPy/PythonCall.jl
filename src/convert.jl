@@ -1,5 +1,3 @@
-struct PyConvertFail end
-
 function pyconvert(::Type{T}, o::AbstractPyObject) where {T}
     r = pytryconvert(T, o)
     r === PyConvertFail() ? error("cannot convert this Python `$(pytype(o).__name__)` to a Julia `$T`") : r
@@ -12,14 +10,22 @@ function pytryconvert(::Type{T}, o::AbstractPyObject) where {T}
         return PyObject(o)
     end
 
-    # traverse MRO
+    # types
     for t in pytype(o).__mro__
-        n = Symbol(cpytypename(pyptr(t)))
-        r = pytryconvert_rule(T, Val(n), o)::Union{T,PyConvertFail}
-        r===PyConvertFail() || return r
+        n = "$(t.__module__).$(t.__name__)"
+        c = get(PYTRYCONVERT_TYPE_RULES, n, (T,o)->PyConvertFail())
+        r = c(T, o) :: Union{T, PyConvertFail}
+        r === PyConvertFail() || return r
     end
 
     # interfaces
+    # TODO: buffer
+    # TODO: IO
+    # TODO: number?
+    if pyisinstance(o, pyiterableabc)
+        r = pyiterable_tryconvert(T, o) :: Union{T, PyConvertFail}
+        r === PyConvertFail() || return r
+    end
 
     # so that T=Any always succeeds
     if o isa T
@@ -31,27 +37,22 @@ function pytryconvert(::Type{T}, o::AbstractPyObject) where {T}
 end
 export pytryconvert
 
-pytryconvert_rule(::Type, ::Val, o) = PyConvertFail()
-pytryconvert_rule(::Type{T}, ::Val{:NoneType}, o) where {T} = pynone_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:bool}, o) where {T} = pybool_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:str}, o) where {T} = pystr_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:int}, o) where {T} = pyint_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:float}, o) where {T} = pyfloat_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:complex}, o) where {T} = pycomplex_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:Fraction}, o) where {T} = pyfraction_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:range}, o) where {T} = pyrange_tryconvert(T, o)
-# TODO: all the following are not implemented
-pytryconvert_rule(::Type{T}, ::Val{:datetime}, o) where {T} = pydatetime_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:date}, o) where {T} = pydate_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:time}, o) where {T} = pytime_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:bytes}, o) where {T} = pybytes_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:bytearray}, o) where {T} = pybytearray_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:tuple}, o) where {T} = pytuple_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:list}, o) where {T} = pylist_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:dict}, o) where {T} = pydict_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:set}, o) where {T} = pyset_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:frozenset}, o) where {T} = pyfrozenset_tryconvert(T, o)
-pytryconvert_rule(::Type{T}, ::Val{:DataFrame}, o) where {T} = pypandasdataframe_tryconvert(T, o)
+const PYTRYCONVERT_TYPE_RULES = Dict{String,Function}(
+    "builtins.NoneType" => pynone_tryconvert,
+    "builtins.bool" => pybool_tryconvert,
+    "builtins.str" => pystr_tryconvert,
+    "builtins.int" => pyint_tryconvert,
+    "builtins.float" => pyfloat_tryconvert,
+    "builtins.complex" => pycomplex_tryconvert,
+    "builtins.Fraction" => pyfraction_tryconvert,
+    "builtins.range" => pyrange_tryconvert,
+    "builtins.tuple" => pytuple_tryconvert,
+    "pandas.core.frame.DataFrame" => pypandasdataframe_tryconvert,
+    # TODO: datetime, date, time
+    # NOTE: we don't need to include standard containers here because we can access them via standard interfaces (Sequence, Mapping, Buffer, etc.)
+)
+
+Base.convert(::Type{T}, o::AbstractPyObject) where {T} = pyconvert(T, o)
 
 ### SPECIAL CONVERSIONS
 
@@ -73,18 +74,3 @@ pyconvert_value(args...) =
     let r = pytryconvert_value(args...)
         r === PyConvertFail() ? error("cannot convert this to a value") : r
     end
-
-
-
-### TYPE UTILITIES
-
-tryconvert(::Type{T}, x) where {T} =
-    try
-        convert(T, x)
-    catch
-        PyConvertFail()
-    end
-tryconvert(::Type{T}, x::T) where {T} = x
-tryconvert(::Type{T}, x::PyConvertFail) where {T} = x
-
-@generated _typeintersect(::Type{T1}, ::Type{T2}) where {T1,T2} = typeintersect(T1, T2)

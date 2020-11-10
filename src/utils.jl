@@ -69,3 +69,28 @@ pybufferformat_to_type(fmt::AbstractString) =
     fmt == "P" ? Ptr{Cvoid} :
     fmt == "O" ? CPyObjRef :
     error("not implemented: $(repr(fmt))")
+
+### TYPE UTILITIES
+
+struct PyConvertFail end
+
+tryconvert(::Type{T}, x) where {T} =
+try
+    convert(T, x)
+catch
+    PyConvertFail()
+end
+tryconvert(::Type{T}, x::T) where {T} = x
+tryconvert(::Type{T}, x::PyConvertFail) where {T} = x
+
+@generated _typeintersect(::Type{T1}, ::Type{T2}) where {T1,T2} = typeintersect(T1, T2)
+
+@generated function _type_flatten_tuple(::Type{T}) where {T<:Tuple}
+    S = T
+    vars = []
+    while !isa(S, DataType)
+        push!(vars, S.var)
+        S = S.body
+    end
+    Tuple{[foldr(UnionAll, vars; init=P) for P in S.parameters]...}
+end

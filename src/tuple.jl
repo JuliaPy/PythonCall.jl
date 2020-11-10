@@ -18,3 +18,11 @@ function pytuple_fromiter(xs)
     end
     return t
 end
+
+function pytuple_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+    if (S = _typeintersect(T, Tuple)) != Union{}
+        pyiterable_tryconvert(S, o)
+    else
+        PyConvertFail()
+    end
+end

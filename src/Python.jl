@@ -24,7 +24,6 @@ include("cpycall2.jl")
 include("error.jl")
 include("import.jl")
 include("builtins.jl")
-include("convert.jl")
 
 # abstract objects
 include("number.jl")
@@ -50,6 +49,7 @@ include("set.jl")
 include("slice.jl")
 include("range.jl")
 include("datetime.jl")
+include("collections.jl")
 
 # extra api
 include("newtype.jl")
@@ -63,5 +63,8 @@ include("PyObjectArray.jl")
 include("PyBuffer.jl")
 include("PyArray.jl")
 include("PyPandas.jl")
+
+# otherwise forward declarations are required
+include("convert.jl")
 
 end # module

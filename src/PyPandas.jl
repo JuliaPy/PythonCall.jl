@@ -1,3 +1,10 @@
+"""
+    PyPandasDataFrame(o)
+
+Wrap the Pandas dataframe `o` as a Julia table.
+
+This object satisfies the `Tables.jl` interface.
+"""
 struct PyPandasDataFrame
     o :: PyObject
 end

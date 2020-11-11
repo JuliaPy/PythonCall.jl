@@ -25,10 +25,9 @@ include("error.jl")
 include("import.jl")
 include("builtins.jl")
 
-# abstract objects
+# concrete objects
 include("number.jl")
 
-# concrete objects
 include("type.jl")
 include("none.jl")
 
@@ -52,11 +51,7 @@ include("datetime.jl")
 include("collections.jl")
 include("io.jl")
 
-# extra api
-include("newtype.jl")
-include("julia.jl")
-include("base.jl")
-include("pywith.jl")
+# other Julia wrappers around Python values
 include("PyIterable.jl")
 include("PyList.jl")
 include("PyDict.jl")
@@ -64,6 +59,11 @@ include("PyObjectArray.jl")
 include("PyBuffer.jl")
 include("PyArray.jl")
 include("PyPandas.jl")
+
+include("newtype.jl")
+include("julia.jl")
+include("base.jl")
+include("pywith.jl")
 
 # otherwise forward declarations are required
 include("convert.jl")

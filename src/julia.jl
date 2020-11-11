@@ -431,100 +431,201 @@ pyjlisbufferabletype(::Type{T}) where {T<:Tuple} =
 pyjlisbufferabletype(::Type{NamedTuple{names,T}}) where {names,T} =
     pyjlisbufferabletype(T)
 
+isflagset(flags, mask) = (flags & mask) == mask
+
+function cpyjl_getbuffer_impl(_o, _b, flags, ptr, elsz, len, ndim, fmt, sz, strds, mutable)
+    b = UnsafePtr(_b)
+    c = []
+
+    # not influenced by flags: obj, buf, len, itemsize, ndim
+    b.obj[] = C_NULL
+    b.buf[] = ptr
+    b.itemsize[] = elsz
+    b.len[] = elsz * len
+    b.ndim[] = ndim
+
+    # readonly
+    if isflagset(flags, CPyBUF_WRITABLE)
+        if mutable
+            b.readonly[] = 1
+        else
+            pyerrset(pybuffererror, "not writable")
+            return -1
+        end
+    else
+        b.readonly[] = mutable ? 0 : 1
+    end
+
+    # format
+    if isflagset(flags, CPyBUF_FORMAT)
+        b.format[] = cacheptr!(c, fmt)
+    else
+        b.format[] = C_NULL
+    end
+
+    # shape
+    if isflagset(flags, CPyBUF_ND)
+        b.shape[] = cacheptr!(c, CPy_ssize_t[sz...])
+    else
+        b.shape[] = C_NULL
+    end
+
+    # strides
+    if isflagset(flags, CPyBUF_STRIDES)
+        b.strides[] = cacheptr!(c, CPy_ssize_t[(strds .* elsz)...])
+    else
+        if size_to_cstrides(1, sz...) != strds
+            pyerrset(pybuffererror, "not C contiguous and strides not requested")
+            return -1
+        end
+        b.strides[] = C_NULL
+    end
+
+    # check contiguity
+    if isflagset(flags, CPyBUF_C_CONTIGUOUS)
+        if size_to_cstrides(1, sz...) != strds
+            pyerrset(pybuffererror, "not C contiguous")
+            return -1
+        end
+    end
+    if isflagset(flags, CPyBUF_F_CONTIGUOUS)
+        if size_to_fstrides(1, sz...) != strds
+            pyerrset(pybuffererror, "not Fortran contiguous")
+            return -1
+        end
+    end
+    if isflagset(flags, CPyBUF_ANY_CONTIGUOUS)
+        if size_to_cstrides(1, sz...) != strds && size_to_fstrides(1, sz...) != strds
+            pyerrset(pybuffererror, "not contiguous")
+            return -1
+        end
+    end
+
+    # suboffsets
+    b.suboffsets[] = C_NULL
+
+    # internal
+    cptr = Base.pointer_from_objref(c)
+    PYJLBUFCACHE[cptr] = c
+    b.internal[] = cptr
+
+    # obj
+    b.obj[] = _o
+    cpyincref(_o)
+    return 0
+end
+
+function cpyjl_releasebuffer_impl(_o, _b)
+    b = UnsafePtr(_b)
+    delete!(PYJLBUFCACHE, b.internal[])
+    nothing
+end
+
 cpyjlattr(::Val{:__getbuffer__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}, V} =
     if hasmethod(pointer, Tuple{A}) && hasmethod(strides, Tuple{A}) && pyjlisbufferabletype(T)
         @cfunction (_o, _b, flags) -> cpycatch(Cint) do
             o = cpyjuliavalue(_o)
-            b = UnsafePtr(_b)
-            c = []
-
-            # not influenced by flags: obj, buf, len, itemsize, ndim
-            b.obj[] = C_NULL
-            b.buf[] = pointer(o)
-            b.itemsize[] = elsz = Base.aligned_sizeof(eltype(o))
-            b.len[] = elsz * length(o)
-            b.ndim[] = ndims(o)
-
-            # readonly
-            if !iszero(flags & CPyBUF_WRITABLE)
-                if ismutablearray(o)
-                    b.readonly[] = 1
-                else
-                    pyerrset(pybuffererror, "not writable")
-                    return -1
-                end
-            else
-                b.readonly[] = ismutablearray(o) ? 0 : 1
-            end
-
-            # format
-            if !iszero(flags & CPyBUF_FORMAT)
-                b.format[] = cacheptr!(c, pybufferformat(eltype(o)))
-            else
-                b.format[] = C_NULL
-            end
-
-            # shape
-            if !iszero(flags & CPyBUF_ND)
-                b.shape[] = cacheptr!(c, CPy_ssize_t[size(o)...])
-            else
-                b.shape[] = C_NULL
-            end
-
-            # strides
-            if !iszero(flags & CPyBUF_STRIDES)
-                b.strides[] = cacheptr!(c, CPy_ssize_t[(strides(o) .* elsz)...])
-            else
-                if !isccontiguous(o)
-                    pyerrset(pybuffererror, "not C contiguous")
-                    return -1
-                end
-                b.strides[] = C_NULL
-            end
-
-            # check contiguity
-            if !iszero(flags & CPyBUF_C_CONTIGUOUS)
-                if !isccontiguous(o)
-                    pyerrset(pybuffererror, "not C contiguous")
-                    return -1
-                end
-            end
-            if !iszero(flags & CPyBUF_F_CONTIGUOUS)
-                if !isfcontiguous(o)
-                    pyerrset(pybuffererror, "not Fortran contiguous")
-                    return -1
-                end
-            end
-            if !iszero(flags & CPyBUF_ANY_CONTIGUOUS)
-                if !isccontiguous(o) && !isfcontiguous(o)
-                    pyerrset(pybuffererror, "not contiguous")
-                    return -1
-                end
-            end
-
-            # suboffsets
-            b.suboffsets[] = C_NULL
-
-            # internal
-            cptr = Base.pointer_from_objref(c)
-            PYJLBUFCACHE[cptr] = c
-            b.internal[] = cptr
-
-            # obj
-            b.obj[] = _o
-            cpyincref(_o)
-            return 0
+            cpyjl_getbuffer_impl(_o, _b, flags, pointer(o), Base.aligned_sizeof(eltype(o)), length(o), ndims(o), pybufferformat(eltype(o)), size(o), strides(o), ismutablearray(o))
         end Cint (CPyJlPtr{V}, Ptr{CPy_buffer}, Cint)
     end
 
 cpyjlattr(::Val{:__releasebuffer__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}, V} =
     if hasmethod(pointer, Tuple{A}) && hasmethod(strides, Tuple{A}) && pyjlisbufferabletype(T)
         @cfunction (_o, _b) -> cpycatch(Cvoid) do
-            b = UnsafePtr(_b)
-            delete!(PYJLBUFCACHE, b.internal[])
-            nothing
+            cpyjl_releasebuffer_impl(_o, _b)
         end Cvoid (CPyJlPtr{V}, Ptr{CPy_buffer})
     end
+
+pyjlisarrayabletype(::Type{T}) where {T} =
+    T in (UInt8, Int8, UInt16, Int16, UInt32, Int32, UInt64, Int64, Bool, Float16, Float32, Float64, Complex{Float16}, Complex{Float32}, Complex{Float64})
+
+islittleendian() = Base.ENDIAN_BOM == 0x04030201 ? true : Base.ENDIAN_BOM == 0x01020304 ? false : error()
+
+function pytypestrformat(::Type{T}) where {T}
+    c = islittleendian() ? '<' : '>'
+    T ==    Int8 ? ("$(c)i1", pynone) :
+    T ==   UInt8 ? ("$(c)u1", pynone) :
+    T ==   Int16 ? ("$(c)i2", pynone) :
+    T ==  UInt16 ? ("$(c)u2", pynone) :
+    T ==   Int32 ? ("$(c)i4", pynone) :
+    T ==  UInt32 ? ("$(c)u4", pynone) :
+    T ==   Int64 ? ("$(c)i8", pynone) :
+    T ==  UInt64 ? ("$(c)u8", pynone) :
+    T == Float16 ? ("$(c)f2", pynone) :
+    T == Float32 ? ("$(c)f4", pynone) :
+    T == Float64 ? ("$(c)f8", pynone) :
+    error("not implemented")
+end
+
+cpyjlattr(::Val{:__array_interface__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}, V} =
+    if hasmethod(pointer, Tuple{A}) && hasmethod(strides, Tuple{A}) && pyjlisarrayabletype(T)
+        :property => Dict(
+            :get => @cfunction (_o, _) -> cpycatch() do
+                o = cpyjuliavalue(_o)
+                typestr, descr = pytypestrformat(eltype(o))
+                pydict(
+                    shape = size(o),
+                    typestr = typestr,
+                    descr = descr,
+                    data = (UInt(pointer(o)), !ismutablearray(o)),
+                    strides = strides(o) .* Base.aligned_sizeof(eltype(o)),
+                    version = 3,
+                )
+            end CPyPtr (CPyJlPtr{V}, Ptr{Cvoid})
+        )
+    end
+
+cpyjlattr(::Val{:__array__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}, V} =
+    if hasmethod(pointer, Tuple{A}) && hasmethod(strides, Tuple{A}) && pyjlisarrayabletype(T)
+        :method => Dict(
+            :flags => CPy_METH_NOARGS,
+            :meth => @cfunction (_o, _) -> cpycatch() do
+                pyimport("numpy").asarray(cpyjuliavalue(_o))
+            end CPyPtr (CPyJlPtr{V}, CPyPtr)
+        )
+    else
+        :method => Dict(
+            :flags => CPy_METH_NOARGS,
+            :meth => @cfunction (_o, _) -> cpycatch() do
+                pyimport("numpy").asarray(pyjulia(PyObjectArray(cpyjuliavalue(_o))))
+            end CPyPtr (CPyJlPtr{V}, CPyPtr)
+        )
+    end
+
+#### PYOBJECTARRAY AS BUFFER AND ARRAY
+
+cpyjlattr(::Val{:__getbuffer__}, ::Type{A}, ::Type{V}) where {A<:PyObjectArray, V} =
+    @cfunction (_o, _b, flags) -> cpycatch(Cint) do
+        o = cpyjuliavalue(_o)
+        cpyjl_getbuffer_impl(_o, _b, flags, pointer(o.ptrs), sizeof(CPyPtr), length(o), ndims(o), "O", size(o), strides(o.ptrs), true)
+    end Cint (CPyJlPtr{V}, Ptr{CPy_buffer}, Cint)
+
+cpyjlattr(::Val{:__releasebuffer__}, ::Type{A}, ::Type{V}) where {A<:PyObjectArray, V} =
+    @cfunction (_o, _b) -> cpycatch(Cvoid) do
+        cpyjl_releasebuffer_impl(_o, _b)
+    end Cvoid (CPyJlPtr{V}, Ptr{CPy_buffer})
+
+cpyjlattr(::Val{:__array_interface__}, ::Type{A}, ::Type{V}) where {A<:PyObjectArray, V} =
+    :property => Dict(
+        :get => @cfunction (_o, _) -> cpycatch() do
+            o = cpyjuliavalue(_o)
+            pydict(
+                shape = size(o),
+                typestr = "O",
+                data = (UInt(pointer(o.ptrs)), false),
+                strides = strides(o.ptrs) .* sizeof(CPyPtr),
+                version = 3,
+            )
+        end CPyPtr (CPyJlPtr{V}, Ptr{Cvoid})
+    )
+
+cpyjlattr(::Val{:__array__}, ::Type{A}, ::Type{V}) where {A<:PyObjectArray, V} =
+        :method => Dict(
+            :flags => CPy_METH_NOARGS,
+            :meth => @cfunction (_o, _) -> cpycatch() do
+                pyimport("numpy").asarray(cpyjuliavalue(_o))
+            end CPyPtr (CPyJlPtr{V}, CPyPtr)
+        )
 
 #### VECTOR AND TUPLE AS SEQUENCE
 

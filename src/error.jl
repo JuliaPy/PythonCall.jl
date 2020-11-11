@@ -14,6 +14,8 @@ pyerrset(t::AbstractPyObject) = cpycall_voidx(Val(:PyErr_SetNone), t)
 pyerrset(t::AbstractPyObject, x::AbstractString) = cpycall_voidx(Val(:PyErr_SetString), t, x)
 pyerrset(t::AbstractPyObject, x::AbstractPyObject) = cpycall_voidx(Val(:PyErr_SetObject), t, x)
 
+pyerrmatches(e::AbstractPyObject, t::AbstractPyObject) = cpycall_boolx(Val(:PyErr_GivenExceptionMatches), e, t)
+
 struct PythonRuntimeError <: Exception
     t :: PyObject
     v :: PyObject
@@ -42,45 +44,35 @@ function Base.showerror(io::IO, e::PythonRuntimeError)
         return
     end
 
-    # # if this is a Julia exception then recursively print it and its stacktrace
-    # if pyerror_givenexceptionmatches(e.t, pyexc_JuliaException_type())
-    #     # get the exception and backtrace
-    #     jp = try
-    #         pyjulia_getvalue(e.v.args[0])
-    #     catch
-    #         @goto jlerr
-    #     end
-    #     if jp isa Exception
-    #         je = jp
-    #         jb = nothing
-    #     elseif jp isa Tuple{Exception, AbstractVector}
-    #         je, jb = jp
-    #     else
-    #         @goto jlerr
-    #     end
-
-    #     showerror(io, je)
-    #     if jb === nothing
-    #         println(io)
-    #         print(io, "<no stacktrace>")
-    #     else
-    #         io2 = IOBuffer()
-    #         Base.show_backtrace(IOContext(io2, :color=>true, :displaysize=>displaysize(io)), jb)
-    #         seekstart(io2)
-    #         printstyled(io, read(io2, String))
-    #     end
-
-    #     if !isnull(e.b)
-    #         @goto pystacktrace
-    #     else
-    #         println(io)
-    #         printstyled(io, "(thrown from unknown Python code)")
-    #         return
-    #     end
-
-    #     @label jlerr
-    #     println(io, "<error while printing Julia exception inside Python exception>")
-    # end
+    # if this is a Julia exception then recursively print it and its stacktrace
+    if pyerrmatches(e.t, pyjuliaexception)
+        try
+            jp = pyjuliavalue(e.v.args[0])
+            if jp !== nothing
+                je, jb = jp
+                print(io, "Python: Julia: ")
+                showerror(io, je)
+                if jb === nothing
+                    println(io)
+                    print(io, "Stacktrace: none")
+                else
+                    io2 = IOBuffer()
+                    Base.show_backtrace(IOContext(io2, :color=>true, :displaysize=>displaysize(io)), jb)
+                    seekstart(io2)
+                    printstyled(io, read(io2, String))
+                end
+            end
+            if pyisnone(e.b)
+                println(io)
+                printstyled(io, "Python stacktrace: none")
+                return
+            else
+                @goto pystacktrace
+            end
+        catch
+            println(io, "<error while printing Julia excpetion inside Python exception>")
+        end
+    end
 
     # otherwise, print the Python exception
     print(io, "Python: ")

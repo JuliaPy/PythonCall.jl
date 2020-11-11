@@ -183,3 +183,10 @@ pycall(f, args...; kwargs...) =
         cpycall_obj(Val(:PyObject_CallObject), f, C_NULL)
     end
 export pycall
+
+### MODULE OBJECTS
+
+const pymoduletype = PyLazyObject(() -> pytype(pybuiltins))
+export pymoduletype
+
+pyismodule(o::AbstractPyObject) = pyisinstance(o, pymoduletype)

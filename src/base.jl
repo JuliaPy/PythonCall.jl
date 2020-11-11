@@ -95,7 +95,8 @@ Base.getproperty(o::AbstractPyObject, k::Symbol) =
 Base.getproperty(o::AbstractPyObject, k::AbstractString) =
     startswith(k, "jl!") ? getproperty(o, Symbol(k)) : pygetattr(o, k)
 
-Base.setproperty!(o::AbstractPyObject, k::Union{Symbol,AbstractString}, v) = (pysetattr(o, k, v); o)
+Base.setproperty!(o::AbstractPyObject, k::Symbol, v) = (pysetattr(o, k, v); o)
+Base.setproperty!(o::AbstractPyObject, k::AbstractString, v) = (pysetattr(o, k, v); o)
 
 function Base.propertynames(o::AbstractPyObject)
     # this follows the logic of rlcompleter.py
@@ -172,3 +173,43 @@ Base.:(|)(o1::AbstractPyObject, o2::AbstractPyObject) = pyor(o1, o2)
 
 Base.zero(::Type{PyObject}) = pyint(0)
 Base.one(::Type{PyObject}) = pyint(1)
+
+function Base.Docs.getdoc(o::AbstractPyObject)
+    docs = []
+    function typename(t)
+        n = string(t.__name__)
+        m = string(t.__module__)
+        m == "builtins" ? n : "$m.$n"
+    end
+
+    # Say what it is
+    if pyistype(o)
+        push!(docs, Markdown.Paragraph(["Python class ", Markdown.Code("$(typename(o))($(join([typename(t) for t in o.__bases__], ", ")))"), "."]))
+    elseif pyismodule(o)
+        push!(docs, Markdown.Paragraph(["Python module ", Markdown.Code("$(o.__name__)"), "."]))
+    else
+        push!(docs, Markdown.Paragraph(["Python object of type ", Markdown.Code("$(typename(pytype(o)))"), "."]))
+    end
+
+    # Print its docstring
+    doc = try
+        o.__doc__
+    catch
+        nothing
+    end
+    if doc !== nothing && !pyisnone(doc)
+        push!(docs, Text(string(doc)))
+    else
+        # If that failed, print the docstring from its type
+        tdoc = try
+            pytype(o).__doc__
+        catch
+            nothing
+        end
+        if tdoc !== nothing && !pyisnone(tdoc)
+            push!(docs, Text(string(tdoc)))
+        end
+    end
+    Markdown.MD(docs)
+end
+Base.Docs.Binding(o::AbstractPyObject, k::Symbol) = getproperty(o, k)

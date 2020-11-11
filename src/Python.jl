@@ -1,6 +1,6 @@
 module Python
 
-using Dates, UnsafePointers, Libdl, Conda, Tables, TableTraits, IteratorInterfaceExtensions
+using Dates, UnsafePointers, Libdl, Conda, Tables, TableTraits, IteratorInterfaceExtensions, Markdown
 using Base: @kwdef
 
 # dependencies
@@ -50,6 +50,7 @@ include("slice.jl")
 include("range.jl")
 include("datetime.jl")
 include("collections.jl")
+include("io.jl")
 
 # extra api
 include("newtype.jl")

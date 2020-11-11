@@ -1,8 +1,19 @@
+abstract type SubClass{V} end
+
 pyjulia_supertype(::Type{T}) where {T} = supertype(T)
 pyjulia_supertype(::Type{Any}) = nothing
 pyjulia_supertype(::Type{DataType}) = Type
+pyjulia_supertype(::Type{T}) where {V, T<:SubClass{V}} =
+    if T == SubClass{V}
+        error()
+    elseif supertype(T) == SubClass{V}
+        V
+    else
+        supertype(T)
+    end
 
 pyjulia_valuetype(::Type{T}) where {T} = T
+pyjulia_valuetype(::Type{T}) where {V, T<:SubClass{V}} = V
 
 @kwdef struct CPyJuliaTypeObject{T} <: AbstractCPyTypeObject
     ob_base :: CPyTypeObject = CPyTypeObject()
@@ -234,16 +245,6 @@ cpyerrval(::Type{T}) where {T<:Ptr} = T(C_NULL)
 
 pyjlabc(::Type{T}) where {T} = nothing
 
-pyjlabc(::Type{T}) where {T<:AbstractVector} = pyimport("collections.abc").Sequence
-pyjlabc(::Type{T}) where {T<:AbstractSet} = pyimport("collections.abc").Set
-pyjlabc(::Type{T}) where {T<:AbstractDict} = pyimport("collections.abc").Mapping
-
-pyjlabc(::Type{T}) where {T<:Number} = pyimport("numbers").Number
-pyjlabc(::Type{T}) where {T<:Complex} = pyimport("numbers").Complex
-pyjlabc(::Type{T}) where {T<:Real} = pyimport("numbers").Real
-pyjlabc(::Type{T}) where {T<:Rational} = pyimport("numbers").Rational
-pyjlabc(::Type{T}) where {T<:Integer} = pyimport("numbers").Integral
-
 ###################################################################################
 # ATTRIBUTE DEFINITIONS
 
@@ -386,6 +387,43 @@ cpyjlattr(::Val{:__getattr__}, ::Type{T}, ::Type{V}) where {T, V} =
         return _x
     end CPyPtr (CPyJlPtr{V}, CPyPtr)
 
+cpyjlattr(::Val{:__setattr__}, ::Type{T}, ::Type{V}) where {T,V} =
+    @cfunction (_o, _k, _v) -> cpycatch(Cint) do
+        # first do the generic version
+        err = cpycall_raw(Val(:PyObject_GenericSetAttr), Cint, _o, _k, _v)
+        (err == -1 && pyerroccurred(pyattributeerror)) || return err
+        # now see if there is a corresponding julia property
+        _v == C_NULL && error("deletion not supported")
+        o = cpyjuliavalue(_o)
+        k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(pynewobject(_k, true))))
+        if hasproperty(o, k)
+            pyerrclear() # the attribute error is still set
+            v = pyconvert(Any, pynewobject(_v, true)) # can we do better than Any?
+            @show v typeof(v)
+            setproperty!(o, k, v)
+            return Cint(0)
+        end
+        # no such attribute
+        return err
+    end Cint (CPyJlPtr{V}, CPyPtr, CPyPtr)
+
+cpyjlattr(::Val{:__dir__}, ::Type{T}, ::Type{V}) where {T, V} =
+    :method => Dict(
+        :flags => CPy_METH_NOARGS,
+        :meth => @cfunction (_o, _) -> cpycatch() do
+            # default properties
+            r = pyobjecttype.__dir__(pynewobject(_o, true))
+            # add julia properties
+            o = cpyjuliavalue(_o)
+            for k in propertynames(o)
+                r.append(pystr(k))
+            end
+            r
+        end CPyPtr (CPyJlPtr{V}, CPyPtr)
+    )
+
+#### ARRAY AS BUFFER AND ARRAY
+
 pyjlisbufferabletype(::Type{T}) where {T} =
     T in (Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64, Float16, Float32, Float64, Complex{Float16}, Complex{Float32}, Complex{Float64}, Bool, Ptr{Cvoid})
 pyjlisbufferabletype(::Type{T}) where {T<:Tuple} =
@@ -487,3 +525,82 @@ cpyjlattr(::Val{:__releasebuffer__}, ::Type{A}, ::Type{V}) where {T, A<:Abstract
             nothing
         end Cvoid (CPyJlPtr{V}, Ptr{CPy_buffer})
     end
+
+#### VECTOR AND TUPLE AS SEQUENCE
+
+pyjlabc(::Type{T}) where {T<:AbstractVector} = pyimport("collections.abc").Sequence
+pyjlabc(::Type{T}) where {T<:Tuple} = pyimport("collections.abc").Sequence
+
+#### SET AS SET
+
+pyjlabc(::Type{T}) where {T<:AbstractSet} = pyimport("collections.abc").Set
+
+#### DICT AS MAPPING
+
+pyjlabc(::Type{T}) where {T<:AbstractDict} = pyimport("collections.abc").Mapping
+
+#### NUMBER AS NUMBER
+
+pyjlabc(::Type{T}) where {T<:Number} = pyimport("numbers").Number
+pyjlabc(::Type{T}) where {T<:Complex} = pyimport("numbers").Complex
+pyjlabc(::Type{T}) where {T<:Real} = pyimport("numbers").Real
+pyjlabc(::Type{T}) where {T<:Rational} = pyimport("numbers").Rational
+pyjlabc(::Type{T}) where {T<:Integer} = pyimport("numbers").Integral
+
+#### IO AS IO
+
+abstract type RawIO{V} <: SubClass{V} end
+abstract type BufferedIO{V} <: SubClass{V} end
+abstract type TextIO{V} <: SubClass{V} end
+
+pyjlabc(::Type{T}) where {T<:IO} = pyimport("io").IOBase
+pyjlabc(::Type{T}) where {T<:RawIO} = pyimport("io").RawIOBase
+pyjlabc(::Type{T}) where {T<:BufferedIO} = pyimport("io").BufferedIOBase
+pyjlabc(::Type{T}) where {T<:TextIO} = pyimport("io").TextIOBase
+
+pyjuliarawio(o::IO) = pyjulia(o, RawIO{typeof(o)})
+pyjuliabufferedio(o::IO) = pyjulia(o, BufferedIO{typeof(o)})
+pyjuliatextio(o::IO) = pyjulia(o, TextIO{typeof(o)})
+
+# RawIO
+# TODO:
+# flush()
+# isatty()
+# readable()
+# readline(size=-1)
+# readlines(hint=-1)
+# seek(offset, whence=0)
+# seekable()
+# tell()
+# truncate(size=None)
+# writable()
+# writelines(lines)
+
+cpyjlattr(::Val{:close}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    :method => Dict(
+        :flags => CPy_METH_NOARGS,
+        :meth => @cfunction (_o, _) -> cpycatch() do
+            close(cpyjuliavalue(_o))
+            pynone
+        end CPyPtr (CPyJlPtr{V}, CPyPtr)
+    )
+
+cpyjlattr(::Val{:closed}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    :property => Dict(
+        :get => @cfunction (_o, _) -> cpycatch() do
+            pybool(!isopen(cpyjuliavalue(_o)))
+        end CPyPtr (CPyJlPtr{V}, Ptr{Cvoid})
+    )
+
+cpyjlattr(::Val{:fileno}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    :method => Dict(
+        :flags => CPy_METH_NOARGS,
+        :meth =>
+            if hasmethod(fd, Tuple{T})
+                @cfunction (_o, _) -> cpycatch() do
+                    pyint(fd(cpyjuliavalue(_o)))
+                end CPyPtr (CPyJlPtr{V}, Ptr{Cvoid})
+            else
+                @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation); CPyPtr(0)) CPyPtr (CPyPtr, Ptr{Cvoid})
+            end
+    )

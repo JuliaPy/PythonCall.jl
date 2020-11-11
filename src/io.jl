@@ -1,0 +1,6 @@
+const pyiomodule = PyLazyObject(() -> pyimport("io"))
+const pyiobasetype = PyLazyObject(() -> pyiomodule.IOBase)
+const pyrawiobasetype = PyLazyObject(() -> pyiomodule.RawIOBase)
+const pybufferediobasetype = PyLazyObject(() -> pyiomodule.BufferedIOBase)
+const pytextiobasetype = PyLazyObject(() -> pyiomodule.TextIOBase)
+const pyiounsupportedoperation = PyLazyObject(() -> pyiomodule.UnsupportedOperation)

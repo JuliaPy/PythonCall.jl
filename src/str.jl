@@ -28,6 +28,6 @@ function pystr_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
     elseif (S = _typeintersect(T, AbstractChar)) != Union{}
         length(x)==1 ? convert(S, x[1]) : PyConvertFail()
     else
-        tryconvert(T, o)
+        tryconvert(T, x)
     end
 end

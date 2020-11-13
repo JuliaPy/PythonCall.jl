@@ -57,20 +57,60 @@ Base.convert(::Type{Any}, o::AbstractPyObject) = o
 
 ### SPECIAL CONVERSIONS
 
-pytryconvert_element(o, v) = pytryconvert(eltype(o), v)
+@generated _eltype(o) = try eltype(o); catch; missing; end
+
+@generated _keytype(o) = try keytype(o); catch; missing; end
+_keytype(o::Base.RefValue) = Tuple{}
+_keytype(o::NamedTuple) = Union{Symbol,Int}
+_keytype(o::Tuple) = Int
+
+@generated _valtype(o, k...) = try valtype(o); catch; missing; end
+_valtype(o::NamedTuple, k::Int) = fieldtype(typeof(o), k)
+_valtype(o::NamedTuple, k::Symbol) = fieldtype(typeof(o), k)
+_valtype(o::Tuple, k::Int) = fieldtype(typeof(o), k)
+
+hasmultiindex(o) = true
+hasmultiindex(o::AbstractDict) = false
+hasmultiindex(o::NamedTuple) = false
+hasmultiindex(o::Tuple) = false
+
+"""
+    pyconvert_element(o, v::AbstractPyObject)
+
+Convert `v` to be of the right type to be an element of `o`.
+"""
+pytryconvert_element(o, v) = pytryconvert(_eltype(o)===missing ? Any : _eltype(o), v)
 pyconvert_element(args...) =
     let r = pytryconvert_element(args...)
         r === PyConvertFail() ? error("cannot convert this to an element") : r
     end
 
-pytryconvert_key(o, k) = pytryconvert(keytype(o), k)
-pyconvert_key(args...) =
-    let r = pytryconvert_key(args...)
-        r === PyConvertFail() ? error("cannot convert this to a key") : r
+"""
+    pytryconvert_indices(o, k::AbstractPyObject)
+
+Convert `k` to be of the right type to be a tuple of indices for `o`.
+"""
+function pytryconvert_indices(o, k)
+    if _keytype(o) !== missing
+        i = pytryconvert(_keytype(o), k)
+        i === PyConvertFail() ? PyConvertFail() : (i,)
+    elseif hasmultiindex(o) && pyistuple(k)
+        Tuple(pyconvert(Any, x) for x in k)
+    else
+        (pyconvert(Any, k),)
+    end
+end
+pyconvert_indices(args...) =
+    let r = pytryconvert_indices(args...)
+        r === PyConvertFail() ? error("cannot convert this to indices") : r
     end
 
-pytryconvert_value(o, k, v) = pytryconvert_value(o, v)
-pytryconvert_value(o, v) = pytryconvert(valtype(o), v)
+"""
+    pyconvert_value(o, v::AbstractPyObject, k...)
+
+Convert `v` to be of the right type to be a value of `o` at indices `k`.
+"""
+pytryconvert_value(o, v, k...) = pytryconvert(_valtype(o)===missing ? Any : _valtype(o), v)
 pyconvert_value(args...) =
     let r = pytryconvert_value(args...)
         r === PyConvertFail() ? error("cannot convert this to a value") : r

@@ -1,3 +1,5 @@
+mighthavemethod(f, t) = !isempty(methods(f, t))
+
 abstract type SubClass{V} end
 
 pyjulia_supertype(::Type{T}) where {T} = supertype(T)
@@ -279,14 +281,14 @@ cpyjlattr(::Val{:__str__}, ::Type{T}, ::Type{V}) where {T, V} =
     end CPyPtr (CPyJlPtr{V},)
 
 cpyjlattr(::Val{:__len__}, ::Type{T}, ::Type{V}) where {T, V} =
-    if hasmethod(length, Tuple{T})
+    if mighthavemethod(length, Tuple{T})
         @cfunction _o -> cpycatch(CPy_ssize_t) do
             length(cpyjuliavalue(_o))
         end CPy_ssize_t (CPyJlPtr{V},)
     end
 
 cpyjlattr(::Val{:__hash__}, ::Type{T}, ::Type{V}) where {T, V} =
-    if hasmethod(hash, Tuple{T})
+    if mighthavemethod(hash, Tuple{T})
         @cfunction _o -> cpycatch(CPy_hash_t) do
             h = hash(cpyjuliavalue(_o)) % CPy_hash_t
             h == zero(CPy_hash_t)-one(CPy_hash_t) ? zero(CPy_hash_t) : h
@@ -294,7 +296,7 @@ cpyjlattr(::Val{:__hash__}, ::Type{T}, ::Type{V}) where {T, V} =
     end
 
 cpyjlattr(::Val{:__contains__}, ::Type{T}, ::Type{V}) where {T, V} =
-    if hasmethod(in, Tuple{Any, T})
+    if mighthavemethod(in, Tuple{Any, T})
         @cfunction (_o, _v) -> cpycatch(Cint) do
             o = cpyjuliavalue(_o)
             v = pytryconvert_element(o, pynewobject(_v, true))
@@ -303,7 +305,7 @@ cpyjlattr(::Val{:__contains__}, ::Type{T}, ::Type{V}) where {T, V} =
     end
 
 cpyjlattr(::Val{:__reversed__}, ::Type{T}, ::Type{V}) where {T, V} =
-    if hasmethod(reverse, Tuple{T})
+    if mighthavemethod(reverse, Tuple{T})
         :method => Dict(
             :flags => CPy_METH_NOARGS,
             :meth => @cfunction (_o, _) -> cpycatch(CPyPtr) do
@@ -313,22 +315,32 @@ cpyjlattr(::Val{:__reversed__}, ::Type{T}, ::Type{V}) where {T, V} =
     end
 
 cpyjlattr(::Val{:__getitem__}, ::Type{T}, ::Type{V}) where {T, V} =
-    if hasmethod(getindex, Tuple{T, Any})
+    if mighthavemethod(getindex, Tuple{T, Any})
         @cfunction (_o, _k) -> cpycatch(CPyPtr) do
             o = cpyjuliavalue(_o)
-            k = pyconvert_key(o, pynewobject(_k, true))
-            pyobject(o[k])
+            k = pynewobject(_k, true)
+            i = pytryconvert_indices(o, k)
+            if i===PyConvertFail()
+                pyerrset(pyvalueerror, "invalid index of type '$(pytype(k).__name__)'")
+                return CPyPtr(0)
+            end
+            cpyreturn(CPyPtr, pyobject(o[i...]))
         end CPyPtr (CPyJlPtr{V}, CPyPtr)
     end
 
 cpyjlattr(::Val{:__setitem__}, ::Type{T}, ::Type{V}) where {T, V} =
-    if hasmethod(setindex!, Tuple{T, Any, Any})
+    if mighthavemethod(setindex!, Tuple{T, Any, Any})
         @cfunction (_o, _k, _v) -> cpycatch(Cint) do
             _v == C_NULL && error("deletion not implemented")
             o = cpyjuliavalue(_o)
-            k = pyconvert_key(o, pynewobject(_k, true))
-            v = pyconvert_value(o, k, pynewobject(_v, true))
-            o[k] = v
+            k = pynewobject(_k, true)
+            i = pytryconvert_indices(o, k)
+            if i===PyConvertFail()
+                pyerrset(pyvalueerror, "invalid index of type '$(pytype(k).__name__)'")
+                return -1
+            end
+            v = pytryconvert_value(o, pynewobject(_v, true), i...)
+            o[i...] = v
             0
         end Cint (CPyJlPtr{V}, CPyPtr, CPyPtr)
     end
@@ -339,7 +351,7 @@ mutable struct Iterator{T}
 end
 
 cpyjlattr(::Val{:__iter__}, ::Type{T}, ::Type{V}) where {T, V} =
-    if hasmethod(iterate, Tuple{T})
+    if mighthavemethod(iterate, Tuple{T})
         @cfunction _o -> cpycatch() do
             pyjulia(Iterator(cpyjuliavalue(_o), nothing))
         end CPyPtr (CPyJlPtr{V},)
@@ -522,7 +534,7 @@ function cpyjl_releasebuffer_impl(_o, _b)
 end
 
 cpyjlattr(::Val{:__getbuffer__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}, V} =
-    if hasmethod(pointer, Tuple{A}) && hasmethod(strides, Tuple{A}) && pyjlisbufferabletype(T)
+    if mighthavemethod(pointer, Tuple{A}) && mighthavemethod(strides, Tuple{A}) && pyjlisbufferabletype(T)
         @cfunction (_o, _b, flags) -> cpycatch(Cint) do
             o = cpyjuliavalue(_o)
             cpyjl_getbuffer_impl(_o, _b, flags, pointer(o), Base.aligned_sizeof(eltype(o)), length(o), ndims(o), pybufferformat(eltype(o)), size(o), strides(o), ismutablearray(o))
@@ -530,7 +542,7 @@ cpyjlattr(::Val{:__getbuffer__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArra
     end
 
 cpyjlattr(::Val{:__releasebuffer__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}, V} =
-    if hasmethod(pointer, Tuple{A}) && hasmethod(strides, Tuple{A}) && pyjlisbufferabletype(T)
+    if mighthavemethod(pointer, Tuple{A}) && mighthavemethod(strides, Tuple{A}) && pyjlisbufferabletype(T)
         @cfunction (_o, _b) -> cpycatch(Cvoid) do
             cpyjl_releasebuffer_impl(_o, _b)
         end Cvoid (CPyJlPtr{V}, Ptr{CPy_buffer})
@@ -558,7 +570,7 @@ function pytypestrformat(::Type{T}) where {T}
 end
 
 cpyjlattr(::Val{:__array_interface__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}, V} =
-    if hasmethod(pointer, Tuple{A}) && hasmethod(strides, Tuple{A}) && pyjlisarrayabletype(T)
+    if mighthavemethod(pointer, Tuple{A}) && mighthavemethod(strides, Tuple{A}) && pyjlisarrayabletype(T)
         :property => Dict(
             :get => @cfunction (_o, _) -> cpycatch() do
                 o = cpyjuliavalue(_o)
@@ -576,7 +588,7 @@ cpyjlattr(::Val{:__array_interface__}, ::Type{A}, ::Type{V}) where {T, A<:Abstra
     end
 
 cpyjlattr(::Val{:__array__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}, V} =
-    if hasmethod(pointer, Tuple{A}) && hasmethod(strides, Tuple{A}) && pyjlisarrayabletype(T)
+    if mighthavemethod(pointer, Tuple{A}) && mighthavemethod(strides, Tuple{A}) && pyjlisarrayabletype(T)
         :method => Dict(
             :flags => CPy_METH_NOARGS,
             :meth => @cfunction (_o, _) -> cpycatch() do
@@ -697,7 +709,7 @@ cpyjlattr(::Val{:fileno}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
     :method => Dict(
         :flags => CPy_METH_NOARGS,
         :meth =>
-            if hasmethod(fd, Tuple{T})
+            if mighthavemethod(fd, Tuple{T})
                 @cfunction (_o, _) -> cpycatch() do
                     pyint(fd(cpyjuliavalue(_o)))
                 end CPyPtr (CPyJlPtr{V}, Ptr{Cvoid})

@@ -32,15 +32,15 @@ function pyint_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
             pyerrclear()
             return parse(BigInt, pystr(String, o))
         end
-    elseif T <: Integer
-        if T <: Unsigned
+    elseif (S = _typeintersect(T, Integer)) != Union{}
+        if S <: Unsigned
             # if it fits in a ulonglong, use that
             rl = cpycall_raw(Val(:PyLong_AsUnsignedLongLong), Culonglong, o)
             if rl != zero(Culonglong)-one(Culonglong) || !pyerroccurred()
-                return tryconvert(T, rl)
+                return tryconvert(S, rl)
             elseif !pyerroccurred(pyoverflowerror)
                 pythrow()
-            elseif T in (UInt8, UInt16, UInt32, UInt64, UInt128) && sizeof(T) ≤ sizeof(Culonglong)
+            elseif S in (UInt8, UInt16, UInt32, UInt64, UInt128) && sizeof(S) ≤ sizeof(Culonglong)
                 pyerrclear()
                 return PyConvertFail()
             end
@@ -48,17 +48,17 @@ function pyint_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
             # if it fits in a longlong, use that
             rl = cpycall_raw(Val(:PyLong_AsLongLong), Clonglong, o)
             if rl != -1 || !pyerroccurred()
-                return tryconvert(T, rl)
+                return tryconvert(S, rl)
             elseif !pyerroccurred(pyoverflowerror)
                 pythrow()
-            elseif T in (Int8, Int16, Int32, Int64, Int128) && sizeof(T) ≤ sizeof(Clonglong)
+            elseif S in (Int8, Int16, Int32, Int64, Int128) && sizeof(S) ≤ sizeof(Clonglong)
                 pyerrclear()
                 return PyConvertFail()
             end
         end
         # last resort: print to a string
         pyerrclear()
-        return tryconvert(T, parse(BigInt, pystr(String, o)))
+        return tryconvert(S, parse(BigInt, pystr(String, o)))
     else
         tryconvert(T, pyint_tryconvert(BigInt, o))
     end

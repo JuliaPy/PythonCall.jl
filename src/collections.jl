@@ -35,6 +35,8 @@ function pyiterable_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
         pyiterable_tryconvert(S, o)
     elseif (S = _typeintersect(T, CartesianIndex)) != Union{}
         pyiterable_tryconvert(S, o)
+    elseif (S = _typeintersect(T, NamedTuple)) != Union{}
+        pyiterable_tryconvert(S, o)
     else
         tryconvert(T, PyIterable(o))
     end
@@ -94,6 +96,20 @@ end
 function pyiterable_tryconvert(::Type{CartesianIndex{N}}, o::AbstractPyObject) where {N}
     x = pyiterable_tryconvert(NTuple{N,Int}, o)
     x === PyConvertFail() ? x : CartesianIndex{N}(x)
+end
+
+function pyiterable_tryconvert(::Type{T}, o::AbstractPyObject) where {T<:NamedTuple}
+    PyConvertFail()
+end
+
+function pyiterable_tryconvert(::Type{T}, o::AbstractPyObject) where {names, T<:NamedTuple{names}}
+    x = pyiterable_tryconvert(NTuple{length(names), PyObject}, o)
+    x === PyConvertFail() ? x : convert(T, NamedTuple{names}(x))
+end
+
+function pyiterable_tryconvert(::Type{NamedTuple{names,Ts}}, o::AbstractPyObject) where {names, Ts<:Tuple}
+    x = pyiterable_tryconvert(Ts, o)
+    x === PyConvertFail() ? x : NamedTuple{names,Ts}(x)
 end
 
 function pymapping_tryconvert(::Type{T}, o::AbstractPyObject) where {T}

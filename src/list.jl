@@ -1,10 +1,10 @@
 const pylisttype = PyLazyObject(() -> pybuiltins.list)
 export pylisttype
 
-pyislist(o::AbstractPyObject) = pytypecheckfast(o, CPy_TPFLAGS_LIST_SUBCLASS)
+pyislist(o::AbstractPyObject) = pytypecheckfast(o, C.Py_TPFLAGS_LIST_SUBCLASS)
 export pyislist
 
-pylist() = cpycall_obj(Val(:PyList_New), CPy_ssize_t(0))
+pylist() = check(C.PyList_New(0))
 pylist(args...; opts...) = pylisttype(args...; opts...)
 pylist(x::Union{Tuple,AbstractVector}) = pylist_fromiter(x)
 export pylist
@@ -13,7 +13,7 @@ function pylist_fromiter(xs)
     r = pylist()
     for x in xs
         xo = pyobject(x)
-        cpycall_void(Val(:PyList_Append), r, xo)
+        check(C.PyList_Append(r, xo))
     end
     return r
 end

@@ -1,7 +1,9 @@
 abstract type AbstractPyObject end
 export AbstractPyObject
 
-pyincref!(o::AbstractPyObject) = (cpyincref(pyptr(o)); o)
+pyincref!(o::AbstractPyObject) = (C.Py_IncRef(pyptr(o)); o)
+Base.convert(::Type{AbstractPyObject}, o::AbstractPyObject) = o
+Base.unsafe_convert(::Type{CPyPtr}, o::AbstractPyObject) = pyptr(o)
 
 ### PYOBJECT
 
@@ -9,10 +11,9 @@ mutable struct PyObject <: AbstractPyObject
     ptr :: CPyPtr
     function PyObject(::Val{:new}, ptr::Ptr=C_NULL, borrowed::Bool=false)
         o = new(CPyPtr(ptr))
-        borrowed && cpyincref(ptr)
+        borrowed && C.Py_IncRef(ptr)
         finalizer(o) do o
-            # pyptr(o)==C_NULL || @debug "decref" ptr=pyptr(o) refcnt=cpyrefcnt(pyptr(o))
-            cpydecref(pyptr(o))
+            C.Py_DecRef(pyptr(o))
             setfield!(o, :ptr, CPyPtr(C_NULL))
             nothing
         end
@@ -26,6 +27,12 @@ export PyObject
 pynewobject(args...) = PyObject(Val(:new), args...)
 
 pyptr(o::PyObject) = getfield(o, :ptr)
+
+Base.convert(::Type{PyObject}, o::PyObject) = o
+Base.convert(::Type{PyObject}, o) = PyObject(o)
+Base.convert(::Type{PyObject}, o::AbstractPyObject) = PyObject(o)
+
+Base.promote_rule(::Type{PyObject}, ::Type{<:AbstractPyObject}) = PyObject
 
 ### PYLAZYOBJECT
 
@@ -69,52 +76,47 @@ pyobject(o::AbstractRange{<:Integer}) = pyrange(o)
 pyobject(o::DateTime) = pydatetime(o)
 pyobject(o::Date) = pydate(o)
 pyobject(o::Time) = pytime(o)
+pyobject(o::IO) = pyjulia(o, BufferedIO{typeof(o)})
 pyobject(o) = pyjulia(o)
 export pyobject
 
-Base.convert(::Type{AbstractPyObject}, o::AbstractPyObject) = o
-Base.convert(::Type{PyObject}, o::PyObject) = o
-Base.convert(::Type{PyObject}, o) = PyObject(o)
-
-Base.promote_rule(::Type{PyObject}, ::Type{<:AbstractPyObject}) = PyObject
-
 ### ABSTRACT OBJECT API
 
-pyrefcnt(o::AbstractPyObject) = cpyrefcnt(pyptr(o))
+pyrefcnt(o::AbstractPyObject) = C.Py_RefCnt(o)
 export pyrefcnt
 
 pyis(o1::AbstractPyObject, o2::AbstractPyObject) = pyptr(o1) == pyptr(o2)
 export pyis
 
-pyhasattr(o::AbstractPyObject, k::AbstractString) = cpycall_bool(Val(:PyObject_HasAttrString), o, k)
+pyhasattr(o::AbstractPyObject, k::AbstractString) = check(Bool, C.PyObject_HasAttrString(o, k))
 pyhasattr(o::AbstractPyObject, k::Symbol) = pyhasattr(o, String(k))
-pyhasattr(o::AbstractPyObject, k) = cpycall_bool(Val(:PyObject_HasAttr), o, pyobject(k))
+pyhasattr(o::AbstractPyObject, k) = check(Bool, C.PyObject_HasAttr(o, pyobject(k)))
 export pyhasattr
 
-pygetattr(o::AbstractPyObject, k::AbstractString) = cpycall_obj(Val(:PyObject_GetAttrString), o, k)
+pygetattr(o::AbstractPyObject, k::AbstractString) = check(C.PyObject_GetAttrString(o, k))
 pygetattr(o::AbstractPyObject, k::Symbol) = pygetattr(o, String(k))
-pygetattr(o::AbstractPyObject, k) = cpycall_obj(Val(:PyObject_GetAttr), o, pyobject(k))
+pygetattr(o::AbstractPyObject, k) = check(C.PyObject_GetAttr(o, pyobject(k)))
 export pygetattr
 
-pysetattr(o::AbstractPyObject, k::AbstractString, v) = cpycall_void(Val(:PyObject_SetAttrString), o, k, pyobject(v))
+pysetattr(o::AbstractPyObject, k::AbstractString, v) = check(Nothing, C.PyObject_SetAttrString(o, k, pyobject(v)))
 pysetattr(o::AbstractPyObject, k::Symbol, v) = pysetattr(o, String(k), v)
-pysetattr(o::AbstractPyObject, k, v) = cpycall_void(Val(:PyObject_SetAttr), o, pyobject(k), pyobject(v))
+pysetattr(o::AbstractPyObject, k, v) = check(Nothing, C.PyObject_SetAttr(o, pyobject(k), pyobject(v)))
 export pysetattr
 
-pydelattr(o::AbstractPyObject, k::AbstractString) = cpycall_void(Val(:PyObject_DelAttrString), o, k)
+pydelattr(o::AbstractPyObject, k::AbstractString) = check(Nothing, C.PyObject_DelAttrString(o, k))
 pydelattr(o::AbstractPyObject, k::Symbol) = pydelattr(o, String(k))
-pydelattr(o::AbstractPyObject, k) = cpycall_void(Val(:PyObject_DelAttr), o, k)
+pydelattr(o::AbstractPyObject, k) = check(Nothing, C.PyObject_DelAttr(o, pyobject(k)))
 export pydelattr
 
-pyrichcompare(::Type{PyObject}, o1, o2, op::CPy_CompareOp) = cpycall_obj(Val(:PyObject_RichCompare), pyobject(o1), pyobject(o2), op)
-pyrichcompare(::Type{Bool}, o1, o2, op::CPy_CompareOp) = cpycall_bool(Val(:PyObject_RichCompareBool), pyobject(o1), pyobject(o2), op)
+pyrichcompare(::Type{PyObject}, o1, o2, op::Cint) = check(C.PyObject_RichCompare(pyobject(o1), pyobject(o2), op))
+pyrichcompare(::Type{Bool}, o1, o2, op::Cint) = check(Bool, C.PyObject_RichCompareBool(pyobject(o1), pyobject(o2), op))
 pyrichcompare(o1, o2, op) = pyrichcompare(PyObject, o1, o2, op)
-pyrichcompare(::Type{T}, o1, o2, ::typeof(< )) where {T} = pyrichcompare(T, o1, o2, CPy_LT)
-pyrichcompare(::Type{T}, o1, o2, ::typeof(<=)) where {T} = pyrichcompare(T, o1, o2, CPy_LE)
-pyrichcompare(::Type{T}, o1, o2, ::typeof(==)) where {T} = pyrichcompare(T, o1, o2, CPy_EQ)
-pyrichcompare(::Type{T}, o1, o2, ::typeof(!=)) where {T} = pyrichcompare(T, o1, o2, CPy_NE)
-pyrichcompare(::Type{T}, o1, o2, ::typeof(> )) where {T} = pyrichcompare(T, o1, o2, CPy_GT)
-pyrichcompare(::Type{T}, o1, o2, ::typeof(>=)) where {T} = pyrichcompare(T, o1, o2, CPy_GE)
+pyrichcompare(::Type{T}, o1, o2, ::typeof(< )) where {T} = pyrichcompare(T, o1, o2, C.Py_LT)
+pyrichcompare(::Type{T}, o1, o2, ::typeof(<=)) where {T} = pyrichcompare(T, o1, o2, C.Py_LE)
+pyrichcompare(::Type{T}, o1, o2, ::typeof(==)) where {T} = pyrichcompare(T, o1, o2, C.Py_EQ)
+pyrichcompare(::Type{T}, o1, o2, ::typeof(!=)) where {T} = pyrichcompare(T, o1, o2, C.Py_NE)
+pyrichcompare(::Type{T}, o1, o2, ::typeof(> )) where {T} = pyrichcompare(T, o1, o2, C.Py_GT)
+pyrichcompare(::Type{T}, o1, o2, ::typeof(>=)) where {T} = pyrichcompare(T, o1, o2, C.Py_GE)
 export pyrichcompare
 
 pyeq(args...) = pyrichcompare(args..., ==)
@@ -125,49 +127,49 @@ pygt(args...) = pyrichcompare(args..., > )
 pyge(args...) = pyrichcompare(args..., >=)
 export pyeq, pyne, pylt, pyle, pygt, pyge
 
-pyrepr(o) = cpycall_obj(Val(:PyObject_Repr), pyobject(o))
+pyrepr(o) = check(C.PyObject_Repr(pyobject(o)))
 pyrepr(::Type{String}, o) = pystr_asjuliastring(pyrepr(o))
 export pyrepr
 
-pyascii(o) = cpycall_obj(Val(:PyObject_ASCII), pyobject(o))
+pyascii(o) = check(C.PyObject_ASCII(pyobject(o)))
 pyascii(::Type{String}, o) = pystr_asjuliastring(pyascii(o))
 export pyascii
 
-pystr(o) = cpycall_obj(Val(:PyObject_Str), pyobject(o))
+pystr(o) = check(C.PyObject_Str(pyobject(o)))
 pystr(::Type{String}, o) = pystr_asjuliastring(pystr(o))
 export pystr
 
-pybytes(o) = cpycall_obj(Val(:PyObject_Bytes), pyobject(o))
+pybytes(o) = check(C.PyObject_Bytes(pyobject(o)))
 export pybytes
 
-pyissubclass(o1::AbstractPyObject, o2::AbstractPyObject) = cpycall_bool(Val(:PyObject_IsSubclass), o1, o2)
+pyissubclass(o1::AbstractPyObject, o2::AbstractPyObject) = check(Bool, C.PyObject_IsSubclass(o1, o2))
 export pyissubclass
 
-pyisinstance(o::AbstractPyObject, t::AbstractPyObject) = cpycall_bool(Val(:PyObject_IsInstance), o, t)
+pyisinstance(o::AbstractPyObject, t::AbstractPyObject) = check(Bool, C.PyObject_IsInstance(o, t))
 export pyisinstance
 
-pyhash(o) = cpycall_num(Val(:PyObject_Hash), CPy_hash_t, pyobject(o))
+pyhash(o) = check(C.PyObject_Hash(pyobject(o)))
 export pyhash
 
-pytruth(o) = cpycall_bool(Val(:PyObject_IsTrue), pyobject(o))
+pytruth(o) = check(Bool, C.PyObject_IsTrue(pyobject(o)))
 export pytruth
 
-pylen(o) = cpycall_num(Val(:PyObject_Length), CPy_ssize_t, pyobject(o))
+pylen(o) = check(C.PyObject_Length(pyobject(o)))
 export pylen
 
-pygetitem(o::AbstractPyObject, k) = cpycall_obj(Val(:PyObject_GetItem), o, pyobject(k))
+pygetitem(o::AbstractPyObject, k) = check(C.PyObject_GetItem(o, pyobject(k)))
 export pygetitem
 
-pysetitem(o::AbstractPyObject, k, v) = cpycall_void(Val(:PyObject_SetItem), o, pyobject(k), pyobject(v))
+pysetitem(o::AbstractPyObject, k, v) = check(Nothing, C.PyObject_SetItem(o, pyobject(k), pyobject(v)))
 export pysetitem
 
-pydelitem(o::AbstractPyObject, k) = cpycall_void(Val(:PyObject_DelItem), o, pyobject(k))
+pydelitem(o::AbstractPyObject, k) = check(Nothing, C.PyObject_DelItem(o, pyobject(k)))
 export pydelitem
 
-pydir(o::AbstractPyObject) = cpycall_obj(Val(:PyObject_Dir), o)
+pydir(o::AbstractPyObject) = check(C.PyObject_Dir(o))
 export pydir
 
-pyiter(o) = cpycall_obj(Val(:PyObject_GetIter), o)
+pyiter(o) = check(C.PyObject_GetIter(pyobject(o)))
 pyiter(args...; opts...) = pybuiltins.iter(args...; opts...)
 export pyiter
 
@@ -175,12 +177,12 @@ pycall(f, args...; kwargs...) =
     if !isempty(kwargs)
         argso = pytuple_fromiter(args)
         kwargso = pydict_fromstringiter(kwargs)
-        cpycall_obj(Val(:PyObject_Call), f, argso, kwargso)
+        check(C.PyObject_Call(f, argso, kwargso))
     elseif !isempty(args)
         argso = pytuple_fromiter(args)
-        cpycall_obj(Val(:PyObject_CallObject), f, argso)
+        check(C.PyObject_CallObject(f, argso))
     else
-        cpycall_obj(Val(:PyObject_CallObject), f, C_NULL)
+        check(C.PyObject_CallObject(f, C_NULL))
     end
 export pycall
 

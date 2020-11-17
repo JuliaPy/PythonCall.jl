@@ -2,14 +2,14 @@ const pyfloattype = PyLazyObject(() -> pybuiltins.float)
 export pyfloattype
 
 pyfloat(args...; opts...) = pyfloattype(args...; opts...)
-pyfloat(x::Real) = cpycall_obj(Val(:PyFloat_FromDouble), convert(Cdouble, x))
+pyfloat(x::Real) = check(C.PyFloat_FromDouble(x))
 export pyfloat
 
 pyisfloat(o::AbstractPyObject) = pytypecheck(o, pyfloattype)
 export pyisfloat
 
 function pyfloat_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
-    x = cpycall_num_ambig(Val(:PyFloat_AsDouble), Cdouble, o)
+    x = check(C.PyFloat_AsDouble(o), true)
     if (S = _typeintersect(T, Cdouble)) != Union{}
         convert(S, x)
     elseif (S = _typeintersect(T, AbstractFloat)) != Union{}

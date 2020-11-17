@@ -4,7 +4,7 @@ mutable struct PyObjectArray{N} <: AbstractArray{PyObject, N}
         x = new{N}(fill(CPyPtr(C_NULL), dims))
         finalizer(x) do x
             for ptr in x.ptrs
-                cpydecref(ptr)
+                C.Py_DecRef(ptr)
             end
         end
     end
@@ -31,14 +31,14 @@ end
 
 function Base.setindex!(x::PyObjectArray, _v, i::Integer...)
     v = convert(PyObject, _v)
-    cpydecref(x.ptrs[i...])
+    C.Py_DecRef(x.ptrs[i...])
     pyincref!(v)
     x.ptrs[i...] = pyptr(v)
     x
 end
 
 function Base.deleteat!(x::PyObjectArray, i::Integer)
-    cpydecref(x.ptrs[i])
+    C.Py_DecRef(x.ptrs[i])
     deleteat!(x.ptrs, i)
     x
 end

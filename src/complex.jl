@@ -9,10 +9,9 @@ pyiscomplex(o::AbstractPyObject) = pytypecheck(o, pycomplextype)
 export pyiscomplex
 
 function pycomplex_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
-    x = cpycall_num_ambig(Val(:PyComplex_RealAsDouble), Cdouble, o)
-    y = cpycall_num_ambig(Val(:PyComplex_ImagAsDouble), Cdouble, o)
+    x = check(C.PyComplex_RealAsDouble(o), true)
+    y = check(C.PyComplex_ImagAsDouble(o), true)
     z = Complex(x, y)
-    z == Complex(-1.0, 0.0) && pyerrcheck()
     if (S = _typeintersect(T, Complex{Cdouble})) != Union{}
         convert(S, z)
     elseif (S = _typeintersect(T, Complex)) != Union{}

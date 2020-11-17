@@ -15,7 +15,7 @@ export PyDict
 pyobject(x::PyDict) = x.o
 
 function Base.iterate(x::PyDict{K,V}, it=pyiter(x.o.items())) where {K,V}
-    ptr = cpycall_raw(Val(:PyIter_Next), CPyPtr, it)
+    ptr = C.PyIter_Next(it)
     if ptr == C_NULL
         pyerrcheck()
         nothing

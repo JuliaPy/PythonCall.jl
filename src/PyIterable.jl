@@ -21,7 +21,7 @@ Base.IteratorEltype(::Type{<:PyIterable}) = Base.HasEltype()
 Base.eltype(::Type{PyIterable{T}}) where {T} = T
 
 function Base.iterate(x::PyIterable{T}, it=pyiter(x.o)) where {T}
-    ptr = cpycall_raw(Val(:PyIter_Next), CPyPtr, it)
+    ptr = C.PyIter_Next(it)
     if ptr == C_NULL
         pyerrcheck()
         nothing

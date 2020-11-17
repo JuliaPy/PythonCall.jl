@@ -89,7 +89,7 @@ PyArray(o) where {} = PyArray{missing}(o)
 
 function pyarray_info(o::AbstractPyObject)
     # TODO: support the numpy array interface too
-    b = PyBuffer(o, CPyBUF_RECORDS_RO)
+    b = PyBuffer(o, C.PyBUF_RECORDS_RO)
     (ndims=b.ndim, eltype=b.eltype, elsize=b.itemsize, mutable=!b.readonly, bytestrides=b.strides, size=b.shape, ptr=b.buf, handle=b)
 end
 
@@ -123,7 +123,7 @@ pyarray_load(::Type{T}, p::Ptr{T}) where {T} = unsafe_load(p)
 pyarray_load(::Type{T}, p::Ptr{CPyObjRef}) where {T} = (o=unsafe_load(p).ptr; o==C_NULL ? throw(UndefRefError()) : pyconvert(T, pynewobject(o, true)))
 
 pyarray_store!(p::Ptr{T}, v::T) where {T} = unsafe_store!(p, v)
-pyarray_store!(p::Ptr{CPyObjRef}, v::T) where {T} = (cpydecref(unsafe_load(p).ptr); unsafe_store!(p, CPyObjRef(pyptr(pyincref!(pyobject(v))))))
+pyarray_store!(p::Ptr{CPyObjRef}, v::T) where {T} = (C.Py_DecRef(unsafe_load(p).ptr); unsafe_store!(p, CPyObjRef(pyptr(pyincref!(pyobject(v))))))
 
 pyarray_offset(x::PyArray{T,N,R,M,true}, i::Int) where {T,N,R,M} =
     N==0 ? 0 : (i-1) * x.bytestrides[1]

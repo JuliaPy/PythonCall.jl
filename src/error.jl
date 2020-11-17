@@ -1,20 +1,30 @@
-cpyerrtype() = cpycall_raw(Val(:PyErr_Occurred), CPyPtr)
+check(::Type{CPyPtr}, o::CPyPtr, ambig=false) = (o == C_NULL && (ambig ? pyerrcheck() : pythrow()); o)
+check(::Type{T}, o::T, ambig=false) where {T<:Number} = (o == (zero(T)-one(T)) && (ambig ? pyerrcheck() : pythrow()); o)
+check(::Type{Nothing}, o::Cvoid, ambig=false) = ambig ? pyerrcheck() : nothing
+check(::Type{PyObject}, o::CPyPtr, ambig=false) = pynewobject(check(CPyPtr, o, ambig), false)
+check(::Type{Bool}, o::Cint, ambig=false) = !iszero(check(Cint, o, ambig))
+check(::Type{Nothing}, o::Cint, ambig=false) = (check(Cint, o, ambig); nothing)
+check(o::CPyPtr, ambig=false) = check(PyObject, o, ambig)
+check(o::T, ambig=false) where {T<:Number} = check(T, o, ambig)
+check(o::Cvoid, ambig=false) = check(Nothing, o, ambig)
 
-pyerroccurred() = cpyerrtype() != C_NULL
+
+pyerroccurred() = C.PyErr_Occurred() != C_NULL
+
 function pyerroccurred(t::AbstractPyObject)
-    e = cpyerrtype()
-    e != C_NULL && cpycall_boolx(Val(:PyErr_GivenExceptionMatches), e, t)
+    e = C.PyErr_Occurred()
+    e != C_NULL && !iszero(C.PyErr_GivenExceptionMatches(e, t))
 end
 
-pyerrclear() = cpycall_raw(Val(:PyErr_Clear), Cvoid)
+pyerrclear() = C.PyErr_Clear()
 
 pyerrcheck() = pyerroccurred() ? pythrow() : nothing
 
-pyerrset(t::AbstractPyObject) = cpycall_voidx(Val(:PyErr_SetNone), t)
-pyerrset(t::AbstractPyObject, x::AbstractString) = cpycall_voidx(Val(:PyErr_SetString), t, x)
-pyerrset(t::AbstractPyObject, x::AbstractPyObject) = cpycall_voidx(Val(:PyErr_SetObject), t, x)
+pyerrset(t::AbstractPyObject) = C.PyErr_SetNone(t)
+pyerrset(t::AbstractPyObject, x::AbstractString) = C.PyErr_SetString(t, x)
+pyerrset(t::AbstractPyObject, x::AbstractPyObject) = C.PyErr_SetObject(t, x)
 
-pyerrmatches(e::AbstractPyObject, t::AbstractPyObject) = cpycall_boolx(Val(:PyErr_GivenExceptionMatches), e, t)
+pyerrmatches(e::AbstractPyObject, t::AbstractPyObject) = !iszero(C.PyErr_GivenExceptionMatches(e, t))
 
 struct PythonRuntimeError <: Exception
     t :: PyObject
@@ -26,8 +36,8 @@ function pythrow()
     t = Ref{CPyPtr}()
     v = Ref{CPyPtr}()
     b = Ref{CPyPtr}()
-    cpycall_raw(Val(:PyErr_Fetch), Cvoid, t, v, b)
-    cpycall_raw(Val(:PyErr_NormalizeException), Cvoid, t, v, b)
+    C.PyErr_Fetch(t, v, b)
+    C.PyErr_NormalizeException(t, v, b)
     to = t[]==C_NULL ? PyObject(pynone) : pynewobject(t[])
     vo = v[]==C_NULL ? PyObject(pynone) : pynewobject(v[])
     bo = b[]==C_NULL ? PyObject(pynone) : pynewobject(b[])

@@ -1,29 +1,3 @@
-function cpycheckbuffer(o::CPyPtr)
-    p = UnsafePtr{CPyTypeObject}(cpytype(o)).as_buffer[]
-    p != C_NULL && p.get[] != C_NULL
-end
-
-function cpygetbuffer(o::CPyPtr, b::Ptr{CPy_buffer}, flags::Integer)
-    p = UnsafePtr{CPyTypeObject}(cpytype(o)).as_buffer[]
-    if p == C_NULL || p.get[] == C_NULL
-        pyerrset(pytypeerror, "a bytes-like object is required, not '$(cpytypename(cpytype(o)))'")
-        return Cint(-1)
-    end
-    ccall(p.get[!], Cint, (CPyPtr, Ptr{CPy_buffer}, Cint), o, b, flags)
-end
-
-function cpyreleasebuffer(b::Ptr{CPy_buffer})
-    o = UnsafePtr(b).obj[!]
-    o == C_NULL && return
-    p = UnsafePtr{CPyTypeObject}(cpytype(o)).as_buffer[]
-    if (p != C_NULL && p.release[] != C_NULL)
-        ccall(p.release[!], Cvoid, (CPyPtr, Ptr{CPy_buffer}), o, b)
-    end
-    UnsafePtr(b).obj[] = C_NULL
-    cpydecref(o)
-    return
-end
-
 """
     PyBuffer(o)
 
@@ -45,13 +19,13 @@ Has the following properties:
 - `eltype`: The element type.
 """
 mutable struct PyBuffer
-    info :: Array{CPy_buffer, 0}
-    function PyBuffer(o::AbstractPyObject, flags::Integer=CPyBUF_FULL_RO)
-        info = fill(CPy_buffer())
-        cpygetbuffer(pyptr(o), pointer(info), flags) == 0 || pythrow()
+    info :: Array{C.Py_buffer, 0}
+    function PyBuffer(o::AbstractPyObject, flags::Integer=C.PyBUF_FULL_RO)
+        info = fill(C.Py_buffer())
+        check(C.PyObject_GetBuffer(o, pointer(info), flags))
         b = new(info)
         finalizer(b) do b
-            cpyreleasebuffer(pointer(b.info))
+            check(C.PyBuffer_Release(pointer(b.info)))
         end
         b
     end

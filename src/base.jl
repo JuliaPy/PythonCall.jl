@@ -133,7 +133,7 @@ Base.length(o::AbstractPyObject) = Int(pylen(o))
 Base.eltype(::Type{T}) where {T<:AbstractPyObject} = PyObject
 Base.IteratorSize(::Type{T}) where {T<:AbstractPyObject} = Base.SizeUnknown()
 function Base.iterate(o::AbstractPyObject, it=pyiter(o))
-    ptr = cpycall_raw(Val(:PyIter_Next), CPyPtr, it)
+    ptr = C.PyIter_Next(it)
     if ptr == C_NULL
         pyerrcheck()
         nothing

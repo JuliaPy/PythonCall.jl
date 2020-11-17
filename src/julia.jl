@@ -17,12 +17,12 @@ pyjulia_supertype(::Type{T}) where {V, T<:SubClass{V}} =
 pyjulia_valuetype(::Type{T}) where {T} = T
 pyjulia_valuetype(::Type{T}) where {V, T<:SubClass{V}} = V
 
-@kwdef struct CPyJuliaTypeObject{T} <: AbstractCPyTypeObject
-    ob_base :: CPyTypeObject = CPyTypeObject()
+@kwdef struct CPyJuliaTypeObject{T}
+    ob_base :: C.PyTypeObject = C.PyTypeObject()
 end
 
-@kwdef struct CPyJuliaObject{T} <: AbstractCPyObject
-    ob_base :: CPyObject = CPyObject()
+@kwdef struct CPyJuliaObject{T}
+    ob_base :: C.PyObject = C.PyObject()
     value :: Ptr{Cvoid} = C_NULL
     weaklist :: CPyPtr = C_NULL
 end
@@ -40,7 +40,7 @@ const pyjuliaexception = PyLazyObject() do
     ta = fill(t)
     ptr = pointer(ta)
     # ready the type
-    cpycall_void(Val(:PyType_Ready), ptr)
+    check(C.PyType_Ready(ptr))
     # success
     PYJLGCCACHE[CPyPtr(ptr)] = push!(c, ta)
     pynewobject(ptr, true)
@@ -60,6 +60,7 @@ function pyjuliatype(::Type{T}) where {T}
     methods = []
     getset = []
     while true
+        V <: pyjulia_valuetype(S) || error("value type of $T is $V, but value type of supertype $S is $(pyjulia_valuetype(S))")
         for k in pyjlattrnames(S)
             if k ∉ attrnames
                 a = cpyjlattr(Val(k), S, V)
@@ -129,7 +130,7 @@ function pyjuliatype(::Type{T}) where {T}
     opts = Dict{Symbol, Any}(
         :name => "julia.$T",
         :base => pyjulia_supertype(T) === nothing ? pyobjecttype : pyjuliatype(pyjulia_supertype(T)),
-        :flags => CPy_TPFLAGS_BASETYPE | CPy_TPFLAGS_HAVE_VERSION_TAG | (PYISSTACKLESS ? CPy_TPFLAGS_HAVE_STACKLESS_EXTENSION : 0x00),
+        :flags => C.Py_TPFLAGS_BASETYPE | C.Py_TPFLAGS_HAVE_VERSION_TAG | (PYISSTACKLESS ? C.Py_TPFLAGS_HAVE_STACKLESS_EXTENSION : 0x00),
         :basicsize => sizeof(CPyJuliaObject{T}),
         :dealloc => pop!(special, :__dealloc__, C_NULL),
         :hash => pop!(special, :__hash__, C_NULL),
@@ -161,7 +162,7 @@ function pyjuliatype(::Type{T}) where {T}
     ptr = pointer(ta)
 
     # ready the type
-    cpycall_void(Val(:PyType_Ready), ptr)
+    check(C.PyType_Ready(ptr))
 
     # cache
     PYJLGCCACHE[CPyPtr(ptr)] = push!(c, ta)
@@ -192,7 +193,7 @@ function pyjulia(x, ::Type{T}) where {T}
     # get the type of the object
     t = pyjuliatype(T)
     # allocate an object
-    o = cpycall_obj(Val(:_PyObject_New), t)
+    o = check(C._PyObject_New(t))
     # set weakrefs and value
     p = UnsafePtr{CPyJuliaObject{T}}(pyptr(o))
     p.weaklist[] = C_NULL
@@ -265,7 +266,7 @@ end
 
 cpyjlattr(::Val{:__dealloc__}, ::Type{T}, ::Type{V}) where {T, V} =
     @cfunction function (_o)
-        UnsafePtr(_o).weaklist[!] == C_NULL || cpycall_voidx(Val(:PyObject_ClearWeakRefs), _o)
+        UnsafePtr(_o).weaklist[!] == C_NULL || C.PyObject_ClearWeakRefs(_o)
         delete!(PYJLGCCACHE, CPyPtr(_o))
         nothing
     end Cvoid (CPyJlPtr{V},)
@@ -282,17 +283,17 @@ cpyjlattr(::Val{:__str__}, ::Type{T}, ::Type{V}) where {T, V} =
 
 cpyjlattr(::Val{:__len__}, ::Type{T}, ::Type{V}) where {T, V} =
     if mighthavemethod(length, Tuple{T})
-        @cfunction _o -> cpycatch(CPy_ssize_t) do
+        @cfunction _o -> cpycatch(C.Py_ssize_t) do
             length(cpyjuliavalue(_o))
-        end CPy_ssize_t (CPyJlPtr{V},)
+        end C.Py_ssize_t (CPyJlPtr{V},)
     end
 
 cpyjlattr(::Val{:__hash__}, ::Type{T}, ::Type{V}) where {T, V} =
     if mighthavemethod(hash, Tuple{T})
-        @cfunction _o -> cpycatch(CPy_hash_t) do
-            h = hash(cpyjuliavalue(_o)) % CPy_hash_t
-            h == zero(CPy_hash_t)-one(CPy_hash_t) ? zero(CPy_hash_t) : h
-        end CPy_hash_t (CPyJlPtr{V},)
+        @cfunction _o -> cpycatch(C.Py_hash_t) do
+            h = hash(cpyjuliavalue(_o)) % C.Py_hash_t
+            h == zero(C.Py_hash_t)-one(C.Py_hash_t) ? zero(C.Py_hash_t) : h
+        end C.Py_hash_t (CPyJlPtr{V},)
     end
 
 cpyjlattr(::Val{:__contains__}, ::Type{T}, ::Type{V}) where {T, V} =
@@ -307,7 +308,7 @@ cpyjlattr(::Val{:__contains__}, ::Type{T}, ::Type{V}) where {T, V} =
 cpyjlattr(::Val{:__reversed__}, ::Type{T}, ::Type{V}) where {T, V} =
     if mighthavemethod(reverse, Tuple{T})
         :method => Dict(
-            :flags => CPy_METH_NOARGS,
+            :flags => C.Py_METH_NOARGS,
             :meth => @cfunction (_o, _) -> cpycatch(CPyPtr) do
                 pyjulia(reverse(cpyjuliavalue(_o)))
             end CPyPtr (CPyJlPtr{V}, CPyPtr)
@@ -386,7 +387,7 @@ pyjl_attrname_jl2py(x::AbstractString) =
 cpyjlattr(::Val{:__getattr__}, ::Type{T}, ::Type{V}) where {T, V} =
     @cfunction (_o, _k) -> cpycatch() do
         # first do the generic lookup
-        _x = cpycall_raw(Val(:PyObject_GenericGetAttr), CPyPtr, _o, _k)
+        _x = C.PyObject_GenericGetAttr(_o, _k)
         (_x == C_NULL && pyerroccurred(pyattributeerror)) || return _x
         # then see if there is a corresponding julia property
         o = cpyjuliavalue(_o)
@@ -402,7 +403,7 @@ cpyjlattr(::Val{:__getattr__}, ::Type{T}, ::Type{V}) where {T, V} =
 cpyjlattr(::Val{:__setattr__}, ::Type{T}, ::Type{V}) where {T,V} =
     @cfunction (_o, _k, _v) -> cpycatch(Cint) do
         # first do the generic version
-        err = cpycall_raw(Val(:PyObject_GenericSetAttr), Cint, _o, _k, _v)
+        err = C.PyObject_GenericSetAttr(_o, _k, _v)
         (err == -1 && pyerroccurred(pyattributeerror)) || return err
         # now see if there is a corresponding julia property
         _v == C_NULL && error("deletion not supported")
@@ -421,7 +422,7 @@ cpyjlattr(::Val{:__setattr__}, ::Type{T}, ::Type{V}) where {T,V} =
 
 cpyjlattr(::Val{:__dir__}, ::Type{T}, ::Type{V}) where {T, V} =
     :method => Dict(
-        :flags => CPy_METH_NOARGS,
+        :flags => C.Py_METH_NOARGS,
         :meth => @cfunction (_o, _) -> cpycatch() do
             # default properties
             r = pyobjecttype.__dir__(pynewobject(_o, true))
@@ -538,14 +539,14 @@ cpyjlattr(::Val{:__getbuffer__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArra
         @cfunction (_o, _b, flags) -> cpycatch(Cint) do
             o = cpyjuliavalue(_o)
             cpyjl_getbuffer_impl(_o, _b, flags, pointer(o), Base.aligned_sizeof(eltype(o)), length(o), ndims(o), pybufferformat(eltype(o)), size(o), strides(o), ismutablearray(o))
-        end Cint (CPyJlPtr{V}, Ptr{CPy_buffer}, Cint)
+        end Cint (CPyJlPtr{V}, Ptr{C.Py_buffer}, Cint)
     end
 
 cpyjlattr(::Val{:__releasebuffer__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}, V} =
     if mighthavemethod(pointer, Tuple{A}) && mighthavemethod(strides, Tuple{A}) && pyjlisbufferabletype(T)
         @cfunction (_o, _b) -> cpycatch(Cvoid) do
             cpyjl_releasebuffer_impl(_o, _b)
-        end Cvoid (CPyJlPtr{V}, Ptr{CPy_buffer})
+        end Cvoid (CPyJlPtr{V}, Ptr{C.Py_buffer})
     end
 
 pyjlisarrayabletype(::Type{T}) where {T} =
@@ -590,14 +591,14 @@ cpyjlattr(::Val{:__array_interface__}, ::Type{A}, ::Type{V}) where {T, A<:Abstra
 cpyjlattr(::Val{:__array__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}, V} =
     if mighthavemethod(pointer, Tuple{A}) && mighthavemethod(strides, Tuple{A}) && pyjlisarrayabletype(T)
         :method => Dict(
-            :flags => CPy_METH_NOARGS,
+            :flags => C.Py_METH_NOARGS,
             :meth => @cfunction (_o, _) -> cpycatch() do
                 pyimport("numpy").asarray(cpyjuliavalue(_o))
             end CPyPtr (CPyJlPtr{V}, CPyPtr)
         )
     else
         :method => Dict(
-            :flags => CPy_METH_NOARGS,
+            :flags => C.Py_METH_NOARGS,
             :meth => @cfunction (_o, _) -> cpycatch() do
                 pyimport("numpy").asarray(pyjulia(PyObjectArray(cpyjuliavalue(_o))))
             end CPyPtr (CPyJlPtr{V}, CPyPtr)
@@ -610,12 +611,12 @@ cpyjlattr(::Val{:__getbuffer__}, ::Type{A}, ::Type{V}) where {A<:PyObjectArray, 
     @cfunction (_o, _b, flags) -> cpycatch(Cint) do
         o = cpyjuliavalue(_o)
         cpyjl_getbuffer_impl(_o, _b, flags, pointer(o.ptrs), sizeof(CPyPtr), length(o), ndims(o), "O", size(o), strides(o.ptrs), true)
-    end Cint (CPyJlPtr{V}, Ptr{CPy_buffer}, Cint)
+    end Cint (CPyJlPtr{V}, Ptr{C.Py_buffer}, Cint)
 
 cpyjlattr(::Val{:__releasebuffer__}, ::Type{A}, ::Type{V}) where {A<:PyObjectArray, V} =
     @cfunction (_o, _b) -> cpycatch(Cvoid) do
         cpyjl_releasebuffer_impl(_o, _b)
-    end Cvoid (CPyJlPtr{V}, Ptr{CPy_buffer})
+    end Cvoid (CPyJlPtr{V}, Ptr{C.Py_buffer})
 
 cpyjlattr(::Val{:__array_interface__}, ::Type{A}, ::Type{V}) where {A<:PyObjectArray, V} =
     :property => Dict(
@@ -633,7 +634,7 @@ cpyjlattr(::Val{:__array_interface__}, ::Type{A}, ::Type{V}) where {A<:PyObjectA
 
 cpyjlattr(::Val{:__array__}, ::Type{A}, ::Type{V}) where {A<:PyObjectArray, V} =
         :method => Dict(
-            :flags => CPy_METH_NOARGS,
+            :flags => C.Py_METH_NOARGS,
             :meth => @cfunction (_o, _) -> cpycatch() do
                 pyimport("numpy").asarray(cpyjuliavalue(_o))
             end CPyPtr (CPyJlPtr{V}, CPyPtr)
@@ -677,21 +678,12 @@ pyjuliatextio(o::IO) = pyjulia(o, TextIO{typeof(o)})
 
 # RawIO
 # TODO:
-# flush()
-# isatty()
-# readable()
 # readline(size=-1)
 # readlines(hint=-1)
-# seek(offset, whence=0)
-# seekable()
-# tell()
-# truncate(size=None)
-# writable()
-# writelines(lines)
 
 cpyjlattr(::Val{:close}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
     :method => Dict(
-        :flags => CPy_METH_NOARGS,
+        :flags => C.Py_METH_NOARGS,
         :meth => @cfunction (_o, _) -> cpycatch() do
             close(cpyjuliavalue(_o))
             pynone
@@ -707,13 +699,232 @@ cpyjlattr(::Val{:closed}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
 
 cpyjlattr(::Val{:fileno}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
     :method => Dict(
-        :flags => CPy_METH_NOARGS,
+        :flags => C.Py_METH_NOARGS,
         :meth =>
             if mighthavemethod(fd, Tuple{T})
                 @cfunction (_o, _) -> cpycatch() do
                     pyint(fd(cpyjuliavalue(_o)))
                 end CPyPtr (CPyJlPtr{V}, Ptr{Cvoid})
             else
-                @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation); CPyPtr(0)) CPyPtr (CPyPtr, Ptr{Cvoid})
+                @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "fileno"); CPyPtr(0)) CPyPtr (CPyPtr, Ptr{Cvoid})
+            end
+    )
+
+cpyjlattr(::Val{:flush}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    :method => Dict(
+        :flags => C.Py_METH_NOARGS,
+        :meth =>
+            if mighthavemethod(flush, Tuple{T})
+                @cfunction (_o, _) -> cpycatch() do
+                    flush(cpyjuliavalue(_o))
+                    pynone
+                end CPyPtr (CPyJlPtr{V}, Ptr{Cvoid})
+            else
+                @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "flush"); CPyPtr(0)) CPyPtr (CPyPtr, Ptr{Cvoid})
+            end
+    )
+
+cpyjlattr(::Val{:isatty}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    :method => Dict(
+        :flags => C.Py_METH_NOARGS,
+        :meth =>
+            if T <: Base.TTY
+                @cfunction (_o, _) -> cpyreturn(CPyPtr, pytrue) CPyPtr (CPyPtr, Ptr{Cvoid})
+            else
+                @cfunction (_o, _) -> cpyreturn(CPyPtr, pyfalse) CPyPtr (CPyPtr, Ptr{Cvoid})
+            end
+    )
+
+cpyjlattr(::Val{:readable}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    :method => Dict(
+        :flags => C.Py_METH_NOARGS,
+        :meth =>
+            if mighthavemethod(isreadable, Tuple{T})
+                @cfunction (_o, _) -> cpycatch() do
+                    pybool(isreadable(cpyjuliavalue(_o)))
+                end CPyPtr (CPyJlPtr{V}, Ptr{Cvoid})
+            else
+                @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "readable"); CPyPtr(0)) CPyPtr (CPyPtr, Ptr{Cvoid})
+            end
+    )
+
+cpyjlattr(::Val{:writable}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    :method => Dict(
+        :flags => C.Py_METH_NOARGS,
+        :meth =>
+            if mighthavemethod(iswritable, Tuple{T})
+                @cfunction (_o, _) -> cpycatch() do
+                    pybool(iswritable(cpyjuliavalue(_o)))
+                end CPyPtr (CPyJlPtr{V}, Ptr{Cvoid})
+            else
+                @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "writable"); CPyPtr(0)) CPyPtr (CPyPtr, Ptr{Cvoid})
+            end
+    )
+
+cpyjlattr(::Val{:tell}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    :method => Dict(
+        :flags => C.Py_METH_NOARGS,
+        :meth =>
+            if mighthavemethod(position, Tuple{T})
+                @cfunction (_o, _) -> cpycatch() do
+                    pyint(position(cpyjuliavalue(_o)))
+                end CPyPtr (CPyJlPtr{V}, Ptr{Cvoid})
+            else
+                @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "tell"); CPyPtr(0)) CPyPtr (CPyPtr, Ptr{Cvoid})
+            end
+    )
+
+cpyjlattr(::Val{:writelines}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    :method => Dict(
+        :flags => C.Py_METH_O,
+        :meth => @cfunction (_o, _lines) -> cpycatch() do
+            _wr = C.PyObject_GetAttrString(_o, "write")
+            _wr == C_NULL && return _wr
+            wr = pynewobject(_wr, true)
+            for line in pynewobject(_lines, true)
+                wr(line)
+            end
+            pyreturn(CPyPtr, pynone)
+        end CPyPtr (CPyJlPtr{V}, CPyPtr)
+    )
+
+cpyjlattr(::Val{:seekable}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    :method => Dict(
+        :flags => C.Py_METH_NOARGS,
+        :meth =>
+            if mighthavemethod(position, Tuple{T}) && mighthavemethod(seek, Tuple{T,Int}) && mighthavemethod(truncate, Tuple{T,Int})
+                @cfunction (_o, _) -> cpyreturn(CPyPtr, pytrue) CPyPtr (CPyPtr, Ptr{Cvoid})
+            else
+                @cfunction (_o, _) -> cpyreturn(CPyPtr, pyfalse) CPyPtr (CPyPtr, Ptr{Cvoid})
+            end
+    )
+
+cpyjlattr(::Val{:truncate}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    :method => Dict(
+        :flags => C.Py_METH_VARARGS,
+        :meth =>
+            if mighthavemethod(truncate, Tuple{T, Int}) && mighthavemethod(position, Tuple{T})
+                @cfunction (_o, _args) -> cpycatch() do
+                    args = pyconvert(Union{Tuple, Tuple{Union{Int,Nothing}}}, pynewobject(_args, true))
+                    o = cpyjuliavalue(_o)
+                    n = (args===() || args===(nothing,)) ? position(o) : args[1]
+                    truncate(o, n)
+                    pyint(n)
+                end CPyPtr (CPyJlPtr{V}, CPyPtr)
+            else
+                @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "truncate"); CPyPtr(0)) CPyPtr (CPyPtr, Ptr{Cvoid})
+            end
+    )
+
+cpyjlattr(::Val{:seek}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    :method => Dict(
+        :flags => C.Py_METH_VARARGS,
+        :meth =>
+            if mighthavemethod(seek, Tuple{V, Int}) && mighthavemethod(position, Tuple{V})
+                @cfunction (_o, _args) -> cpycatch() do
+                    args = pyconvert(Union{Tuple{Int}, Tuple{Int,Int}}, pynewobject(_args, true))
+                    o = cpyjuliavalue(_o)
+                    if length(args)==1 || args[2]==0
+                        seek(o, args[1])
+                    elseif args[2]==1
+                        seek(o, position(o)+args[1])
+                    elseif args[2]==2
+                        seekend(o)
+                        seek(o, position(o)+args[1])
+                    else
+                        error("invalid whence: $(args[2])")
+                    end
+                    pyint(position(o))
+                end CPyPtr (CPyJlPtr{V}, CPyPtr)
+            else
+                @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "seek"); CPyPtr(0)) CPyPtr (CPyPtr, Ptr{Cvoid})
+            end
+    )
+
+cpyjlattr(::Val{:__iter__}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    @cfunction o -> (C.Py_IncRef(o); CPyPtr(o)) CPyPtr (CPyJlPtr{V},)
+
+cpyjlattr(::Val{:__next__}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
+    @cfunction _o -> cpycatch() do
+        line = pynewobject(_o, true).readline()
+        pylen(line) == 0 ? C_NULL : cpyreturn(CPyPtr, line)
+    end CPyPtr (CPyJlPtr{V},)
+
+# BufferedIO
+# TODO:
+# read1(size=-1)
+# readinto1(b)
+
+cpyjlattr(::Val{:detach}, ::Type{BufferedIO{V}}, ::Type{V}) where {V} =
+    :method => Dict(
+        :flags => C.Py_METH_NOARGS,
+        :meth => @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "detach"); CPyPtr(0)) CPyPtr (CPyJlPtr{V}, CPyPtr)
+    )
+
+cpyjlattr(::Val{:readinto}, ::Type{BufferedIO{V}}, ::Type{V}) where {V} =
+    :method => Dict(
+        :flags => C.Py_METH_O,
+        :meth =>
+            if mighthavemethod(readbytes!, Tuple{V, Vector{UInt8}})
+                @cfunction (_o, _b) -> cpycatch() do
+                    b = PyBuffer(pynewobject(_b, true), C.PyBUF_WRITABLE)
+                    o = cpyjuliavalue(_o)
+                    n = readbytes!(o, unsafe_wrap(Array{UInt8}, Ptr{UInt8}(b.buf), b.len))
+                    pyint(n)
+                end CPyPtr (CPyJlPtr{V}, CPyPtr)
+            else
+                @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "readinto"); CPyPtr(0)) CPyPtr (CPyJlPtr{V}, CPyPtr)
+            end
+    )
+
+cpyjlattr(::Val{:read}, ::Type{BufferedIO{V}}, ::Type{V}) where {V} =
+    :method => Dict(
+        :flags => C.Py_METH_VARARGS,
+        :meth =>
+            if mighthavemethod(read, Tuple{V}) && mighthavemethod(read, Tuple{V, Int})
+                @cfunction (_o, _args) -> cpycatch() do
+                    args = pyconvert(Union{Tuple{}, Tuple{Int}}, pynewobject(_args, true))
+                    o = cpyjuliavalue(_o)
+                    pybytes(convert(Vector{UInt8}, length(args)==0 ? read(o) : read(o, args[1])))
+                end CPyPtr (CPyJlPtr{V}, CPyPtr)
+            else
+                @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "read"); CPyPtr(0)) CPyPtr (CPyJlPtr{V}, CPyPtr)
+            end
+    )
+
+cpyjlattr(::Val{:write}, ::Type{BufferedIO{V}}, ::Type{V}) where {V} =
+    :method => Dict(
+        :flags => C.Py_METH_O,
+        :meth =>
+            if mighthavemethod(write, Tuple{V, Vector{UInt8}})
+                @cfunction (_o, _b) -> cpycatch() do
+                    b = PyBuffer(pynewobject(_b, true), C.PyBUF_SIMPLE)
+                    o = cpyjuliavalue(_o)
+                    n = write(o, unsafe_wrap(Array{UInt8}, Ptr{UInt8}(b.buf), b.len))
+                    pyint(n)
+                end CPyPtr (CPyJlPtr{V}, CPyPtr)
+            else
+                @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "write"); CPyPtr(0)) CPyPtr (CPyJlPtr{V}, CPyPtr)
+            end
+    )
+
+cpyjlattr(::Val{:readline}, ::Type{BufferedIO{V}}, ::Type{V}) where {V} =
+    :method => Dict(
+        :flags => C.Py_METH_VARARGS,
+        :meth =>
+            if mighthavemethod(read, Tuple{V, Type{UInt8}})
+                @cfunction (_o, _args) -> cpycatch() do
+                    args = pyconvert(Union{Tuple{}, Tuple{Int}}, pynewobject(_args, true))
+                    o = cpyjuliavalue(_o)
+                    data = UInt8[]
+                    while !eof(o) && (args===() || length(data) ≤ args[1])
+                        c = read(o, UInt8)
+                        push!(data, c)
+                        c == 0x0A && break
+                    end
+                    pybytes(data)
+                end CPyPtr (CPyJlPtr{V}, CPyPtr)
+            else
+                @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "readline"); CPyPtr(0)) CPyPtr (CPyJlPtr{V}, CPyPtr)
             end
     )

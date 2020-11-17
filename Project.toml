@@ -4,6 +4,7 @@ authors = ["Christopher Doris <github.com/cjdoris>"]
 version = "0.1.0"
 
 [deps]
+CBinding = "d43a6710-96b8-4a2d-833c-c424785e5374"
 Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 IteratorInterfaceExtensions = "82899510-4779-5014-852e-03e436cf321d"

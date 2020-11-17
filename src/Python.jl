@@ -9,18 +9,19 @@ include(joinpath(@__DIR__, "..", "deps", "deps.jl"))
 include("utils.jl")
 
 # C API
-include("ctypedefs.jl")
-include("cconsts.jl")
-include("cbuffer.jl")
-include("cattrstructs.jl")
-include("cmethodstructs.jl")
-include("cpyobject.jl")
-include("cpycall.jl")
+include("cpython.jl")
+
+const C = CPython
+const CPyPtr = C.PyPtr
+struct CPyObjRef
+    ptr :: CPyPtr
+end
+
+# initialize
 include("init.jl")
 
 # core
 include("object.jl")
-include("cpycall2.jl")
 include("error.jl")
 include("import.jl")
 include("builtins.jl")

@@ -9,29 +9,29 @@ cacheptr!(c, x::AbstractPyObject) = (push!(c, x); pyptr(x))
 
 ### PROTOCOLS
 
-cpynewnumbermethods!(c, x::CPyNumberMethodsStruct) = x
-cpynewnumbermethods!(c; opts...) = CPyNumberMethodsStruct(; opts...)
+cpynewnumbermethods!(c, x::C.PyNumberMethods) = x
+cpynewnumbermethods!(c; opts...) = C.PyNumberMethods(; opts...)
 cpynewnumbermethods!(c, x::Dict) = cpynewnumbermethods!(c; x...)
 cpynewnumbermethods!(c, x::NamedTuple) = cpynewnumbermethods!(c; x...)
 
-cpynewmappingmethods!(c, x::CPyMappingMethodsStruct) = x
-cpynewmappingmethods!(c; opts...) = CPyMappingMethodsStruct(; opts...)
+cpynewmappingmethods!(c, x::C.PyMappingMethods) = x
+cpynewmappingmethods!(c; opts...) = C.PyMappingMethods(; opts...)
 cpynewmappingmethods!(c, x::Dict) = cpynewmappingmethods!(c; x...)
 cpynewmappingmethods!(c, x::NamedTuple) = cpynewmappingmethods!(c; x...)
 
-cpynewsequencemethods!(c, x::CPySequenceMethodsStruct) = x
-cpynewsequencemethods!(c; opts...) = CPySequenceMethodsStruct(; opts...)
+cpynewsequencemethods!(c, x::C.PySequenceMethods) = x
+cpynewsequencemethods!(c; opts...) = C.PySequenceMethods(; opts...)
 cpynewsequencemethods!(c, x::Dict) = cpynewsequencemethods!(c; x...)
 cpynewsequencemethods!(c, x::NamedTuple) = cpynewsequencemethods!(c; x...)
 
-cpynewbufferprocs!(c, x::CPyBufferProcs) = x
-cpynewbufferprocs!(c; opts...) = CPyBufferProcs(; opts...)
+cpynewbufferprocs!(c, x::C.PyBufferProcs) = x
+cpynewbufferprocs!(c; opts...) = C.PyBufferProcs(; opts...)
 cpynewbufferprocs!(c, x::Dict) = cpynewbufferprocs!(c; x...)
 cpynewbufferprocs!(c, x::NamedTuple) = cpynewbufferprocs!(c; x...)
 
-cpynewmethod!(c, x::CPyMethodDefStruct) = x
+cpynewmethod!(c, x::C.PyMethodDef) = x
 cpynewmethod!(c; name=C_NULL, meth=C_NULL, flags=0, doc=C_NULL) =
-    CPyMethodDefStruct(
+    C.PyMethodDef(
         name = name isa Ptr ? name : cacheptr!(c, string(name)),
         meth = meth,
         flags = flags,
@@ -40,9 +40,9 @@ cpynewmethod!(c; name=C_NULL, meth=C_NULL, flags=0, doc=C_NULL) =
 cpynewmethod!(c, x::Dict) = cpynewmethod!(c; x...)
 cpynewmethod!(c, x::NamedTuple) = cpynewmethod!(c; x...)
 
-cpynewgetset!(c, x::CPyGetSetDefStruct) = x
+cpynewgetset!(c, x::C.PyGetSetDef) = x
 cpynewgetset!(c; name=C_NULL, get=C_NULL, set=C_NULL, doc=C_NULL, closure=C_NULL) =
-    CPyGetSetDefStruct(
+    C.PyGetSetDef(
         name = name isa Ptr ? name : cacheptr!(c, string(name)),
         get = get,
         set = set,
@@ -66,13 +66,13 @@ function cpynewtype!(c; type=C_NULL, name, base=C_NULL, new=cglobal((:PyType_Gen
         if methods isa Ptr
             methods
         else
-            cacheptr!(c, [[cpynewmethod!(c, m) for m in methods]; CPyMethodDefStruct()])
+            cacheptr!(c, [[cpynewmethod!(c, m) for m in methods]; C.PyMethodDef()])
         end
     getset =
         if getset isa Ptr
             getset
         else
-            cacheptr!(c, [[cpynewgetset!(c, m) for m in getset]; CPyGetSetDefStruct()])
+            cacheptr!(c, [[cpynewgetset!(c, m) for m in getset]; C.PyGetSetDef()])
         end
-    CPyTypeObject(; ob_base=CPyVarObject(ob_base=CPyObject(type=type)), name=name, base=base, new=new, as_number=as_number, as_mapping=as_mapping, as_sequence=as_sequence, as_buffer=as_buffer, methods, getset, opts...)
+    C.PyTypeObject(; ob_base=C.PyVarObject(ob_base=C.PyObject(type=type)), name=name, base=base, new=new, as_number=as_number, as_mapping=as_mapping, as_sequence=as_sequence, as_buffer=as_buffer, methods, getset, opts...)
 end

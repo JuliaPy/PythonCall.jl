@@ -605,21 +605,18 @@ cpyjlattr(::Val{:__array_interface__}, ::Type{A}, ::Type{V}) where {T, A<:Abstra
     end
 
 cpyjlattr(::Val{:__array__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}, V} =
-    if mighthavemethod(pointer, Tuple{A}) && mighthavemethod(strides, Tuple{A}) && pyjlisarrayabletype(T)
-        :method => Dict(
-            :flags => C.Py_METH_NOARGS,
-            :meth => @cfunction (_o, _) -> cpycatch() do
-                pyimport("numpy").asarray(cpyjuliavalue(_o))
-            end CPyPtr (CPyJlPtr{V}, CPyPtr)
-        )
-    else
-        :method => Dict(
-            :flags => C.Py_METH_NOARGS,
-            :meth => @cfunction (_o, _) -> cpycatch() do
-                pyimport("numpy").asarray(pyjulia(PyObjectArray(cpyjuliavalue(_o))))
-            end CPyPtr (CPyJlPtr{V}, CPyPtr)
-        )
-    end
+    :method => Dict(
+        :flags => C.Py_METH_NOARGS,
+        :meth => @cfunction (_o, _) -> cpycatch() do
+            o = cpyjuliavalue(_o)
+            np = pyimport("numpy")
+            if C.PyObject_HasAttrString(_o, "__array_interface__") != 0
+                np.asarray(pynewobject(_o, true))
+            else
+                np.array(pycollist(o)).T
+            end
+        end CPyPtr (CPyJlPtr{V}, CPyPtr)
+    )
 
 #### PYOBJECTARRAY AS BUFFER AND ARRAY
 
@@ -647,14 +644,6 @@ cpyjlattr(::Val{:__array_interface__}, ::Type{A}, ::Type{V}) where {A<:PyObjectA
             )
         end CPyPtr (CPyJlPtr{V}, Ptr{Cvoid})
     )
-
-cpyjlattr(::Val{:__array__}, ::Type{A}, ::Type{V}) where {A<:PyObjectArray, V} =
-        :method => Dict(
-            :flags => C.Py_METH_NOARGS,
-            :meth => @cfunction (_o, _) -> cpycatch() do
-                pyimport("numpy").asarray(cpyjuliavalue(_o))
-            end CPyPtr (CPyJlPtr{V}, CPyPtr)
-        )
 
 #### VECTOR AND TUPLE AS SEQUENCE
 

@@ -1,9 +1,8 @@
 module CPython
 
-    import ..Python: PYLIB
-    import Base: @kwdef
-    import UnsafePointers: UnsafePtr
-    using CBinding
+    using ..Python: PYLIB
+    using Base: @kwdef
+    using UnsafePointers: UnsafePtr
 
     const Py_LT = Cint(0)
     const Py_LE = Cint(1)
@@ -300,126 +299,135 @@ module CPython
 
     const PyTypePtr = Ptr{PyTypeObject}
 
-    @cbindings PYLIB begin
-
-        @cextern Py_SetPythonHome(s::Cwstring)::Cvoid
-        @cextern Py_SetProgramName(s::Cwstring)::Cvoid
-        @cextern Py_Initialize()::Cvoid
-
-        @cextern Py_IncRef(o::PyPtr)::Cvoid
-        @cextern Py_DecRef(o::PyPtr)::Cvoid
-
-        @cextern PyImport_ImportModule(name::Cstring)::PyPtr
-        @cextern PyImport_Import(name::PyPtr)::PyPtr
-
-        @cextern PyErr_Occurred()::PyPtr
-        @cextern PyErr_GivenExceptionMatches(e::PyPtr, t::PyPtr)::Cint
-        @cextern PyErr_Clear()::Cvoid
-        @cextern PyErr_SetNone(t::PyPtr)::Cvoid
-        @cextern PyErr_SetString(t::PyPtr, m::Cstring)::Cvoid
-        @cextern PyErr_SetObject(t::PyPtr, m::PyPtr)::Cvoid
-        @cextern PyErr_Fetch(t::Ptr{PyPtr}, v::Ptr{PyPtr}, b::Ptr{PyPtr})::Cvoid
-        @cextern PyErr_NormalizeException(t::Ptr{PyPtr}, v::Ptr{PyPtr}, b::Ptr{PyPtr})::Cvoid
-
-        @cextern _PyObject_New(t::PyPtr)::PyPtr
-        @cextern PyObject_ClearWeakRefs(o::PyPtr)::Cvoid
-        @cextern PyObject_HasAttrString(o::PyPtr, k::Cstring)::Cint
-        @cextern PyObject_HasAttr(o::PyPtr, k::PyPtr)::Cint
-        @cextern PyObject_GetAttrString(o::PyPtr, k::Cstring)::PyPtr
-        @cextern PyObject_GetAttr(o::PyPtr, k::PyPtr)::PyPtr
-        @cextern PyObject_GenericGetAttr(o::PyPtr, k::PyPtr)::PyPtr
-        @cextern PyObject_SetAttrString(o::PyPtr, k::Cstring, v::PyPtr)::Cint
-        @cextern PyObject_SetAttr(o::PyPtr, k::PyPtr, v::PyPtr)::Cint
-        @cextern PyObject_GenericSetAttr(o::PyPtr, k::PyPtr, v::PyPtr)::Cint
-        @cextern PyObject_DelAttrString(o::PyPtr, k::Cstring)::Cint
-        @cextern PyObject_DelAttr(o::PyPtr, k::PyPtr)::Cint
-        @cextern PyObject_RichCompare(o1::PyPtr, o2::PyPtr, op::Cint)::PyPtr
-        @cextern PyObject_RichCompareBool(o1::PyPtr, o2::PyPtr, op::Cint)::Cint
-        @cextern PyObject_Repr(o::PyPtr)::PyPtr
-        @cextern PyObject_ASCII(o::PyPtr)::PyPtr
-        @cextern PyObject_Str(o::PyPtr)::PyPtr
-        @cextern PyObject_Bytes(o::PyPtr)::PyPtr
-        @cextern PyObject_IsSubclass(o1::PyPtr, o2::PyPtr)::Cint
-        @cextern PyObject_IsInstance(o1::PyPtr, o2::PyPtr)::Cint
-        @cextern PyObject_Hash(o::PyPtr)::Py_hash_t
-        @cextern PyObject_IsTrue(o::PyPtr)::Cint
-        @cextern PyObject_Length(o::PyPtr)::Py_ssize_t
-        @cextern PyObject_GetItem(o::PyPtr, k::PyPtr)::PyPtr
-        @cextern PyObject_SetItem(o::PyPtr, k::PyPtr, v::PyPtr)::Cint
-        @cextern PyObject_DelItem(o::PyPtr, k::PyPtr)::Cint
-        @cextern PyObject_Dir(o::PyPtr)::PyPtr
-        @cextern PyObject_GetIter(o::PyPtr)::PyPtr
-        @cextern PyObject_Call(o::PyPtr, args::PyPtr, kwargs::PyPtr)::PyPtr
-        @cextern PyObject_CallObject(o::PyPtr, args::PyPtr)::PyPtr
-
-        @cextern PyUnicode_DecodeUTF8(str::Cstring, len::Py_ssize_t, err::Ptr{Cvoid})::PyPtr
-        @cextern PyUnicode_AsUTF8String(o::PyPtr)::PyPtr
-
-        @cextern PyBytes_FromStringAndSize(str::Ptr{Cchar}, len::Py_ssize_t)::PyPtr
-        @cextern PyBytes_AsStringAndSize(o::PyPtr, str::Ptr{Ptr{Cchar}}, len::Ptr{Py_ssize_t})::Cint
-
-        @cextern PyTuple_New(len::Py_ssize_t)::PyPtr
-        @cextern PyTuple_SetItem(o::PyPtr, i::Py_ssize_t, v::PyPtr)::Cint
-
-        @cextern PyType_IsSubtype(s::PyPtr, t::PyPtr)::Cint
-        @cextern PyType_Ready(t::PyPtr)::Cint
-
-        @cextern PyNumber_Add(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_Subtract(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_Multiply(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_MatrixMultiply(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_FloorDivide(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_TrueDivide(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_Remainder(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_DivMod(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_Power(o1::PyPtr, o2::PyPtr, o3::PyPtr)::PyPtr
-        @cextern PyNumber_Negative(o::PyPtr)::PyPtr
-        @cextern PyNumber_Positive(o::PyPtr)::PyPtr
-        @cextern PyNumber_Absolute(o::PyPtr)::PyPtr
-        @cextern PyNumber_Invert(o::PyPtr)::PyPtr
-        @cextern PyNumber_Lshift(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_Rshift(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_And(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_Xor(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_Or(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_InPlaceAdd(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_InPlaceSubtract(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_InPlaceMultiply(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_InPlaceMatrixMultiply(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_InPlaceFloorDivide(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_InPlaceTrueDivide(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_InPlaceRemainder(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_InPlacePower(o1::PyPtr, o2::PyPtr, o3::PyPtr)::PyPtr
-        @cextern PyNumber_InPlaceLshift(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_InPlaceRshift(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_InPlaceAnd(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_InPlaceXor(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_InPlaceOr(o1::PyPtr, o2::PyPtr)::PyPtr
-        @cextern PyNumber_Long(o::PyPtr)::PyPtr
-        @cextern PyNumber_Float(o::PyPtr)::PyPtr
-        @cextern PyNumber_Index(o::PyPtr)::PyPtr
-
-        @cextern PyIter_Next(o::PyPtr)::PyPtr
-
-        @cextern PyLong_FromLongLong(v::Clonglong)::PyPtr
-        @cextern PyLong_FromUnsignedLongLong(v::Culonglong)::PyPtr
-        @cextern PyLong_FromString(v::Cstring, pend::Ptr{Cvoid}, base::Cint)::PyPtr
-        @cextern PyLong_AsLongLong(o::PyPtr)::Clonglong
-        @cextern PyLong_AsUnsignedLongLong(o::PyPtr)::Culonglong
-
-        @cextern PyFloat_FromDouble(v::Cdouble)::PyPtr
-        @cextern PyFloat_AsDouble(o::PyPtr)::Cdouble
-
-        @cextern PyComplex_RealAsDouble(o::PyPtr)::Cdouble
-        @cextern PyComplex_ImagAsDouble(o::PyPtr)::Cdouble
-
-        @cextern PyList_New(len::Py_ssize_t)::PyPtr
-        @cextern PyList_Append(o::PyPtr, v::PyPtr)::Cint
-
-        @cextern PyDict_New()::PyPtr
-        @cextern PyDict_SetItem(o::PyPtr, k::PyPtr, v::PyPtr)::Cint
-        @cextern PyDict_SetItemString(o::PyPtr, k::Cstring, v::PyPtr)::Cint
+    macro cdef(name, rettype, argtypes)
+        name isa QuoteNode && name.value isa Symbol || error("name must be a symbol, got $name")
+        jname = esc(name.value)
+        name = esc(name)
+        rettype = esc(rettype)
+        argtypes isa Expr && argtypes.head==:tuple || error("argtypes must be a tuple, got $argtypes")
+        nargs = length(argtypes.args)
+        argtypes = esc(argtypes)
+        args = [gensym() for i in 1:nargs]
+        :($jname($(args...)) = ccall(($name, PYLIB), $rettype, $argtypes, $(args...)))
     end
+
+    @cdef :Py_SetPythonHome Cvoid (Cwstring,)
+    @cdef :Py_SetProgramName Cvoid (Cwstring,)
+    @cdef :Py_Initialize Cvoid ()
+
+    @cdef :Py_IncRef Cvoid (PyPtr,)
+    @cdef :Py_DecRef Cvoid (PyPtr,)
+
+    @cdef :PyImport_ImportModule PyPtr (Cstring,)
+    @cdef :PyImport_Import PyPtr (PyPtr,)
+
+    @cdef :PyErr_Occurred PyPtr ()
+    @cdef :PyErr_GivenExceptionMatches Cint (PyPtr, PyPtr)
+    @cdef :PyErr_Clear Cvoid ()
+    @cdef :PyErr_SetNone Cvoid (PyPtr,)
+    @cdef :PyErr_SetString Cvoid (PyPtr, Cstring)
+    @cdef :PyErr_SetObject Cvoid (PyPtr, PyPtr)
+    @cdef :PyErr_Fetch Cvoid (Ptr{PyPtr}, Ptr{PyPtr}, Ptr{PyPtr})
+    @cdef :PyErr_NormalizeException Cvoid (Ptr{PyPtr}, Ptr{PyPtr}, Ptr{PyPtr})
+
+    @cdef :_PyObject_New PyPtr (PyPtr,)
+    @cdef :PyObject_ClearWeakRefs Cvoid (PyPtr,)
+    @cdef :PyObject_HasAttrString Cint (PyPtr, Cstring)
+    @cdef :PyObject_HasAttr Cint (PyPtr, PyPtr)
+    @cdef :PyObject_GetAttrString PyPtr (PyPtr, Cstring)
+    @cdef :PyObject_GetAttr PyPtr (PyPtr, PyPtr)
+    @cdef :PyObject_GenericGetAttr PyPtr (PyPtr, PyPtr)
+    @cdef :PyObject_SetAttrString Cint (PyPtr, Cstring, PyPtr)
+    @cdef :PyObject_SetAttr Cint (PyPtr, PyPtr, PyPtr)
+    @cdef :PyObject_GenericSetAttr Cint (PyPtr, PyPtr, PyPtr)
+    @cdef :PyObject_DelAttrString Cint (PyPtr, Cstring)
+    @cdef :PyObject_DelAttr Cint (PyPtr, PyPtr)
+    @cdef :PyObject_RichCompare PyPtr (PyPtr, PyPtr, Cint)
+    @cdef :PyObject_RichCompareBool Cint (PyPtr, PyPtr, Cint)
+    @cdef :PyObject_Repr PyPtr (PyPtr,)
+    @cdef :PyObject_ASCII PyPtr (PyPtr,)
+    @cdef :PyObject_Str PyPtr (PyPtr,)
+    @cdef :PyObject_Bytes PyPtr (PyPtr,)
+    @cdef :PyObject_IsSubclass Cint (PyPtr, PyPtr)
+    @cdef :PyObject_IsInstance Cint (PyPtr, PyPtr)
+    @cdef :PyObject_Hash Py_hash_t (PyPtr,)
+    @cdef :PyObject_IsTrue Cint (PyPtr,)
+    @cdef :PyObject_Length Py_ssize_t (PyPtr,)
+    @cdef :PyObject_GetItem PyPtr (PyPtr, PyPtr)
+    @cdef :PyObject_SetItem Cint (PyPtr, PyPtr, PyPtr)
+    @cdef :PyObject_DelItem Cint (PyPtr, PyPtr)
+    @cdef :PyObject_Dir PyPtr (PyPtr,)
+    @cdef :PyObject_GetIter PyPtr (PyPtr,)
+    @cdef :PyObject_Call PyPtr (PyPtr, PyPtr, PyPtr)
+    @cdef :PyObject_CallObject PyPtr (PyPtr, PyPtr)
+
+    @cdef :PyUnicode_DecodeUTF8 PyPtr (Cstring, Py_ssize_t, Ptr{Cvoid})
+    @cdef :PyUnicode_AsUTF8String PyPtr (PyPtr,)
+
+    @cdef :PyBytes_FromStringAndSize PyPtr (Ptr{Cchar}, Py_ssize_t)
+    @cdef :PyBytes_AsStringAndSize Cint (PyPtr, Ptr{Ptr{Cchar}}, Ptr{Py_ssize_t})
+
+    @cdef :PyTuple_New PyPtr (Py_ssize_t,)
+    @cdef :PyTuple_SetItem Cint (PyPtr, Py_ssize_t, PyPtr)
+
+    @cdef :PyType_IsSubtype Cint (PyPtr, PyPtr)
+    @cdef :PyType_Ready Cint (PyPtr,)
+
+    @cdef :PyNumber_Add PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_Subtract PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_Multiply PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_MatrixMultiply PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_FloorDivide PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_TrueDivide PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_Remainder PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_DivMod PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_Power PyPtr (PyPtr, PyPtr, PyPtr)
+    @cdef :PyNumber_Negative PyPtr (PyPtr,)
+    @cdef :PyNumber_Positive PyPtr (PyPtr,)
+    @cdef :PyNumber_Absolute PyPtr (PyPtr,)
+    @cdef :PyNumber_Invert PyPtr (PyPtr,)
+    @cdef :PyNumber_Lshift PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_Rshift PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_And PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_Xor PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_Or PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_InPlaceAdd PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_InPlaceSubtract PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_InPlaceMultiply PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_InPlaceMatrixMultiply PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_InPlaceFloorDivide PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_InPlaceTrueDivide PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_InPlaceRemainder PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_InPlacePower PyPtr (PyPtr, PyPtr, PyPtr)
+    @cdef :PyNumber_InPlaceLshift PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_InPlaceRshift PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_InPlaceAnd PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_InPlaceXor PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_InPlaceOr PyPtr (PyPtr, PyPtr)
+    @cdef :PyNumber_Long PyPtr (PyPtr,)
+    @cdef :PyNumber_Float PyPtr (PyPtr,)
+    @cdef :PyNumber_Index PyPtr (PyPtr,)
+
+    @cdef :PyIter_Next PyPtr (PyPtr,)
+
+    @cdef :PyLong_FromLongLong PyPtr (Clonglong,)
+    @cdef :PyLong_FromUnsignedLongLong PyPtr (Culonglong,)
+    @cdef :PyLong_FromString PyPtr (Cstring, Ptr{Cvoid}, Cint)
+    @cdef :PyLong_AsLongLong Clonglong (PyPtr,)
+    @cdef :PyLong_AsUnsignedLongLong Culonglong (PyPtr,)
+
+    @cdef :PyFloat_FromDouble PyPtr (Cdouble,)
+    @cdef :PyFloat_AsDouble Cdouble (PyPtr,)
+
+    @cdef :PyComplex_RealAsDouble Cdouble (PyPtr,)
+    @cdef :PyComplex_ImagAsDouble Cdouble (PyPtr,)
+
+    @cdef :PyList_New PyPtr (Py_ssize_t,)
+    @cdef :PyList_Append Cint (PyPtr, PyPtr)
+
+    @cdef :PyDict_New PyPtr ()
+    @cdef :PyDict_SetItem Cint (PyPtr, PyPtr, PyPtr)
+    @cdef :PyDict_SetItemString Cint (PyPtr, Cstring, PyPtr)
 
     Py_RefCnt(o) = GC.@preserve o UnsafePtr(Base.unsafe_convert(PyPtr, o)).refcnt[]
     Py_Type(o) = GC.@preserve o UnsafePtr(Base.unsafe_convert(PyPtr, o)).type[!]

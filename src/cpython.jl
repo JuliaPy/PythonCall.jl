@@ -329,6 +329,7 @@ module CPython
     @cdef :PyErr_SetObject Cvoid (PyPtr, PyPtr)
     @cdef :PyErr_Fetch Cvoid (Ptr{PyPtr}, Ptr{PyPtr}, Ptr{PyPtr})
     @cdef :PyErr_NormalizeException Cvoid (Ptr{PyPtr}, Ptr{PyPtr}, Ptr{PyPtr})
+    @cdef :PyErr_Restore Cvoid (PyPtr, PyPtr, PyPtr)
 
     @cdef :_PyObject_New PyPtr (PyPtr,)
     @cdef :PyObject_ClearWeakRefs Cvoid (PyPtr,)

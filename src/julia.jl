@@ -142,6 +142,7 @@ function pyjuliatype(::Type{T}) where {T}
         :setattr => pop!(special, :__setattr_str__, C_NULL),
         :getattro => pop!(special, :__getattr__, C_NULL),
         :setattro => pop!(special, :__setattr__, C_NULL),
+        :call => pop!(special, :__call__, C_NULL),
         :as_number => nb_opts,
         :as_mapping => mp_opts,
         :as_sequence => sq_opts,
@@ -223,13 +224,20 @@ function cpycatch(f, ::Type{T}=CPyPtr) where {T}
     try
         cpyreturn(T, f())
     catch err
-        bt = catch_backtrace()
-        val = try
-            pyjulia((err, bt))
-        catch
-            pynone
+        if err isa PythonRuntimeError
+            # We restore Python errors.
+            # TODO: Is this the right behaviour?
+            C.PyErr_Restore(pyincref!(err.t), pyincref!(err.v), pyincref!(err.b))
+        else
+            # Other (Julia) errors are raised as a JuliaException
+            bt = catch_backtrace()
+            val = try
+                pyjulia((err, bt))
+            catch
+                pynone
+            end
+            pyerrset(pyjuliaexception, val)
         end
-        pyerrset(pyjuliaexception, val)
         cpyerrval(T)
     end
 end
@@ -434,6 +442,14 @@ cpyjlattr(::Val{:__dir__}, ::Type{T}, ::Type{V}) where {T, V} =
             r
         end CPyPtr (CPyJlPtr{V}, CPyPtr)
     )
+
+cpyjlattr(::Val{:__call__}, ::Type{T}, ::Type{V}) where {T,V} =
+    @cfunction (_o, _args, _kwargs) -> cpycatch() do
+        o = cpyjuliavalue(_o)
+        args = [pyconvert(Any, v) for v in pynewobject(_args, true)]
+        kwargs = _kwargs==C_NULL ? Dict() : Dict(Symbol(pystr_asjuliastring(k)) => pyconvert(Any, v) for (k,v) in pynewobject(_kwargs, true))
+        pyobject(o(args...; kwargs...))
+    end CPyPtr (CPyJlPtr{V}, CPyPtr, CPyPtr)
 
 #### ARRAY AS BUFFER AND ARRAY
 
@@ -778,9 +794,7 @@ cpyjlattr(::Val{:writelines}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
     :method => Dict(
         :flags => C.Py_METH_O,
         :meth => @cfunction (_o, _lines) -> cpycatch() do
-            _wr = C.PyObject_GetAttrString(_o, "write")
-            _wr == C_NULL && return _wr
-            wr = pynewobject(_wr, true)
+            wr = pynewobject(_o, true).write
             for line in pynewobject(_lines, true)
                 wr(line)
             end

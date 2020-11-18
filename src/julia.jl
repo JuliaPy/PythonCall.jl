@@ -942,3 +942,91 @@ cpyjlattr(::Val{:readline}, ::Type{BufferedIO{V}}, ::Type{V}) where {V} =
                 @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "readline"); CPyPtr(0)) CPyPtr (CPyJlPtr{V}, CPyPtr)
             end
     )
+
+# TextIO
+
+cpyjlattr(::Val{:encoding}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
+    :property => Dict(
+        :get => @cfunction (_o, _) -> cpyreturn(CPyPtr, pystr("utf-8")) CPyPtr (CPyPtr, Ptr{Cvoid})
+    )
+
+cpyjlattr(::Val{:errors}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
+    :property => Dict(
+        :get => @cfunction (_o, _) -> cpyreturn(CPyPtr, pystr("strict")) CPyPtr (CPyPtr, Ptr{Cvoid})
+    )
+
+cpyjlattr(::Val{:newlines}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
+    :property => Dict(
+        :get => @cfunction (_o, _) -> cpyreturn(CPyPtr, pynone) CPyPtr (CPyPtr, Ptr{Cvoid})
+    )
+
+cpyjlattr(::Val{:detach}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
+    :method => Dict(
+        :flags => C.Py_METH_NOARGS,
+        :meth => @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "detach"); CPyPtr(0)) CPyPtr (CPyJlPtr{V}, CPyPtr)
+    )
+
+cpyjlattr(::Val{:read}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
+    :method => Dict(
+        :flags => C.Py_METH_VARARGS,
+        :meth => @cfunction (_o, _args) -> cpycatch() do
+            args = pyconvert(Union{Tuple{}, Tuple{Int,Nothing}}, pynewobject(_args, true))
+            o = cpyjuliavalue(_o)
+            n = (args===() || args===(nothing,)) ? typemax(Int) : args[1]
+            b = IOBuffer()
+            for i in 1:n
+                eof(o) && break
+                c = write(b, read(o, Char))
+            end
+            seekstart(b)
+            pystr(read(b, String))
+        end CPyPtr (CPyJlPtr{V}, CPyPtr)
+    )
+
+cpyjlattr(::Val{:readline}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
+    :method => Dict(
+        :flags => C.Py_METH_VARARGS,
+        :meth => @cfunction (_o, _args) -> cpycatch() do
+            args = pyconvert(Union{Tuple{}, Tuple{Int,Nothing}}, pynewobject(_args, true))
+            o = cpyjuliavalue(_o)
+            n = (args===() || args===(nothing,)) ? typemax(Int) : args[1]
+            b = IOBuffer()
+            for i in 1:n
+                eof(o) && break
+                c = read(o, Char)
+                if c == '\n'
+                    write(b, '\n')
+                    break
+                elseif c == '\r'
+                    write(b, '\n')
+                    !eof(o) && peek(o, Char)=='\n' && read(o, Char)
+                    break
+                else
+                    write(b, c)
+                end
+            end
+            seekstart(b)
+            pystr(read(b, String))
+        end CPyPtr (CPyJlPtr{V}, CPyPtr)
+    )
+
+const pyoslinesep = PyLazyObject(() -> pyimport("os").linesep)
+
+cpyjlattr(::Val{:write}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
+    :method => Dict(
+        :flags => C.Py_METH_O,
+        :meth => @cfunction (_o, _x) -> cpycatch() do
+            x = pystr_asjuliastring(pynewobject(_x, true))
+            o = cpyjuliavalue(_o)
+            n = 0
+            for c in x
+                if c == '\n'
+                    write(o, pystr_asjuliastring(pyoslinesep))
+                else
+                    write(o, c)
+                end
+                n += 1
+            end
+            pyint(n)
+        end CPyPtr (CPyJlPtr{V}, CPyPtr)
+    )

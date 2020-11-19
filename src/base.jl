@@ -122,11 +122,15 @@ end
 
 Base.getindex(o::AbstractPyObject, k) = pygetitem(o, k)
 Base.getindex(o::AbstractPyObject, k...) = pygetitem(o, k)
+
 Base.setindex!(o::AbstractPyObject, v, k) = (pysetitem(o, k, v); o)
 Base.setindex!(o::AbstractPyObject, v, k...) = (pysetitem(o, k, v); o)
+
 Base.delete!(o::AbstractPyObject, k) = (pydelitem(o, k); o)
 
 Base.length(o::AbstractPyObject) = Int(pylen(o))
+
+Base.in(v, o::AbstractPyObject) = pycontains(o, v)
 
 (f::AbstractPyObject)(args...; kwargs...) = pycall(f, args...; kwargs...)
 

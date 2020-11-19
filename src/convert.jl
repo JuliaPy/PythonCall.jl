@@ -115,3 +115,96 @@ pyconvert_value(args...) =
     let r = pytryconvert_value(args...)
         r === PyConvertFail() ? error("cannot convert this to a value") : r
     end
+
+"""
+    pyconvert_args(NamedTuple{argnames, argtypes}, args, kwargs=nothing; defaults=nothing, numpos=len(names), numposonly=0)
+
+Parse the Python tuple `args` and optionally Python dict `kwargs` as function arguments, returning a `NamedTuple{names,types}`.
+
+- `defaults` is a named tuple of default parameter values for optional arguments.
+- `numpos` is the number of possibly-positional arguments.
+- `numposonly` is the number of positional-only arguments.
+"""
+@generated function pyconvert_args(
+    ::Type{NamedTuple{argnames,argtypes}},
+    args::AbstractPyObject,
+    kwargs::Union{AbstractPyObject,Nothing}=nothing;
+    defaults::Union{NamedTuple,Nothing}=nothing,
+    numposonly::Integer=0,
+    numpos::Integer=length(argnames),
+) where {argnames, argtypes}
+    code = []
+    argvars = []
+    push!(code, quote
+        0 ≤ numposonly ≤ numpos ≤ length(argnames) || error("require 0 ≤ numposonly ≤ numpos ≤ numargs")
+        nargs = pylen(args)
+        nargs ≤ numpos || pythrow(pytypeerror("at most $numpos positional arguments expected, got $nargs"))
+    end)
+    for (i,(argname,argtype)) in enumerate(zip(argnames,argtypes.parameters))
+        argvar = gensym()
+        push!(argvars, argvar)
+        push!(code, quote
+            $argvar =
+                if $i ≤ numpos && $i ≤ nargs
+                    kwargs !== nothing && $(string(argname)) in kwargs && pythrow(pytypeerror($("argument '$argname' got multiple values")))
+                    let r = pytryconvert($argtype, args[$(i-1)])
+                        r===PyConvertFail() ? pythrow(pytypeerror($("argument '$argname' has wrong type"))) : r
+                    end
+                elseif kwargs !== nothing && $i > numposonly && $(string(argname)) in kwargs
+                    let r = pytryconvert($argtype, kwargs.pop($(string(argname))))
+                        r===PyConvertFail() ? pythrow(pytypeerror($("argument '$argname' has wrong type"))) : r
+                    end
+                elseif defaults !== nothing && haskey(defaults, $(QuoteNode(argname)))
+                    convert($argtype, defaults[$(QuoteNode(argname))])
+                else
+                    pythrow(pytypeerror($("argument '$argname' not given")))
+                end
+        end)
+    end
+    push!(code, quote
+        kwargs !== nothing && pylen(kwargs) > 0 && pythrow(pytypeerror("invalid keyword arguments: $(join(kwargs, ", "))"))
+        NamedTuple{$argnames, $argtypes}(($(argvars...),))
+    end)
+    ex = Expr(:block, code...)
+    @show ex
+end
+
+macro pyconvert_args(spec, args, kwargs=nothing)
+    spec isa Expr && spec.head == :tuple || @goto error
+    argnames = []
+    argtypes = []
+    defaults = []
+    numposonly = 0
+    numpos = -1
+    for argspec in spec.args
+        if argspec === :*
+            numpos = length(argnames)
+            continue
+        elseif argspec == :/
+            numposonly = length(argnames)
+            continue
+        end
+        if argspec isa Expr && argspec.head == :(=)
+            argspec, dflt = argspec.args
+        else
+            dflt = nothing
+        end
+        if argspec isa Expr && argspec.head == :(::)
+            argspec, tp = argspec.args
+        else
+            tp = PyObject
+        end
+        if argspec isa Symbol
+            nm = argspec
+        else
+            @goto error
+        end
+        push!(argnames, nm)
+        push!(argtypes, tp)
+        dflt === nothing || push!(defaults, nm => dflt)
+    end
+    numpos < 0 && (numpos = length(argnames))
+    return :(pyconvert_args(NamedTuple{($(map(QuoteNode, argnames)...),),Tuple{$(map(esc, argtypes)...)}}, $(esc(args)), $(esc(kwargs)), defaults=NamedTuple{($([QuoteNode(n) for (n,d) in defaults]...),)}(($([esc(d) for (n,d) in defaults]...),)), numpos=$numpos, numposonly=$numposonly))
+    @label error
+    error("invalid argument specification")
+end

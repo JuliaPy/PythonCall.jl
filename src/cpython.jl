@@ -362,6 +362,8 @@ module CPython
     @cdef :PyObject_Call PyPtr (PyPtr, PyPtr, PyPtr)
     @cdef :PyObject_CallObject PyPtr (PyPtr, PyPtr)
 
+    @cdef :PySequence_Contains Cint (PyPtr, PyPtr)
+
     @cdef :PyUnicode_DecodeUTF8 PyPtr (Cstring, Py_ssize_t, Ptr{Cvoid})
     @cdef :PyUnicode_AsUTF8String PyPtr (PyPtr,)
 

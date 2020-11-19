@@ -28,6 +28,7 @@ include("import.jl")
 
 # abstract interfaces
 include("number.jl")
+include("sequence.jl")
 
 # fundamental objects
 include("type.jl")

@@ -608,12 +608,11 @@ cpyjlattr(::Val{:__array__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}
     :method => Dict(
         :flags => C.Py_METH_NOARGS,
         :meth => @cfunction (_o, _) -> cpycatch() do
-            o = cpyjuliavalue(_o)
             np = pyimport("numpy")
             if C.PyObject_HasAttrString(_o, "__array_interface__") != 0
                 np.asarray(pynewobject(_o, true))
             else
-                np.array(pycollist(o)).T
+                np.array(PyObjectArray(cpyjuliavalue(_o)))
             end
         end CPyPtr (CPyJlPtr{V}, CPyPtr)
     )

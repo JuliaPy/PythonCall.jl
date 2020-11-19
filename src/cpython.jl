@@ -364,6 +364,8 @@ module CPython
 
     @cdef :PySequence_Contains Cint (PyPtr, PyPtr)
 
+    @cdef :PyInstanceMethod_New PyPtr (PyPtr,)
+
     @cdef :PyUnicode_DecodeUTF8 PyPtr (Cstring, Py_ssize_t, Ptr{Cvoid})
     @cdef :PyUnicode_AsUTF8String PyPtr (PyPtr,)
 

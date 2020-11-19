@@ -17,7 +17,7 @@ macro pyeval(src)
                 push!(parts, ex)
             else
                 n += 1
-                v = "__jl_escape_$n"
+                v = "_jl_escape_$n"
                 escapes[v] = ex
                 push!(parts, "($v)")
             end
@@ -51,7 +51,7 @@ macro pyexec(src, ret=nothing)
                 push!(parts, ex)
             else
                 n += 1
-                v = "__jl_escape_$n"
+                v = "_jl_escape_$n"
                 escapes[v] = ex
                 push!(parts, "($v)")
             end

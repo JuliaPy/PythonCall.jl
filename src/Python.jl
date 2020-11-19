@@ -51,6 +51,9 @@ include("list.jl")
 include("dict.jl")
 include("set.jl")
 
+# function objects
+include("function.jl")
+
 # other objects
 include("slice.jl")
 include("range.jl")

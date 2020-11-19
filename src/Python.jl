@@ -76,13 +76,11 @@ include("PyBuffer.jl")
 include("PyArray.jl")
 
 # other functionality
+include("convert.jl")
 include("newtype.jl")
 include("julia.jl")
 include("base.jl")
 include("pywith.jl")
 include("macros.jl")
-
-# otherwise forward declarations are required
-include("convert.jl")
 
 end # module

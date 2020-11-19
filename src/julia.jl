@@ -806,9 +806,8 @@ cpyjlattr(::Val{:truncate}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
         :meth =>
             if mighthavemethod(truncate, Tuple{T, Int}) && mighthavemethod(position, Tuple{T})
                 @cfunction (_o, _args) -> cpycatch() do
-                    args = pyconvert(Union{Tuple, Tuple{Union{Int,Nothing}}}, pynewobject(_args, true))
-                    o = cpyjuliavalue(_o)
-                    n = (args===() || args===(nothing,)) ? position(o) : args[1]
+                    n, = @pyconvert_args (size::Union{Int,Nothing}=nothing,) pynewobject(_args, true)
+                    n === nothing && (n = position(o))
                     truncate(o, n)
                     pyint(n)
                 end CPyPtr (CPyJlPtr{V}, CPyPtr)
@@ -823,17 +822,17 @@ cpyjlattr(::Val{:seek}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
         :meth =>
             if mighthavemethod(seek, Tuple{V, Int}) && mighthavemethod(position, Tuple{V})
                 @cfunction (_o, _args) -> cpycatch() do
-                    args = pyconvert(Union{Tuple{Int}, Tuple{Int,Int}}, pynewobject(_args, true))
+                    n, w = @pyconvert_args (offset::Int, whence::Int=0) pynewobject(_args, true)
                     o = cpyjuliavalue(_o)
-                    if length(args)==1 || args[2]==0
-                        seek(o, args[1])
-                    elseif args[2]==1
-                        seek(o, position(o)+args[1])
-                    elseif args[2]==2
+                    if w == 0
+                        seek(o, n)
+                    elseif w==1
+                        seek(o, position(o)+n)
+                    elseif w==2
                         seekend(o)
-                        seek(o, position(o)+args[1])
+                        seek(o, position(o)+n)
                     else
-                        error("invalid whence: $(args[2])")
+                        pythrow(pyvalueerror("invalid whence: $w"))
                     end
                     pyint(position(o))
                 end CPyPtr (CPyJlPtr{V}, CPyPtr)
@@ -884,9 +883,9 @@ cpyjlattr(::Val{:read}, ::Type{BufferedIO{V}}, ::Type{V}) where {V} =
         :meth =>
             if mighthavemethod(read, Tuple{V}) && mighthavemethod(read, Tuple{V, Int})
                 @cfunction (_o, _args) -> cpycatch() do
-                    args = pyconvert(Union{Tuple{}, Tuple{Int}}, pynewobject(_args, true))
+                    n, = @pyconvert_args (size::Union{Int,Nothing}=-1,) pynewobject(_args, true)
                     o = cpyjuliavalue(_o)
-                    pybytes(convert(Vector{UInt8}, length(args)==0 ? read(o) : read(o, args[1])))
+                    pybytes(convert(Vector{UInt8}, (n===nothing || n < 0) ? read(o) : read(o, n)))
                 end CPyPtr (CPyJlPtr{V}, CPyPtr)
             else
                 @cfunction (_o, _) -> (pyerrset(pyiounsupportedoperation, "read"); CPyPtr(0)) CPyPtr (CPyJlPtr{V}, CPyPtr)
@@ -915,10 +914,10 @@ cpyjlattr(::Val{:readline}, ::Type{BufferedIO{V}}, ::Type{V}) where {V} =
         :meth =>
             if mighthavemethod(read, Tuple{V, Type{UInt8}})
                 @cfunction (_o, _args) -> cpycatch() do
-                    args = pyconvert(Union{Tuple{}, Tuple{Int}}, pynewobject(_args, true))
+                    n, = @pyconvert_args (size::Union{Int,Nothing}=-1,) pynewobject(_args, true)
                     o = cpyjuliavalue(_o)
                     data = UInt8[]
-                    while !eof(o) && (args===() || length(data) ≤ args[1])
+                    while !eof(o) && (n===nothing || n < 0 || length(data) ≤ n)
                         c = read(o, UInt8)
                         push!(data, c)
                         c == 0x0A && break
@@ -957,13 +956,13 @@ cpyjlattr(::Val{:read}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
     :method => Dict(
         :flags => C.Py_METH_VARARGS,
         :meth => @cfunction (_o, _args) -> cpycatch() do
-            args = pyconvert(Union{Tuple{}, Tuple{Int,Nothing}}, pynewobject(_args, true))
+            n, = @pyconvert_args (size::Union{Int,Nothing}=-1,) pynewobject(_args, true)
             o = cpyjuliavalue(_o)
-            n = (args===() || args===(nothing,)) ? typemax(Int) : args[1]
             b = IOBuffer()
-            for i in 1:n
-                eof(o) && break
-                c = write(b, read(o, Char))
+            i = 0
+            while !eof(o) && (n===nothing || n < 0 || i < n)
+                i += 1
+                write(b, read(o, Char))
             end
             seekstart(b)
             pystr(read(b, String))
@@ -974,12 +973,12 @@ cpyjlattr(::Val{:readline}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
     :method => Dict(
         :flags => C.Py_METH_VARARGS,
         :meth => @cfunction (_o, _args) -> cpycatch() do
-            args = pyconvert(Union{Tuple{}, Tuple{Int,Nothing}}, pynewobject(_args, true))
+            n, = @pyconvert_args (size::Union{Int,Nothing}=-1,) pynewobject(_args, true)
             o = cpyjuliavalue(_o)
-            n = (args===() || args===(nothing,)) ? typemax(Int) : args[1]
             b = IOBuffer()
-            for i in 1:n
-                eof(o) && break
+            i = 0
+            while !eof(o) && (n===nothing || n < 0 || i < n)
+                i += 1
                 c = read(o, Char)
                 if c == '\n'
                     write(b, '\n')

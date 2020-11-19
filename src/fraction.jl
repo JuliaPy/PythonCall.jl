@@ -1,4 +1,4 @@
-const pyfractiontype = PyLazyObject(() -> pyimport("fractions").Fraction)
+const pyfractiontype = PyLazyObject(() -> pyfractionsmodule.Fraction)
 export pyfractiontype
 
 pyfraction(args...; opts...) = pyfractiontype(args...; opts...)

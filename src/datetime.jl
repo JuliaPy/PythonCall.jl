@@ -1,5 +1,3 @@
-const pydatetimemodule = PyLazyObject(() -> pyimport("datetime"))
-
 const pydatetimetype = PyLazyObject(() -> pydatetimemodule.datetime)
 export pydatetimetype
 

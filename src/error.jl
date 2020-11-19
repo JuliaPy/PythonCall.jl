@@ -104,7 +104,7 @@ function Base.showerror(io::IO, e::PythonRuntimeError)
         println(io)
         printstyled(io, "Python stacktrace:")
         try
-            fs = pyimport("traceback").extract_tb(e.b)
+            fs = pytracebackmodule.extract_tb(e.b)
             nfs = pylen(fs)
             for i in 1:nfs
                 println(io)

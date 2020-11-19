@@ -608,11 +608,10 @@ cpyjlattr(::Val{:__array__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}
     :method => Dict(
         :flags => C.Py_METH_NOARGS,
         :meth => @cfunction (_o, _) -> cpycatch() do
-            np = pyimport("numpy")
             if C.PyObject_HasAttrString(_o, "__array_interface__") != 0
-                np.asarray(pynewobject(_o, true))
+                pynumpymodule.asarray(pynewobject(_o, true))
             else
-                np.array(PyObjectArray(cpyjuliavalue(_o)))
+                pynumpymodule.array(PyObjectArray(cpyjuliavalue(_o)))
             end
         end CPyPtr (CPyJlPtr{V}, CPyPtr)
     )
@@ -646,24 +645,24 @@ cpyjlattr(::Val{:__array_interface__}, ::Type{A}, ::Type{V}) where {A<:PyObjectA
 
 #### VECTOR AND TUPLE AS SEQUENCE
 
-pyjlabc(::Type{T}) where {T<:AbstractVector} = pyimport("collections.abc").Sequence
-pyjlabc(::Type{T}) where {T<:Tuple} = pyimport("collections.abc").Sequence
+pyjlabc(::Type{T}) where {T<:AbstractVector} = pycollectionsabcmodule.Sequence
+pyjlabc(::Type{T}) where {T<:Tuple} = pycollectionsabcmodule.Sequence
 
 #### SET AS SET
 
-pyjlabc(::Type{T}) where {T<:AbstractSet} = pyimport("collections.abc").Set
+pyjlabc(::Type{T}) where {T<:AbstractSet} = pycollectionsabcmodule.Set
 
 #### DICT AS MAPPING
 
-pyjlabc(::Type{T}) where {T<:AbstractDict} = pyimport("collections.abc").Mapping
+pyjlabc(::Type{T}) where {T<:AbstractDict} = pycollectionsabcmodule.Mapping
 
 #### NUMBER AS NUMBER
 
-pyjlabc(::Type{T}) where {T<:Number} = pyimport("numbers").Number
-pyjlabc(::Type{T}) where {T<:Complex} = pyimport("numbers").Complex
-pyjlabc(::Type{T}) where {T<:Real} = pyimport("numbers").Real
-pyjlabc(::Type{T}) where {T<:Rational} = pyimport("numbers").Rational
-pyjlabc(::Type{T}) where {T<:Integer} = pyimport("numbers").Integral
+pyjlabc(::Type{T}) where {T<:Number} = pynumbersmodule.Number
+pyjlabc(::Type{T}) where {T<:Complex} = pynumbersmodule.Complex
+pyjlabc(::Type{T}) where {T<:Real} = pynumbersmodule.Real
+pyjlabc(::Type{T}) where {T<:Rational} = pynumbersmodule.Rational
+pyjlabc(::Type{T}) where {T<:Integer} = pynumbersmodule.Integral
 
 #### IO AS IO
 
@@ -671,10 +670,10 @@ abstract type RawIO{V} <: SubClass{V} end
 abstract type BufferedIO{V} <: SubClass{V} end
 abstract type TextIO{V} <: SubClass{V} end
 
-pyjlabc(::Type{T}) where {T<:IO} = pyimport("io").IOBase
-pyjlabc(::Type{T}) where {T<:RawIO} = pyimport("io").RawIOBase
-pyjlabc(::Type{T}) where {T<:BufferedIO} = pyimport("io").BufferedIOBase
-pyjlabc(::Type{T}) where {T<:TextIO} = pyimport("io").TextIOBase
+pyjlabc(::Type{T}) where {T<:IO} = pyiomodule.IOBase
+pyjlabc(::Type{T}) where {T<:RawIO} = pyiomodule.RawIOBase
+pyjlabc(::Type{T}) where {T<:BufferedIO} = pyiomodule.BufferedIOBase
+pyjlabc(::Type{T}) where {T<:TextIO} = pyiomodule.TextIOBase
 
 pyjuliarawio(o::IO) = pyjulia(o, RawIO{typeof(o)})
 pyjuliabufferedio(o::IO) = pyjulia(o, BufferedIO{typeof(o)})
@@ -998,8 +997,6 @@ cpyjlattr(::Val{:readline}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
         end CPyPtr (CPyJlPtr{V}, CPyPtr)
     )
 
-const pyoslinesep = PyLazyObject(() -> pyimport("os").linesep)
-
 cpyjlattr(::Val{:write}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
     :method => Dict(
         :flags => C.Py_METH_O,
@@ -1007,9 +1004,10 @@ cpyjlattr(::Val{:write}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
             x = pystr_asjuliastring(pynewobject(_x, true))
             o = cpyjuliavalue(_o)
             n = 0
+            linesep = pystr_asjuliastring(pyosmodule.linesep)
             for c in x
                 if c == '\n'
-                    write(o, pystr_asjuliastring(pyoslinesep))
+                    write(o, linesep)
                 else
                     write(o, c)
                 end

@@ -6,6 +6,7 @@ using Base: @kwdef
 # dependencies
 include(joinpath(@__DIR__, "..", "deps", "deps.jl"))
 
+# things not directly dependent on PyObject or libpython
 include("utils.jl")
 
 # C API
@@ -24,33 +25,46 @@ include("init.jl")
 include("object.jl")
 include("error.jl")
 include("import.jl")
-include("builtins.jl")
 
-# concrete objects
+# abstract interfaces
 include("number.jl")
 
+# fundamental objects
 include("type.jl")
 include("none.jl")
 
+# numeric objects
 include("bool.jl")
 include("int.jl")
 include("float.jl")
 include("complex.jl")
-include("fraction.jl")
 
+# sequence objects
 include("str.jl")
 include("bytes.jl")
 include("bytearray.jl")
 include("tuple.jl")
 include("list.jl")
+
+# mapping objects
 include("dict.jl")
 include("set.jl")
 
+# other objects
 include("slice.jl")
 include("range.jl")
+
+# standard library
+include("builtins.jl")
+include("stdlib.jl")
+include("io.jl")
+include("fraction.jl")
 include("datetime.jl")
 include("collections.jl")
-include("io.jl")
+
+# other packages
+include("pandas.jl")
+include("numpy.jl")
 
 # other Julia wrappers around Python values
 include("PyIterable.jl")
@@ -59,8 +73,8 @@ include("PyDict.jl")
 include("PyObjectArray.jl")
 include("PyBuffer.jl")
 include("PyArray.jl")
-include("PyPandas.jl")
 
+# other functionality
 include("newtype.jl")
 include("julia.jl")
 include("base.jl")

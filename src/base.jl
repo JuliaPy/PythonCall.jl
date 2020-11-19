@@ -16,7 +16,7 @@ function Base.show(io::IO, ::MIME"text/plain", o::AbstractPyObject)
     w -= 1
     h -= 5
     x = try
-        pystr_asjuliastring(pyimport("pprint").pformat(o, width=w))
+        pystr_asjuliastring(pypprintmodule.pformat(o, width=w))
     catch
         pyrepr(String, o)
     end

@@ -1,6 +1,6 @@
 for p in [:Container, :Hashable, :Iterable, :Iterator, :Reversible, :Generator, :Sized, :Callable, :Collection, :Sequence, :MutableSequence, :ByteString, :Set, :MutableSet, :Mapping, :MutableMapping, :MappingView, :ItemsView, :KeysView, :ValuesView, :Awaitable, :Coroutine, :AsyncIterable, :AsyncIterator, :AsyncGenerator]
     j = Symbol(:py, lowercase(string(p)), :abc)
-    @eval const $j = PyLazyObject(() -> pyimport("collections.abc").$p)
+    @eval const $j = PyLazyObject(() -> pycollectionsabcmodule.$p)
     @eval export $j
 end
 

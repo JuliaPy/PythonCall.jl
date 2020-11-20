@@ -78,6 +78,7 @@ include("PyDict.jl")
 include("PyObjectArray.jl")
 include("PyBuffer.jl")
 include("PyArray.jl")
+include("PyIO.jl")
 
 # other functionality
 include("convert.jl")

@@ -3,6 +3,11 @@ for m in ["os", "sys", "pprint", "traceback", "numbers", "math", "collections", 
     @eval const $j = PyLazyObject(() -> pyimport($m))
 end
 
+"""
+    pynewclass(name, bases=(), kwargs=nothing; attrs...)
+
+Create a new Python class with the given name, base classes and attributes.
+"""
 pynewclass(name, bases=(), kwargs=nothing; attrs...) =
     py"""
     def f(c):

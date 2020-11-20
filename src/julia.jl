@@ -474,7 +474,7 @@ function cpyjl_getbuffer_impl(_o, _b, flags, ptr, elsz, len, ndim, fmt, sz, strd
     b.ndim[] = ndim
 
     # readonly
-    if isflagset(flags, CPyBUF_WRITABLE)
+    if isflagset(flags, C.PyBUF_WRITABLE)
         if mutable
             b.readonly[] = 1
         else
@@ -486,22 +486,22 @@ function cpyjl_getbuffer_impl(_o, _b, flags, ptr, elsz, len, ndim, fmt, sz, strd
     end
 
     # format
-    if isflagset(flags, CPyBUF_FORMAT)
+    if isflagset(flags, C.PyBUF_FORMAT)
         b.format[] = cacheptr!(c, fmt)
     else
         b.format[] = C_NULL
     end
 
     # shape
-    if isflagset(flags, CPyBUF_ND)
-        b.shape[] = cacheptr!(c, CPy_ssize_t[sz...])
+    if isflagset(flags, C.PyBUF_ND)
+        b.shape[] = cacheptr!(c, C.Py_ssize_t[sz...])
     else
         b.shape[] = C_NULL
     end
 
     # strides
-    if isflagset(flags, CPyBUF_STRIDES)
-        b.strides[] = cacheptr!(c, CPy_ssize_t[(strds .* elsz)...])
+    if isflagset(flags, C.PyBUF_STRIDES)
+        b.strides[] = cacheptr!(c, C.Py_ssize_t[(strds .* elsz)...])
     else
         if size_to_cstrides(1, sz...) != strds
             pyerrset(pybuffererror, "not C contiguous and strides not requested")
@@ -511,19 +511,19 @@ function cpyjl_getbuffer_impl(_o, _b, flags, ptr, elsz, len, ndim, fmt, sz, strd
     end
 
     # check contiguity
-    if isflagset(flags, CPyBUF_C_CONTIGUOUS)
+    if isflagset(flags, C.PyBUF_C_CONTIGUOUS)
         if size_to_cstrides(1, sz...) != strds
             pyerrset(pybuffererror, "not C contiguous")
             return -1
         end
     end
-    if isflagset(flags, CPyBUF_F_CONTIGUOUS)
+    if isflagset(flags, C.PyBUF_F_CONTIGUOUS)
         if size_to_fstrides(1, sz...) != strds
             pyerrset(pybuffererror, "not Fortran contiguous")
             return -1
         end
     end
-    if isflagset(flags, CPyBUF_ANY_CONTIGUOUS)
+    if isflagset(flags, C.PyBUF_ANY_CONTIGUOUS)
         if size_to_cstrides(1, sz...) != strds && size_to_fstrides(1, sz...) != strds
             pyerrset(pybuffererror, "not contiguous")
             return -1
@@ -540,7 +540,7 @@ function cpyjl_getbuffer_impl(_o, _b, flags, ptr, elsz, len, ndim, fmt, sz, strd
 
     # obj
     b.obj[] = _o
-    cpyincref(_o)
+    C.Py_IncRef(_o)
     return 0
 end
 

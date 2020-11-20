@@ -89,6 +89,8 @@ Base.getproperty(o::AbstractPyObject, k::Symbol) =
         (args...) -> PyArray{args...}(o)
     elseif k == :jl!pandastable
         (; opts...) -> PyPandasDataFrame(o; opts...)
+    elseif k == :jl!io
+        (; opts...) -> PyIO(o; opts...)
     else
         pygetattr(o, k)
     end

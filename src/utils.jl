@@ -9,6 +9,7 @@ isccontiguous(o::AbstractArray) = strides(o) == size_to_cstrides(1, size(o)...)
 
 # TODO: make this better: e.g. views are immutable structures, but should be considered mutable arrays
 ismutablearray(x::AbstractArray) = !isimmutable(x)
+ismutablearray(x::SubArray) = ismutablearray(parent(x))
 
 pybufferformat(::Type{T}) where {T} =
     T == Int8 ? "=b" :
@@ -60,6 +61,9 @@ pybufferformat_to_type(fmt::AbstractString) =
     fmt == "?" ? Bool :
     fmt == "P" ? Ptr{Cvoid} :
     fmt == "O" ? CPyObjRef :
+    fmt == "=e" ? Float16 :
+    fmt == "=f" ? Float32 :
+    fmt == "=d" ? Float64 :
     error("not implemented: $(repr(fmt))")
 
 ### TYPE UTILITIES

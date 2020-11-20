@@ -28,7 +28,7 @@ The function `pyobject(x)` implements this conversion.
 - Tuples and pairs become `tuple`
 - Dates, times and datetimes become their equivalent from `datetime`
 
-Everything else is wrapped into a Python wrapper around the Julia value (implemented by `pyjulia(x)`). This wrapper implements Python interfaces where appropriate, including subclassing the appropriate abstract base class:
+Everything else is wrapped into a Python wrapper around the Julia value (implemented by `pyjl(x)`). This wrapper implements Python interfaces where appropriate, including subclassing the appropriate abstract base class:
 
 - Property access, indexing, function calls, arithmetic, etc. behaves as expected
 - Iterable objects implement the iterable interface

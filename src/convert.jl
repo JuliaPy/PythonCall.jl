@@ -2,6 +2,7 @@ function pyconvert(::Type{T}, o::AbstractPyObject) where {T}
     r = pytryconvert(T, o)
     r === PyConvertFail() ? error("cannot convert this Python `$(pytype(o).__name__)` to a Julia `$T`") : r
 end
+pyconvert(::Type{T}) where {T} = o -> pyconvert(T, o)
 export pyconvert
 
 function pytryconvert(::Type{T}, o::AbstractPyObject) where {T}
@@ -35,6 +36,7 @@ function pytryconvert(::Type{T}, o::AbstractPyObject) where {T}
     # failure
     return PyConvertFail()
 end
+pytryconvert(::Type{T}) where {T} = o -> pytryconvert(T, o)
 export pytryconvert
 
 const PYTRYCONVERT_TYPE_RULES = Dict{String,Function}(

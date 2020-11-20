@@ -1,3 +1,3 @@
-pybufferedio(io::IO) = pyjuliabufferedio(io)
-pytextio(io::IO) = pyjuliatextio(io)
+pybufferedio(io::IO) = pyjlbufferedio(io)
+pytextio(io::IO) = pyjltextio(io)
 export pybufferedio, pytextio

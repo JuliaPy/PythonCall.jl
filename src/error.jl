@@ -55,9 +55,9 @@ function Base.showerror(io::IO, e::PythonRuntimeError)
     end
 
     # if this is a Julia exception then recursively print it and its stacktrace
-    if pyerrmatches(e.t, pyjuliaexception)
+    if pyerrmatches(e.t, pyjlexception)
         try
-            jp = pyjuliavalue(e.v.args[0])
+            jp = pyjlvalue(e.v.args[0])
             if jp !== nothing
                 je, jb = jp
                 print(io, "Python: Julia: ")

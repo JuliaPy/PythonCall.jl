@@ -76,8 +76,8 @@ pyobject(o::AbstractRange{<:Integer}) = pyrange(o)
 pyobject(o::DateTime) = pydatetime(o)
 pyobject(o::Date) = pydate(o)
 pyobject(o::Time) = pytime(o)
-pyobject(o::IO) = pyjulia(o, BufferedIO{typeof(o)})
-pyobject(o) = pyjulia(o)
+pyobject(o::IO) = pyjl(o, BufferedIO{typeof(o)})
+pyobject(o) = pyjl(o)
 export pyobject
 
 ### ABSTRACT OBJECT API

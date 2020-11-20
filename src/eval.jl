@@ -29,25 +29,26 @@ pyexec(src, globals, locals=nothing) = (pyexecfunc(src, scope(globals), locals);
 """
     py"...."[flags]
 
-Evaluate or execute the given Python source code.
+Evaluate (`v`) or execute (`x`) the given Python source code.
 
 Julia values may be interpolated into the source code with `\$` syntax. For a literal `\$`, enter `\$\$`.
 
+Execution occurs in a global scope unique to the current module.
+
 The flags can be any combination of the following characters:
-- `v` (evaluate): Evaluate and return a single expression.
-- `x` (execute): Execute the code and returns `nothing`.
-- `g` (globals): Return the dict of globals for the scope instead. Useful to immediately extract a function or class defined by the code.
-- `z` (lazy): Return a `PyLazyObject` instead, delaying evaluation until the value is used. Use this for objects at the top scope of a module.
-- `c` (compile): Cache a compiled version of the source and re-use it each time, for speed. Useful if being called many times, such as in a function or loop.
+- `v` (evaluate): Evaluate a single expression and return its value.
+- `x` (execute): Execute the code and return `nothing`.
+- `g` (globals): Return the dict of globals for the scope instead.
+- `l` (locals): Perform the computation in a new local scope and return that scope.
+- `c` (compile): Cache a compiled version of the source and re-use it each time, for speed.
 
 If neither `v` nor `x` is specified and the code is a single line then `v` (evaluate) is assumed, otherwise `x` (execute).
-
-Execution occurs in a scope unique to the current module.
 """
 macro py_str(src::String, flags::String="")
     # parse the flags
     exec = '\n' in src
-    retscope = false
+    retglobals = false
+    retlocals = false
     lazy = false
     compile = false
     for f in flags
@@ -56,9 +57,11 @@ macro py_str(src::String, flags::String="")
         elseif f == 'v'
             exec = false
         elseif f == 'g'
-            retscope = true
-        elseif f == 'z'
-            lazy = true
+            retglobals = true
+        elseif f == 'l'
+            retlocals = true
+        # elseif f == 'z'
+        #     lazy = true
         elseif f == 'c'
             compile = true
         else
@@ -99,11 +102,13 @@ macro py_str(src::String, flags::String="")
         newsrc = :(get!(()->$newsrc, COMPILECACHE, ($newsrcstr, $cfile, $cmode)))
     end
     # make the expression
-    ex = :(let s=scope(@__MODULE__)
-        $([:(check(C.PyDict_SetItemString(s, $k, pyobject($(esc(v)))))) for (k,v) in interps]...)
-        r = $(exec ? :pyexec : :pyeval)($newsrc, s)
-        $([:(check(C.PyDict_DelItemString(s, $k))) for (k,v) in interps]...)
-        $(retscope ? :s : exec ? nothing : :r)
+    ex = :(let
+        globals = scope(@__MODULE__)
+        locals = $(retlocals ? :(pydict()) : :globals)
+        $([:(check(C.PyDict_SetItemString(globals, $k, pyobject($(esc(v)))))) for (k,v) in interps]...)
+        result = $(exec ? :pyexec : :pyeval)($newsrc, globals, locals)
+        $([:(check(C.PyDict_DelItemString(globals, $k))) for (k,v) in interps]...)
+        $(retlocals ? :locals : retglobals ? :globals : exec ? nothing : :result)
     end)
     if lazy
         # wrap as a lazy object

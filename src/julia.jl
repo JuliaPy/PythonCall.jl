@@ -446,8 +446,8 @@ cpyjlattr(::Val{:__dir__}, ::Type{T}, ::Type{V}) where {T, V} =
 cpyjlattr(::Val{:__call__}, ::Type{T}, ::Type{V}) where {T,V} =
     @cfunction (_o, _args, _kwargs) -> cpycatch() do
         o = cpyjuliavalue(_o)
-        args = [pyconvert(Any, v) for v in pynewobject(_args, true)]
-        kwargs = _kwargs==C_NULL ? Dict() : Dict(Symbol(pystr_asjuliastring(k)) => pyconvert(Any, v) for (k,v) in pynewobject(_kwargs, true))
+        args = pynewobject(_args, true)
+        kwargs = _kwargs==C_NULL ? Dict() : Dict(Symbol(pystr_asjuliastring(k)) => v for (k,v) in pynewobject(_kwargs, true))
         pyobject(o(args...; kwargs...))
     end CPyPtr (CPyJlPtr{V}, CPyPtr, CPyPtr)
 

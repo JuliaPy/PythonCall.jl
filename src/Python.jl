@@ -60,6 +60,7 @@ include("range.jl")
 
 # standard library
 include("builtins.jl")
+include("eval.jl")
 include("stdlib.jl")
 include("io.jl")
 include("fraction.jl")
@@ -84,6 +85,5 @@ include("newtype.jl")
 include("julia.jl")
 include("base.jl")
 include("pywith.jl")
-include("eval.jl")
 
 end # module

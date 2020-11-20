@@ -2,7 +2,7 @@ const pybuiltins = PyLazyObject(() -> pyimport("builtins"))
 export pybuiltins
 
 # types
-for p in [:classmethod, :enumerate, :filter, :map, :property, :reversed, :pystaticmethod, :super, :zip]
+for p in [:classmethod, :enumerate, :filter, :map, :property, :reversed, :staticmethod, :super, :zip]
     j = Symbol(:py, p, :type)
     @eval const $j = PyLazyObject(() -> pybuiltins.$p)
     @eval export $j

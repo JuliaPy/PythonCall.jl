@@ -29,7 +29,7 @@ Base.pushfirst!(x::PyList, v) = insert!(x, 1, v)
 
 Base.pop!(x::PyList{T}) where {T} = pyconvert(T, x.o.pop())
 
-Base.pop!(x::PyList{T}, i::Integer) where {T} = pyconvert(T, x.o.pop(i-1))
+Base.popat!(x::PyList{T}, i::Integer) where {T} = pyconvert(T, x.o.pop(i-1))
 
 Base.popfirst!(x::PyList) = pop!(x, 1)
 

@@ -21,7 +21,7 @@ function Base.iterate(x::PyDict{K,V}, it=pyiter(x.o.items())) where {K,V}
         nothing
     else
         kv = pynewobject(ptr)
-        (convert(K, kv[0]), convert(V, kv[1])), it
+        (convert(K, kv[0]) => convert(V, kv[1])), it
     end
 end
 
@@ -35,3 +35,29 @@ Base.delete!(x::PyDict{K,V}, k) where {K,V} =
     (pydelitem(x.o, convert(K, k)); x)
 
 Base.length(x::PyDict) = Int(pylen(x.o))
+
+Base.empty!(x::PyDict) = (x.o.clear(); x)
+
+Base.copy(x::PyDict) = typeof(x)(x.o.copy())
+
+function Base.get(x::PyDict{K,V}, _k, d) where {K,V}
+    k = convert(K, _k)
+    pycontains(x.o, k) ? x[k] : d
+end
+
+function Base.get(f::Function, x::PyDict{K,V}, _k) where {K,V}
+    k = convert(K, _k)
+    pycontains(x.o, k) ? x[k] : f()
+end
+
+function Base.get!(x::PyDict{K,V}, _k, d) where {K,V}
+    k = convert(K, _k)
+    pycontains(x.o, k) || (x[k] = d)
+    x[k]
+end
+
+function Base.get!(f::Function, x::PyDict{K,V}, _k) where {K,V}
+    k = convert(K, _k)
+    pycontains(x.o, k) || (x[k] = f())
+    x[k]
+end

@@ -643,10 +643,202 @@ cpyjlattr(::Val{:__array_interface__}, ::Type{A}, ::Type{V}) where {A<:PyObjectA
         end CPyPtr (CPyJlPtr{V}, Ptr{Cvoid})
     )
 
-#### VECTOR AND TUPLE AS SEQUENCE
+#### VECTOR, TUPLE, NAMED TUPLE as SEQUENCE
 
-pyjlabc(::Type{T}) where {T<:AbstractVector} = pycollectionsabcmodule.Sequence
-pyjlabc(::Type{T}) where {T<:Tuple} = pycollectionsabcmodule.Sequence
+const SequenceLike = Union{AbstractVector, Tuple, NamedTuple}
+
+pyjlabc(::Type{T}) where {T<:SequenceLike} = pycollectionsabcmodule.Sequence
+
+cpyjlattr(::Val{:__getitem__}, ::Type{T}, ::Type{V}) where {T<:Union{AbstractArray,SequenceLike}, V} =
+    if mighthavemethod(getindex, Tuple{T, Any})
+        @cfunction (_o, _k) -> cpycatch(CPyPtr) do
+            o = cpyjlvalue(_o)
+            k = pynewobject(_k, true)
+            i = pytryconvert(Union{Int,Tuple{Vararg{Int}}}, k)
+            if i===PyConvertFail()
+                pyerrset(pyvalueerror, "invalid index of type '$(pytype(k).__name__)'")
+                return CPyPtr(0)
+            end
+            cpyreturn(CPyPtr, pyobject(o[(i.+1)...]))
+        end CPyPtr (CPyJlPtr{V}, CPyPtr)
+    end
+
+cpyjlattr(::Val{:__setitem__}, ::Type{T}, ::Type{V}) where {T<:Union{AbstractArray,SequenceLike}, V} =
+    if mighthavemethod(setindex!, Tuple{T, Any, Any})
+        @cfunction (_o, _k, _v) -> cpycatch(Cint) do
+            _v == C_NULL && error("deletion not implemented")
+            o = cpyjlvalue(_o)
+            k = pynewobject(_k, true)
+            i = pytryconvert(Union{Int,Tuple{Vararg{Int}}}, k)
+            if i===PyConvertFail()
+                pyerrset(pyvalueerror, "invalid index of type '$(pytype(k).__name__)'")
+                return -1
+            end
+            v = pytryconvert_value(o, pynewobject(_v, true), (i.+1)...)
+            o[(i.+1)...] = v
+            0
+        end Cint (CPyJlPtr{V}, CPyPtr, CPyPtr)
+    end
+
+cpyjlattr(::Val{:index}, ::Type{T}, ::Type{V}) where {T<:Union{SequenceLike}, V} =
+    :method => Dict(
+        :flags => C.Py_METH_O,
+        :meth => @cfunction (_o, _v) -> cpycatch() do
+            o = cpyjlvalue(_o)
+            v = pytryconvert_value(o, pynewobject(_v, true))
+            i = v===PyConvertFail() ? nothing : findfirst(==(v), o)
+            if i === nothing
+                pyerrset(pyvalueerror, "no such value")
+            else
+                pyint(i - firstindex(o))
+            end
+        end CPyPtr (CPyJlPtr{V}, CPyPtr)
+    )
+
+cpyjlattr(::Val{:count}, ::Type{T}, ::Type{V}) where {T<:Union{AbstractArray,SequenceLike}, V} =
+    :method => Dict(
+        :flags => C.Py_METH_O,
+        :meth => @cfunction (_o, _v) -> cpycatch() do
+            o = cpyjlvalue(_o)
+            v = pytryconvert_value(o, pynewobject(_v, true))
+            n = v===PyConvertFail() ? 0 : count(==(v), o)
+            pyint(n)
+        end CPyPtr (CPyJlPtr{V}, CPyPtr)
+    )
+
+cpyjlattr(::Val{:append}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
+    if mighthavemethod(push!, Tuple{T,Any})
+        :method => Dict(
+            :flags => C.Py_METH_O,
+            :meth => @cfunction (_o, _v) -> cpycatch() do
+                o = cpyjlvalue(_o)
+                v = pytryconvert_value(o, pynewobject(_v, true))
+                if v === PyConvertFail()
+                    pyerrset(pytypeerror, "invalid element type")
+                    CPyPtr(0)
+                else
+                    push!(o, v)
+                    cpyreturn(CPyPtr, pynone)
+                end
+            end CPyPtr (CPyJlPtr{V}, CPyPtr)
+        )
+    end
+
+cpyjlattr(::Val{:__iconcat__}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
+    @cfunction (_o, _v) -> cpycatch() do
+        o = cpyjlvalue(_o)
+        for _x in pynewobject(_v, true)
+            x = pytryconvert_value(o, _x)
+            if x === PyConvertFail()
+                pyerrset(pytypeerror, "invalid element type")
+                return CPyPtr(0)
+            else
+                push!(o, x)
+            end
+        end
+        cpyreturn(CPyPtr, pynone)
+    end CPyPtr (CPyJlPtr{V}, CPyPtr)
+
+cpyjlattr(::Val{:extend}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
+    if mighthavemethod(push!, Tuple{T,Any})
+        :method => Dict(
+            :flags => C.Py_METH_O,
+            :meth => @cfunction (_o, _v) -> cpycatch() do
+                pynewobject(_o, true).__iadd__(pynewobject(_v, true))
+            end CPyPtr (CPyJlPtr{V}, CPyPtr)
+        )
+    end
+
+cpyjlattr(::Val{:insert}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
+    if mighthavemethod(insert!, Tuple{T,Int,Any})
+        :method => Dict(
+            :flags => C.Py_METH_VARARGS,
+            :meth => @cfunction (_o, _args) -> cpycatch() do
+                o = cpyjlvalue(_o)
+                i, _v = @pyconvert_args (i::Int, x) pynewobject(_args, true)
+                v = pytryconvert_value(o, _v)
+                if v === PyConvertFail()
+                    pyerrset(pytypeerror, "invalid element type")
+                    CPyPtr(0)
+                else
+                    insert!(o, i + firstindex(o), v)
+                    cpyreturn(CPyPtr, pynone)
+                end
+            end CPyPtr (CPyJlPtr{V}, CPyPtr)
+        )
+    end
+
+cpyjlattr(::Val{:pop}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
+    if mighthavemethod(popat!, Tuple{T,Int})
+        :method => Dict(
+            :flags => C.Py_METH_VARARGS,
+            :meth => @cfunction (_o, _args) -> cpycatch() do
+                o = cpyjlvalue(_o)
+                i, = @pyconvert_args (i::Union{Int,Nothing}=nothing,) pynewobject(_args, true)
+                pyobject(popat!(o, i===nothing ? lastindex(o) : i + firstindex(o)))
+            end CPyPtr (CPyJlPtr{V}, CPyPtr)
+        )
+    end
+
+cpyjlattr(::Val{:remove}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
+    if mighthavemethod(popat!, Tuple{T,Int})
+        :method => Dict(
+            :flags => C.Py_METH_O,
+            :meth => @cfunction (_o, _v) -> cpycatch() do
+                o = pynewobject(_o, true)
+                v = pynewobject(_v, true)
+                o.pop(o.index(v))
+            end CPyPtr (CPyJlPtr{V}, CPyPtr)
+        )
+    end
+
+cpyjlattr(::Val{:clear}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
+    if mighthavemethod(empty!, Tuple{T})
+        :method => Dict(
+            :flags => C.Py_METH_NOARGS,
+            :meth => @cfunction (_o, _) -> cpycatch() do
+                o = cpyjlvalue(_o)
+                empty!(o)
+                pynone
+            end CPyPtr (CPyJlPtr{V}, CPyPtr)
+        )
+    end
+
+cpyjlattr(::Val{:sort}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
+    if mighthavemethod(sort!, Tuple{T})
+        :method => Dict(
+            :flags => C.Py_METH_VARARGS | C.Py_METH_KEYWORDS,
+            :meth => @cfunction (_o, _args, _kwargs) -> cpycatch() do
+                o = cpyjlvalue(_o)
+                key, rev = @pyconvert_args (key=pynone, rev::Bool=false) pynewobject(_args, true) (_kwargs == C_NULL ? pydict() : pynewobject(_kwargs, true))
+                sort!(o; by = pyisnone(key) ? identity : key, rev = rev)
+                pynone
+            end CPyPtr (CPyJlPtr{V}, CPyPtr, CPyPtr)
+        )
+    end
+
+cpyjlattr(::Val{:reverse}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
+    if mighthavemethod(reverse!, Tuple{T})
+        :method => Dict(
+            :flags => C.Py_METH_NOARGS,
+            :meth => @cfunction (_o, _) -> cpycatch() do
+                o = cpyjlvalue(_o)
+                reverse!(o)
+                pynone
+            end CPyPtr (CPyJlPtr{V}, CPyPtr)
+        )
+    end
+
+cpyjlattr(::Val{:copy}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
+    if mighthavemethod(copy, Tuple{T})
+        :method => Dict(
+            :flags => C.Py_METH_NOARGS,
+            :meth => @cfunction (_o, _) -> cpycatch() do
+                o = cpyjlvalue(_o)
+                pyjl(copy(o))
+            end CPyPtr (CPyJlPtr{V}, CPyPtr)
+        )
+    end
 
 #### SET AS SET
 

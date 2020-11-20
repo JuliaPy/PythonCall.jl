@@ -90,7 +90,7 @@ pyconvert_element(args...) =
 """
     pytryconvert_indices(o, k::AbstractPyObject)
 
-Convert `k` to be of the right type to be a tuple of indices for `o`.
+Convert `k` to a tuple of indices for `o`.
 """
 function pytryconvert_indices(o, k)
     if _keytype(o) !== missing
@@ -168,7 +168,6 @@ Parse the Python tuple `args` and optionally Python dict `kwargs` as function ar
         NamedTuple{$argnames, $argtypes}(($(argvars...),))
     end)
     ex = Expr(:block, code...)
-    @show ex
 end
 
 macro pyconvert_args(spec, args, kwargs=nothing)

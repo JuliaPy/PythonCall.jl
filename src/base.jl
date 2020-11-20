@@ -154,6 +154,8 @@ Base.:(< )(o1::AbstractPyObject, o2::AbstractPyObject) = pylt(Bool, o1, o2)
 Base.:(<=)(o1::AbstractPyObject, o2::AbstractPyObject) = pyle(Bool, o1, o2)
 Base.:(> )(o1::AbstractPyObject, o2::AbstractPyObject) = pygt(Bool, o1, o2)
 Base.:(>=)(o1::AbstractPyObject, o2::AbstractPyObject) = pyge(Bool, o1, o2)
+Base.isequal(o1::AbstractPyObject, o2::AbstractPyObject) = pyeq(Bool, o1, o2)
+Base.isless(o1::AbstractPyObject, o2::AbstractPyObject) = pylt(Bool, o1, o2)
 
 # arithmetic
 # TODO: allow arithmetic with non-python objects? maybe just Numbers?

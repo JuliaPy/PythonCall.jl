@@ -84,6 +84,6 @@ include("newtype.jl")
 include("julia.jl")
 include("base.jl")
 include("pywith.jl")
-include("macros.jl")
+include("eval.jl")
 
 end # module

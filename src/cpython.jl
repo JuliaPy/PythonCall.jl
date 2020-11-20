@@ -433,6 +433,7 @@ module CPython
     @cdef :PyDict_New PyPtr ()
     @cdef :PyDict_SetItem Cint (PyPtr, PyPtr, PyPtr)
     @cdef :PyDict_SetItemString Cint (PyPtr, Cstring, PyPtr)
+    @cdef :PyDict_DelItemString Cint (PyPtr, Cstring)
 
     Py_RefCnt(o) = GC.@preserve o UnsafePtr(Base.unsafe_convert(PyPtr, o)).refcnt[]
     Py_Type(o) = GC.@preserve o UnsafePtr(Base.unsafe_convert(PyPtr, o)).type[!]

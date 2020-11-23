@@ -159,7 +159,7 @@ end
 
 Wrap the Python text-based IO stream `o` as a Julia IO stream.
 
-Since encoding of `o` is respected, only the textual operations are supported: `print(io, ...)`, `read(io, String)`, `read(io, Char)`, `readuntil(io, delim)`, `readline(io)`.
+Since encoding of `o` is respected, only textual operations are supported: `print(io, ...)`, `read(io, String)`, `read(io, Char)`, `readuntil(io, delim)`, `readline(io)`.
 
 For efficiency, reads and writes are buffered before being sent to `o`. The size of the buffer is `buflen`.
 """

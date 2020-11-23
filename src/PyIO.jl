@@ -23,14 +23,6 @@ export PyByteIO
 
 pyobject(io::PyByteIO) = io.o
 
-# empty the buffers (including writing the output buffer)
-# required before any seek/truncate/position call because we don't track the position relative to the buffers
-function resetbufs(io::PyByteIO)
-    writeobuf(io)
-    io.ibufpos = io.ibufused = 0
-    nothing
-end
-
 # write the contents of the out buffer
 function writeobuf(io::PyByteIO)
     if io.obufused > 0
@@ -74,18 +66,6 @@ function Base.eof(io::PyByteIO)
         io.eof = io.ibufpos == io.ibufused
     end
 end
-
-Base.position(io::PyByteIO) = (resetbufs(io); io.o.tell().jl!i)
-
-Base.seek(io::PyByteIO, n::Integer) = (resetbufs(io); io.o.seek(n); io)
-
-Base.seekstart(io::PyByteIO) = (resetbufs(io); io.o.seek(0); io)
-
-Base.seekend(io::PyByteIO) = (resetbufs(io); io.o.seek(0,2); io)
-
-Base.skip(io::PyByteIO, n::Integer) = (resetbufs(io); io.o.seek(pyint(n), 1); io)
-
-Base.truncate(io::PyByteIO, n::Integer) = (resetbufs(io); io.o.truncate(n); nothing)
 
 Base.fd(io::PyByteIO) = io.o.fileno().jl!i
 
@@ -171,4 +151,141 @@ function Base.read(io::PyByteIO, ::Type{UInt8})
     io.pos += 1
     io.ibufpos += 1
     r
+end
+
+
+"""
+    PyTextIO(o; buflen=4096)
+
+Wrap the Python text-based IO stream `o` as a Julia IO stream.
+
+Since encoding of `o` is respected, only the textual operations are supported: `print(io, ...)`, `read(io, String)`, `read(io, Char)`, `readuntil(io, delim)`, `readline(io)`.
+
+For efficiency, reads and writes are buffered before being sent to `o`. The size of the buffer is `buflen`.
+"""
+mutable struct PyTextIO <: IO
+    o :: PyObject
+    # true if we are definitely at the end of the file; false if we are not or don't know
+    eof :: Bool
+    # input buffer
+    ibuflen :: Int
+    ibuf :: String
+    ibufpos :: Int
+    # output buffer
+    obuflen :: Int
+    obuf :: Vector{String}
+    obufused :: Int
+end
+PyTextIO(o::AbstractPyObject; buflen=4096, ibuflen=buflen, obuflen=buflen) =
+    PyTextIO(PyObject(o), false, ibuflen, "", 1, obuflen, String[], 0)
+export PyTextIO
+
+pyobject(io::PyTextIO) = io.o
+
+# write the contents of the out buffer
+function writeobuf(io::PyTextIO)
+    if io.obufused > 0
+        io.o.write(join(io.obuf))
+        empty!(io.obuf)
+        io.obufused = 0
+    end
+    nothing
+end
+
+# if possible, read more into the in buffer
+# if the in buffer is empty after this call then we are at EOF
+function readibuf(io::PyTextIO)
+    if io.ibufpos > lastindex(io.ibuf)
+        io.ibuf = pystr_asjuliastring(io.o.read(io.ibuflen))
+        io.ibufpos = 1
+    end
+    nothing
+end
+
+function Base.flush(io::PyTextIO)
+    writeobuf(io)
+    io.o.flush()
+    nothing
+end
+
+Base.close(io::PyTextIO) = (flush(io); io.o.close(); nothing)
+
+function Base.eof(io::PyTextIO)
+    if io.eof
+        true
+    elseif io.ibufpos ≤ lastindex(io.ibuf)
+        false
+    else
+        readibuf(io)
+        io.eof = io.ibufpos > lastindex(io.ibuf)
+    end
+end
+
+Base.fd(io::PyTextIO) = io.o.fileno().jl!i
+
+Base.isreadable(io::PyTextIO) = io.o.readable().jl!b
+
+Base.iswritable(io::PyTextIO) = io.o.writable().jl!b
+
+Base.isopen(io::PyTextIO) = !io.o.closed.jl!b
+
+function Base.print(io::PyTextIO, _x)
+    x = convert(String, string(_x))
+    push!(io.obuf, x)
+    io.obufused += sizeof(x)
+    if io.obufused ≥ io.obuflen
+        writeobuf(io)
+    end
+    nothing
+end
+Base.print(io::PyTextIO, x::Union{String, SubString{String}}) = invoke(print, Tuple{PyTextIO, Any}, io, x)
+Base.print(io::PyTextIO, x::Char) = invoke(print, Tuple{PyTextIO, Any}, io, x)
+
+function Base.read(io::PyTextIO, ::Type{String})
+    r = io.ibuf[io.ibufpos:end] * pystr_asjuliastring(io.o.read())
+    io.ibuf = ""
+    io.ibufpos = 1
+    r
+end
+
+function Base.read(io::PyTextIO, ::Type{Char})
+    eof(io) && throw(EOFError())
+    @assert io.ibufpos ≤ lastindex(io.ibuf)
+    r = io.ibuf[io.ibufpos]
+    io.ibufpos = nextind(io.ibuf, io.ibufpos)
+    r
+end
+
+function Base.readuntil(io::PyTextIO, delim::Char; keep::Bool=false)
+    xs = String[]
+    while true
+        eof(io) && throw(EOFError())
+        pos = findnext(delim, io.ibuf, io.ibufpos)
+        if pos === nothing
+            push!(xs, io.ibuf[io.ibufpos:end])
+            io.ibufpos = 1
+            io.ibuf = ""
+            readibuf(io)
+        else
+            push!(xs, io.ibuf[io.ibufpos:(keep ? pos : prevind(io.ibuf, pos))])
+            io.ibufpos = nextind(io.ibuf, pos)
+            break
+        end
+    end
+    join(xs)
+end
+
+function Base.readuntil(io::PyTextIO, delim::String; keep::Bool=false)
+    if length(delim) == 0
+        ""
+    elseif length(delim) == 1
+        readuntil(io, delim[1], keep=keep)
+    else
+        error("not implemented")
+    end
+end
+
+function Base.readline(io::PyTextIO; keep::Bool=false)
+    line = readuntil(io, '\n', keep=keep)
+    !keep && endswith(line, '\r') ? line[1:end-1] : line
 end

@@ -1,4 +1,5 @@
-# Python.jl
+![Python.jl logo](https://raw.githubusercontent.com/cjdoris/Python.jl/master/logo-text.svg)
+---
 
 Call Python from Julia!
 

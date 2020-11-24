@@ -87,7 +87,7 @@ Base.getproperty(o::AbstractPyObject, k::Symbol) =
         () -> PyBuffer(o)
     elseif k == :jl!array
         (args...) -> PyArray{args...}(o)
-    elseif k == :jl!pandastable
+    elseif k == :jl!pandasdf
         (; opts...) -> PyPandasDataFrame(o; opts...)
     elseif k == :jl!io
         (; opts...) -> PyIO(o; opts...)

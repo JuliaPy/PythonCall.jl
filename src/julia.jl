@@ -609,9 +609,9 @@ cpyjlattr(::Val{:__array__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}
         :flags => C.Py_METH_NOARGS,
         :meth => @cfunction (_o, _) -> cpycatch() do
             if C.PyObject_HasAttrString(_o, "__array_interface__") != 0
-                pynumpymodule.asarray(pynewobject(_o, true))
+                pynumpy.asarray(pynewobject(_o, true))
             else
-                pynumpymodule.array(PyObjectArray(cpyjlvalue(_o)))
+                pynumpy.array(PyObjectArray(cpyjlvalue(_o)))
             end
         end CPyPtr (CPyJlPtr{V}, CPyPtr)
     )

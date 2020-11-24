@@ -16,7 +16,7 @@ Here we create a Julia array, interpret it as a NumPy array, modify the NumPy ar
 julia> using Python
 
 julia> np = pyimport("numpy")
-py: <module 'numpy' from 'C:\\Users\\chris\\.julia\\conda\\3\\lib\\site-packages\\numpy\\__init__.py'>
+py: <module 'numpy' from '...'>
 
 julia> x = rand(2,3)
 2×3 Array{Float64,2}:
@@ -66,7 +66,7 @@ Here we create a Pandas dataframe, interpret it as a Julia table satisfying the 
 julia> using DataFrames
 
 julia> pd = pyimport("pandas")
-py: <module 'pandas' from 'C:\\Users\\chris\\.julia\\conda\\3\\lib\\site-packages\\pandas\\__init__.py'>
+py: <module 'pandas' from '...'>
 
 julia> x = pd.DataFrame(pydict(x=[1,2,3], y=["a","b","c"], z=rand(3)))
 py:

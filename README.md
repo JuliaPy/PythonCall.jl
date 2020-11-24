@@ -1,47 +1,55 @@
 ![Python.jl logo](https://raw.githubusercontent.com/cjdoris/Python.jl/master/logo-text.svg)
 ---
 
-Call Python from Julia!
+Bringing **Python** and **Julia** together for ultimate awesomeness.
+- Simple syntax, just like regular Python.
+- Intuitive and flexible conversions between Julia and Python: anything can be converted, you are in control.
+- Fast non-copying conversion of numeric arrays in either direction: modify numpy arrays from Julia or Julia arrays from Python.
+- Helpful wrappers: interpret Python sequences, dictionaries, arrays, dataframes and IO streams as their Julia couterparts.
+- Beautiful stack-traces.
 
-## Basic usage by example
+## Example
 
 ```julia
-# import a python module
-pymath = pyimport("math")
+julia> using Python
 
-# julia property access <--> python attribute access
-println("pi = ", pymath.pi)
+julia> np = pyimport("numpy")
+py: <module 'numpy' from 'C:\\Users\\chris\\.julia\\conda\\3\\lib\\site-packages\\numpy\\__init__.py'>
 
-# basic julia types (numbers, strings, etc) automatically converted to their Julia equivalent
-pymath.sin(3.141) + pymath.cos(3.141)
+julia> xjl = rand(2,3)
+2×3 Array{Float64,2}:
+ 0.0100335  0.475726  0.54648
+ 0.718499   0.888354  0.821937
+
+julia> xpy = np.asarray(xjl)
+py:
+array([[0.01003352, 0.47572603, 0.54648036],
+       [0.71849857, 0.88835385, 0.82193677]])
+
+julia> xpy[0,0] += 10
+py: 10.010033515997105
+
+julia> xjl
+2×3 Array{Float64,2}:
+ 10.01      0.475726  0.54648
+  0.718499  0.888354  0.821937
+
+julia> ypy = pylist(["apples", "oranges", "bananas"])
+py: ['apples', 'oranges', 'bananas']
+
+julia> yjl = PyList{String}(ypy)
+3-element PyList{String}:
+ "apples"
+ "oranges"
+ "bananas"
+
+julia> push!(yjl, "grapes")
+4-element PyList{String}:
+ "apples"
+ "oranges"
+ "bananas"
+ "grapes"
+
+julia> ypy
+py: ['apples', 'oranges', 'bananas', 'grapes']
 ```
-
-## Conversion from Julia to Python
-
-Julia objects are converted to a Python equivalent automatically when required.
-
-The function `pyobject(x)` implements this conversion.
-
-- `nothing` becomes `None`
-- Boolean, integer, floating-point, rational and complex numbers become their Python equivalent
-- Integer ranges become `range`
-- Strings and characters become `str`
-- Tuples and pairs become `tuple`
-- Dates, times and datetimes become their equivalent from `datetime`
-
-Everything else is wrapped into a Python wrapper around the Julia value (implemented by `pyjl(x)`). This wrapper implements Python interfaces where appropriate, including subclassing the appropriate abstract base class:
-
-- Property access, indexing, function calls, arithmetic, etc. behaves as expected
-- Iterable objects implement the iterable interface
-- Vectors implement the sequence interface
-- Dictionaries implement the mapping interface
-- Sets implement the set interface
-- Arrays with suitable element type implement the buffer interface
-- Numbers implement the numbers interface
-- IO objects implement the binary IO interface (call `pytextio(x)` for a text IO wrapper instead)
-
-## Conversion from Python to Julia
-
-Calling Python functions always returns a Python object; no automatic conversion back to Julia is performed.
-
-Use `pyconvert(T, o)` to convert the Python object `o` to a Julia object of type `T`.

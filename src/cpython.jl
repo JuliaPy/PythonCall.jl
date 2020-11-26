@@ -1,6 +1,7 @@
 module CPython
 
-    using ..Python: PYLIB
+    using Libdl
+    using ..Python: CONFIG
     using Base: @kwdef
     using UnsafePointers: UnsafePtr
 
@@ -302,18 +303,35 @@ module CPython
     macro cdef(name, rettype, argtypes)
         name isa QuoteNode && name.value isa Symbol || error("name must be a symbol, got $name")
         jname = esc(name.value)
+        refname = esc(Symbol(name.value, :_funcptr))
         name = esc(name)
         rettype = esc(rettype)
         argtypes isa Expr && argtypes.head==:tuple || error("argtypes must be a tuple, got $argtypes")
         nargs = length(argtypes.args)
         argtypes = esc(argtypes)
         args = [gensym() for i in 1:nargs]
-        :($jname($(args...)) = ccall(($name, PYLIB), $rettype, $argtypes, $(args...)))
+        quote
+            const $refname = Ref(C_NULL)
+            function $jname($(args...))
+                ptr = $refname[]
+                if ptr == C_NULL
+                    ptr = $refname[] = dlsym(CONFIG.libptr, $name)
+                end
+                ccall(ptr, $rettype, $argtypes, $(args...))
+            end
+        end
     end
+
+    @cdef :Py_Initialize Cvoid ()
+    @cdef :Py_InitializeEx Cvoid (Cint,)
+    @cdef :Py_Finalize Cvoid ()
+    @cdef :Py_FinalizeEx Cint ()
+    @cdef :Py_AtExit Cint (Ptr{Cvoid},)
+    @cdef :Py_IsInitialized Cint ()
 
     @cdef :Py_SetPythonHome Cvoid (Cwstring,)
     @cdef :Py_SetProgramName Cvoid (Cwstring,)
-    @cdef :Py_Initialize Cvoid ()
+    @cdef :Py_GetVersion Cstring ()
 
     @cdef :Py_IncRef Cvoid (PyPtr,)
     @cdef :Py_DecRef Cvoid (PyPtr,)
@@ -453,7 +471,7 @@ module CPython
     function PyObject_GetBuffer(o, b, flags)
         p = UnsafePtr{PyTypeObject}(Py_Type(o)).as_buffer[]
         if p == C_NULL || p.get[] == C_NULL
-            PyErr_SetString(unsafe_load(cglobal((:PyExc_TypeError, PYLIB), PyPtr)), "a bytes-like object is required, not '$(String(UnsafePtr{PyTypeObject}(Py_Type(o)).name[]))'")
+            PyErr_SetString(unsafe_load(Ptr{PyPtr}(dlsym(CONFIG.libptr, :PyExc_TypeError))), "a bytes-like object is required, not '$(String(UnsafePtr{PyTypeObject}(Py_Type(o)).name[]))'")
             return Cint(-1)
         end
         ccall(p.get[!], Cint, (PyPtr, Ptr{Py_buffer}, Cint), o, b, flags)

@@ -13,7 +13,7 @@ mutable struct PyObject <: AbstractPyObject
         o = new(CPyPtr(ptr))
         borrowed && C.Py_IncRef(ptr)
         finalizer(o) do o
-            C.Py_DecRef(pyptr(o))
+            CONFIG.isinitialized && C.Py_DecRef(pyptr(o))
             setfield!(o, :ptr, CPyPtr(C_NULL))
             nothing
         end

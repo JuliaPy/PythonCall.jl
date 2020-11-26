@@ -11,6 +11,7 @@ Type parameters which are not given or set to `missing` are inferred:
 - `L` is true if the array supports fast linear indexing.
 """
 mutable struct PyArray{T,N,R,M,L} <: AbstractArray{T,N}
+    o :: PyObject
     ptr :: Ptr{R}
     size :: NTuple{N,Int}
     length :: Int
@@ -79,13 +80,15 @@ function PyArray{T,N,R,M,L}(o::AbstractPyObject, info=pyarray_info(o)) where {T,
         error("L must be missing, true or false")
     end
 
-    PyArray{T, N, R, M, L}(Ptr{R}(info.ptr), size, N==0 ? 1 : prod(size), bytestrides, info.handle)
+    PyArray{T, N, R, M, L}(o, Ptr{R}(info.ptr), size, N==0 ? 1 : prod(size), bytestrides, info.handle)
 end
 PyArray{T,N,R,M}(o) where {T,N,R,M} = PyArray{T,N,R,M,missing}(o)
 PyArray{T,N,R}(o) where {T,N,R} = PyArray{T,N,R,missing}(o)
 PyArray{T,N}(o) where {T,N} = PyArray{T,N,missing}(o)
 PyArray{T}(o) where {T} = PyArray{T,missing}(o)
 PyArray(o) where {} = PyArray{missing}(o)
+
+pyobject(x::PyArray) = x.o
 
 function pyarray_info(o::AbstractPyObject)
     # TODO: support the numpy array interface too
@@ -113,7 +116,7 @@ Base.@propagate_inbounds Base.setindex!(x::PyArray{T,N,R,true,L}, v, i::Vararg{I
         pyarray_store!(x.ptr + pyarray_offset(x, i...), convert(T, v))
         x
     else
-        invoke(setindex!, Tuple{AbstractArray{T,N}, T, Vararg{Int,N2}}, x, v, i...)
+        invoke(setindex!, Tuple{AbstractArray{T,N}, typeof(v), Vararg{Int,N2}}, x, v, i...)
     end
 
 pyarray_default_T(::Type{R}) where {R} = R

@@ -1,10 +1,131 @@
-const PYWHOME = Base.cconvert(Cwstring, PYHOME)
-const PYWPROGNAME = Base.cconvert(Cwstring, PYPROGNAME)
-const PYISSTACKLESS = false
+function python_cmd(args)
+    env = copy(ENV)
+    env["PYTHONIOENCODING"] = "UTF-8"
+    setenv(`$(CONFIG.exepath) $args`, env)
+end
 
 function __init__()
-    dlopen(PYLIB, RTLD_GLOBAL | RTLD_LAZY | RTLD_DEEPBIND)
-    C.Py_SetPythonHome(pointer(PYWHOME))
-    C.Py_SetProgramName(pointer(PYWPROGNAME))
-    C.Py_Initialize()
+    # Check if libpython is already loaded (i.e. if the Julia interpreter was started from a Python process)
+    CONFIG.preloaded = try
+        cglobal(:Py_Initialize)
+        true
+    catch
+        false
+    end
+
+    # If not loaded, load it
+    if !CONFIG.preloaded
+        # Find Python executable
+        exepath = something(CONFIG.exepath, get(ENV, "PYTHONJL_EXE", nothing), Sys.which("python3"), Sys.which("python"), Some(nothing))
+        if exepath === nothing
+            error("""
+                Could not find Python executable.
+
+                Ensure 'python3' or 'python' is in your PATH or set environment variable 'PYTHONJL_EXE'
+                to the path to the Python executable.""")
+        elseif isfile(exepath)
+            CONFIG.exepath = exepath
+        else
+            error("""
+                Python executable $(repr(exepath)) does not exist.
+
+                Ensure 'python3' or 'python' is in your PATH or set environment variable 'PYTHONJL_EXE'
+                to the path to the Python executable.""")
+        end
+
+        # Find Python library
+        libpath = something(CONFIG.libpath, get(ENV, "PYTHONJL_LIB", nothing), Some(nothing))
+        if libpath !== nothing
+            libptr = dlopen_e(path, CONFIG.dlopenflags)
+            if libptr == C_NULL
+                error("Python library $(repr(libpath)) could not be opened.")
+            else
+                CONFIG.libpath = libpath
+                CONFIG.libptr = libptr
+            end
+        else
+            for libpath in readlines(python_cmd([joinpath(@__DIR__, "find_libpython.py"), "--list-all"]))
+                libptr = dlopen_e(libpath, CONFIG.dlopenflags)
+                if libptr == C_NULL
+                    @warn "Python library $(repr(libpath)) could not be opened."
+                else
+                    CONFIG.libpath = libpath
+                    CONFIG.libptr = libptr
+                    break
+                end
+            end
+            CONFIG.libpath === nothing && error("""
+                Could not find Python library for Python executable $(repr(CONFIG.exepath)).
+
+                If you know where the library is, set environment variable 'PYTHONJL_LIB' to its path.""")
+        end
+    end
+
+    # Check if libpython is already initialized
+    CONFIG.preinitialized = C.Py_IsInitialized() != 0
+
+    # If not, initialize it
+    if !CONFIG.preinitialized
+
+        # Find ProgramName and PythonHome
+        script = if Sys.iswindows()
+            """
+            import sys
+            print(sys.executable)
+            if hasattr(sys, "base_exec_prefix"):
+                sys.stdout.write(sys.base_exec_prefix)
+            else:
+                sys.stdout.write(sys.exec_prefix)
+            """
+        else
+            """
+            import sys
+            print(sys.executable)
+            if hasattr(sys, "base_exec_prefix"):
+                sys.stdout.write(sys.base_prefix)
+                sys.stdout.write(":")
+                sys.stdout.write(sys.base_exec_prefix)
+            else:
+                sys.stdout.write(sys.prefix)
+                sys.stdout.write(":")
+                sys.stdout.write(sys.exec_prefix)
+            """
+        end
+        CONFIG.pyprogname, CONFIG.pyhome = readlines(python_cmd(["-c", script]))
+
+        # Set PythonHome
+        CONFIG.pyhome_w = Base.cconvert(Cwstring, CONFIG.pyhome)
+        C.Py_SetPythonHome(pointer(CONFIG.pyhome_w))
+
+        # Set ProgramName
+        CONFIG.pyprogname_w = Base.cconvert(Cwstring, CONFIG.pyprogname)
+        C.Py_SetProgramName(pointer(CONFIG.pyprogname_w))
+
+        # Start the interpreter and register exit hooks
+        C.Py_InitializeEx(0)
+        CONFIG.isinitialized = true
+        check(C.Py_AtExit(@cfunction(()->(CONFIG.isinitialized = false; nothing), Cvoid, ())))
+        atexit() do
+            CONFIG.isinitialized = false
+            check(C.Py_FinalizeEx())
+        end
+
+        # Some modules expect sys.argv to be set
+        pysysmodule.argv = pylist([""; ARGS])
+
+        # Some modules test for interactivity by checking if sys.ps1 exists
+        if isinteractive() && !pyhasattr(pysysmodule, "ps1")
+            pysysmodule.ps1 = ">>> "
+        end
+    end
+
+    # Is this the same Python as in Conda?
+    CONFIG.isconda = isdir(Conda.PYTHONDIR) && realpath(pyconvert(String, pysysmodule.prefix)) == realpath(Conda.PYTHONDIR)
+
+    # Get the python version
+    CONFIG.version = let (a,b,c,d,e) = pyconvert(Tuple{Int,Int,Int,String,Int}, pysysmodule.version_info)
+        VersionNumber(a, b, c, (d,), (e,))
+    end
+    v"2" < CONFIG.version < v"4" || error("Only Python 3 is supported, this is Python $(CONFIG.version.major).$(CONFIG.version.minor) at $(CONFIG.preloaded ? CONFIG.exepath : "unknown location").")
+
 end

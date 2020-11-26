@@ -130,7 +130,7 @@ function pyjltype(::Type{T}) where {T}
     opts = Dict{Symbol, Any}(
         :name => "julia.$T",
         :base => pyjl_supertype(T) === nothing ? pyobjecttype : pyjltype(pyjl_supertype(T)),
-        :flags => C.Py_TPFLAGS_BASETYPE | C.Py_TPFLAGS_HAVE_VERSION_TAG | (PYISSTACKLESS ? C.Py_TPFLAGS_HAVE_STACKLESS_EXTENSION : 0x00),
+        :flags => C.Py_TPFLAGS_BASETYPE | C.Py_TPFLAGS_HAVE_VERSION_TAG | (CONFIG.isstackless ? C.Py_TPFLAGS_HAVE_STACKLESS_EXTENSION : 0x00),
         :basicsize => sizeof(CPyJuliaObject{T}),
         :dealloc => pop!(special, :__dealloc__, C_NULL),
         :hash => pop!(special, :__hash__, C_NULL),

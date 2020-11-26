@@ -1,13 +1,34 @@
 module Python
 
-using Dates, UnsafePointers, Libdl, Conda, Tables, TableTraits, IteratorInterfaceExtensions, Markdown
+using Dates, UnsafePointers, Libdl, Conda, Tables, TableTraits, IteratorInterfaceExtensions, Markdown, VersionParsing
 using Base: @kwdef
-
-# dependencies
-include(joinpath(@__DIR__, "..", "deps", "deps.jl"))
 
 # things not directly dependent on PyObject or libpython
 include("utils.jl")
+
+# Global configuration
+# CONFIG gets populated by __init__
+@kwdef mutable struct Config
+    dlopenflags :: UInt32 = RTLD_LAZY | RTLD_DEEPBIND | RTLD_GLOBAL
+    exepath :: Union{String,Nothing} = nothing
+    libpath :: Union{String,Nothing} = nothing
+    libptr :: Ptr{Cvoid} = C_NULL
+    pyhome :: Union{String,Nothing} = nothing
+    pyhome_w :: Vector{Cwchar_t} = []
+    pyprogname :: Union{String,Nothing} = nothing
+    pyprogname_w :: Vector{Cwchar_t} = []
+    isstackless :: Bool = false
+    preloaded :: Bool = false
+    preinitialized :: Bool = false
+    isinitialized :: Bool = false
+    version :: VersionNumber = VersionNumber(0)
+    isconda :: Bool = false
+end
+Base.show(io::IO, ::MIME"text/plain", c::Config) =
+    for k in fieldnames(Config)
+        println(io, k, ": ", repr(getfield(c, k)))
+    end
+const CONFIG = Config()
 
 # C API
 include("cpython.jl")

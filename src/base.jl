@@ -250,3 +250,33 @@ function Base.Docs.getdoc(o::AbstractPyObject)
     Markdown.MD(docs)
 end
 Base.Docs.Binding(o::AbstractPyObject, k::Symbol) = getproperty(o, k)
+
+for (mime, method) in ((MIME"text/html", "_repr_html_"),
+                       (MIME"text/markdown", "_repr_markdown_"),
+                       (MIME"text/json", "_repr_json_"),
+                       (MIME"application/javascript", "_repr_javascript_"),
+                       (MIME"application/pdf", "_repr_pdf_"),
+                       (MIME"image/jpeg", "_repr_jpeg_"),
+                       (MIME"image/png", "_repr_png_"),
+                       (MIME"image/svg+xml", "_repr_svg_"),
+                       (MIME"text/latex", "_repr_latex_"))
+    T = istextmime(mime()) ? String : Vector{UInt8}
+    @eval begin
+        function Base.show(io::IO, mime::$mime, o::PyObject)
+            try
+                x = pygetattr(o, $method)()
+                pyisnone(x) || return write(io, pyconvert($T, x))
+            catch
+            end
+            throw(MethodError(show, (io, mime, o)))
+        end
+        function Base.showable(::$mime, o::PyObject)
+            try
+                x = pygetattr(o, $method)()
+                !pyisnone(x)
+            catch
+                false
+            end
+        end
+    end
+end

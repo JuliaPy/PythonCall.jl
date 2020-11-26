@@ -1,6 +1,6 @@
 module Python
 
-using Dates, UnsafePointers, Libdl, Conda, Tables, TableTraits, IteratorInterfaceExtensions, Markdown
+using Dates, UnsafePointers, Libdl, Conda, Tables, TableTraits, IteratorInterfaceExtensions, Markdown, Base64
 using Base: @kwdef
 
 # things not directly dependent on PyObject or libpython
@@ -91,6 +91,7 @@ include("collections.jl")
 # other packages
 include("pandas.jl")
 include("numpy.jl")
+include("matplotlib.jl")
 
 # other Julia wrappers around Python values
 include("PyIterable.jl")
@@ -107,5 +108,6 @@ include("newtype.jl")
 include("julia.jl")
 include("base.jl")
 include("pywith.jl")
+include("gui.jl")
 
 end # module

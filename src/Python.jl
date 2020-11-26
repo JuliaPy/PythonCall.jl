@@ -1,6 +1,6 @@
 module Python
 
-using Dates, UnsafePointers, Libdl, Conda, Tables, TableTraits, IteratorInterfaceExtensions, Markdown, VersionParsing
+using Dates, UnsafePointers, Libdl, Conda, Tables, TableTraits, IteratorInterfaceExtensions, Markdown
 using Base: @kwdef
 
 # things not directly dependent on PyObject or libpython

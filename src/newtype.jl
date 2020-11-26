@@ -54,7 +54,7 @@ cpynewgetset!(c, x::NamedTuple) = cpynewgetset!(c; x...)
 
 ### NEW TYPE
 
-function cpynewtype!(c; type=C_NULL, name, base=C_NULL, new=dlsym(CONFIG.libptr, :PyType_GenericNew), as_number=C_NULL, as_mapping=C_NULL, as_sequence=C_NULL, as_buffer=C_NULL, methods=C_NULL, getset=C_NULL, opts...)
+function cpynewtype!(c; type=C_NULL, name, base=C_NULL, new=C.@pyglobal(:PyType_GenericNew), as_number=C_NULL, as_mapping=C_NULL, as_sequence=C_NULL, as_buffer=C_NULL, methods=C_NULL, getset=C_NULL, opts...)
     type = cacheptr!(c, type)
     name = cacheptr!(c, name)
     base = cacheptr!(c, base)

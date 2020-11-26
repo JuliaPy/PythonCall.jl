@@ -300,6 +300,10 @@ module CPython
 
     const PyTypePtr = Ptr{PyTypeObject}
 
+    macro pyglobal(name)
+        :(CONFIG.preloaded ? cglobal($(esc(name))) : dlsym(CONFIG.libptr, $(esc(name))))
+    end
+
     macro cdef(name, rettype, argtypes)
         name isa QuoteNode && name.value isa Symbol || error("name must be a symbol, got $name")
         jname = esc(name.value)
@@ -315,7 +319,7 @@ module CPython
             function $jname($(args...))
                 ptr = $refname[]
                 if ptr == C_NULL
-                    ptr = $refname[] = dlsym(CONFIG.libptr, $name)
+                    ptr = $refname[] = @pyglobal($name)
                 end
                 ccall(ptr, $rettype, $argtypes, $(args...))
             end
@@ -471,7 +475,7 @@ module CPython
     function PyObject_GetBuffer(o, b, flags)
         p = UnsafePtr{PyTypeObject}(Py_Type(o)).as_buffer[]
         if p == C_NULL || p.get[] == C_NULL
-            PyErr_SetString(unsafe_load(Ptr{PyPtr}(dlsym(CONFIG.libptr, :PyExc_TypeError))), "a bytes-like object is required, not '$(String(UnsafePtr{PyTypeObject}(Py_Type(o)).name[]))'")
+            PyErr_SetString(unsafe_load(Ptr{PyPtr}(@pyglobal(:PyExc_TypeError))), "a bytes-like object is required, not '$(String(UnsafePtr{PyTypeObject}(Py_Type(o)).name[]))'")
             return Cint(-1)
         end
         ccall(p.get[!], Cint, (PyPtr, Ptr{Py_buffer}, Cint), o, b, flags)

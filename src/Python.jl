@@ -23,6 +23,7 @@ include("utils.jl")
     isinitialized :: Bool = false
     version :: VersionNumber = VersionNumber(0)
     isconda :: Bool = false
+    condaenv :: String = Conda.ROOTENV
     pyplotautoshow :: Bool = true
     qtfix :: Bool = true
 end

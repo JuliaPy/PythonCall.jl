@@ -22,15 +22,26 @@ function __init__()
                 Could not find Python executable.
 
                 Ensure 'python3' or 'python' is in your PATH or set environment variable 'PYTHONJL_EXE'
-                to the path to the Python executable.""")
-        elseif isfile(exepath)
+                to the path to the Python executable.
+                """)
+        end
+        if exepath == "CONDA" || startswith(exepath, "CONDA:")
+            CONFIG.isconda = true
+            CONFIG.condaenv = exepath == "CONDA" ? Conda.ROOTENV : exepath[7:end]
+            Conda._install_conda(CONFIG.condaenv)
+            exepath = joinpath(Conda.python_dir(CONFIG.condaenv), Sys.iswindows() ? "python.exe" : "python")
+        end
+        if isfile(exepath)
             CONFIG.exepath = exepath
         else
             error("""
                 Python executable $(repr(exepath)) does not exist.
 
-                Ensure 'python3' or 'python' is in your PATH or set environment variable 'PYTHONJL_EXE'
-                to the path to the Python executable.""")
+                Ensure either:
+                - python3 or python is in your PATH
+                - PYTHONJL_EXE is "CONDA" or "CONDA:<env>"
+                - PYTHONJL_EXE is the path to the Python executable
+                """)
         end
 
         # Find Python library
@@ -57,7 +68,8 @@ function __init__()
             CONFIG.libpath === nothing && error("""
                 Could not find Python library for Python executable $(repr(CONFIG.exepath)).
 
-                If you know where the library is, set environment variable 'PYTHONJL_LIB' to its path.""")
+                If you know where the library is, set environment variable 'PYTHONJL_LIB' to its path.
+                """)
         end
     end
 

@@ -4,11 +4,15 @@ pyplot = PyLazyObject(() -> pyimport("matplotlib.pyplot"))
 """
     pyplotshow([fig]; close=true)
 
-Show the matplotlib figure `fig` (or the current figure if not given).
+Show the matplotlib/pyplot/seaborn/etc figure `fig`, or all open figures if not given.
 
 If `close` is true, the figure is also closed.
+
+!!! tip
+
+    In a notebook, call `IJulia.push_postexecute_hook(pyplotshow)` to automatically show all figures.
 """
-function pyplotshow(fig=pyplot.gcf(); close::Bool=true)
+function pyplotshow(fig; close::Bool=true)
     fig = pyisinstance(fig, pyplot.Figure) ? PyObject(fig) : pyplot.figure(fig)
     if displayable(MIME("text/html"))
         buf = IOBuffer()
@@ -20,5 +24,10 @@ function pyplotshow(fig=pyplot.gcf(); close::Bool=true)
     end
     close && pyplot.close(fig)
     nothing
+end
+function pyplotshow(; opts...)
+    for fig in pyplot.get_fignums()
+        pyplotshow(fig; opts...)
+    end
 end
 export pyplotshow

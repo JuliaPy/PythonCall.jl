@@ -32,21 +32,27 @@ struct PythonRuntimeError <: Exception
     b :: PyObject
 end
 
-function pythrow()
+function pyerrfetch(normalize::Bool=false)
     t = Ref{CPyPtr}()
     v = Ref{CPyPtr}()
     b = Ref{CPyPtr}()
     C.PyErr_Fetch(t, v, b)
-    C.PyErr_NormalizeException(t, v, b)
+    normalize && C.PyErr_NormalizeException(t, v, b)
     to = t[]==C_NULL ? PyObject(pynone) : pynewobject(t[])
     vo = v[]==C_NULL ? PyObject(pynone) : pynewobject(v[])
     bo = b[]==C_NULL ? PyObject(pynone) : pynewobject(b[])
-    throw(PythonRuntimeError(to, vo, bo))
+    (to, vo, bo)
 end
 
-function pythrow(v::AbstractPyObject)
+pyerrrestore(t::AbstractPyObject, v::AbstractPyObject, b::AbstractPyObject) =
+    C.PyErr_Restore(pyincref!(t), pyincref!(v), pyincref!(b))
+
+pyerrrestore(err::PythonRuntimeError) = pyerrrestore(err.t, err.v, err.b)
+
+pythrow() = throw(PythonRuntimeError(pyerrfetch(true)...))
+
+pythrow(v::AbstractPyObject) =
     throw(PythonRuntimeError(pytype(v), v, pynone))
-end
 
 function Base.showerror(io::IO, e::PythonRuntimeError)
     if pyisnone(e.t)

@@ -227,7 +227,7 @@ function cpycatch(f, ::Type{T}=CPyPtr) where {T}
         if err isa PythonRuntimeError
             # We restore Python errors.
             # TODO: Is this the right behaviour?
-            C.PyErr_Restore(pyincref!(err.t), pyincref!(err.v), pyincref!(err.b))
+            pyerrrestore(err)
         else
             # Other (Julia) errors are raised as a JuliaException
             bt = catch_backtrace()
@@ -397,14 +397,15 @@ cpyjlattr(::Val{:__getattr__}, ::Type{T}, ::Type{V}) where {T, V} =
         # first do the generic lookup
         _x = C.PyObject_GenericGetAttr(_o, _k)
         (_x == C_NULL && pyerroccurred(pyattributeerror)) || return _x
+        errstate = pyerrfetch()
         # then see if there is a corresponding julia property
         o = cpyjlvalue(_o)
         k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(pynewobject(_k, true))))
         if hasproperty(o, k)
-            pyerrclear() # the attribute error is still set
             return cpyreturn(CPyPtr, pyobject(getproperty(o, k)))
         end
         # no such attribute
+        pyerrrestore(errstate...)
         return _x
     end CPyPtr (CPyJlPtr{V}, CPyPtr)
 
@@ -413,18 +414,18 @@ cpyjlattr(::Val{:__setattr__}, ::Type{T}, ::Type{V}) where {T,V} =
         # first do the generic version
         err = C.PyObject_GenericSetAttr(_o, _k, _v)
         (err == -1 && pyerroccurred(pyattributeerror)) || return err
+        errstate = pyerrfetch()
         # now see if there is a corresponding julia property
         _v == C_NULL && error("deletion not supported")
         o = cpyjlvalue(_o)
         k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(pynewobject(_k, true))))
         if hasproperty(o, k)
-            pyerrclear() # the attribute error is still set
             v = pyconvert(Any, pynewobject(_v, true)) # can we do better than Any?
-            @show v typeof(v)
             setproperty!(o, k, v)
             return Cint(0)
         end
         # no such attribute
+        pyerrrestore(errstate...)
         return err
     end Cint (CPyJlPtr{V}, CPyPtr, CPyPtr)
 

@@ -132,7 +132,10 @@ function __init__()
     end
 
     # Is this the same Python as in Conda?
-    CONFIG.isconda = isdir(Conda.PYTHONDIR) && realpath(pyconvert(String, pysysmodule.prefix)) == realpath(Conda.PYTHONDIR)
+    if !CONFIG.isconda && isdir(Conda.PREFIX) && realpath(pyconvert(String, pysysmodule.prefix)) == realpath(Conda.PREFIX)
+        CONFIG.isconda = true
+        CONFIG.condaenv = Conda.ROOTENV
+    end
 
     # Get the python version
     CONFIG.version = let (a,b,c,d,e) = pyconvert(Tuple{Int,Int,Int,String,Int}, pysysmodule.version_info)

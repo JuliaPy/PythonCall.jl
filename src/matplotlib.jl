@@ -8,9 +8,7 @@ Show the matplotlib/pyplot/seaborn/etc figure `fig`, or all open figures if not 
 
 If `close` is true, the figure is also closed.
 
-!!! tip
-
-    In a notebook, call `IJulia.push_postexecute_hook(pyplotshow)` to automatically show all figures.
+If `CONFIG.pyplotautoshow` is true, then this is automatically called each time a notebook cell is evaluated.
 """
 function pyplotshow(fig; close::Bool=true)
     fig = pyisinstance(fig, pyplot.Figure) ? PyObject(fig) : pyplot.figure(fig)

@@ -6,6 +6,8 @@ Try to set the `QT_PLUGIN_PATH` environment variable in Python, if not already s
 This fixes the problem that Qt does not know where to find its `qt.conf` file, because it
 always looks relative to `sys.executable`, which can be the Julia executable not the Python
 one when using this package.
+
+If `CONFIG.qtfix` is true, then this is run automatically before `PyQt4`, `PyQt5`, `PySide` or `PySide2` are imported.
 """
 function fix_qt_plugin_path()
     e = pyosmodule.environ
@@ -20,7 +22,7 @@ function fix_qt_plugin_path()
             path[1]==path[end]=='"' && (path = path[2:end-1])
             path = joinpath(path, "plugins")
             if isdir(path)
-                e["QT_PLUGIN_PATH"] = path
+                e["QT_PLUGIN_PATH"] = realpath(path)
                 return true
             end
         end

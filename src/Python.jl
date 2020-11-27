@@ -1,6 +1,6 @@
 module Python
 
-using Dates, UnsafePointers, Libdl, Conda, Tables, TableTraits, IteratorInterfaceExtensions, Markdown, Base64
+using Dates, UnsafePointers, Libdl, Conda, Tables, TableTraits, IteratorInterfaceExtensions, Markdown, Base64, Requires
 using Base: @kwdef
 
 # things not directly dependent on PyObject or libpython
@@ -23,6 +23,8 @@ include("utils.jl")
     isinitialized :: Bool = false
     version :: VersionNumber = VersionNumber(0)
     isconda :: Bool = false
+    pyplotautoshow :: Bool = true
+    qtfix :: Bool = true
 end
 Base.show(io::IO, ::MIME"text/plain", c::Config) =
     for k in fieldnames(Config)
@@ -38,9 +40,6 @@ const CPyPtr = C.PyPtr
 struct CPyObjRef
     ptr :: CPyPtr
 end
-
-# initialize
-include("init.jl")
 
 # core
 include("object.jl")
@@ -109,5 +108,8 @@ include("julia.jl")
 include("base.jl")
 include("pywith.jl")
 include("gui.jl")
+
+# initialize
+include("init.jl")
 
 end # module

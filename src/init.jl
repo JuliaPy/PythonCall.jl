@@ -128,4 +128,40 @@ function __init__()
     end
     v"2" < CONFIG.version < v"4" || error("Only Python 3 is supported, this is Python $(CONFIG.version.major).$(CONFIG.version.minor) at $(CONFIG.preloaded ? CONFIG.exepath : "unknown location").")
 
+    # EXPERIMENTAL: hooks to perform actions when certain modules are loaded
+    py"""
+    import sys
+    class JuliaCompatHooks:
+        def __init__(self):
+            self.hooks = {}
+        def find_module(self, name, path=None):
+            hs = self.hooks.get(name)
+            if hs is not None:
+                for h in hs:
+                    h()
+        def add_hook(self, name, h):
+            if name not in self.hooks:
+                self.hooks[name] = [h]
+            else:
+                self.hooks[name].append(h)
+            if name in sys.modules:
+                h()
+    JULIA_COMPAT_HOOKS = JuliaCompatHooks()
+    sys.meta_path.insert(0, JULIA_COMPAT_HOOKS)
+
+    # Before Qt is loaded, fix the path used to look up its plugins
+    qt_hook = $(() -> if CONFIG.qtfix; fix_qt_plugin_path(); nothing; end)
+    JULIA_COMPAT_HOOKS.add_hook("PyQt4", qt_hook)
+    JULIA_COMPAT_HOOKS.add_hook("PyQt5", qt_hook)
+    JULIA_COMPAT_HOOKS.add_hook("PySide", qt_hook)
+    JULIA_COMPAT_HOOKS.add_hook("PySide2", qt_hook)
+    """
+
+    @require IJulia="7073ff75-c697-5162-941a-fcdaad2a7d2a" begin
+        IJulia.push_postexecute_hook() do
+            if CONFIG.pyplotautoshow
+                pyplotshow()
+            end
+        end
+    end
 end

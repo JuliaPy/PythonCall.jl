@@ -150,16 +150,16 @@ function __init__()
     sys.meta_path.insert(0, JULIA_COMPAT_HOOKS)
 
     # Before Qt is loaded, fix the path used to look up its plugins
-    qt_hook = $(() -> if CONFIG.qtfix; fix_qt_plugin_path(); nothing; end)
-    JULIA_COMPAT_HOOKS.add_hook("PyQt4", qt_hook)
-    JULIA_COMPAT_HOOKS.add_hook("PyQt5", qt_hook)
-    JULIA_COMPAT_HOOKS.add_hook("PySide", qt_hook)
-    JULIA_COMPAT_HOOKS.add_hook("PySide2", qt_hook)
+    qtfix_hook = $(() -> if CONFIG.qtfix; fix_qt_plugin_path(); nothing; end)
+    JULIA_COMPAT_HOOKS.add_hook("PyQt4", qtfix_hook)
+    JULIA_COMPAT_HOOKS.add_hook("PyQt5", qtfix_hook)
+    JULIA_COMPAT_HOOKS.add_hook("PySide", qtfix_hook)
+    JULIA_COMPAT_HOOKS.add_hook("PySide2", qtfix_hook)
     """
 
     @require IJulia="7073ff75-c697-5162-941a-fcdaad2a7d2a" begin
         IJulia.push_postexecute_hook() do
-            if CONFIG.pyplotautoshow
+            if CONFIG.pyplotautoshow && "matplotlib.pyplot" in pysysmodule.modules
                 pyplotshow()
             end
         end

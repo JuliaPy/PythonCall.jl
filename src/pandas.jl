@@ -5,6 +5,32 @@ asvector(x::AbstractVector) = x
 asvector(x) = collect(x)
 
 """
+    pycolumntable(src)
+
+Construct a "column table" from the table `src`, namely a Python `dict` mapping column names to column vectors.
+"""
+function pycolumntable(src)
+    cols = Tables.columns(src)
+    pydict_fromiter(pystr(String(n)) => asvector(Tables.getcolumn(cols, n)) for n in Tables.columnnames(cols))
+end
+pycolumntable(; cols...) = pycolumntable(cols)
+export pycolumntable
+
+"""
+    pyrowtable(src)
+
+Construct a "row table" from the table `src`, namely a Python `list` of rows, each row being a Python `dict` mapping column names to values.
+"""
+function pyrowtable(src)
+    rows = Tables.rows(src)
+    names = Tables.columnnames(rows)
+    pynames = [pystr(String(n)) for n in names]
+    pylist_fromiter(pydict_fromiter(pn => Tables.getcolumn(row, n) for (n,pn) in zip(names, pynames)) for row in rows)
+end
+pyrowtable(; cols...) = pyrowtable(cols)
+export pyrowtable
+
+"""
     pypandasdataframe([src]; ...)
 
 Construct a pandas dataframe from `src`.

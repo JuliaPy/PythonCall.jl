@@ -30,6 +30,30 @@ function fix_qt_plugin_path()
     return false
 end
 
+"""
+    pyinteract(; force=false, sleep=0.1)
+
+Some Python GUIs can work interactively, meaning the GUI is available but the interactive prompt is returned (e.g. after calling `matplotlib.pyplot.ion()`).
+To use these from Julia, currently you must manually call `pyinteract()` each time you want to interact.
+
+Internally, this is calling the `PyOS_InputHook` asynchronously. Only one copy is run at a time unless `force` is true.
+
+The asynchronous task waits for `sleep` seconds before calling the hook function.
+This gives time for the next prompt to be printed and waiting for input.
+As a result, there will be a small delay before the GUI becomes interactive.
+"""
+pyinteract(; force::Bool=false, sleep::Real=0.1) =
+    if !CONFIG.inputhookrunning || force
+        CONFIG.inputhookrunning = true
+        @async begin
+            sleep > 0 && Base.sleep(sleep)
+            C.PyOS_RunInputHook()
+            CONFIG.inputhookrunning = false
+        end
+        nothing
+    end
+export pyinteract
+
 const EVENT_LOOPS = Dict{Symbol, Base.Timer}()
 
 function stop_event_loop(g::Symbol; ifnotexist::Symbol=:error)

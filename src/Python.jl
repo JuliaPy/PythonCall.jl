@@ -28,6 +28,7 @@ include("utils.jl")
     qtfix :: Bool = true
     guiautostart :: Bool = true
     guiautostarttimer :: Union{Nothing, Timer} = nothing
+    inputhookrunning :: Bool = false
 end
 Base.show(io::IO, ::MIME"text/plain", c::Config) =
     for k in fieldnames(Config)

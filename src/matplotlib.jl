@@ -2,15 +2,17 @@ pymatplotlib = PyLazyObject(() -> pyimport("matplotlib"))
 pyplot = PyLazyObject(() -> pyimport("matplotlib.pyplot"))
 
 """
-    pyplotshow([mime], [fig]; close=true)
+    pyplotshow([mime], [fig]; close=true, format=CONFIG.pyplotshowformat)
 
 Show the matplotlib/pyplot/seaborn/etc figure `fig`, or all open figures if not given.
 
 If `close` is true, the figure is also closed.
 
+The MIME type can be specified by `mime`. The file format used can be specified by `format`, the default being configurable.
+
 If `CONFIG.pyplotautoshow` is true, then this is automatically called each time a notebook cell is evaluated.
 """
-function pyplotshow(mime::MIME"text/html", fig; close::Bool=true, format::String="any")
+function pyplotshow(mime::MIME"text/html", fig; close::Bool=true, format::String=CONFIG.pyplotshowformat)
     fig = pyisinstance(fig, pyplot.Figure) ? PyObject(fig) : pyplot.figure(fig)
     io = IOBuffer()
     fig.savefig(io, format="png")
@@ -18,7 +20,7 @@ function pyplotshow(mime::MIME"text/html", fig; close::Bool=true, format::String
     close && pyplot.close(fig)
     nothing
 end
-function pyplotshow(mime::MIME"image/png", fig; close::Bool=true, format::String="any")
+function pyplotshow(mime::MIME"image/png", fig; close::Bool=true, format::String=CONFIG.pyplotshowformat)
     format in ("any", "png") || error("invalid format")
     fig = pyisinstance(fig, pyplot.Figure) ? PyObject(fig) : pyplot.figure(fig)
     io = IOBuffer()
@@ -27,7 +29,7 @@ function pyplotshow(mime::MIME"image/png", fig; close::Bool=true, format::String
     close && pyplot.close(fig)
     nothing
 end
-function pyplotshow(mime::MIME"image/jpeg", fig; close::Bool=true, format::String="any")
+function pyplotshow(mime::MIME"image/jpeg", fig; close::Bool=true, format::String=CONFIG.pyplotshowformat)
     format in ("any", "jpeg", "jpg") || error("invalid format")
     fig = pyisinstance(fig, pyplot.Figure) ? PyObject(fig) : pyplot.figure(fig)
     io = IOBuffer()
@@ -36,7 +38,7 @@ function pyplotshow(mime::MIME"image/jpeg", fig; close::Bool=true, format::Strin
     close && pyplot.close(fig)
     nothing
 end
-function pyplotshow(mime::MIME"image/tiff", fig; close::Bool=true, format::String="any")
+function pyplotshow(mime::MIME"image/tiff", fig; close::Bool=true, format::String=CONFIG.pyplotshowformat)
     format in ("any", "tif", "tiff") || error("invalid format")
     fig = pyisinstance(fig, pyplot.Figure) ? PyObject(fig) : pyplot.figure(fig)
     io = IOBuffer()
@@ -45,7 +47,7 @@ function pyplotshow(mime::MIME"image/tiff", fig; close::Bool=true, format::Strin
     close && pyplot.close(fig)
     nothing
 end
-function pyplotshow(mime::MIME"image/svg+xml", fig; close::Bool=true, format::String="any")
+function pyplotshow(mime::MIME"image/svg+xml", fig; close::Bool=true, format::String=CONFIG.pyplotshowformat)
     format in ("any", "svg") || error("invalid format")
     fig = pyisinstance(fig, pyplot.Figure) ? PyObject(fig) : pyplot.figure(fig)
     io = IOBuffer()
@@ -54,7 +56,7 @@ function pyplotshow(mime::MIME"image/svg+xml", fig; close::Bool=true, format::St
     close && pyplot.close(fig)
     nothing
 end
-function pyplotshow(mime::MIME"application/pdf", fig; close::Bool=true, format::String="any")
+function pyplotshow(mime::MIME"application/pdf", fig; close::Bool=true, format::String=CONFIG.pyplotshowformat)
     format in ("any", "pdf") || error("invalid format")
     fig = pyisinstance(fig, pyplot.Figure) ? PyObject(fig) : pyplot.figure(fig)
     io = IOBuffer()
@@ -63,7 +65,7 @@ function pyplotshow(mime::MIME"application/pdf", fig; close::Bool=true, format::
     close && pyplot.close(fig)
     nothing
 end
-function pyplotshow(fig; close::Bool=true, format::String="any")
+function pyplotshow(fig; close::Bool=true, format::String=CONFIG.pyplotshowformat)
     fig = pyisinstance(fig, pyplot.Figure) ? PyObject(fig) : pyplot.figure(fig)
     okfmts = fig.canvas.get_supported_filetypes()
     format == "any" || format in okfmts || error("format $(repr(format)) not supported by this backend")

@@ -26,6 +26,8 @@ include("utils.jl")
     condaenv :: String = Conda.ROOTENV
     pyplotautoshow :: Bool = true
     qtfix :: Bool = true
+    guiautostart :: Bool = true
+    guiautostarttimer :: Union{Nothing, Timer} = nothing
 end
 Base.show(io::IO, ::MIME"text/plain", c::Config) =
     for k in fieldnames(Config)

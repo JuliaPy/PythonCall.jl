@@ -12,7 +12,12 @@ If `CONFIG.pyplotautoshow` is true, then this is automatically called each time 
 """
 function pyplotshow(fig; close::Bool=true)
     fig = pyisinstance(fig, pyplot.Figure) ? PyObject(fig) : pyplot.figure(fig)
-    if displayable(MIME("text/html"))
+    if displayable(MIME("image/png"))
+        buf = IOBuffer()
+        fig.savefig(buf, format="png")
+        data = take!(buf)
+        display(MIME("image/png"), data)
+    elseif displayable(MIME("text/html"))
         buf = IOBuffer()
         fig.savefig(buf, format="png")
         data = base64encode(take!(buf))

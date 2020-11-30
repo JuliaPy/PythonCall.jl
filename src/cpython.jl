@@ -340,6 +340,9 @@ module CPython
     @cdef :Py_IncRef Cvoid (PyPtr,)
     @cdef :Py_DecRef Cvoid (PyPtr,)
 
+    @cdef :PyEval_SaveThread Ptr{Cvoid} ()
+    @cdef :PyEval_RestoreThread Cvoid (Ptr{Cvoid},)
+
     @cdef :PyImport_ImportModule PyPtr (Cstring,)
     @cdef :PyImport_Import PyPtr (PyPtr,)
 
@@ -492,6 +495,12 @@ module CPython
         b.obj[] = C_NULL
         Py_DecRef(o)
         return
+    end
+
+    function PyOS_RunInputHook()
+        hook = unsafe_load(Ptr{Ptr{Cvoid}}(@pyglobal(:PyOS_InputHook)))
+        hook == C_NULL || ccall(hook, Cint, ())
+        nothing
     end
 
 end

@@ -7,7 +7,7 @@ asvector(x) = collect(x)
 """
     pycolumntable(src)
 
-Construct a "column table" from the table `src`, namely a Python `dict` mapping column names to column vectors.
+Construct a "column table" from the `Tables.jl`-compatible table `src`, namely a Python `dict` mapping column names to column vectors.
 """
 function pycolumntable(src)
     cols = Tables.columns(src)
@@ -19,7 +19,7 @@ export pycolumntable
 """
     pyrowtable(src)
 
-Construct a "row table" from the table `src`, namely a Python `list` of rows, each row being a Python `dict` mapping column names to values.
+Construct a "row table" from the `Tables.jl`-compatible table `src`, namely a Python `list` of rows, each row being a Python `dict` mapping column names to values.
 """
 function pyrowtable(src)
     rows = Tables.rows(src)

@@ -56,31 +56,17 @@ export pyinteract
 
 const EVENT_LOOPS = Dict{Symbol, Base.Timer}()
 
-function stop_event_loop(g::Symbol; ifnotexist::Symbol=:error)
+function event_loop_off(g::Symbol)
     if haskey(EVENT_LOOPS, g)
         Base.close(pop!(EVENT_LOOPS, g))
-        return
-    elseif ifnotexist == :skip
-        return
-    elseif ifnotexist == :error
-        error("Not running: $(repr(g)).")
-    else
-        error("Invalid `ifnotexist` argument.")
     end
+    return
 end
 
-function start_event_loop(g::Symbol; interval::Real=40e-3, ifexist::Symbol=:error, fix::Bool=false)
-    # ensure not running
+function event_loop_on(g::Symbol; interval::Real=40e-3, fix::Bool=false)
+    # check if already running
     if haskey(EVENT_LOOPS, g)
-        if ifexist == :stop
-            stop_event_loop(g)
-        elseif ifexist == :skip
-            return g => EVENT_LOOPS[g]
-        elseif ifexist == :error
-            error("Event loop $(repr(g)) already running.")
-        else
-            error("Invalid `ifexist` argument.")
-        end
+        return g => EVENT_LOOPS[g]
     end
     # start a new event loop
     if g in (:pyqt4, :pyqt5, :pyside, :pyside2)

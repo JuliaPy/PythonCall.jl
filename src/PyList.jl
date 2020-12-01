@@ -40,4 +40,4 @@ Base.sort!(x::PyList; rev=false) = (x.o.sort(reverse=rev); x)
 
 Base.empty!(x::PyList) = (x.o.clear(); x)
 
-Base.copy!(x::PyList) = typeof(x)(x.o.copy())
+Base.copy(x::PyList) = typeof(x)(x.o.copy())

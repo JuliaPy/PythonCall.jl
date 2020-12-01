@@ -29,6 +29,7 @@ include("utils.jl")
     guiautostart :: Bool = true
     guiautostarttimer :: Union{Nothing, Timer} = nothing
     inputhookrunning :: Bool = false
+    gilstate :: Ptr{Cvoid} = C_NULL
 end
 Base.show(io::IO, ::MIME"text/plain", c::Config) =
     for k in fieldnames(Config)
@@ -49,6 +50,7 @@ end
 include("object.jl")
 include("error.jl")
 include("import.jl")
+include("gil.jl")
 
 # abstract interfaces
 include("number.jl")

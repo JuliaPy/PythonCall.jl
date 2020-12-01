@@ -13,7 +13,11 @@ mutable struct PyObject
         finalizer(o) do o
             if CONFIG.isinitialized
                 ptr = getfield(o, :ptr)
-                ptr == C_NULL || C.Py_DecRef(ptr)
+                if ptr != C_NULL
+                    s = gil_on()
+                    C.Py_DecRef(ptr)
+                    s || gil_off()
+                end
             end
             setfield!(o, :ptr, CPyPtr(C_NULL))
             nothing

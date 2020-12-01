@@ -3,8 +3,12 @@ mutable struct PyObjectArray{N} <: AbstractArray{PyObject, N}
     function PyObjectArray{N}(::UndefInitializer, dims::NTuple{N,Integer}) where {N}
         x = new{N}(fill(CPyPtr(C_NULL), dims))
         finalizer(x) do x
-            for ptr in x.ptrs
-                C.Py_DecRef(ptr)
+            if CONFIG.isinitialized
+                s = gil_on()
+                for ptr in x.ptrs
+                    C.Py_DecRef(ptr)
+                end
+                s || gil_off()
             end
         end
     end

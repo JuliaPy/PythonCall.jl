@@ -25,7 +25,12 @@ mutable struct PyBuffer
         check(C.PyObject_GetBuffer(o, pointer(info), flags))
         b = new(info)
         finalizer(b) do b
-            check(C.PyBuffer_Release(pointer(b.info)))
+            if CONFIG.isinitialized
+                s = gil_on()
+                err = C.PyBuffer_Release(pointer(b.info))
+                s || gil_off()
+                check(err)
+            end
         end
         b
     end

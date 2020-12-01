@@ -21,7 +21,7 @@ function Base.iterate(x::PyDict{K,V}, it=pyiter(x.o.items())) where {K,V}
         nothing
     else
         kv = pynewobject(ptr)
-        (convert(K, kv[0]) => convert(V, kv[1])), it
+        (pyconvert(K, kv[0]) => pyconvert(V, kv[1])), it
     end
 end
 
@@ -29,7 +29,7 @@ Base.setindex!(x::PyDict{K,V}, v, k) where {K,V} =
     (pysetitem(x.o, convert(K, k), convert(V, v)); x)
 
 Base.getindex(x::PyDict{K,V}, k) where {K,V} =
-    pygetitem(x.o, convert(K, k))
+    pyconvert(V, pygetitem(x.o, convert(K, k)))
 
 Base.delete!(x::PyDict{K,V}, k) where {K,V} =
     (pydelitem(x.o, convert(K, k)); x)
@@ -52,12 +52,10 @@ end
 
 function Base.get!(x::PyDict{K,V}, _k, d) where {K,V}
     k = convert(K, _k)
-    pycontains(x.o, k) || (x[k] = d)
-    x[k]
+    pycontains(x.o, k) ? x[k] : (x[k] = d)
 end
 
 function Base.get!(f::Function, x::PyDict{K,V}, _k) where {K,V}
     k = convert(K, _k)
-    pycontains(x.o, k) || (x[k] = f())
-    x[k]
+    pycontains(x.o, k) ? x[k] : (x[k] = f())
 end

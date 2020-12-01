@@ -3,7 +3,7 @@
 
 Simulates the Python `with` statement, calling `f(x)` where `x=o.__enter__()`.
 """
-function pywith(f, o::AbstractPyObject)
+function pywith(f, o::PyObject)
     enter = pytype(o).__enter__
     exit = pytype(o).__exit__
     value = enter(o)

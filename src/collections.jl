@@ -1,10 +1,10 @@
 for p in [:Container, :Hashable, :Iterable, :Iterator, :Reversible, :Generator, :Sized, :Callable, :Collection, :Sequence, :MutableSequence, :ByteString, :Set, :MutableSet, :Mapping, :MutableMapping, :MappingView, :ItemsView, :KeysView, :ValuesView, :Awaitable, :Coroutine, :AsyncIterable, :AsyncIterator, :AsyncGenerator]
     j = Symbol(:py, lowercase(string(p)), :abc)
-    @eval const $j = PyLazyObject(() -> pycollectionsabcmodule.$p)
+    @eval const $j = pylazyobject(() -> pycollectionsabcmodule.$p)
     @eval export $j
 end
 
-function pyiterable_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pyiterable_tryconvert(::Type{T}, o::PyObject) where {T}
     # check subclasses
     if pyisinstance(o, pymappingabc)
         r = pymapping_tryconvert(T, o)
@@ -43,7 +43,7 @@ function pyiterable_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
 end
 
 # TODO: make parts of this generated for type stability (i.e. the parts dealing with type logic)
-function pyiterable_tryconvert(::Type{T}, o::AbstractPyObject) where {T<:Tuple}
+function pyiterable_tryconvert(::Type{T}, o::PyObject) where {T<:Tuple}
     # union?
     if T isa Union
         a = pyiterable_tryconvert(T.a, o)
@@ -88,31 +88,31 @@ function pyiterable_tryconvert(::Type{T}, o::AbstractPyObject) where {T<:Tuple}
     tryconvert(T, Tuple(xs))
 end
 
-function pyiterable_tryconvert(::Type{T}, o::AbstractPyObject) where {T<:CartesianIndex}
+function pyiterable_tryconvert(::Type{T}, o::PyObject) where {T<:CartesianIndex}
     x = pyiterable_tryconvert(Tuple{Vararg{Int}}, o)
     x === PyConvertFail() ? x : convert(T, CartesianIndex(x))
 end
 
-function pyiterable_tryconvert(::Type{CartesianIndex{N}}, o::AbstractPyObject) where {N}
+function pyiterable_tryconvert(::Type{CartesianIndex{N}}, o::PyObject) where {N}
     x = pyiterable_tryconvert(NTuple{N,Int}, o)
     x === PyConvertFail() ? x : CartesianIndex{N}(x)
 end
 
-function pyiterable_tryconvert(::Type{T}, o::AbstractPyObject) where {T<:NamedTuple}
+function pyiterable_tryconvert(::Type{T}, o::PyObject) where {T<:NamedTuple}
     PyConvertFail()
 end
 
-function pyiterable_tryconvert(::Type{T}, o::AbstractPyObject) where {names, T<:NamedTuple{names}}
+function pyiterable_tryconvert(::Type{T}, o::PyObject) where {names, T<:NamedTuple{names}}
     x = pyiterable_tryconvert(NTuple{length(names), PyObject}, o)
     x === PyConvertFail() ? x : convert(T, NamedTuple{names}(x))
 end
 
-function pyiterable_tryconvert(::Type{NamedTuple{names,Ts}}, o::AbstractPyObject) where {names, Ts<:Tuple}
+function pyiterable_tryconvert(::Type{NamedTuple{names,Ts}}, o::PyObject) where {names, Ts<:Tuple}
     x = pyiterable_tryconvert(Ts, o)
     x === PyConvertFail() ? x : NamedTuple{names,Ts}(x)
 end
 
-function pymapping_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pymapping_tryconvert(::Type{T}, o::PyObject) where {T}
     if (S = _typeintersect(T, AbstractDict)) != Union{}
         pymapping_tryconvert(S, o)
     else
@@ -120,20 +120,20 @@ function pymapping_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
     end
 end
 
-function pymapping_tryconvert(::Type{T}, o::AbstractPyObject) where {T<:AbstractDict}
+function pymapping_tryconvert(::Type{T}, o::PyObject) where {T<:AbstractDict}
     tryconvert(T, PyDict(o))
 end
 
-function pymapping_tryconvert(::Type{T}, o::AbstractPyObject) where {K, T<:AbstractDict{K}}
+function pymapping_tryconvert(::Type{T}, o::PyObject) where {K, T<:AbstractDict{K}}
     # often fails because e.g. convert(::Dict{String}, ::PyDict{String,Int}) fails
     tryconvert(T, PyDict{K}(o))
 end
 
-function pymapping_tryconvert(::Type{T}, o::AbstractPyObject) where {K, V, T<:AbstractDict{K,V}}
+function pymapping_tryconvert(::Type{T}, o::PyObject) where {K, V, T<:AbstractDict{K,V}}
     tryconvert(T, PyDict{K,V}(o))
 end
 
-function pysequence_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pysequence_tryconvert(::Type{T}, o::PyObject) where {T}
     if (S = _typeintersect(T, PyList)) != Union{}
         S(o)
     else
@@ -141,6 +141,6 @@ function pysequence_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
     end
 end
 
-function pyabstractset_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pyabstractset_tryconvert(::Type{T}, o::PyObject) where {T}
     PyConvertFail()
 end

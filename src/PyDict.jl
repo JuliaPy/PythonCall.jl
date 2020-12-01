@@ -5,7 +5,7 @@ Wrap the Python dictionary `o` (or anything satisfying the mapping interface) as
 """
 struct PyDict{K,V} <: AbstractDict{K,V}
     o :: PyObject
-    PyDict{K,V}(o::AbstractPyObject) where {K,V} = new{K,V}(PyObject(o))
+    PyDict{K,V}(o::PyObject) where {K,V} = new{K,V}(o)
 end
 PyDict{K,V}(o=pydict()) where {K,V} = PyDict{K,V}(pydict(o))
 PyDict{K}(o=pydict()) where {K} = PyDict{K,PyObject}(o)

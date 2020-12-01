@@ -1,14 +1,14 @@
-const pyrangetype = PyLazyObject(() -> pybuiltins.range)
+const pyrangetype = pylazyobject(() -> pybuiltins.range)
 export pyrangetype
 
 pyrange(args...; opts...) = pyrangetype(args...; opts...)
 pyrange(x::AbstractRange{<:Integer}) = pyrange(first(x), last(x)+sign(step(x)), step(x))
 export pyrange
 
-pyisrange(o::AbstractPyObject) = pytypecheck(o, pyrangetype)
+pyisrange(o::PyObject) = pytypecheck(o, pyrangetype)
 export pyisrange
 
-function pyrange_tryconvert(::Type{T}, o::AbstractPyObject) where {A<:Integer, C<:Integer, T<:StepRange{A,C}}
+function pyrange_tryconvert(::Type{T}, o::PyObject) where {A<:Integer, C<:Integer, T<:StepRange{A,C}}
     a = pyint_tryconvert(A, o.start)
     a === PyConvertFail() && return a
     b = pyint_tryconvert(A, o.stop)
@@ -18,7 +18,7 @@ function pyrange_tryconvert(::Type{T}, o::AbstractPyObject) where {A<:Integer, C
     return StepRange{A,C}(a, c, b-oftype(b, sign(c)))
 end
 
-function pyrange_tryconvert(::Type{T}, o::AbstractPyObject) where {A<:Integer, T<:UnitRange{A}}
+function pyrange_tryconvert(::Type{T}, o::PyObject) where {A<:Integer, T<:UnitRange{A}}
     o.step == pyint(1) || return PyConvertFail()
     a = pyint_tryconvert(A, o.start)
     a === PyConvertFail() && return a
@@ -27,15 +27,15 @@ function pyrange_tryconvert(::Type{T}, o::AbstractPyObject) where {A<:Integer, T
     return UnitRange{A}(a, b-one(b))
 end
 
-function pyrange_tryconvert(::Type{T}, o::AbstractPyObject) where {T<:StepRange}
+function pyrange_tryconvert(::Type{T}, o::PyObject) where {T<:StepRange}
     tryconvert(T, pyrange_tryconvert(StepRange{BigInt, BigInt}, o))
 end
 
-function pyrange_tryconvert(::Type{T}, o::AbstractPyObject) where {T<:UnitRange}
+function pyrange_tryconvert(::Type{T}, o::PyObject) where {T<:UnitRange}
     tryconvert(T, pyrange_tryconvert(UnitRange{BigInt}, o))
 end
 
-function pyrange_tryconvert(::Type{T}, o::AbstractPyObject) where {I<:Integer, T<:AbstractRange{I}}
+function pyrange_tryconvert(::Type{T}, o::PyObject) where {I<:Integer, T<:AbstractRange{I}}
     if (S = _typeintersect(T, StepRange{I,I})) != Union{}
         pyrange_tryconvert(S, o)
     elseif (S = _typeintersect(T, UnitRange{I})) != Union{}
@@ -45,7 +45,7 @@ function pyrange_tryconvert(::Type{T}, o::AbstractPyObject) where {I<:Integer, T
     end
 end
 
-function pyrange_tryconvert(::Type{T}, o::AbstractPyObject) where {T<:AbstractRange{<:Integer}}
+function pyrange_tryconvert(::Type{T}, o::PyObject) where {T<:AbstractRange{<:Integer}}
     if (S = _typeintersect(T, StepRange{<:Integer, <:Integer})) != Union{}
         pyrange_tryconvert(S, o)
     elseif (S = _typeintersect(T, UnitRange{<:Integer})) != Union{}
@@ -55,7 +55,7 @@ function pyrange_tryconvert(::Type{T}, o::AbstractPyObject) where {T<:AbstractRa
     end
 end
 
-function pyrange_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pyrange_tryconvert(::Type{T}, o::PyObject) where {T}
     if (S = _typeintersect(T, AbstractRange{<:Integer})) != Union{}
         pyrange_tryconvert(S, o)
     else

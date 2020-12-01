@@ -1,18 +1,18 @@
-const pyfractiontype = PyLazyObject(() -> pyfractionsmodule.Fraction)
+const pyfractiontype = pylazyobject(() -> pyfractionsmodule.Fraction)
 export pyfractiontype
 
 pyfraction(args...; opts...) = pyfractiontype(args...; opts...)
 pyfraction(x::Rational) = pyfraction(numerator(x), denominator(x))
 export pyfraction
 
-pyisfraction(o::AbstractPyObject) = pytypecheck(o, pyfractiontype)
+pyisfraction(o::PyObject) = pytypecheck(o, pyfractiontype)
 export pyisfraction
 
-function pyfraction_tryconvert(::Type{T}, o::AbstractPyObject) where {T<:Rational}
+function pyfraction_tryconvert(::Type{T}, o::PyObject) where {T<:Rational}
     tryconvert(T, pyfraction_tryconvert(Rational{BigInt}, o))
 end
 
-function pyfraction_tryconvert(::Type{Rational{T}}, o::AbstractPyObject) where {T<:Integer}
+function pyfraction_tryconvert(::Type{Rational{T}}, o::PyObject) where {T<:Integer}
     x = pyint_tryconvert(T, o.numerator)
     x === PyConvertFail() && return x
     y = pyint_tryconvert(T, o.denominator)
@@ -20,7 +20,7 @@ function pyfraction_tryconvert(::Type{Rational{T}}, o::AbstractPyObject) where {
     Rational{T}(x, y)
 end
 
-function pyfraction_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pyfraction_tryconvert(::Type{T}, o::PyObject) where {T}
     if (S = _typeintersect(T, Rational)) != Union{}
         pyfraction_tryconvert(S, o)
     elseif (S = _typeintersect(T, Integer)) != Union{}

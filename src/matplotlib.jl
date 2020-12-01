@@ -1,5 +1,5 @@
-pymatplotlib = PyLazyObject(() -> pyimport("matplotlib"))
-pyplot = PyLazyObject(() -> pyimport("matplotlib.pyplot"))
+pymatplotlib = pylazyobject(() -> pyimport("matplotlib"))
+pyplot = pylazyobject(() -> pyimport("matplotlib.pyplot"))
 
 """
     pyplotshow([mime], [fig]; close=true, format=CONFIG.pyplotshowformat)

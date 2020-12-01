@@ -1,1 +1,1 @@
-const pynumpy = PyLazyObject(() -> pyimport("numpy"))
+const pynumpy = pylazyobject(() -> pyimport("numpy"))

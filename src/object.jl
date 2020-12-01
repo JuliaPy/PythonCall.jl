@@ -1,67 +1,81 @@
-abstract type AbstractPyObject end
-export AbstractPyObject
-
-pyincref!(o::AbstractPyObject) = (C.Py_IncRef(pyptr(o)); o)
-Base.convert(::Type{AbstractPyObject}, o::AbstractPyObject) = o
-Base.unsafe_convert(::Type{CPyPtr}, o::AbstractPyObject) = pyptr(o)
-
 ### PYOBJECT
 
-mutable struct PyObject <: AbstractPyObject
+mutable struct PyObject
     ptr :: CPyPtr
-    function PyObject(::Val{:new}, ptr::Ptr=C_NULL, borrowed::Bool=false)
-        o = new(CPyPtr(ptr))
-        borrowed && C.Py_IncRef(ptr)
+    get :: Function
+    function PyObject(::Val{:new}, src::Union{Function,Ptr}, borrowed::Bool=false)
+        if src isa Ptr
+            o = new(CPyPtr(src))
+            borrowed && C.Py_IncRef(src)
+        else
+            o = new(CPyPtr(C_NULL), src)
+        end
         finalizer(o) do o
-            CONFIG.isinitialized && C.Py_DecRef(pyptr(o))
+            if CONFIG.isinitialized
+                ptr = getfield(o, :ptr)
+                ptr == C_NULL || C.Py_DecRef(ptr)
+            end
             setfield!(o, :ptr, CPyPtr(C_NULL))
             nothing
         end
+        o
     end
 end
-PyObject(o::PyObject) = o
-PyObject(o::AbstractPyObject) = pynewobject(pyptr(o), true)
-PyObject(o) = PyObject(pyobject(o))
 export PyObject
 
-pynewobject(args...) = PyObject(Val(:new), args...)
+"""
+    pynewobject(ptr::Ptr)
 
-pyptr(o::PyObject) = getfield(o, :ptr)
+Construct a `PyObject` from the new reference `ptr`.
+"""
+pynewobject(ptr::Ptr) = PyObject(Val(:new), ptr, false)
 
-Base.convert(::Type{PyObject}, o::PyObject) = o
-Base.convert(::Type{PyObject}, o) = PyObject(o)
-Base.convert(::Type{PyObject}, o::AbstractPyObject) = PyObject(o)
+"""
+    pyborrowedobject(ptr::Ptr)
 
-Base.promote_rule(::Type{PyObject}, ::Type{<:AbstractPyObject}) = PyObject
+Construct a `PyObject` from the borrowed reference `ptr`. Its refcount is incremented.
+"""
+pyborrowedobject(ptr::Ptr) = PyObject(Val(:new), ptr, true)
 
-### PYLAZYOBJECT
+"""
+    pylazyobject(f::Function)
 
-struct PyLazyObject{F} <: AbstractPyObject
-    func :: F
-    value :: PyObject
-end
-PyLazyObject(f) = PyLazyObject(f, pynewobject())
+Construct a `PyObject` lazily whose value is equal to `f()`, except evaluation of `f` is deferred until the object is used at run-time.
 
-function pyptr(o::PyLazyObject)
+Use these to construct module-level constants, such as `pynone`.
+"""
+pylazyobject(f::Function) = PyObject(Val(:new), f)
+
+function pyptr(o::PyObject)
     # check if assigned
-    val = getfield(o, :value)
-    ptr = pyptr(val)
+    ptr = getfield(o, :ptr)
     ptr == C_NULL || return ptr
-    # otherwise, generate a value
-    newval = getfield(o, :func)()
-    ptr = pyptr(newval)
-    setfield!(val, :ptr, ptr)
+    # otherwise generate a value
+    val = getfield(o, :get)()
+    ptr = pyptr(val)
+    setfield!(o, :ptr, ptr)
+    C.Py_IncRef(ptr)
     return ptr
 end
 
-PyObject(o::PyLazyObject) = (pyptr(o); getfield(o, :value))
+PyObject(o::PyObject) = o
+PyObject(o) = PyObject(pyobject(o))
+
+Base.convert(::Type{PyObject}, o::PyObject) = o
+Base.convert(::Type{PyObject}, o) = PyObject(o)
+
+Base.promote_rule(::Type{PyObject}, ::Type{<:PyObject}) = PyObject
+
+pyincref!(o::PyObject) = (C.Py_IncRef(pyptr(o)); o)
+
+Base.unsafe_convert(::Type{CPyPtr}, o::PyObject) = pyptr(o)
 
 ### CONVERSIONS
 
-const pyobjecttype = PyLazyObject(() -> pybuiltins.object)
+const pyobjecttype = pylazyobject(() -> pybuiltins.object)
 export pyobjecttype
 
-pyobject(o::AbstractPyObject) = o
+pyobject(o::PyObject) = o
 pyobject(args...; opts...) = pyobjecttype(args...; opts...)
 pyobject(o::Nothing) = pynone
 pyobject(o::Tuple) = pytuple(o)
@@ -82,30 +96,30 @@ export pyobject
 
 ### ABSTRACT OBJECT API
 
-pyrefcnt(o::AbstractPyObject) = C.Py_RefCnt(o)
+pyrefcnt(o::PyObject) = C.Py_RefCnt(o)
 export pyrefcnt
 
-pyis(o1::AbstractPyObject, o2::AbstractPyObject) = pyptr(o1) == pyptr(o2)
+pyis(o1::PyObject, o2::PyObject) = pyptr(o1) == pyptr(o2)
 export pyis
 
-pyhasattr(o::AbstractPyObject, k::AbstractString) = check(Bool, C.PyObject_HasAttrString(o, k))
-pyhasattr(o::AbstractPyObject, k::Symbol) = pyhasattr(o, String(k))
-pyhasattr(o::AbstractPyObject, k) = check(Bool, C.PyObject_HasAttr(o, pyobject(k)))
+pyhasattr(o::PyObject, k::AbstractString) = check(Bool, C.PyObject_HasAttrString(o, k))
+pyhasattr(o::PyObject, k::Symbol) = pyhasattr(o, String(k))
+pyhasattr(o::PyObject, k) = check(Bool, C.PyObject_HasAttr(o, pyobject(k)))
 export pyhasattr
 
-pygetattr(o::AbstractPyObject, k::AbstractString) = check(C.PyObject_GetAttrString(o, k))
-pygetattr(o::AbstractPyObject, k::Symbol) = pygetattr(o, String(k))
-pygetattr(o::AbstractPyObject, k) = check(C.PyObject_GetAttr(o, pyobject(k)))
+pygetattr(o::PyObject, k::AbstractString) = check(C.PyObject_GetAttrString(o, k))
+pygetattr(o::PyObject, k::Symbol) = pygetattr(o, String(k))
+pygetattr(o::PyObject, k) = check(C.PyObject_GetAttr(o, pyobject(k)))
 export pygetattr
 
-pysetattr(o::AbstractPyObject, k::AbstractString, v) = check(Nothing, C.PyObject_SetAttrString(o, k, pyobject(v)))
-pysetattr(o::AbstractPyObject, k::Symbol, v) = pysetattr(o, String(k), v)
-pysetattr(o::AbstractPyObject, k, v) = check(Nothing, C.PyObject_SetAttr(o, pyobject(k), pyobject(v)))
+pysetattr(o::PyObject, k::AbstractString, v) = check(Nothing, C.PyObject_SetAttrString(o, k, pyobject(v)))
+pysetattr(o::PyObject, k::Symbol, v) = pysetattr(o, String(k), v)
+pysetattr(o::PyObject, k, v) = check(Nothing, C.PyObject_SetAttr(o, pyobject(k), pyobject(v)))
 export pysetattr
 
-pydelattr(o::AbstractPyObject, k::AbstractString) = check(Nothing, C.PyObject_DelAttrString(o, k))
-pydelattr(o::AbstractPyObject, k::Symbol) = pydelattr(o, String(k))
-pydelattr(o::AbstractPyObject, k) = check(Nothing, C.PyObject_DelAttr(o, pyobject(k)))
+pydelattr(o::PyObject, k::AbstractString) = check(Nothing, C.PyObject_DelAttrString(o, k))
+pydelattr(o::PyObject, k::Symbol) = pydelattr(o, String(k))
+pydelattr(o::PyObject, k) = check(Nothing, C.PyObject_DelAttr(o, pyobject(k)))
 export pydelattr
 
 pyrichcompare(::Type{PyObject}, o1, o2, op::Cint) = check(C.PyObject_RichCompare(pyobject(o1), pyobject(o2), op))
@@ -142,10 +156,10 @@ export pystr
 pybytes(o) = check(C.PyObject_Bytes(pyobject(o)))
 export pybytes
 
-pyissubclass(o1::AbstractPyObject, o2::AbstractPyObject) = check(Bool, C.PyObject_IsSubclass(o1, o2))
+pyissubclass(o1::PyObject, o2::PyObject) = check(Bool, C.PyObject_IsSubclass(o1, o2))
 export pyissubclass
 
-pyisinstance(o::AbstractPyObject, t::AbstractPyObject) = check(Bool, C.PyObject_IsInstance(o, t))
+pyisinstance(o::PyObject, t::PyObject) = check(Bool, C.PyObject_IsInstance(o, t))
 export pyisinstance
 
 pyhash(o) = check(C.PyObject_Hash(pyobject(o)))
@@ -157,16 +171,16 @@ export pytruth
 pylen(o) = check(C.PyObject_Length(pyobject(o)))
 export pylen
 
-pygetitem(o::AbstractPyObject, k) = check(C.PyObject_GetItem(o, pyobject(k)))
+pygetitem(o::PyObject, k) = check(C.PyObject_GetItem(o, pyobject(k)))
 export pygetitem
 
-pysetitem(o::AbstractPyObject, k, v) = check(Nothing, C.PyObject_SetItem(o, pyobject(k), pyobject(v)))
+pysetitem(o::PyObject, k, v) = check(Nothing, C.PyObject_SetItem(o, pyobject(k), pyobject(v)))
 export pysetitem
 
-pydelitem(o::AbstractPyObject, k) = check(Nothing, C.PyObject_DelItem(o, pyobject(k)))
+pydelitem(o::PyObject, k) = check(Nothing, C.PyObject_DelItem(o, pyobject(k)))
 export pydelitem
 
-pydir(o::AbstractPyObject) = check(C.PyObject_Dir(o))
+pydir(o::PyObject) = check(C.PyObject_Dir(o))
 export pydir
 
 pyiter(o) = check(C.PyObject_GetIter(pyobject(o)))
@@ -188,7 +202,7 @@ export pycall
 
 ### MODULE OBJECTS
 
-const pymoduletype = PyLazyObject(() -> pytype(pybuiltins))
+const pymoduletype = pylazyobject(() -> pytype(pybuiltins))
 export pymoduletype
 
-pyismodule(o::AbstractPyObject) = pyisinstance(o, pymoduletype)
+pyismodule(o::PyObject) = pyisinstance(o, pymoduletype)

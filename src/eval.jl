@@ -2,7 +2,7 @@ const SCOPES = Dict{Any,PyObject}()
 const COMPILECACHE = Dict{Tuple{String,String,String},PyObject}()
 
 scope(s) = get!(pydict, SCOPES, s)
-scope(s::AbstractPyObject) = s
+scope(s::PyObject) = s
 
 """
     pyeval(src, scope, locals=nothing)
@@ -97,7 +97,7 @@ macro py_str(src::String, flags::String="")
     newsrc = :(pycompile($newsrcstr, $cfile, $cmode))
     if compile
         # compile the code lazily (so the python parser is only invoked once)
-        # Julia crashes if you try to put PyLazyObject(()->pycompile(...)) directly in the syntax tree. Is this a bug??
+        # Julia crashes if you try to put pylazyobject(()->pycompile(...)) directly in the syntax tree. Is this a bug??
         # Instead, we use a run-time lookup table.
         newsrc = :(get!(()->$newsrc, COMPILECACHE, ($newsrcstr, $cfile, $cmode)))
     end
@@ -112,7 +112,7 @@ macro py_str(src::String, flags::String="")
     end)
     if lazy
         # wrap as a lazy object
-        ex = :(PyLazyObject(() -> $ex))
+        ex = :(pylazyobject(() -> $ex))
     end
     ex
 end

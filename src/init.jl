@@ -180,31 +180,6 @@ function __init__()
                 end
             end
         end
-
-        # # Special actions in response to certain modules being loaded.
-        # # Currently we do this by checking once per second if they are loaded.
-        # # TODO: Is there a way to do an import hook after a module was successfully loaded?
-        # m_pyqt5 = pystr("PyQt5.QtCore")
-        # m_pyqt4 = pystr("PyQt4.QtCore")
-        # m_pyside = pystr("PySide.QtCore")
-        # m_pyside2 = pystr("PySide2.QtCore")
-        # m_gtk = pystr("gtk")
-        # m_gtk3 = pystr("gi.repository.Gtk")
-        # m_wx = pystr("wx")
-        # m_tkinter = pystr("tkinter")
-        # CONFIG.guiautostarttimer = Timer(0, interval=1) do t
-        #     if CONFIG.guiautostart
-        #         ms = pysysmodule.modules
-        #         m_pyqt5 in ms && start_event_loop(:pyqt5, ifexist=:skip)
-        #         m_pyqt4 in ms && start_event_loop(:pyqt4, ifexist=:skip)
-        #         m_pyside in ms && start_event_loop(:pyside, ifexist=:skip)
-        #         m_pyside2 in ms && start_event_loop(:pyside2, ifexist=:skip)
-        #         m_gtk in ms && start_event_loop(:gtk, ifexist=:skip)
-        #         m_gtk3 in ms && start_event_loop(:gtk3, ifexist=:skip)
-        #         m_wx in ms && start_event_loop(:wx, ifexist=:skip)
-        #         m_tkinter in ms && start_event_loop(:tkinter, ifexist=:skip)
-        #     end
-        # end
     end
 
     return

@@ -1,6 +1,6 @@
 for m in ["os", "sys", "pprint", "traceback", "numbers", "math", "collections", "collections.abc", "datetime", "fractions", "io", "types"]
     j = Symbol(:py, replace(m, '.'=>""), :module)
-    @eval const $j = PyLazyObject(() -> pyimport($m))
+    @eval const $j = pylazyobject(() -> pyimport($m))
 end
 
 """

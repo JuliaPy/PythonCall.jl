@@ -32,7 +32,7 @@ const PYJLTYPES = Dict{Type, PyObject}()
 const PYJLGCCACHE = Dict{CPyPtr, Any}()
 const PYJLBUFCACHE = Dict{Ptr{Cvoid}, Any}()
 
-const pyjlexception = PyLazyObject() do
+const pyjlexception = pylazyobject() do
     # make the type
     c = []
     t = cpynewtype!(c; name="julia.JuliaException", base=pyexception, basicsize=0)
@@ -43,7 +43,7 @@ const pyjlexception = PyLazyObject() do
     check(C.PyType_Ready(ptr))
     # success
     PYJLGCCACHE[CPyPtr(ptr)] = push!(c, ta)
-    pynewobject(ptr, true)
+    pyborrowedobject(ptr)
 end
 export pyjlexception
 
@@ -167,7 +167,7 @@ function pyjltype(::Type{T}) where {T}
 
     # cache
     PYJLGCCACHE[CPyPtr(ptr)] = push!(c, ta)
-    r = PYJLTYPES[T] = pynewobject(ptr, true)
+    r = PYJLTYPES[T] = pyborrowedobject(ptr)
 
     # register ABC
     abc = pyjlabc(T)
@@ -205,10 +205,10 @@ end
 pyjl(x) = pyjl(x, typeof(x))
 export pyjl
 
-pyisjulia(o::AbstractPyObject) = pytypecheck(o, pyjltype(Any))
+pyisjulia(o::PyObject) = pytypecheck(o, pyjltype(Any))
 export pyisjulia
 
-function pyjlvalue(o::AbstractPyObject)
+function pyjlvalue(o::PyObject)
     if pyisjulia(o)
         GC.@preserve o cpyjlvalue(pyptr(o))
     else
@@ -243,7 +243,7 @@ function cpycatch(f, ::Type{T}=CPyPtr) where {T}
 end
 
 cpyreturn(::Type{T}, x::T) where {T} = x
-cpyreturn(::Type{CPyPtr}, x::AbstractPyObject) = CPyPtr(pyptr(pyincref!(x)))
+cpyreturn(::Type{CPyPtr}, x::PyObject) = CPyPtr(pyptr(pyincref!(x)))
 cpyreturn(::Type{T}, x::Number) where {T<:Number} = convert(T, x)
 cpyreturn(::Type{T}, x::Ptr) where {T<:Ptr} = T(x)
 
@@ -308,7 +308,7 @@ cpyjlattr(::Val{:__contains__}, ::Type{T}, ::Type{V}) where {T, V} =
     if mighthavemethod(in, Tuple{Any, T})
         @cfunction (_o, _v) -> cpycatch(Cint) do
             o = cpyjlvalue(_o)
-            v = pytryconvert_element(o, pynewobject(_v, true))
+            v = pytryconvert_element(o, pyborrowedobject(_v))
             v === PyConvertFail() ? false : in(v, o)
         end Cint (CPyJlPtr{V}, CPyPtr)
     end
@@ -327,7 +327,7 @@ cpyjlattr(::Val{:__getitem__}, ::Type{T}, ::Type{V}) where {T, V} =
     if mighthavemethod(getindex, Tuple{T, Any})
         @cfunction (_o, _k) -> cpycatch(CPyPtr) do
             o = cpyjlvalue(_o)
-            k = pynewobject(_k, true)
+            k = pyborrowedobject(_k)
             i = pytryconvert_indices(o, k)
             if i===PyConvertFail()
                 pyerrset(pyvalueerror, "invalid index of type '$(pytype(k).__name__)'")
@@ -342,13 +342,13 @@ cpyjlattr(::Val{:__setitem__}, ::Type{T}, ::Type{V}) where {T, V} =
         @cfunction (_o, _k, _v) -> cpycatch(Cint) do
             _v == C_NULL && error("deletion not implemented")
             o = cpyjlvalue(_o)
-            k = pynewobject(_k, true)
+            k = pyborrowedobject(_k)
             i = pytryconvert_indices(o, k)
             if i===PyConvertFail()
                 pyerrset(pyvalueerror, "invalid index of type '$(pytype(k).__name__)'")
                 return -1
             end
-            v = pytryconvert_value(o, pynewobject(_v, true), i...)
+            v = pytryconvert_value(o, pyborrowedobject(_v), i...)
             o[i...] = v
             0
         end Cint (CPyJlPtr{V}, CPyPtr, CPyPtr)
@@ -400,7 +400,7 @@ cpyjlattr(::Val{:__getattr__}, ::Type{T}, ::Type{V}) where {T, V} =
         errstate = pyerrfetch()
         # then see if there is a corresponding julia property
         o = cpyjlvalue(_o)
-        k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(pynewobject(_k, true))))
+        k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(pyborrowedobject(_k))))
         if hasproperty(o, k)
             return cpyreturn(CPyPtr, pyobject(getproperty(o, k)))
         end
@@ -418,9 +418,9 @@ cpyjlattr(::Val{:__setattr__}, ::Type{T}, ::Type{V}) where {T,V} =
         # now see if there is a corresponding julia property
         _v == C_NULL && error("deletion not supported")
         o = cpyjlvalue(_o)
-        k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(pynewobject(_k, true))))
+        k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(pyborrowedobject(_k))))
         if hasproperty(o, k)
-            v = pyconvert(Any, pynewobject(_v, true)) # can we do better than Any?
+            v = pyconvert(Any, pyborrowedobject(_v)) # can we do better than Any?
             setproperty!(o, k, v)
             return Cint(0)
         end
@@ -434,7 +434,7 @@ cpyjlattr(::Val{:__dir__}, ::Type{T}, ::Type{V}) where {T, V} =
         :flags => C.Py_METH_NOARGS,
         :meth => @cfunction (_o, _) -> cpycatch() do
             # default properties
-            r = pyobjecttype.__dir__(pynewobject(_o, true))
+            r = pyobjecttype.__dir__(pyborrowedobject(_o))
             # add julia properties
             o = cpyjlvalue(_o)
             for k in propertynames(o)
@@ -447,8 +447,8 @@ cpyjlattr(::Val{:__dir__}, ::Type{T}, ::Type{V}) where {T, V} =
 cpyjlattr(::Val{:__call__}, ::Type{T}, ::Type{V}) where {T,V} =
     @cfunction (_o, _args, _kwargs) -> cpycatch() do
         o = cpyjlvalue(_o)
-        args = pynewobject(_args, true)
-        kwargs = _kwargs==C_NULL ? Dict() : Dict(Symbol(pystr_asjuliastring(k)) => v for (k,v) in pynewobject(_kwargs, true))
+        args = pyborrowedobject(_args)
+        kwargs = _kwargs==C_NULL ? Dict() : Dict(Symbol(pystr_asjuliastring(k)) => v for (k,v) in pyborrowedobject(_kwargs))
         pyobject(o(args...; kwargs...))
     end CPyPtr (CPyJlPtr{V}, CPyPtr, CPyPtr)
 
@@ -610,7 +610,7 @@ cpyjlattr(::Val{:__array__}, ::Type{A}, ::Type{V}) where {T, A<:AbstractArray{T}
         :flags => C.Py_METH_NOARGS,
         :meth => @cfunction (_o, _) -> cpycatch() do
             if C.PyObject_HasAttrString(_o, "__array_interface__") != 0
-                pynumpy.asarray(pynewobject(_o, true))
+                pynumpy.asarray(pyborrowedobject(_o))
             else
                 pynumpy.array(PyObjectArray(cpyjlvalue(_o)))
             end
@@ -654,7 +654,7 @@ cpyjlattr(::Val{:__getitem__}, ::Type{T}, ::Type{V}) where {T<:Union{AbstractArr
     if mighthavemethod(getindex, Tuple{T, Any})
         @cfunction (_o, _k) -> cpycatch(CPyPtr) do
             o = cpyjlvalue(_o)
-            k = pynewobject(_k, true)
+            k = pyborrowedobject(_k)
             i = pytryconvert(Union{Int,Tuple{Vararg{Int}}}, k)
             if i===PyConvertFail()
                 pyerrset(pyvalueerror, "invalid index of type '$(pytype(k).__name__)'")
@@ -669,13 +669,13 @@ cpyjlattr(::Val{:__setitem__}, ::Type{T}, ::Type{V}) where {T<:Union{AbstractArr
         @cfunction (_o, _k, _v) -> cpycatch(Cint) do
             _v == C_NULL && error("deletion not implemented")
             o = cpyjlvalue(_o)
-            k = pynewobject(_k, true)
+            k = pyborrowedobject(_k)
             i = pytryconvert(Union{Int,Tuple{Vararg{Int}}}, k)
             if i===PyConvertFail()
                 pyerrset(pyvalueerror, "invalid index of type '$(pytype(k).__name__)'")
                 return -1
             end
-            v = pytryconvert_value(o, pynewobject(_v, true), (i.+1)...)
+            v = pytryconvert_value(o, pyborrowedobject(_v), (i.+1)...)
             o[(i.+1)...] = v
             0
         end Cint (CPyJlPtr{V}, CPyPtr, CPyPtr)
@@ -686,7 +686,7 @@ cpyjlattr(::Val{:index}, ::Type{T}, ::Type{V}) where {T<:Union{SequenceLike}, V}
         :flags => C.Py_METH_O,
         :meth => @cfunction (_o, _v) -> cpycatch() do
             o = cpyjlvalue(_o)
-            v = pytryconvert_value(o, pynewobject(_v, true))
+            v = pytryconvert_value(o, pyborrowedobject(_v))
             i = v===PyConvertFail() ? nothing : findfirst(==(v), o)
             if i === nothing
                 pyerrset(pyvalueerror, "no such value")
@@ -701,7 +701,7 @@ cpyjlattr(::Val{:count}, ::Type{T}, ::Type{V}) where {T<:Union{AbstractArray,Seq
         :flags => C.Py_METH_O,
         :meth => @cfunction (_o, _v) -> cpycatch() do
             o = cpyjlvalue(_o)
-            v = pytryconvert_value(o, pynewobject(_v, true))
+            v = pytryconvert_value(o, pyborrowedobject(_v))
             n = v===PyConvertFail() ? 0 : count(==(v), o)
             pyint(n)
         end CPyPtr (CPyJlPtr{V}, CPyPtr)
@@ -713,7 +713,7 @@ cpyjlattr(::Val{:append}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
             :flags => C.Py_METH_O,
             :meth => @cfunction (_o, _v) -> cpycatch() do
                 o = cpyjlvalue(_o)
-                v = pytryconvert_value(o, pynewobject(_v, true))
+                v = pytryconvert_value(o, pyborrowedobject(_v))
                 if v === PyConvertFail()
                     pyerrset(pytypeerror, "invalid element type")
                     CPyPtr(0)
@@ -728,7 +728,7 @@ cpyjlattr(::Val{:append}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
 cpyjlattr(::Val{:__iconcat__}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
     @cfunction (_o, _v) -> cpycatch() do
         o = cpyjlvalue(_o)
-        for _x in pynewobject(_v, true)
+        for _x in pyborrowedobject(_v)
             x = pytryconvert_value(o, _x)
             if x === PyConvertFail()
                 pyerrset(pytypeerror, "invalid element type")
@@ -745,7 +745,7 @@ cpyjlattr(::Val{:extend}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
         :method => Dict(
             :flags => C.Py_METH_O,
             :meth => @cfunction (_o, _v) -> cpycatch() do
-                pynewobject(_o, true).__iadd__(pynewobject(_v, true))
+                pyborrowedobject(_o).__iadd__(pyborrowedobject(_v))
             end CPyPtr (CPyJlPtr{V}, CPyPtr)
         )
     end
@@ -756,7 +756,7 @@ cpyjlattr(::Val{:insert}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
             :flags => C.Py_METH_VARARGS,
             :meth => @cfunction (_o, _args) -> cpycatch() do
                 o = cpyjlvalue(_o)
-                i, _v = @pyconvert_args (i::Int, x) pynewobject(_args, true)
+                i, _v = @pyconvert_args (i::Int, x) pyborrowedobject(_args)
                 v = pytryconvert_value(o, _v)
                 if v === PyConvertFail()
                     pyerrset(pytypeerror, "invalid element type")
@@ -775,7 +775,7 @@ cpyjlattr(::Val{:pop}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
             :flags => C.Py_METH_VARARGS,
             :meth => @cfunction (_o, _args) -> cpycatch() do
                 o = cpyjlvalue(_o)
-                i, = @pyconvert_args (i::Union{Int,Nothing}=nothing,) pynewobject(_args, true)
+                i, = @pyconvert_args (i::Union{Int,Nothing}=nothing,) pyborrowedobject(_args)
                 pyobject(popat!(o, i===nothing ? lastindex(o) : i + firstindex(o)))
             end CPyPtr (CPyJlPtr{V}, CPyPtr)
         )
@@ -786,8 +786,8 @@ cpyjlattr(::Val{:remove}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
         :method => Dict(
             :flags => C.Py_METH_O,
             :meth => @cfunction (_o, _v) -> cpycatch() do
-                o = pynewobject(_o, true)
-                v = pynewobject(_v, true)
+                o = pyborrowedobject(_o)
+                v = pyborrowedobject(_v)
                 o.pop(o.index(v))
             end CPyPtr (CPyJlPtr{V}, CPyPtr)
         )
@@ -811,7 +811,7 @@ cpyjlattr(::Val{:sort}, ::Type{T}, ::Type{V}) where {T<:SequenceLike, V} =
             :flags => C.Py_METH_VARARGS | C.Py_METH_KEYWORDS,
             :meth => @cfunction (_o, _args, _kwargs) -> cpycatch() do
                 o = cpyjlvalue(_o)
-                key, rev = @pyconvert_args (key=pynone, rev::Bool=false) pynewobject(_args, true) (_kwargs == C_NULL ? pydict() : pynewobject(_kwargs, true))
+                key, rev = @pyconvert_args (key=pynone, rev::Bool=false) pyborrowedobject(_args) (_kwargs == C_NULL ? pydict() : pyborrowedobject(_kwargs))
                 sort!(o; by = pyisnone(key) ? identity : key, rev = rev)
                 pynone
             end CPyPtr (CPyJlPtr{V}, CPyPtr, CPyPtr)
@@ -974,8 +974,8 @@ cpyjlattr(::Val{:writelines}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
     :method => Dict(
         :flags => C.Py_METH_O,
         :meth => @cfunction (_o, _lines) -> cpycatch() do
-            wr = pynewobject(_o, true).write
-            for line in pynewobject(_lines, true)
+            wr = pyborrowedobject(_o).write
+            for line in pyborrowedobject(_lines)
                 wr(line)
             end
             pyreturn(CPyPtr, pynone)
@@ -999,7 +999,7 @@ cpyjlattr(::Val{:truncate}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
         :meth =>
             if mighthavemethod(truncate, Tuple{T, Int}) && mighthavemethod(position, Tuple{T})
                 @cfunction (_o, _args) -> cpycatch() do
-                    n, = @pyconvert_args (size::Union{Int,Nothing}=nothing,) pynewobject(_args, true)
+                    n, = @pyconvert_args (size::Union{Int,Nothing}=nothing,) pyborrowedobject(_args)
                     n === nothing && (n = position(o))
                     truncate(o, n)
                     pyint(n)
@@ -1015,7 +1015,7 @@ cpyjlattr(::Val{:seek}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
         :meth =>
             if mighthavemethod(seek, Tuple{V, Int}) && mighthavemethod(position, Tuple{V})
                 @cfunction (_o, _args) -> cpycatch() do
-                    n, w = @pyconvert_args (offset::Int, whence::Int=0) pynewobject(_args, true)
+                    n, w = @pyconvert_args (offset::Int, whence::Int=0) pyborrowedobject(_args)
                     o = cpyjlvalue(_o)
                     if w == 0
                         seek(o, n)
@@ -1039,7 +1039,7 @@ cpyjlattr(::Val{:__iter__}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
 
 cpyjlattr(::Val{:__next__}, ::Type{T}, ::Type{V}) where {T<:IO, V} =
     @cfunction _o -> cpycatch() do
-        line = pynewobject(_o, true).readline()
+        line = pyborrowedobject(_o).readline()
         pylen(line) == 0 ? C_NULL : cpyreturn(CPyPtr, line)
     end CPyPtr (CPyJlPtr{V},)
 
@@ -1060,7 +1060,7 @@ cpyjlattr(::Val{:readinto}, ::Type{BufferedIO{V}}, ::Type{V}) where {V} =
         :meth =>
             if mighthavemethod(readbytes!, Tuple{V, Vector{UInt8}})
                 @cfunction (_o, _b) -> cpycatch() do
-                    b = PyBuffer(pynewobject(_b, true), C.PyBUF_WRITABLE)
+                    b = PyBuffer(pyborrowedobject(_b), C.PyBUF_WRITABLE)
                     o = cpyjlvalue(_o)
                     n = readbytes!(o, unsafe_wrap(Array{UInt8}, Ptr{UInt8}(b.buf), b.len))
                     pyint(n)
@@ -1076,7 +1076,7 @@ cpyjlattr(::Val{:read}, ::Type{BufferedIO{V}}, ::Type{V}) where {V} =
         :meth =>
             if mighthavemethod(read, Tuple{V}) && mighthavemethod(read, Tuple{V, Int})
                 @cfunction (_o, _args) -> cpycatch() do
-                    n, = @pyconvert_args (size::Union{Int,Nothing}=-1,) pynewobject(_args, true)
+                    n, = @pyconvert_args (size::Union{Int,Nothing}=-1,) pyborrowedobject(_args)
                     o = cpyjlvalue(_o)
                     pybytes(convert(Vector{UInt8}, (n===nothing || n < 0) ? read(o) : read(o, n)))
                 end CPyPtr (CPyJlPtr{V}, CPyPtr)
@@ -1091,7 +1091,7 @@ cpyjlattr(::Val{:write}, ::Type{BufferedIO{V}}, ::Type{V}) where {V} =
         :meth =>
             if mighthavemethod(write, Tuple{V, Vector{UInt8}})
                 @cfunction (_o, _b) -> cpycatch() do
-                    b = PyBuffer(pynewobject(_b, true), C.PyBUF_SIMPLE)
+                    b = PyBuffer(pyborrowedobject(_b), C.PyBUF_SIMPLE)
                     o = cpyjlvalue(_o)
                     n = write(o, unsafe_wrap(Array{UInt8}, Ptr{UInt8}(b.buf), b.len))
                     pyint(n)
@@ -1107,7 +1107,7 @@ cpyjlattr(::Val{:readline}, ::Type{BufferedIO{V}}, ::Type{V}) where {V} =
         :meth =>
             if mighthavemethod(read, Tuple{V, Type{UInt8}})
                 @cfunction (_o, _args) -> cpycatch() do
-                    n, = @pyconvert_args (size::Union{Int,Nothing}=-1,) pynewobject(_args, true)
+                    n, = @pyconvert_args (size::Union{Int,Nothing}=-1,) pyborrowedobject(_args)
                     o = cpyjlvalue(_o)
                     data = UInt8[]
                     while !eof(o) && (n===nothing || n < 0 || length(data) ≤ n)
@@ -1149,7 +1149,7 @@ cpyjlattr(::Val{:read}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
     :method => Dict(
         :flags => C.Py_METH_VARARGS,
         :meth => @cfunction (_o, _args) -> cpycatch() do
-            n, = @pyconvert_args (size::Union{Int,Nothing}=-1,) pynewobject(_args, true)
+            n, = @pyconvert_args (size::Union{Int,Nothing}=-1,) pyborrowedobject(_args)
             o = cpyjlvalue(_o)
             b = IOBuffer()
             i = 0
@@ -1166,7 +1166,7 @@ cpyjlattr(::Val{:readline}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
     :method => Dict(
         :flags => C.Py_METH_VARARGS,
         :meth => @cfunction (_o, _args) -> cpycatch() do
-            n, = @pyconvert_args (size::Union{Int,Nothing}=-1,) pynewobject(_args, true)
+            n, = @pyconvert_args (size::Union{Int,Nothing}=-1,) pyborrowedobject(_args)
             o = cpyjlvalue(_o)
             b = IOBuffer()
             i = 0
@@ -1193,7 +1193,7 @@ cpyjlattr(::Val{:write}, ::Type{TextIO{V}}, ::Type{V}) where {V} =
     :method => Dict(
         :flags => C.Py_METH_O,
         :meth => @cfunction (_o, _x) -> cpycatch() do
-            x = pystr_asjuliastring(pynewobject(_x, true))
+            x = pystr_asjuliastring(pyborrowedobject(_x))
             o = cpyjlvalue(_o)
             n = 0
             linesep = pystr_asjuliastring(pyosmodule.linesep)

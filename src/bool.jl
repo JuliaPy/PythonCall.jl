@@ -1,18 +1,18 @@
-const pybooltype = PyLazyObject(() -> pybuiltins.bool)
+const pybooltype = pylazyobject(() -> pybuiltins.bool)
 export pybooltype
 
-const pytrue = PyLazyObject(() -> pybuiltins.True)
-const pyfalse = PyLazyObject(() -> pybuiltins.False)
+const pytrue = pylazyobject(() -> pybuiltins.True)
+const pyfalse = pylazyobject(() -> pybuiltins.False)
 export pytrue, pyfalse
 
 pybool(args...; opts...) = pybooltype(args...; opts...)
 pybool(o::Bool) = o ? pytrue : pyfalse
 export pybool
 
-pyisbool(o::AbstractPyObject) = pytypecheck(o, pybooltype)
+pyisbool(o::PyObject) = pytypecheck(o, pybooltype)
 export pyisbool
 
-function pybool_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pybool_tryconvert(::Type{T}, o::PyObject) where {T}
     x = pytruth(o)
     if Bool <: T
         pytruth(o)

@@ -1,4 +1,4 @@
-const pyinttype = PyLazyObject(() -> pybuiltins.int)
+const pyinttype = pylazyobject(() -> pybuiltins.int)
 export pyinttype
 
 pyint(args...; opts...) = pyinttype(args...; opts...)
@@ -17,10 +17,10 @@ pyint(x::Unsigned) =
     end
 export pyint
 
-pyisint(o::AbstractPyObject) = pytypecheckfast(o, C.Py_TPFLAGS_LONG_SUBCLASS)
+pyisint(o::PyObject) = pytypecheckfast(o, C.Py_TPFLAGS_LONG_SUBCLASS)
 export pyisint
 
-function pyint_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pyint_tryconvert(::Type{T}, o::PyObject) where {T}
     if BigInt <: T
         # if it fits in a longlong, use that
         rl = C.PyLong_AsLongLong(o)

@@ -23,7 +23,7 @@ const PyVector{T,R,M,L} = PyArray{T,1,R,M,L}
 const PyMatrix{T,R,M,L} = PyArray{T,2,R,M,L}
 export PyArray, PyVector, PyMatrix
 
-function PyArray{T,N,R,M,L}(o::AbstractPyObject, info=pyarray_info(o)) where {T,N,R,M,L}
+function PyArray{T,N,R,M,L}(o::PyObject, info=pyarray_info(o)) where {T,N,R,M,L}
     # R - buffer element type
     if R === missing
         return PyArray{T, N, info.eltype, M, L}(o, info)
@@ -90,7 +90,7 @@ PyArray(o) where {} = PyArray{missing}(o)
 
 pyobject(x::PyArray) = x.o
 
-function pyarray_info(o::AbstractPyObject)
+function pyarray_info(o::PyObject)
     # TODO: support the numpy array interface too
     b = PyBuffer(o, C.PyBUF_RECORDS_RO)
     (ndims=b.ndim, eltype=b.eltype, elsize=b.itemsize, mutable=!b.readonly, bytestrides=b.strides, size=b.shape, ptr=b.buf, handle=b)
@@ -123,7 +123,7 @@ pyarray_default_T(::Type{R}) where {R} = R
 pyarray_default_T(::Type{CPyObjRef}) = PyObject
 
 pyarray_load(::Type{T}, p::Ptr{T}) where {T} = unsafe_load(p)
-pyarray_load(::Type{T}, p::Ptr{CPyObjRef}) where {T} = (o=unsafe_load(p).ptr; o==C_NULL ? throw(UndefRefError()) : pyconvert(T, pynewobject(o, true)))
+pyarray_load(::Type{T}, p::Ptr{CPyObjRef}) where {T} = (o=unsafe_load(p).ptr; o==C_NULL ? throw(UndefRefError()) : pyconvert(T, pyborrowedobject(o)))
 
 pyarray_store!(p::Ptr{T}, v::T) where {T} = unsafe_store!(p, v)
 pyarray_store!(p::Ptr{CPyObjRef}, v::T) where {T} = (C.Py_DecRef(unsafe_load(p).ptr); unsafe_store!(p, CPyObjRef(pyptr(pyincref!(pyobject(v))))))

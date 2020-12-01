@@ -1,7 +1,7 @@
-const pylisttype = PyLazyObject(() -> pybuiltins.list)
+const pylisttype = pylazyobject(() -> pybuiltins.list)
 export pylisttype
 
-pyislist(o::AbstractPyObject) = pytypecheckfast(o, C.Py_TPFLAGS_LIST_SUBCLASS)
+pyislist(o::PyObject) = pytypecheckfast(o, C.Py_TPFLAGS_LIST_SUBCLASS)
 export pyislist
 
 pylist() = check(C.PyList_New(0))

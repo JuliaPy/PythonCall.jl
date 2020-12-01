@@ -1,4 +1,4 @@
-function Base.show(io::IO, o::AbstractPyObject)
+function Base.show(io::IO, o::PyObject)
     s = pyrepr(String, o)
     if get(io, :typeinfo, Any) == typeof(o)
         print(io, s)
@@ -9,9 +9,9 @@ function Base.show(io::IO, o::AbstractPyObject)
     end
 end
 
-Base.print(io::IO, o::AbstractPyObject) = print(io, pystr(String, o))
+Base.print(io::IO, o::PyObject) = print(io, pystr(String, o))
 
-function Base.show(io::IO, ::MIME"text/plain", o::AbstractPyObject)
+function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
     h, w = displaysize(io)
     w -= 1
     h -= 5
@@ -60,9 +60,9 @@ function Base.show(io::IO, ::MIME"text/plain", o::AbstractPyObject)
     end
 end
 
-Base.hasproperty(o::AbstractPyObject, k::Union{Symbol,AbstractString}) = pyhasattr(o, k)
+Base.hasproperty(o::PyObject, k::Union{Symbol,AbstractString}) = pyhasattr(o, k)
 
-Base.getproperty(o::AbstractPyObject, k::Symbol) =
+Base.getproperty(o::PyObject, k::Symbol) =
     if k == :jl!
         T -> pyconvert(T, o)
     elseif k == :jl!i
@@ -94,13 +94,13 @@ Base.getproperty(o::AbstractPyObject, k::Symbol) =
     else
         pygetattr(o, k)
     end
-Base.getproperty(o::AbstractPyObject, k::AbstractString) =
+Base.getproperty(o::PyObject, k::AbstractString) =
     startswith(k, "jl!") ? getproperty(o, Symbol(k)) : pygetattr(o, k)
 
-Base.setproperty!(o::AbstractPyObject, k::Symbol, v) = (pysetattr(o, k, v); o)
-Base.setproperty!(o::AbstractPyObject, k::AbstractString, v) = (pysetattr(o, k, v); o)
+Base.setproperty!(o::PyObject, k::Symbol, v) = (pysetattr(o, k, v); o)
+Base.setproperty!(o::PyObject, k::AbstractString, v) = (pysetattr(o, k, v); o)
 
-function Base.propertynames(o::AbstractPyObject)
+function Base.propertynames(o::PyObject)
     # this follows the logic of rlcompleter.py
     function classmembers(c)
         r = pydir(c)
@@ -122,23 +122,23 @@ function Base.propertynames(o::AbstractPyObject)
 end
 
 
-Base.getindex(o::AbstractPyObject, k) = pygetitem(o, k)
-Base.getindex(o::AbstractPyObject, k...) = pygetitem(o, k)
+Base.getindex(o::PyObject, k) = pygetitem(o, k)
+Base.getindex(o::PyObject, k...) = pygetitem(o, k)
 
-Base.setindex!(o::AbstractPyObject, v, k) = (pysetitem(o, k, v); o)
-Base.setindex!(o::AbstractPyObject, v, k...) = (pysetitem(o, k, v); o)
+Base.setindex!(o::PyObject, v, k) = (pysetitem(o, k, v); o)
+Base.setindex!(o::PyObject, v, k...) = (pysetitem(o, k, v); o)
 
-Base.delete!(o::AbstractPyObject, k) = (pydelitem(o, k); o)
+Base.delete!(o::PyObject, k) = (pydelitem(o, k); o)
 
-Base.length(o::AbstractPyObject) = Int(pylen(o))
+Base.length(o::PyObject) = Int(pylen(o))
 
-Base.in(v, o::AbstractPyObject) = pycontains(o, v)
+Base.in(v, o::PyObject) = pycontains(o, v)
 
-(f::AbstractPyObject)(args...; kwargs...) = pycall(f, args...; kwargs...)
+(f::PyObject)(args...; kwargs...) = pycall(f, args...; kwargs...)
 
-Base.eltype(::Type{T}) where {T<:AbstractPyObject} = PyObject
-Base.IteratorSize(::Type{T}) where {T<:AbstractPyObject} = Base.SizeUnknown()
-function Base.iterate(o::AbstractPyObject, it=pyiter(o))
+Base.eltype(::Type{T}) where {T<:PyObject} = PyObject
+Base.IteratorSize(::Type{T}) where {T<:PyObject} = Base.SizeUnknown()
+function Base.iterate(o::PyObject, it=pyiter(o))
     ptr = C.PyIter_Next(it)
     if ptr == C_NULL
         pyerrcheck()
@@ -150,68 +150,68 @@ end
 
 # comparisons
 # TODO: allow comparison with non-python objects?
-Base.:(==)(o1::AbstractPyObject, o2::AbstractPyObject) = pyeq(Bool, o1, o2)
-Base.:(!=)(o1::AbstractPyObject, o2::AbstractPyObject) = pyne(Bool, o1, o2)
-Base.:(< )(o1::AbstractPyObject, o2::AbstractPyObject) = pylt(Bool, o1, o2)
-Base.:(<=)(o1::AbstractPyObject, o2::AbstractPyObject) = pyle(Bool, o1, o2)
-Base.:(> )(o1::AbstractPyObject, o2::AbstractPyObject) = pygt(Bool, o1, o2)
-Base.:(>=)(o1::AbstractPyObject, o2::AbstractPyObject) = pyge(Bool, o1, o2)
-Base.isequal(o1::AbstractPyObject, o2::AbstractPyObject) = pyeq(Bool, o1, o2)
-Base.isless(o1::AbstractPyObject, o2::AbstractPyObject) = pylt(Bool, o1, o2)
+Base.:(==)(o1::PyObject, o2::PyObject) = pyeq(Bool, o1, o2)
+Base.:(!=)(o1::PyObject, o2::PyObject) = pyne(Bool, o1, o2)
+Base.:(< )(o1::PyObject, o2::PyObject) = pylt(Bool, o1, o2)
+Base.:(<=)(o1::PyObject, o2::PyObject) = pyle(Bool, o1, o2)
+Base.:(> )(o1::PyObject, o2::PyObject) = pygt(Bool, o1, o2)
+Base.:(>=)(o1::PyObject, o2::PyObject) = pyge(Bool, o1, o2)
+Base.isequal(o1::PyObject, o2::PyObject) = pyeq(Bool, o1, o2)
+Base.isless(o1::PyObject, o2::PyObject) = pylt(Bool, o1, o2)
 
 # unary arithmetic
-Base.:(-)(o::AbstractPyObject) = pyneg(o)
-Base.:(+)(o::AbstractPyObject) = pypos(o)
-Base.abs(o::AbstractPyObject) = pyabs(o)
-Base.:(~)(o::AbstractPyObject) = pyinv(o)
+Base.:(-)(o::PyObject) = pyneg(o)
+Base.:(+)(o::PyObject) = pypos(o)
+Base.abs(o::PyObject) = pyabs(o)
+Base.:(~)(o::PyObject) = pyinv(o)
 
 # binary arithmetic
-Base.:(+)(o1::AbstractPyObject, o2::AbstractPyObject) = pyadd(o1, o2)
-Base.:(-)(o1::AbstractPyObject, o2::AbstractPyObject) = pysub(o1, o2)
-Base.:(*)(o1::AbstractPyObject, o2::AbstractPyObject) = pymul(o1, o2)
-Base.:(/)(o1::AbstractPyObject, o2::AbstractPyObject) = pytruediv(o1, o2)
-Base.:fld(o1::AbstractPyObject, o2::AbstractPyObject) = pyfloordiv(o1, o2)
-Base.:mod(o1::AbstractPyObject, o2::AbstractPyObject) = pymod(o1, o2)
-Base.:(^)(o1::AbstractPyObject, o2::AbstractPyObject) = pypow(o1, o2)
-Base.:(<<)(o1::AbstractPyObject, o2::AbstractPyObject) = pylshift(o1, o2)
-Base.:(>>)(o1::AbstractPyObject, o2::AbstractPyObject) = pyrshift(o1, o2)
-Base.:(&)(o1::AbstractPyObject, o2::AbstractPyObject) = pyand(o1, o2)
-Base.:xor(o1::AbstractPyObject, o2::AbstractPyObject) = pyxor(o1, o2)
-Base.:(|)(o1::AbstractPyObject, o2::AbstractPyObject) = pyor(o1, o2)
+Base.:(+)(o1::PyObject, o2::PyObject) = pyadd(o1, o2)
+Base.:(-)(o1::PyObject, o2::PyObject) = pysub(o1, o2)
+Base.:(*)(o1::PyObject, o2::PyObject) = pymul(o1, o2)
+Base.:(/)(o1::PyObject, o2::PyObject) = pytruediv(o1, o2)
+Base.:fld(o1::PyObject, o2::PyObject) = pyfloordiv(o1, o2)
+Base.:mod(o1::PyObject, o2::PyObject) = pymod(o1, o2)
+Base.:(^)(o1::PyObject, o2::PyObject) = pypow(o1, o2)
+Base.:(<<)(o1::PyObject, o2::PyObject) = pylshift(o1, o2)
+Base.:(>>)(o1::PyObject, o2::PyObject) = pyrshift(o1, o2)
+Base.:(&)(o1::PyObject, o2::PyObject) = pyand(o1, o2)
+Base.:xor(o1::PyObject, o2::PyObject) = pyxor(o1, o2)
+Base.:(|)(o1::PyObject, o2::PyObject) = pyor(o1, o2)
 
-Base.:(+)(o1::AbstractPyObject, o2::Number) = pyadd(o1, o2)
-Base.:(-)(o1::AbstractPyObject, o2::Number) = pysub(o1, o2)
-Base.:(*)(o1::AbstractPyObject, o2::Number) = pymul(o1, o2)
-Base.:(/)(o1::AbstractPyObject, o2::Number) = pytruediv(o1, o2)
-Base.:fld(o1::AbstractPyObject, o2::Number) = pyfloordiv(o1, o2)
-Base.:mod(o1::AbstractPyObject, o2::Number) = pymod(o1, o2)
-Base.:(^)(o1::AbstractPyObject, o2::Number) = pypow(o1, o2)
-Base.:(<<)(o1::AbstractPyObject, o2::Number) = pylshift(o1, o2)
-Base.:(>>)(o1::AbstractPyObject, o2::Number) = pyrshift(o1, o2)
-Base.:(&)(o1::AbstractPyObject, o2::Number) = pyand(o1, o2)
-Base.:xor(o1::AbstractPyObject, o2::Number) = pyxor(o1, o2)
-Base.:(|)(o1::AbstractPyObject, o2::Number) = pyor(o1, o2)
+Base.:(+)(o1::PyObject, o2::Number) = pyadd(o1, o2)
+Base.:(-)(o1::PyObject, o2::Number) = pysub(o1, o2)
+Base.:(*)(o1::PyObject, o2::Number) = pymul(o1, o2)
+Base.:(/)(o1::PyObject, o2::Number) = pytruediv(o1, o2)
+Base.:fld(o1::PyObject, o2::Number) = pyfloordiv(o1, o2)
+Base.:mod(o1::PyObject, o2::Number) = pymod(o1, o2)
+Base.:(^)(o1::PyObject, o2::Number) = pypow(o1, o2)
+Base.:(<<)(o1::PyObject, o2::Number) = pylshift(o1, o2)
+Base.:(>>)(o1::PyObject, o2::Number) = pyrshift(o1, o2)
+Base.:(&)(o1::PyObject, o2::Number) = pyand(o1, o2)
+Base.:xor(o1::PyObject, o2::Number) = pyxor(o1, o2)
+Base.:(|)(o1::PyObject, o2::Number) = pyor(o1, o2)
 
-Base.:(+)(o1::Number, o2::AbstractPyObject) = pyadd(o1, o2) # Defining +(::Any, ::AbstractPyObject) like this hangs Julia v1.5.2-v1.5.3 (at least) during precompilation
-Base.:(-)(o1::Number, o2::AbstractPyObject) = pysub(o1, o2)
-Base.:(*)(o1::Number, o2::AbstractPyObject) = pymul(o1, o2)
-Base.:(/)(o1::Number, o2::AbstractPyObject) = pytruediv(o1, o2)
-Base.:fld(o1::Number, o2::AbstractPyObject) = pyfloordiv(o1, o2)
-Base.:mod(o1::Number, o2::AbstractPyObject) = pymod(o1, o2)
-# Base.:(^)(o1::Number, o2::AbstractPyObject) = pypow(o1, o2)
-# Base.:(<<)(o1::Number, o2::AbstractPyObject) = pylshift(o1, o2)
-# Base.:(>>)(o1::Number, o2::AbstractPyObject) = pyrshift(o1, o2)
-Base.:(&)(o1::Number, o2::AbstractPyObject) = pyand(o1, o2)
-Base.:xor(o1::Number, o2::AbstractPyObject) = pyxor(o1, o2)
-Base.:(|)(o1::Number, o2::AbstractPyObject) = pyor(o1, o2)
+Base.:(+)(o1::Number, o2::PyObject) = pyadd(o1, o2) # Defining +(::Any, ::PyObject) like this hangs Julia v1.5.2-v1.5.3 (at least) during precompilation
+Base.:(-)(o1::Number, o2::PyObject) = pysub(o1, o2)
+Base.:(*)(o1::Number, o2::PyObject) = pymul(o1, o2)
+Base.:(/)(o1::Number, o2::PyObject) = pytruediv(o1, o2)
+Base.:fld(o1::Number, o2::PyObject) = pyfloordiv(o1, o2)
+Base.:mod(o1::Number, o2::PyObject) = pymod(o1, o2)
+# Base.:(^)(o1::Number, o2::PyObject) = pypow(o1, o2)
+# Base.:(<<)(o1::Number, o2::PyObject) = pylshift(o1, o2)
+# Base.:(>>)(o1::Number, o2::PyObject) = pyrshift(o1, o2)
+Base.:(&)(o1::Number, o2::PyObject) = pyand(o1, o2)
+Base.:xor(o1::Number, o2::PyObject) = pyxor(o1, o2)
+Base.:(|)(o1::Number, o2::PyObject) = pyor(o1, o2)
 
 # ternary arithmetic
-Base.powermod(o1::AbstractPyObject, o2::Union{AbstractPyObject,Number}, o3::Union{AbstractPyObject,Number}) = pypow(o1, o2, o3)
+Base.powermod(o1::PyObject, o2::Union{PyObject,Number}, o3::Union{PyObject,Number}) = pypow(o1, o2, o3)
 
 Base.zero(::Type{PyObject}) = pyint(0)
 Base.one(::Type{PyObject}) = pyint(1)
 
-function Base.Docs.getdoc(o::AbstractPyObject)
+function Base.Docs.getdoc(o::PyObject)
     docs = []
     function typename(t)
         n = string(t.__name__)
@@ -249,7 +249,7 @@ function Base.Docs.getdoc(o::AbstractPyObject)
     end
     Markdown.MD(docs)
 end
-Base.Docs.Binding(o::AbstractPyObject, k::Symbol) = getproperty(o, k)
+Base.Docs.Binding(o::PyObject, k::Symbol) = getproperty(o, k)
 
 for (mime, method) in ((MIME"text/html", "_repr_html_"),
                        (MIME"text/markdown", "_repr_markdown_"),

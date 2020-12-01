@@ -5,7 +5,7 @@ Wrap the Python object `o` into a Julia object which iterates values of type `T`
 """
 struct PyIterable{T}
     o :: PyObject
-    PyIterable{T}(o) where {T} = new{T}(PyObject(o))
+    PyIterable{T}(o) where {T} = new{T}(o)
 end
 PyIterable(o) = PyIterable{PyObject}(o)
 export PyIterable

@@ -1,4 +1,4 @@
-const pystrtype = PyLazyObject(() -> pybuiltins.str)
+const pystrtype = pylazyobject(() -> pybuiltins.str)
 export pystrtype
 
 pystr(x::Union{String,SubString{String}}) = check(C.PyUnicode_DecodeUTF8(x, ncodeunits(x), C_NULL))
@@ -8,14 +8,14 @@ pystr(x::Symbol) = pystr(String(x))
 pystr(args...; opts...) = pystrtype(args...; opts...)
 export pystr
 
-pystr_asutf8string(o::AbstractPyObject) = check(C.PyUnicode_AsUTF8String(o))
+pystr_asutf8string(o::PyObject) = check(C.PyUnicode_AsUTF8String(o))
 
-pystr_asjuliastring(o::AbstractPyObject) = pybytes_asjuliastring(pystr_asutf8string(o))
+pystr_asjuliastring(o::PyObject) = pybytes_asjuliastring(pystr_asutf8string(o))
 
-pyisstr(o::AbstractPyObject) = pytypecheckfast(o, C.Py_TPFLAGS_UNICODE_SUBCLASS)
+pyisstr(o::PyObject) = pytypecheckfast(o, C.Py_TPFLAGS_UNICODE_SUBCLASS)
 export pyisstr
 
-function pystr_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pystr_tryconvert(::Type{T}, o::PyObject) where {T}
     x = pystr_asjuliastring(o)
     if (S = _typeintersect(T, String)) != Union{}
         convert(S, x)

@@ -1,8 +1,8 @@
-const pyslicetype = PyLazyObject(() -> pybuiltins.slice)
+const pyslicetype = pylazyobject(() -> pybuiltins.slice)
 export pyslicetype
 
 pyslice(args...; opts...) = pyslicetype(args...; opts...)
 export pyslice
 
-pyisslice(o::AbstractPyObject) = pytypecheck(o, pyslicetype)
+pyisslice(o::PyObject) = pytypecheck(o, pyslicetype)
 export pyisslice

@@ -1,7 +1,7 @@
 check(::Type{CPyPtr}, o::CPyPtr, ambig=false) = (o == C_NULL && (ambig ? pyerrcheck() : pythrow()); o)
 check(::Type{T}, o::T, ambig=false) where {T<:Number} = (o == (zero(T)-one(T)) && (ambig ? pyerrcheck() : pythrow()); o)
 check(::Type{Nothing}, o::Cvoid, ambig=false) = ambig ? pyerrcheck() : nothing
-check(::Type{PyObject}, o::CPyPtr, ambig=false) = pynewobject(check(CPyPtr, o, ambig), false)
+check(::Type{PyObject}, o::CPyPtr, ambig=false) = pynewobject(check(CPyPtr, o, ambig))
 check(::Type{Bool}, o::Cint, ambig=false) = !iszero(check(Cint, o, ambig))
 check(::Type{Nothing}, o::Cint, ambig=false) = (check(Cint, o, ambig); nothing)
 check(o::CPyPtr, ambig=false) = check(PyObject, o, ambig)
@@ -11,7 +11,7 @@ check(o::Cvoid, ambig=false) = check(Nothing, o, ambig)
 
 pyerroccurred() = C.PyErr_Occurred() != C_NULL
 
-function pyerroccurred(t::AbstractPyObject)
+function pyerroccurred(t::PyObject)
     e = C.PyErr_Occurred()
     e != C_NULL && !iszero(C.PyErr_GivenExceptionMatches(e, t))
 end
@@ -20,11 +20,11 @@ pyerrclear() = C.PyErr_Clear()
 
 pyerrcheck() = pyerroccurred() ? pythrow() : nothing
 
-pyerrset(t::AbstractPyObject) = C.PyErr_SetNone(t)
-pyerrset(t::AbstractPyObject, x::AbstractString) = C.PyErr_SetString(t, x)
-pyerrset(t::AbstractPyObject, x::AbstractPyObject) = C.PyErr_SetObject(t, x)
+pyerrset(t::PyObject) = C.PyErr_SetNone(t)
+pyerrset(t::PyObject, x::AbstractString) = C.PyErr_SetString(t, x)
+pyerrset(t::PyObject, x::PyObject) = C.PyErr_SetObject(t, x)
 
-pyerrmatches(e::AbstractPyObject, t::AbstractPyObject) = !iszero(C.PyErr_GivenExceptionMatches(e, t))
+pyerrmatches(e::PyObject, t::PyObject) = !iszero(C.PyErr_GivenExceptionMatches(e, t))
 
 struct PythonRuntimeError <: Exception
     t :: PyObject
@@ -38,20 +38,20 @@ function pyerrfetch(normalize::Bool=false)
     b = Ref{CPyPtr}()
     C.PyErr_Fetch(t, v, b)
     normalize && C.PyErr_NormalizeException(t, v, b)
-    to = t[]==C_NULL ? PyObject(pynone) : pynewobject(t[])
-    vo = v[]==C_NULL ? PyObject(pynone) : pynewobject(v[])
-    bo = b[]==C_NULL ? PyObject(pynone) : pynewobject(b[])
+    to = t[]==C_NULL ? pynone : pynewobject(t[])
+    vo = v[]==C_NULL ? pynone : pynewobject(v[])
+    bo = b[]==C_NULL ? pynone : pynewobject(b[])
     (to, vo, bo)
 end
 
-pyerrrestore(t::AbstractPyObject, v::AbstractPyObject, b::AbstractPyObject) =
+pyerrrestore(t::PyObject, v::PyObject, b::PyObject) =
     C.PyErr_Restore(pyincref!(t), pyincref!(v), pyincref!(b))
 
 pyerrrestore(err::PythonRuntimeError) = pyerrrestore(err.t, err.v, err.b)
 
 pythrow() = throw(PythonRuntimeError(pyerrfetch(true)...))
 
-pythrow(v::AbstractPyObject) =
+pythrow(v::PyObject) =
     throw(PythonRuntimeError(pytype(v), v, pynone))
 
 function Base.showerror(io::IO, e::PythonRuntimeError)

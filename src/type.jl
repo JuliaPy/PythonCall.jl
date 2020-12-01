@@ -1,12 +1,12 @@
-const pytypetype = PyLazyObject(() -> pybuiltins.type)
+const pytypetype = pylazyobject(() -> pybuiltins.type)
 export pytypetype
 
-pyistype(o::AbstractPyObject) = pytypecheckfast(o, C.Py_TPFLAGS_TYPE_SUBCLASS)
+pyistype(o::PyObject) = pytypecheckfast(o, C.Py_TPFLAGS_TYPE_SUBCLASS)
 export pyistype
 
-pytype(o::AbstractPyObject) = pynewobject(C.Py_Type(o), true)
+pytype(o::PyObject) = pyborrowedobject(C.Py_Type(o))
 export pytype
 
-pytypecheck(o::AbstractPyObject, t::AbstractPyObject) = !iszero(C.Py_TypeCheck(o, t))
+pytypecheck(o::PyObject, t::PyObject) = !iszero(C.Py_TypeCheck(o, t))
 
-pytypecheckfast(o::AbstractPyObject, f::Integer) = !iszero(C.Py_TypeCheckFast(o, f))
+pytypecheckfast(o::PyObject, f::Integer) = !iszero(C.Py_TypeCheckFast(o, f))

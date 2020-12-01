@@ -1,5 +1,5 @@
-const pypandas = PyLazyObject(() -> pyimport("pandas"))
-const pypandasdataframetype = PyLazyObject(() -> pypandas.DataFrame)
+const pypandas = pylazyobject(() -> pyimport("pandas"))
+const pypandasdataframetype = pylazyobject(() -> pypandas.DataFrame)
 
 asvector(x::AbstractVector) = x
 asvector(x) = collect(x)
@@ -37,7 +37,7 @@ Construct a pandas dataframe from `src`.
 
 Usually equivalent to `pyimport("pandas").DataFrame(src, ...)`, but `src` may also be `Tables.jl`-compatible table.
 """
-pypandasdataframe(t::AbstractPyObject; opts...) = pypandasdataframetype(t; opts...)
+pypandasdataframe(t::PyObject; opts...) = pypandasdataframetype(t; opts...)
 pypandasdataframe(; opts...) = pypandasdataframetype(; opts...)
 function pypandasdataframe(t; opts...)
     if Tables.istable(t)
@@ -68,10 +68,10 @@ struct PyPandasDataFrame
     columntypes :: Dict{Symbol, Type}
     copy :: Bool
 end
-PyPandasDataFrame(o::AbstractPyObject; indexname=:index, columntypes=(), copy=false) = PyPandasDataFrame(o, indexname, multidict(columntypes), copy)
+PyPandasDataFrame(o::PyObject; indexname=:index, columntypes=(), copy=false) = PyPandasDataFrame(o, indexname, multidict(columntypes), copy)
 export PyPandasDataFrame
 
-function pypandasdataframe_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pypandasdataframe_tryconvert(::Type{T}, o::PyObject) where {T}
     if PyPandasDataFrame <: T
         return PyPandasDataFrame(o)
     else

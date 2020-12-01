@@ -5,7 +5,7 @@ Wrap the Python list `o` (or anything satisfying the sequence interface) as a Ju
 """
 struct PyList{T} <: AbstractVector{T}
     o :: PyObject
-    PyList{T}(o::AbstractPyObject) where {T} = new{T}(PyObject(o))
+    PyList{T}(o::PyObject) where {T} = new{T}(o)
 end
 PyList{T}(o=pylist()) where {T} = PyList{T}(pylist(o))
 PyList(o=pylist()) = PyList{PyObject}(o)

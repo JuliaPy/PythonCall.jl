@@ -1,12 +1,12 @@
-const pynone = PyLazyObject(() -> pybuiltins.None)
+const pynone = pylazyobject(() -> pybuiltins.None)
 export pynone
 
-const pynonetype = PyLazyObject(() -> pytype(pynone))
+const pynonetype = pylazyobject(() -> pytype(pynone))
 export pynonetype
 
-pyisnone(o::AbstractPyObject) = pyis(o, pynone)
+pyisnone(o::PyObject) = pyis(o, pynone)
 export pyisnone
 
-function pynone_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pynone_tryconvert(::Type{T}, o::PyObject) where {T}
     tryconvert(T, nothing)
 end

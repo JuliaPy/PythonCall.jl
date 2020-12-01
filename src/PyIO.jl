@@ -24,7 +24,7 @@ mutable struct PyIO <: IO
     obuflen :: Int
     obuf :: Vector{UInt8}
 
-    function PyIO(o::AbstractPyObject; own::Bool=false, text::Union{Missing,Bool}=missing, buflen::Integer=4096, ibuflen=buflen, obuflen=buflen)
+    function PyIO(o::PyObject; own::Bool=false, text::Union{Missing,Bool}=missing, buflen::Integer=4096, ibuflen=buflen, obuflen=buflen)
         io = new(PyObject(o), own, text===missing ? pyisinstance(o, pyiomodule.TextIOBase) : text, false, ibuflen, UInt8[], obuflen, UInt8[])
         finalizer(io) do io
             io.own ? close(io) : flush(io)

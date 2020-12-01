@@ -20,7 +20,7 @@ Has the following properties:
 """
 mutable struct PyBuffer
     info :: Array{C.Py_buffer, 0}
-    function PyBuffer(o::AbstractPyObject, flags::Integer=C.PyBUF_FULL_RO)
+    function PyBuffer(o::PyObject, flags::Integer=C.PyBUF_FULL_RO)
         info = fill(C.Py_buffer())
         check(C.PyObject_GetBuffer(o, pointer(info), flags))
         b = new(info)
@@ -36,7 +36,7 @@ Base.getproperty(b::PyBuffer, k::Symbol) =
     if k == :buf
         b.info[].buf
     elseif k == :obj
-        pynewobject(b.info[].obj, true)
+        pyborrowedobject(b.info[].obj)
     elseif k == :len
         b.info[].len
     elseif k == :readonly

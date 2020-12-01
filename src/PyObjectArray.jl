@@ -26,7 +26,7 @@ Base.isassigned(x::PyObjectArray, i::Vararg{Integer}) = checkbounds(Bool, x.ptrs
 
 function Base.getindex(x::PyObjectArray, i::Integer...)
     ptr = x.ptrs[i...]
-    ptr == C_NULL ? throw(UndefRefError()) : pynewobject(ptr, true)
+    ptr == C_NULL ? throw(UndefRefError()) : pyborrowedobject(ptr)
 end
 
 function Base.setindex!(x::PyObjectArray, _v, i::Integer...)

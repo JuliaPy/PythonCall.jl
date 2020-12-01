@@ -1,7 +1,7 @@
-const pydicttype = PyLazyObject(() -> pybuiltins.dict)
+const pydicttype = pylazyobject(() -> pybuiltins.dict)
 export pydicttype
 
-pyisdict(o::AbstractPyObject) = pytypecheckfast(o, C.Py_TPFLAGS_DICT_SUBCLASS)
+pyisdict(o::PyObject) = pytypecheckfast(o, C.Py_TPFLAGS_DICT_SUBCLASS)
 export pyisdict
 
 pydict(args...; opts...) = pydicttype(args...; opts...)

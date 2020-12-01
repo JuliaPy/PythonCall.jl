@@ -5,7 +5,7 @@ cacheptr!(c, x::String) = (push!(c, x); pointer(x))
 cacheptr!(c, x::AbstractString) = cacheptr!(c, String(x))
 cacheptr!(c, x::Array) = (push!(c, x); pointer(x))
 cacheptr!(c, x::AbstractArray) = cacheptr!(c, Array(x))
-cacheptr!(c, x::AbstractPyObject) = (push!(c, x); pyptr(x))
+cacheptr!(c, x::PyObject) = (push!(c, x); pyptr(x))
 
 ### PROTOCOLS
 

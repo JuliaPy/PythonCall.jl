@@ -1,7 +1,7 @@
-const pytupletype = PyLazyObject(() -> pybuiltins.tuple)
+const pytupletype = pylazyobject(() -> pybuiltins.tuple)
 export pytupletype
 
-pyistuple(o::AbstractPyObject) = pytypecheckfast(o, C.Py_TPFLAGS_TUPLE_SUBCLASS)
+pyistuple(o::PyObject) = pytypecheckfast(o, C.Py_TPFLAGS_TUPLE_SUBCLASS)
 export pyistuple
 
 pytuple() = check(C.PyTuple_New(0))
@@ -19,7 +19,7 @@ function pytuple_fromiter(xs)
     return t
 end
 
-function pytuple_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pytuple_tryconvert(::Type{T}, o::PyObject) where {T}
     if (S = _typeintersect(T, Tuple)) != Union{}
         pyiterable_tryconvert(S, o)
     else

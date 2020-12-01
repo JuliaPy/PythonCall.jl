@@ -1,11 +1,11 @@
-function pyconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pyconvert(::Type{T}, o::PyObject) where {T}
     r = pytryconvert(T, o)
     r === PyConvertFail() ? error("cannot convert this Python `$(pytype(o).__name__)` to a Julia `$T`") : r
 end
 pyconvert(::Type{T}) where {T} = o -> pyconvert(T, o)
 export pyconvert
 
-function pytryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pytryconvert(::Type{T}, o::PyObject) where {T}
     # special cases
     if T == PyObject
         return PyObject(o)
@@ -54,8 +54,8 @@ const PYTRYCONVERT_TYPE_RULES = Dict{String,Function}(
     # NOTE: we don't need to include standard containers here because we can access them via standard interfaces (Sequence, Mapping, Buffer, etc.)
 )
 
-Base.convert(::Type{T}, o::AbstractPyObject) where {T} = pyconvert(T, o)
-Base.convert(::Type{Any}, o::AbstractPyObject) = o
+Base.convert(::Type{T}, o::PyObject) where {T} = pyconvert(T, o)
+Base.convert(::Type{Any}, o::PyObject) = o
 
 ### SPECIAL CONVERSIONS
 
@@ -77,7 +77,7 @@ hasmultiindex(o::NamedTuple) = false
 hasmultiindex(o::Tuple) = false
 
 """
-    pyconvert_element(o, v::AbstractPyObject)
+    pyconvert_element(o, v::PyObject)
 
 Convert `v` to be of the right type to be an element of `o`.
 """
@@ -88,7 +88,7 @@ pyconvert_element(args...) =
     end
 
 """
-    pytryconvert_indices(o, k::AbstractPyObject)
+    pytryconvert_indices(o, k::PyObject)
 
 Convert `k` to a tuple of indices for `o`.
 """
@@ -108,7 +108,7 @@ pyconvert_indices(args...) =
     end
 
 """
-    pyconvert_value(o, v::AbstractPyObject, k...)
+    pyconvert_value(o, v::PyObject, k...)
 
 Convert `v` to be of the right type to be a value of `o` at indices `k`.
 """
@@ -129,8 +129,8 @@ Parse the Python tuple `args` and optionally Python dict `kwargs` as function ar
 """
 @generated function pyconvert_args(
     ::Type{NamedTuple{argnames,argtypes}},
-    args::AbstractPyObject,
-    kwargs::Union{AbstractPyObject,Nothing}=nothing;
+    args::PyObject,
+    kwargs::Union{PyObject,Nothing}=nothing;
     defaults::Union{NamedTuple,Nothing}=nothing,
     numposonly::Integer=0,
     numpos::Integer=length(argnames),

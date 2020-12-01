@@ -1,14 +1,14 @@
-const pycomplextype = PyLazyObject(() -> pybuiltins.complex)
+const pycomplextype = pylazyobject(() -> pybuiltins.complex)
 export pycomplextype
 
 pycomplex(args...; opts...) = pycomplextype(args...; opts...)
 pycomplex(x::Complex) = pycomplex(real(x), imag(x))
 export pycomplex
 
-pyiscomplex(o::AbstractPyObject) = pytypecheck(o, pycomplextype)
+pyiscomplex(o::PyObject) = pytypecheck(o, pycomplextype)
 export pyiscomplex
 
-function pycomplex_tryconvert(::Type{T}, o::AbstractPyObject) where {T}
+function pycomplex_tryconvert(::Type{T}, o::PyObject) where {T}
     x = check(C.PyComplex_RealAsDouble(o), true)
     y = check(C.PyComplex_ImagAsDouble(o), true)
     z = Complex(x, y)

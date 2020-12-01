@@ -25,7 +25,6 @@ include("utils.jl")
     isconda :: Bool = false
     condaenv :: String = Conda.ROOTENV
     pyplotautoshow :: Bool = true
-    pyplotshowformat :: String = "any"
     qtfix :: Bool = true
     guiautostart :: Bool = true
     guiautostarttimer :: Union{Nothing, Timer} = nothing

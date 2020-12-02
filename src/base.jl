@@ -232,41 +232,51 @@ Base.zero(::Type{PyObject}) = pyint(0)
 Base.one(::Type{PyObject}) = pyint(1)
 
 function Base.Docs.getdoc(o::PyObject)
-    docs = []
-    function typename(t)
-        n = string(t.__name__)
-        m = string(t.__module__)
-        m == "builtins" ? n : "$m.$n"
-    end
-
-    # Say what it is
-    if pyistype(o)
-        push!(docs, Markdown.Paragraph(["Python class ", Markdown.Code("$(typename(o))($(join([typename(t) for t in o.__bases__], ", ")))"), "."]))
-    elseif pyismodule(o)
-        push!(docs, Markdown.Paragraph(["Python module ", Markdown.Code("$(o.__name__)"), "."]))
-    else
-        push!(docs, Markdown.Paragraph(["Python object of type ", Markdown.Code("$(typename(pytype(o)))"), "."]))
-    end
-
-    # Print its docstring
-    doc = try
-        o.__doc__
-    catch
-        nothing
-    end
-    if doc !== nothing && !pyisnone(doc)
-        push!(docs, Text(string(doc)))
-    else
-        # If that failed, print the docstring from its type
-        tdoc = try
-            pytype(o).__doc__
+    function tryget(f)
+        a = try
+            f()
         catch
-            nothing
+            return nothing
         end
-        if tdoc !== nothing && !pyisnone(tdoc)
-            push!(docs, Text(string(tdoc)))
-        end
+        pyisnone(a) ? nothing : a
     end
+    function name(o)
+        n = tryget(()->o.__name__)
+        n === nothing && return nothing
+        m = tryget(()->o.__module__)
+        (m === nothing || string(m) == "builtins") ? string(n) : string(m, ".", n)
+    end
+
+    docs = []
+
+    # Introduction
+    n = name(o)
+    push!(docs, Markdown.Paragraph(["Python ", pyistype(o) ? "type" : pyismodule(o) ? "module" : "object", (n===nothing ? () : (" ", Markdown.Code(n)))..., "."]))
+
+    # Type
+    tn = name(pytype(o))
+    tn === nothing || push!(docs, Markdown.Paragraph([Markdown.Bold("Type"), ": ", Markdown.Code(tn)]))
+
+    # File
+    fn = tryget(()->o.__file__)
+    fn === nothing || push!(docs, Markdown.Paragraph([Markdown.Bold("File"), ": ", Markdown.Code(fn)]))
+
+    # Signature
+    sig = tryget(()->o.__text_signature__)
+    sig === nothing && (sig = tryget(()->o.__call__.__text_signature__))
+    sig === nothing || push!(docs, Markdown.Paragraph([Markdown.Bold("Signature"), ": ", Markdown.Code(replace(string(sig), "\$self"=>"self"))]))
+
+    if !pyismodule(o)
+        # Init signature
+        isig = tryget(()->o.__init__.__text_signature__)
+        isig === nothing || push!(docs, Markdown.Paragraph([Markdown.Bold("Init Signature"), ": ", Markdown.Code(replace(string(isig), "\$self"=>"self"))]))
+    end
+
+    # Docstring
+    doc = tryget(()->o.__doc__)
+    doc === nothing || push!(docs, Markdown.Header("Docstring"), Markdown.Paragraph(Markdown.Text(string(doc))))
+
+    # Done
     Markdown.MD(docs)
 end
 Base.Docs.Binding(o::PyObject, k::Symbol) = getproperty(o, k)

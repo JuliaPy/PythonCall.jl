@@ -13,8 +13,7 @@ Base.print(io::IO, o::PyObject) = print(io, pystr(String, o))
 
 function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
     h, w = displaysize(io)
-    w -= 1
-    h -= 5
+    h -= 3
     x = try
         pystr_asjuliastring(pypprintmodule.pformat(o, width=w))
     catch
@@ -23,40 +22,55 @@ function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
     if get(io, :limit, true)
         if '\n' ∈ x
             # multiple lines
+            # each one is truncated to one screen width
+            print(io, "py:")
+            h -= 1
             xs = split(x, '\n')
+            printlines(xs) =
+                for x in xs
+                    if length(x) ≤ w
+                        print(io, '\n', x)
+                    else
+                        print(io, '\n', x[1:nextind(x, 0, w-1)], '…')
+                    end
+                end
+            if length(xs) ≤ h
+                # all lines fit on screen
+                printlines(xs)
+            else
+                # too many lines, skip the middle ones
+                h -= 1
+                h2 = cld(h, 2)
+                h3 = (length(xs)+1)-(h-h2)
+                printlines(xs[1:h2])
+                print(io, "\n ... [skipping $(h3-h2-1) lines] ...")
+                printlines(xs[h3:end])
+            end
         elseif length(x) ≤ w-4
             # one short line
             print(io, "py: ", x)
             return
         else
             # one long line
-            xs = SubString{String}[]
-            i = 1
-            for _ in 2:cld(length(x), w)
-                j = nextind(x, i, w-1)
-                push!(xs, SubString(x, i, j))
-                i = nextind(x, j, 1)
+            println(io, "py:")
+            h -= 1
+            a = h * w
+            if length(x) ≤ a
+                # whole string fits on screen
+                print(io, x)
+            else
+                # too long, skip the middle
+                h -= 1
+                h2 = cld(h, 2)
+                i2 = nextind(x, 0, h2 * w)
+                i3 = prevind(x, ncodeunits(x)+1, (h-h2)*w)
+                println(io, x[1:i2])
+                println(io, " ... [skipping $(length(x[nextind(x,i2):prevind(x,i3)])) characters] ...")
+                print(io, x[i3:end])
             end
-            push!(xs, SubString(x, i, ncodeunits(x)))
-        end
-        printlines(xs) =
-            for x in xs
-                if length(x) ≤ w
-                    print(io, '\n', x)
-                else
-                    print(io, '\n', x[1:nextind(x, 0, w-1)], '…')
-                end
-            end
-        print(io, "py:")
-        if length(xs) ≤ h
-            printlines(xs)
-        else
-            printlines(xs[1:cld(h-1,2)])
-            print(io, "\n ...")
-            printlines(xs[end-(h-cld(h-1,2))+1:end])
         end
     else
-        print(io, x)
+        print(io, "py: ", x)
     end
 end
 

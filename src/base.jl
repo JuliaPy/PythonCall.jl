@@ -232,49 +232,58 @@ Base.zero(::Type{PyObject}) = pyint(0)
 Base.one(::Type{PyObject}) = pyint(1)
 
 function Base.Docs.getdoc(o::PyObject)
-    function tryget(f)
+    function tryget(f, g=identity)
         a = try
             f()
         catch
             return nothing
         end
-        pyisnone(a) ? nothing : a
+        pyisnone(a) ? nothing : g(a)
     end
-    function name(o)
-        n = tryget(()->o.__name__)
-        n === nothing && return nothing
-        m = tryget(()->o.__module__)
-        (m === nothing || string(m) == "builtins") ? string(n) : string(m, ".", n)
-    end
+    # function name(o)
+    #     n = tryget(()->o.__name__)
+    #     n === nothing && return nothing
+    #     m = tryget(()->o.__module__)
+    #     (m === nothing || string(m) == "builtins") ? string(n) : string(m, ".", n)
+    # end
+    getname(o) = tryget(()->o.__name__, string)
+    getdoc(o) = tryget(()->o.__doc__, string ∘ ins.cleandoc)
 
     docs = []
 
-    # Introduction
-    n = name(o)
-    push!(docs, Markdown.Paragraph(["Python ", pyistype(o) ? "type" : pyismodule(o) ? "module" : "object", (n===nothing ? () : (" ", Markdown.Code(n)))..., "."]))
+    # Short description
+    ins = pyimport("inspect")
+    desc, name = if ins.ismodule(o).jl!b
+        (pyhasattr(o, "__path__") ? "package" : "module"), gname(o)
+    elseif ins.isgetsetdescriptor(o).jl!b
+        ("getset descriptor", "$(getname(o.__objclass__)).$(o.__name__)")
+    elseif ins.ismemberdescriptor(o).jl!b
+        ("member descriptor", "$(getname(o.__objclass__)).$(o.__name__)")
+    elseif ins.isclass(o).jl!b
+        ("class", getname(o))
+    elseif ins.isfunction(o).jl!b || ins.isbuiltin(o).jl!b
+        ("function", getname(o))
+    elseif ins.ismethod(o).jl!b
+        ("method", getname(o))
+    else
+        ("object of type", getname(pytype(o)))
+    end
+    push!(docs, Markdown.Paragraph(["Python ", desc, " ", Markdown.Code(name), "."]))
 
-    # Type
-    tn = name(pytype(o))
-    tn === nothing || push!(docs, Markdown.Paragraph([Markdown.Bold("Type"), ": ", Markdown.Code(tn)]))
-
-    # File
-    fn = tryget(()->o.__file__)
-    fn === nothing || push!(docs, Markdown.Paragraph([Markdown.Bold("File"), ": ", Markdown.Code(fn)]))
-
-    # Signature
-    sig = tryget(()->o.__text_signature__)
-    sig === nothing && (sig = tryget(()->o.__call__.__text_signature__))
-    sig === nothing || push!(docs, Markdown.Paragraph([Markdown.Bold("Signature"), ": ", Markdown.Code(replace(string(sig), "\$self"=>"self"))]))
-
-    if !pyismodule(o)
-        # Init signature
-        isig = tryget(()->o.__init__.__text_signature__)
-        isig === nothing || push!(docs, Markdown.Paragraph([Markdown.Bold("Init Signature"), ": ", Markdown.Code(replace(string(isig), "\$self"=>"self"))]))
+    if ins.isroutine(o).jl!b || ins.isclass(o).jl!b
+        try
+            push!(docs, Markdown.Code("python", "$(o.__name__)$(ins.signature(o))"))
+        catch
+        end
     end
 
-    # Docstring
-    doc = tryget(()->o.__doc__)
-    doc === nothing || push!(docs, Markdown.Header("Docstring"), Markdown.Paragraph(Markdown.Text(string(doc))))
+    # Maybe document the class instead
+    doc = getdoc(o)
+    if doc === nothing && !ins.ismodule(o).jl!b && !ins.isclass(o).jl!b && !ins.isroutine(o).jl!b && !ins.isdatadescriptor(o).jl!b
+        o = pyhasattr(o, "__origin__") ? o.__origin__ : pytype(o)
+        doc = getdoc(o)
+    end
+    doc === nothing || push!(docs, Markdown.Paragraph([Markdown.Text(doc)]))
 
     # Done
     Markdown.MD(docs)

@@ -312,7 +312,12 @@ for (mime, method) in ((MIME"text/html", "_repr_html_"),
         function Base.showable(::$mime, o::PyObject)
             try
                 x = pygetattr(o, $method)()
-                !pyisnone(x)
+                if pyisnone(x)
+                    false
+                else
+                    pyconvert($T, x)
+                    true
+                end
             catch
                 false
             end

@@ -68,8 +68,6 @@ PyObject(o) = PyObject(pyobject(o))
 Base.convert(::Type{PyObject}, o::PyObject) = o
 Base.convert(::Type{PyObject}, o) = PyObject(o)
 
-Base.promote_rule(::Type{PyObject}, ::Type{<:PyObject}) = PyObject
-
 pyincref!(o::PyObject) = (C.Py_IncRef(pyptr(o)); o)
 
 Base.unsafe_convert(::Type{CPyPtr}, o::PyObject) = pyptr(o)

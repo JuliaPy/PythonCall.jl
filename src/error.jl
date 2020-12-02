@@ -60,6 +60,16 @@ function Base.showerror(io::IO, e::PythonRuntimeError)
         return
     end
 
+    if CONFIG.sysautolasttraceback
+        try
+            pysysmodule.last_type = e.t
+            pysysmodule.last_value = e.v
+            pysysmodule.last_traceback = e.b
+        catch
+            print(io, "<error while setting 'sys.last_traceback'>")
+        end
+    end
+
     # if this is a Julia exception then recursively print it and its stacktrace
     if pyerrmatches(e.t, pyjlexception)
         try

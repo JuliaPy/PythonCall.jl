@@ -27,6 +27,20 @@ Otherwise, a globals dict is created and reused for each unique `scope`. For exa
 pyexec(src, globals, locals=nothing) = (pyexecfunc(src, scope(globals), locals); nothing)
 
 """
+    pyevaldb(src, scope, locals=nothing)
+
+Same as `pyeval(src, scope, locals)` but evaluated inside a `pdb` debugger.
+"""
+pyevaldb(src, globals, locals=nothing) = pypdbmodule.runeval(src, scope(globals), locals)
+
+"""
+    pyexecdb(src, scope, locals=nothing)
+
+Same as `pyexec(src, scope, locals)` but evaluated inside a `pdb` debugger.
+"""
+pyexecdb(src, globals, locals=nothing) = (pypdbmodule.run(src, scope(globals), locals); nothing)
+
+"""
     py"...."[flags]
 
 Evaluate (`v`) or execute (`x`) the given Python source code.
@@ -41,6 +55,7 @@ The flags can be any combination of the following characters:
 - `g` (globals): Return the dict of globals for the scope instead.
 - `l` (locals): Perform the computation in a new local scope and return that scope.
 - `c` (compile): Cache a compiled version of the source and re-use it each time, for speed.
+- `d` (debug): Run inside a `pdb` debugger.
 
 If neither `v` nor `x` is specified and the code is a single line then `v` (evaluate) is assumed, otherwise `x` (execute).
 """
@@ -51,6 +66,7 @@ macro py_str(src::String, flags::String="")
     retlocals = false
     lazy = false
     compile = false
+    debug = false
     for f in flags
         if f == 'x'
             exec = true
@@ -64,6 +80,8 @@ macro py_str(src::String, flags::String="")
         #     lazy = true
         elseif f == 'c'
             compile = true
+        elseif f == 'd'
+            debug = true
         else
             error("invalid flags: `py\"...\"$flags`")
         end
@@ -106,7 +124,7 @@ macro py_str(src::String, flags::String="")
         globals = scope(@__MODULE__)
         locals = $(retlocals ? :(pydict()) : :globals)
         $([:(check(C.PyDict_SetItemString(globals, $k, pyobject($(esc(v)))))) for (k,v) in interps]...)
-        result = $(exec ? :pyexec : :pyeval)($newsrc, globals, locals)
+        result = $(debug ? (exec ? :pyexecdb : :pyevaldb) : (exec ? :pyexec : :pyeval))($newsrc, globals, locals)
         $([:(check(C.PyDict_DelItemString(globals, $k))) for (k,v) in interps]...)
         $(retlocals ? :locals : retglobals ? :globals : exec ? nothing : :result)
     end)

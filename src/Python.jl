@@ -9,26 +9,45 @@ include("utils.jl")
 # Global configuration
 # CONFIG gets populated by __init__
 @kwdef mutable struct Config
+    "Flags used to dlopen the Python library."
     dlopenflags :: UInt32 = RTLD_LAZY | RTLD_DEEPBIND | RTLD_GLOBAL
+    "Path to the Python executable."
     exepath :: Union{String,Nothing} = nothing
+    "Path to the Python library."
     libpath :: Union{String,Nothing} = nothing
+    "Handle to the open Python library."
     libptr :: Ptr{Cvoid} = C_NULL
+    "Used to set the Python prefix."
     pyhome :: Union{String,Nothing} = nothing
+    "pyhome as a Cwstring"
     pyhome_w :: Vector{Cwchar_t} = []
+    "Used to set the Python program name."
     pyprogname :: Union{String,Nothing} = nothing
+    "pyprogname as a Cwstring"
     pyprogname_w :: Vector{Cwchar_t} = []
+    "True if this is stackless Python."
     isstackless :: Bool = false
+    "True if the Python library was already loaded."
     preloaded :: Bool = false
+    "True if the Python interpreter was already initialized."
     preinitialized :: Bool = false
+    "True if the Python interpreter is currently initialized."
     isinitialized :: Bool = false
+    "The running Python version."
     version :: VersionNumber = VersionNumber(0)
+    "True if this is the Python in some Conda environment."
     isconda :: Bool = false
+    "If `isconda` is true, this is the Conda environment path."
     condaenv :: String = Conda.ROOTENV
+    "When true, automatically calls `pyplotshow` each time a notebook cell is evaluated."
     pyplotautoshow :: Bool = true
+    "When true, automatically calls `fix_qt_plugin_path` when `PyQt5`, `PyQt4`, `PySide` or `PySide2` is loaded."
     qtfix :: Bool = true
-    guiautostart :: Bool = true
-    guiautostarttimer :: Union{Nothing, Timer} = nothing
+    "When true, automatically sets `sys.last_traceback` when a Python exception is printed, so that `pdb.pm()` works."
+    sysautolasttraceback :: Bool = true
+    "True if the Python input hook is currently running."
     inputhookrunning :: Bool = false
+    "If NULL, we have the GIL. If non-NULL, this is the saved thread state."
     gilstate :: Ptr{Cvoid} = C_NULL
 end
 Base.show(io::IO, ::MIME"text/plain", c::Config) =

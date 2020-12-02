@@ -83,10 +83,16 @@ Base.getproperty(o::PyObject, k::Symbol) =
         (args...) -> PyList{args...}(o)
     elseif k == :jl!dict
         (args...) -> PyDict{args...}(o)
+    elseif k == :jl!set
+        (args...) -> PySet{args...}(o)
     elseif k == :jl!buffer
         () -> PyBuffer(o)
     elseif k == :jl!array
         (args...) -> PyArray{args...}(o)
+    elseif k == :jl!vector
+        (args...) -> PyVector{args...}(o)
+    elseif k == :jl!matrix
+        (args...) -> PyMatrix{args...}(o)
     elseif k == :jl!pandasdf
         (; opts...) -> PyPandasDataFrame(o; opts...)
     elseif k == :jl!io

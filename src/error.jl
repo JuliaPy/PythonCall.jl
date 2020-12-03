@@ -65,15 +65,15 @@ function Base.showerror(io::IO, e::PythonRuntimeError)
             pysysmodule.last_type = e.t
             pysysmodule.last_value = e.v
             pysysmodule.last_traceback = e.b
-        catch
-            print(io, "<error while setting 'sys.last_traceback'>")
+        catch err
+            print(io, "<error while setting 'sys.last_traceback': $(err)>")
         end
     end
 
     # if this is a Julia exception then recursively print it and its stacktrace
     if pyerrmatches(e.t, pyjlexception)
         try
-            jp = pyjlvalue(e.v.args[0])
+            jp = pyjlgetvalue(e.v.args[0])
             if jp !== nothing
                 je, jb = jp
                 print(io, "Python: Julia: ")
@@ -84,8 +84,7 @@ function Base.showerror(io::IO, e::PythonRuntimeError)
                 else
                     io2 = IOBuffer()
                     Base.show_backtrace(IOContext(io2, :color=>true, :displaysize=>displaysize(io)), jb)
-                    seekstart(io2)
-                    printstyled(io, read(io2, String))
+                    printstyled(io, String(take!(io2)))
                 end
             end
             if pyisnone(e.b)
@@ -95,8 +94,8 @@ function Base.showerror(io::IO, e::PythonRuntimeError)
             else
                 @goto pystacktrace
             end
-        catch
-            println(io, "<error while printing Julia excpetion inside Python exception>")
+        catch err
+            println(io, "<error while printing Julia excpetion inside Python exception: $(err)>")
         end
     end
 
@@ -104,15 +103,15 @@ function Base.showerror(io::IO, e::PythonRuntimeError)
     print(io, "Python: ")
     try
         print(io, e.t.__name__)
-    catch
-        print(io, "<error while printing type>")
+    catch err
+        print(io, "<error while printing type: $(err)>")
     end
     if !pyisnone(e.v)
         print(io, ": ")
         try
             print(io, e.v)
-        catch
-            print(io, "<error while printing value>")
+        catch err
+            print(io, "<error while printing value: $(err)>")
         end
     end
     if !pyisnone(e.b)
@@ -130,8 +129,8 @@ function Base.showerror(io::IO, e::PythonRuntimeError)
                 printstyled(io, " at ")
                 printstyled(io, f.filename, ":", f.lineno, bold=true)
             end
-        catch
-            print(io, "<error while printing traceback>")
+        catch err
+            print(io, "<error while printing traceback: $(err)>")
         end
     end
 end

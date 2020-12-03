@@ -296,6 +296,7 @@ module CPython
 
         finalize :: Ptr{Cvoid} = C_NULL
         vectorcall :: Ptr{Cvoid} = C_NULL
+
     end
 
     const PyTypePtr = Ptr{PyTypeObject}
@@ -454,6 +455,7 @@ module CPython
 
     @cdef :PyList_New PyPtr (Py_ssize_t,)
     @cdef :PyList_Append Cint (PyPtr, PyPtr)
+    @cdef :PyList_AsTuple PyPtr (PyPtr,)
 
     @cdef :PyDict_New PyPtr ()
     @cdef :PyDict_SetItem Cint (PyPtr, PyPtr, PyPtr)

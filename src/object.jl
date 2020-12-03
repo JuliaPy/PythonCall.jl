@@ -15,7 +15,12 @@ mutable struct PyObject
                 ptr = getfield(o, :ptr)
                 if ptr != C_NULL
                     s = gil_on()
-                    C.Py_DecRef(ptr)
+                    try
+                        C.Py_DecRef(ptr)
+                    catch err
+                        println(stderr, err)
+                        Base.show_backtrace(stderr, catch_backtrace())
+                    end
                     s || gil_off()
                 end
             end

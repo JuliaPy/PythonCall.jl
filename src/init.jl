@@ -166,7 +166,7 @@ function __init__()
         sys.meta_path.insert(0, JULIA_COMPAT_HOOKS)
 
         # Before Qt is loaded, fix the path used to look up its plugins
-        qtfix_hook = $(() -> if CONFIG.qtfix; fix_qt_plugin_path(); nothing; end)
+        qtfix_hook = $(pyjlfunction(() -> if CONFIG.qtfix; fix_qt_plugin_path(); nothing; end))
         JULIA_COMPAT_HOOKS.add_hook("PyQt4", qtfix_hook)
         JULIA_COMPAT_HOOKS.add_hook("PyQt5", qtfix_hook)
         JULIA_COMPAT_HOOKS.add_hook("PySide", qtfix_hook)

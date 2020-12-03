@@ -1,9 +1,12 @@
+aspyfunc(o) = o isa PyObject ? o : pyjlfunction(o)
+aspyfuncornone(o) = o === nothing ? pynone : o isa PyObject ? o : pyjlfunction(o)
+
 """
     pymethod(o)
 
 Convert `o` to a Python instance method.
 """
-pymethod(o) = check(C.PyInstanceMethod_New(pyobject(o)))
+pymethod(o) = check(C.PyInstanceMethod_New(aspyfunc(o)))
 export pymethod
 
 """
@@ -11,7 +14,7 @@ export pymethod
 
 Convert `o` to a Python class method.
 """
-pyclassmethod(o) = pyclassmethodtype(o)
+pyclassmethod(o) = pyclassmethodtype(aspyfunc(o))
 export pyclassmethod
 
 """
@@ -19,7 +22,7 @@ export pyclassmethod
 
 Convert `o` to a Python static method.
 """
-pystaticmethod(o) = pystaticmethodtype(o)
+pystaticmethod(o) = pystaticmethodtype(aspyfunc(o))
 export pystaticmethod
 
 """
@@ -27,5 +30,6 @@ export pystaticmethod
 
 Create a Python property with the given getter, setter, deleter and docstring.
 """
-pyproperty(args...; opts...) = pypropertytype(args...; opts...)
+pyproperty(_fget=pynone, _fset=pynone, _fdel=pynone, _doc=pynone; fget=_fget, fset=_fset, fdel=_fdel, doc=_doc) =
+    pypropertytype(aspyfuncornone(fget), aspyfuncornone(fset), aspyfuncornone(fdel), pyobject(doc))
 export pyproperty

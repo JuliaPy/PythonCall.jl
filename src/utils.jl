@@ -90,3 +90,16 @@ tryconvert(::Type{T}, x::PyConvertFail) where {T} = x
     end
     Tuple{[foldr(UnionAll, vars; init=P) for P in S.parameters]...}
 end
+
+function pointer_from_obj(o::T) where {T}
+    if T.mutable
+        c = o
+        p = Base.pointer_from_objref(o)
+    else
+        c = Ref{Any}(o)
+        p = unsafe_load(Ptr{Ptr{Cvoid}}(Base.pointer_from_objref(c)))
+    end
+    p, c
+end
+
+mighthavemethod(f, t) = !isempty(methods(f, t))

@@ -6,6 +6,7 @@ cacheptr!(c, x::AbstractString) = cacheptr!(c, String(x))
 cacheptr!(c, x::Array) = (push!(c, x); pointer(x))
 cacheptr!(c, x::AbstractArray) = cacheptr!(c, Array(x))
 cacheptr!(c, x::PyObject) = (push!(c, x); pyptr(x))
+cacheptr!(c, x::Base.CFunction) = (push!(c, x); Base.unsafe_convert(Ptr{Cvoid}, x))
 
 ### PROTOCOLS
 
@@ -54,10 +55,9 @@ cpynewgetset!(c, x::NamedTuple) = cpynewgetset!(c; x...)
 
 ### NEW TYPE
 
-function cpynewtype!(c; type=C_NULL, name, base=C_NULL, new=C.@pyglobal(:PyType_GenericNew), as_number=C_NULL, as_mapping=C_NULL, as_sequence=C_NULL, as_buffer=C_NULL, methods=C_NULL, getset=C_NULL, opts...)
+function cpynewtype!(c; type=C_NULL, name, as_number=C_NULL, as_mapping=C_NULL, as_sequence=C_NULL, as_buffer=C_NULL, methods=C_NULL, getset=C_NULL, opts...)
     type = cacheptr!(c, type)
     name = cacheptr!(c, name)
-    base = cacheptr!(c, base)
     as_number = as_number isa Ptr ? as_number : cacheptr!(c, fill(cpynewnumbermethods!(c, as_number)))
     as_mapping = as_mapping isa Ptr ? as_mapping : cacheptr!(c, fill(cpynewmappingmethods!(c, as_mapping)))
     as_sequence = as_sequence isa Ptr ? as_sequence : cacheptr!(c, fill(cpynewsequencemethods!(c, as_sequence)))
@@ -74,5 +74,6 @@ function cpynewtype!(c; type=C_NULL, name, base=C_NULL, new=C.@pyglobal(:PyType_
         else
             cacheptr!(c, [[cpynewgetset!(c, m) for m in getset]; C.PyGetSetDef()])
         end
-    C.PyTypeObject(; ob_base=C.PyVarObject(ob_base=C.PyObject(type=type)), name=name, base=base, new=new, as_number=as_number, as_mapping=as_mapping, as_sequence=as_sequence, as_buffer=as_buffer, methods, getset, opts...)
+    newopts = Dict(k => (v isa Union{AbstractString,AbstractArray,PyObject,Base.CFunction} ? cacheptr!(c, v) : v) for (k,v) in pairs(opts))
+    C.PyTypeObject(; ob_base=C.PyVarObject(ob_base=C.PyObject(type=type)), name=name, as_number=as_number, as_mapping=as_mapping, as_sequence=as_sequence, as_buffer=as_buffer, methods, getset, newopts...)
 end

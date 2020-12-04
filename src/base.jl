@@ -169,7 +169,6 @@ function Base.iterate(o::PyObject, it=pyiter(o))
 end
 
 # comparisons
-# TODO: allow comparison with non-python objects?
 Base.:(==)(o1::PyObject, o2::PyObject) = pyeq(Bool, o1, o2)
 Base.:(!=)(o1::PyObject, o2::PyObject) = pyne(Bool, o1, o2)
 Base.:(< )(o1::PyObject, o2::PyObject) = pylt(Bool, o1, o2)

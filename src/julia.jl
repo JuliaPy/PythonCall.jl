@@ -562,7 +562,6 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Number, V<:T}
     t.__bool__ = pymethod(o -> pybool(!iszero(pyjlgetvalue(o, V))))
     t.__pos__ = pymethod(o -> pyobject(+pyjlgetvalue(o, V)))
     t.__neg__ = pymethod(o -> pyobject(-pyjlgetvalue(o, V)))
-    # TODO: __add__, __sub__, __truediv__, __eq__, __ne__, __pow__
 end
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Union{Complex,Real}, V<:T}
@@ -577,7 +576,6 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Union{Complex,Real}, V
         t.__round__ = pymethod((o,n=pynone) -> pyisnone(n) ? pyint(round(BigInt, pyjlgetvalue(o, V))) : pyjl(round(pyjlgetvalue(o, V), digits=pyconvert(Int, n))))
         t.__floor__ = pymethod(o -> pyint(floor(BigInt, pyjlgetvalue(o, V))))
         t.__ceil__ = pymethod(o -> pyint(ceil(BigInt, pyjlgetvalue(o, V))))
-        # TODO: __divmod__, __floordiv__, __mod__, __lt__, __le__, __gt__, __ge__
     end
 end
 
@@ -585,7 +583,6 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Union{Integer,Rational
     t.numerator = pyproperty(o -> pyobject(numerator(pyjlgetvalue(o, V))))
     t.denominator = pyproperty(o -> pyobject(denominator(pyjlgetvalue(o, V))))
     if V<:Integer
-        # TODO: __lshift__, __rshift__, __and__, __or__, __xor__
         t.__int__ = pymethod(o -> pyint(pyjlgetvalue(o, V)))
         t.__invert__ = pymethod(o -> pyobject(~pyjlgetvalue(o, V)))
     end

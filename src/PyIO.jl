@@ -146,7 +146,7 @@ function Base.read(io::PyIO, ::Type{UInt8})
     popfirst!(io.ibuf)
 end
 
-function seek(io::PyIO, pos::Integer)
+function Base.seek(io::PyIO, pos::Integer)
     putobuf(io)
     empty!(io.ibuf)
     io.eof = false
@@ -154,13 +154,13 @@ function seek(io::PyIO, pos::Integer)
     io
 end
 
-function truncate(io::PyIO, pos::Integer)
+function Base.truncate(io::PyIO, pos::Integer)
     seek(io, position(io))
     io.o.truncate(pos)
     io
 end
 
-function seekstart(io::PyIO)
+function Base.seekstart(io::PyIO)
     putobuf(io)
     empty!(io.ibuf)
     io.eof = false
@@ -168,7 +168,7 @@ function seekstart(io::PyIO)
     io
 end
 
-function seekend(io::PyIO)
+function Base.seekend(io::PyIO)
     putobuf(io)
     empty!(io.ibuf)
     io.eof = false
@@ -176,7 +176,7 @@ function seekend(io::PyIO)
     io
 end
 
-function skip(io::PyIO, n::Integer)
+function Base.skip(io::PyIO, n::Integer)
     putobuf(io)
     if io.text
         if n ≥ 0
@@ -195,7 +195,7 @@ function skip(io::PyIO, n::Integer)
     end
 end
 
-function position(io::PyIO)
+function Base.position(io::PyIO)
     putobuf(io)
     if io.text
         if isempty(io.ibuf)

@@ -101,5 +101,3 @@ function pointer_from_obj(o::T) where {T}
     end
     p, c
 end
-
-mighthavemethod(f, t) = !isempty(methods(f, t))

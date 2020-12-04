@@ -97,7 +97,7 @@ pyobject(o::AbstractRange{<:Integer}) = pyrange(o)
 pyobject(o::DateTime) = pydatetime(o)
 pyobject(o::Date) = pydate(o)
 pyobject(o::Time) = pytime(o)
-pyobject(o::IO) = pyjl(o, BufferedIO{typeof(o)})
+pyobject(o::IO) = pybufferedio(o)
 pyobject(o) = pyjl(o)
 export pyobject
 

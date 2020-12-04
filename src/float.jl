@@ -13,9 +13,9 @@ function pyfloat_tryconvert(::Type{T}, o::PyObject) where {T}
     if (S = _typeintersect(T, Cdouble)) != Union{}
         convert(S, x)
     elseif (S = _typeintersect(T, AbstractFloat)) != Union{}
-        convert(S, x)
+        tryconvert(S, x)
     elseif (S = _typeintersect(T, Real)) != Union{}
-        convert(S, x)
+        tryconvert(S, x)
     else
         tryconvert(T, x)
     end

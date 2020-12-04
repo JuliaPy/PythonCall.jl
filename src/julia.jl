@@ -459,6 +459,55 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Any, V<:T}
         end
         throw(PythonRuntimeError(st...))
     end)
+    # Blindly try to convert _x to something compatible with x
+    prom(o, _x) = if pyisjl(_x)
+        return pyjlgetvalue(_x)
+    else
+        x = pytryconvert(typeof(o), _x)
+        x === PyConvertFail() ? pyconvert(Any, x) : x
+    end
+    binop(op) = pymethod((_o, _x) -> begin
+        try
+            o = pyjlgetvalue(_o, V)
+            x = prom(o, _x)
+            pyobject(op(o, x))
+        catch
+            pynotimplemented
+        end
+    end)
+    hasmethod(+, Tuple{V, Union{}}) && (t.__add__ = binop(+))
+    hasmethod(-, Tuple{V, Union{}}) && (t.__sub__ = binop(-))
+    hasmethod(*, Tuple{V, Union{}}) && (t.__mul__ = binop(*))
+    hasmethod(/, Tuple{V, Union{}}) && (t.__truediv__ = binop(/))
+    hasmethod(fld, Tuple{V, Union{}}) && (t.__floordiv__ = binop(fld))
+    hasmethod(mod, Tuple{V, Union{}}) && (t.__mod__ = binop(mod))
+    hasmethod(<<, Tuple{V, Union{}}) && (t.__lshift__ = binop(<<))
+    hasmethod(>>, Tuple{V, Union{}}) && (t.__rshift__ = binop(>>))
+    hasmethod(&, Tuple{V, Union{}}) && (t.__and__ = binop(&))
+    hasmethod(|, Tuple{V, Union{}}) && (t.__or__ = binop(|))
+    hasmethod(⊻, Tuple{V, Union{}}) && (t.__or__ = binop(⊻))
+    if hasmethod(^, Tuple{V, Union{}})
+        t.__pow__ = pymethod((_o, _x, _m=pynone) -> begin
+            try
+                o = pyjlgetvalue(_o, V)
+                x = prom(o, _x)
+                if pyisnone(_m)
+                    pyobject(o^x)
+                else
+                    m = prom(o, _m)
+                    pyobject(powermod(o, x, m))
+                end
+            catch
+                pynotimplemented
+            end
+        end)
+    end
+    hasmethod(==, Tuple{V, Union{}}) && (t.__eq__ = binop(==))
+    hasmethod(!=, Tuple{V, Union{}}) && (t.__ne__ = binop(!=))
+    hasmethod(<=, Tuple{V, Union{}}) && (t.__le__ = binop(<=))
+    hasmethod(< , Tuple{V, Union{}}) && (t.__lt__ = binop(< ))
+    hasmethod(>=, Tuple{V, Union{}}) && (t.__ge__ = binop(>=))
+    hasmethod(> , Tuple{V, Union{}}) && (t.__gt__ = binop(> ))
 end
 
 pyjl_attrname_py2jl(x::AbstractString) =
@@ -466,6 +515,12 @@ pyjl_attrname_py2jl(x::AbstractString) =
 
 pyjl_attrname_jl2py(x::AbstractString) =
     replace(x, r"!+$" => s -> "_" * "b"^(length(s)))
+
+### Nothing & Missing (falsy)
+
+function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Union{Nothing,Missing}, V<:T}
+    t.__bool__ = pymethod(o -> pyfalse)
+end
 
 ### Iterator (as Iterator)
 
@@ -581,6 +636,23 @@ end
 ### Set (as Set)
 
 pyjl_mixin(::Type{T}) where {T<:AbstractSet} = pymutablesetabc
+
+function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:AbstractSet, V<:T}
+    t.add = pymethod((_o, _v) -> begin
+        o = pyjlgetvalue(_o, V)
+        v = pytryconvert(eltype(o), _v)
+        v === PyConvertFail() && pythrow(pytypeerror("Invalid value of type '$(pytype(v).__name__)'"))
+        push!(o, v)
+        pynone
+    end)
+    t.discard = pymethod((_o, _v) -> begin
+        o = pyjlgetvalue(_o, V)
+        v = pytryconvert(eltype(o), _v)
+        v === PyConvertFail() || delete!(o, v)
+        pynone
+    end)
+    t.clear = pymethod(o -> (empty!(pyjlgetvalue(o, V)); pynone))
+end
 
 ### Array (as Collection)
 ### Vector (as Sequence)
@@ -720,6 +792,7 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:AbstractArray, V<:T}
             sort!(o, rev=rev, by=by)
             pynone
         end)
+        t.clear = pymethod(o -> (empty!(pyjlgetvalue(o, V)); pynone))
     end
 end
 

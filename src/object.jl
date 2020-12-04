@@ -85,6 +85,7 @@ export pyobjecttype
 pyobject(o::PyObject) = o
 pyobject(args...; opts...) = pyobjecttype(args...; opts...)
 pyobject(o::Nothing) = pynone
+pyobject(o::Missing) = pynone
 pyobject(o::Tuple) = pytuple(o)
 pyobject(o::Pair) = pytuple(o)
 pyobject(o::AbstractString) = pystr(o)

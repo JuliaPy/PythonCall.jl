@@ -1,6 +1,8 @@
 ![Python.jl logo](https://raw.githubusercontent.com/cjdoris/Python.jl/master/logo-text.svg)
 ---
 
+[![Build Status](https://travis-ci.org/cjdoris/Python.jl.svg?branch=master)](https://travis-ci.org/cjdoris/Python.jl)
+
 Bringing **Python** and **Julia** together for ultimate awesomeness.
 - Simple syntax, just like regular Python.
 - Intuitive and flexible conversions between Julia and Python: anything can be converted, you are in control.

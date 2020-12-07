@@ -226,26 +226,27 @@ const PYJLRAWTYPES = Dict{Type,PyObject}()
 pyjlrawtype(::Type{T}) where {T} = get!(PYJLRAWTYPES, T) do
     name = "julia.RawValue[$T]"
     base = T==Any ? pyjlbasetype : pyjlrawtype(T==DataType ? Type : supertype(T))
-    t = pytypetype(name, (base,), pydict())
-    t.__repr__ = pymethod(o -> "<jl $(repr(pyjlgetvalue(o, T)))>")
-    t.__str__ = pymethod(o -> string(pyjlgetvalue(o, T)))
-    t.__call__ = pymethod((o, args...; kwargs...) -> pyjlraw(pyjlgetvalue(o, T)(map(pyjlgetvalue, args)...)))
-    t.__doc__ = """
+    attrs = pydict()
+    attrs["__slots__"] = pytuple()
+    attrs["__repr__"] = pymethod(o -> "<jl $(repr(pyjlgetvalue(o, T)))>")
+    attrs["__str__"] = pymethod(o -> string(pyjlgetvalue(o, T)))
+    attrs["__call__"] = pymethod((o, args...; kwargs...) -> pyjlraw(pyjlgetvalue(o, T)(map(pyjlgetvalue, args)...)))
+    attrs["__doc__"] = """
     A Julia '$T' with basic Julia semantics.
     """
     # Logic
     # Note that comparisons use isequal and isless, so that hashing is supported
-    t.__eq__ = pymethod((o, x) -> pybool(isequal(pyjlgetvalue(o, T), pyjlgetvalue(x))))
-    t.__lt__ = pymethod((o, x) -> pybool(isless(pyjlgetvalue(o, T), pyjlgetvalue(x))))
-    t.__bool__ = pymethod(o -> (v=pyjlgetvalue(o, T); v isa Bool ? pybool(v) : pythrow(pytypeerror("Only 'Bool' can be tested for truthyness"))))
-    t.__hash__ = pymethod(o -> pyint(hash(pyjlgetvalue(o, T))))
+    attrs["__eq__"] = pymethod((o, x) -> pybool(isequal(pyjlgetvalue(o, T), pyjlgetvalue(x))))
+    attrs["__lt__"] = pymethod((o, x) -> pybool(isless(pyjlgetvalue(o, T), pyjlgetvalue(x))))
+    attrs["__bool__"] = pymethod(o -> (v=pyjlgetvalue(o, T); v isa Bool ? pybool(v) : pythrow(pytypeerror("Only 'Bool' can be tested for truthyness"))))
+    attrs["__hash__"] = pymethod(o -> pyint(hash(pyjlgetvalue(o, T))))
     # Containers
-    t.__contains__ = pymethod((o, v) -> pybool(pyjlgetvalue(v) in pyjlgetvalue(o, T)))
-    t.__getitem__ = pymethod((o, i) -> pyjlraw(getindex(pyjlgetvalue(o, T), (pyistuple(i) ? [pyjlgetvalue(j) for j in i] : [pyjlgetvalue(i)])...)))
-    t.__setitem__ = pymethod((o, i, v) -> pyjlraw(setindex!(pyjlgetvalue(o, T), pyjlgetvalue(v), (pyistuple(i) ? [pyjlgetvalue(j) for j in i] : [pyjlgetvalue(i)])...)))
-    t.__iter__ = pymethod(o -> pyjlraw(Iterator(pyjlgetvalue(o, T), nothing)))
+    attrs["__contains__"] = pymethod((o, v) -> pybool(pyjlgetvalue(v) in pyjlgetvalue(o, T)))
+    attrs["__getitem__"] = pymethod((o, i) -> pyjlraw(getindex(pyjlgetvalue(o, T), (pyistuple(i) ? [pyjlgetvalue(j) for j in i] : [pyjlgetvalue(i)])...)))
+    attrs["__setitem__"] = pymethod((o, i, v) -> pyjlraw(setindex!(pyjlgetvalue(o, T), pyjlgetvalue(v), (pyistuple(i) ? [pyjlgetvalue(j) for j in i] : [pyjlgetvalue(i)])...)))
+    attrs["__iter__"] = pymethod(o -> pyjlraw(Iterator(pyjlgetvalue(o, T), nothing)))
     if T <: Iterator
-        t.__next__ = pymethod(_o -> begin
+        attrs["__next__"] = pymethod(_o -> begin
             o = pyjlgetvalue(_o, T)
             if o.st === nothing
                 it = iterate(o.val)
@@ -262,34 +263,35 @@ pyjlrawtype(::Type{T}) where {T} = get!(PYJLRAWTYPES, T) do
         end)
     end
     # Arithmetic
-    t.__add__ = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) + pyjlgetvalue(x)))
-    t.__sub__ = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) - pyjlgetvalue(x)))
-    t.__mul__ = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) * pyjlgetvalue(x)))
-    t.__truediv__ = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) / pyjlgetvalue(x)))
-    t.__floordiv__ = pymethod((o, x) -> pyjlraw(fld(pyjlgetvalue(o, T), pyjlgetvalue(x))))
-    t.__mod__ = pymethod((o, x) -> pyjlraw(mod(pyjlgetvalue(o, T), pyjlgetvalue(x))))
-    t.__pow__ = pymethod((o, x, m=pynone) -> pyjlraw(pyisnone(m) ? pyjlgetvalue(o, T) ^ pyjlgetvalue(x) : powermod(pyjlgetvalue(o, T), pyjlgetvalue(x), pyjlgetvalue(m))))
-    t.__lshift__ = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) << pyjlgetvalue(x)))
-    t.__rshift__ = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) >> pyjlgetvalue(x)))
-    t.__and__ = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) & pyjlgetvalue(x)))
-    t.__xor__ = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) ⊻ pyjlgetvalue(x)))
-    t.__or__ = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) | pyjlgetvalue(x)))
-    t.__neg__ = pymethod(o -> pyjlraw(-pyjlgetvalue(o, T)))
-    t.__pos__ = pymethod(o -> pyjlraw(+pyjlgetvalue(o, T)))
-    t.__abs__ = pymethod(o -> pyjlraw(abs(pyjlgetvalue(o, T))))
-    t.__invert__ = pymethod(o -> pyjlraw(~pyjlgetvalue(o, T)))
-    t.__complex__ = pymethod(o -> pycomplex(convert(Complex{Cdouble}, pyjlgetvalue(o, T))))
-    t.__float__ = pymethod(o -> pyfloat(convert(Cdouble, pyjlgetvalue(o, T))))
-    t.__int__ = t.__index__ = pymethod(o -> pyint(convert(Integer, pyjlgetvalue(o, T))))
+    attrs["__add__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) + pyjlgetvalue(x)))
+    attrs["__sub__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) - pyjlgetvalue(x)))
+    attrs["__mul__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) * pyjlgetvalue(x)))
+    attrs["__truediv__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) / pyjlgetvalue(x)))
+    attrs["__floordiv__"] = pymethod((o, x) -> pyjlraw(fld(pyjlgetvalue(o, T), pyjlgetvalue(x))))
+    attrs["__mod__"] = pymethod((o, x) -> pyjlraw(mod(pyjlgetvalue(o, T), pyjlgetvalue(x))))
+    attrs["__pow__"] = pymethod((o, x, m=pynone) -> pyjlraw(pyisnone(m) ? pyjlgetvalue(o, T) ^ pyjlgetvalue(x) : powermod(pyjlgetvalue(o, T), pyjlgetvalue(x), pyjlgetvalue(m))))
+    attrs["__lshift__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) << pyjlgetvalue(x)))
+    attrs["__rshift__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) >> pyjlgetvalue(x)))
+    attrs["__and__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) & pyjlgetvalue(x)))
+    attrs["__xor__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) ⊻ pyjlgetvalue(x)))
+    attrs["__or__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) | pyjlgetvalue(x)))
+    attrs["__neg__"] = pymethod(o -> pyjlraw(-pyjlgetvalue(o, T)))
+    attrs["__pos__"] = pymethod(o -> pyjlraw(+pyjlgetvalue(o, T)))
+    attrs["__abs__"] = pymethod(o -> pyjlraw(abs(pyjlgetvalue(o, T))))
+    attrs["__invert__"] = pymethod(o -> pyjlraw(~pyjlgetvalue(o, T)))
+    attrs["__complex__"] = pymethod(o -> pycomplex(convert(Complex{Cdouble}, pyjlgetvalue(o, T))))
+    attrs["__float__"] = pymethod(o -> pyfloat(convert(Cdouble, pyjlgetvalue(o, T))))
+    attrs["__int__"] = attrs["__index__"] = pymethod(o -> pyint(convert(Integer, pyjlgetvalue(o, T))))
     # Julia-specific
-    t.getfield = pymethod((o, k) -> pyjlraw(getfield(pyjlgetvalue(o, T), pyjlraw_propertyname(k))))
-    t.getproperty = pymethod((o, k) -> pyjlraw(getproperty(pyjlgetvalue(o, T), pyjlraw_propertyname(k))))
-    t.setfield = pymethod((o, k, v) -> (setfield!(pyjlgetvalue(o, T), pyjlraw_propertyname(k), pyjlgetvalue(v)); nothing))
-    t.setproperty = pymethod((o, k, v) -> (setproperty!(pyjlgetvalue(o, T), pyjlraw_propertyname(k), pyjlgetvalue(v)); nothing))
-    t.property = pymethod((o, k, v=nothing) -> v===nothing ? o.getproperty(k) : o.setproperty(k, v))
-    t.field = pymethod((o, k, v=nothing) -> v===nothing ? o.getfield(k) : o.setfield(k, v))
-    t.typeof = isconcretetype(T) ? pymethod(o -> pyjlraw(T)) : pymethod(o -> pyjlraw(typeofpyjlgetvalue(o, T)))
-    t
+    attrs["getfield"] = pymethod((o, k) -> pyjlraw(getfield(pyjlgetvalue(o, T), pyjlraw_propertyname(k))))
+    attrs["getprop"] = pymethod((o, k) -> pyjlraw(getproperty(pyjlgetvalue(o, T), pyjlraw_propertyname(k))))
+    attrs["setfield"] = pymethod((o, k, v) -> (setfield!(pyjlgetvalue(o, T), pyjlraw_propertyname(k), pyjlgetvalue(v)); nothing))
+    attrs["setprop"] = pymethod((o, k, v) -> (setproperty!(pyjlgetvalue(o, T), pyjlraw_propertyname(k), pyjlgetvalue(v)); nothing))
+    attrs["prop"] = pymethod((o, k, v=nothing) -> v===nothing ? o.getprop(k) : o.setprop(k, v))
+    attrs["field"] = pymethod((o, k, v=nothing) -> v===nothing ? o.getfield(k) : o.setfield(k, v))
+    attrs["typeof"] = isconcretetype(T) ? pymethod(o -> pyjlraw(T)) : pymethod(o -> pyjlraw(typeofpyjlgetvalue(o, T)))
+    # Done
+    pytypetype(name, (base,), attrs)
 end
 export pyjlrawtype
 
@@ -337,27 +339,32 @@ pyjl_valuetype(::Type{T}) where {S, T<:PyJlSubclass{S}} = pyjl_valuetype(S)
 pyjl_valuetype(::Type{T}) where {T<:PyJlSubclass} = error()
 
 pyjltype(::Type{T}) where {T} = get!(PYJLTYPES, T) do
-    # Pick a name
+    # Name
     name = "julia.Value[$T]"
 
-    # Select bases
-    V = pyjl_valuetype(T)
+    # Bases
     Ss = pyjl_supertypes(T)
-    bases = PyObject[length(Ss) == 1 ? pyjlbasetype : pyjltype(Ss[2])]
-    for S in Ss
+    bases = [length(Ss) == 1 ? pyjlbasetype : pyjltype(Ss[2])]
+    mixin = pyjl_mixin(T)
+    pyisnone(mixin) || push!(bases, mixin)
+
+    # Attributes
+    V = pyjl_valuetype(T)
+    attrs = Dict{String,PyObject}()
+    attrs["__slots__"] = pytuple()
+    for S in reverse(Ss)
         V <: pyjl_valuetype(S) || error()
-        b = pyjl_mixin(S)
-        pyisnone(b) || push!(bases, b)
+        pyjl_addattrs(attrs, S, V)
     end
-    unique!(pyptr, bases)
 
     # Make the type
-    t = pytypetype(name, pytuple_fromiter(bases), pydict())
-    for S in reverse(Ss)
-        Base.invokelatest(pyjl_addattrs, t, S, V)
-    end
+    t = pytypetype(name, pytuple_fromiter(bases), pydict_fromstringiter(attrs))
+
+    # Register an abstract base class
     abc = pyjl_abc(T)
     pyisnone(abc) || abc.register(t)
+
+    # Done
     return t
 end
 export pyjltype
@@ -372,33 +379,33 @@ pyjl_abc(::Type) = pynone
 pyjl_mixin(::Type) = pynone
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Any, V<:T}
-    t.__repr__ = pymethod(o -> "<jl $(repr(pyjlgetvalue(o, V)))>")
-    t.__str__ = pymethod(o -> string(pyjlgetvalue(o, V)))
-    t.__doc__ = """
+    t["__repr__"] = pymethod(o -> "<jl $(repr(pyjlgetvalue(o, V)))>")
+    t["__str__"] = pymethod(o -> string(pyjlgetvalue(o, V)))
+    t["__doc__"] = """
     A Julia '$T' with Python semantics.
     """
     if hasmethod(length, Tuple{V})
-        t.__len__ = pymethod(o -> length(pyjlgetvalue(o, V)))
+        t["__len__"] = pymethod(o -> length(pyjlgetvalue(o, V)))
     end
     if hasmethod(hash, Tuple{V})
-        t.__hash__ = pymethod(o -> hash(pyjlgetvalue(o, V)))
+        t["__hash__"] = pymethod(o -> hash(pyjlgetvalue(o, V)))
     end
     if hasmethod(in, Tuple{Union{}, V})
-        t.__contains__ = pymethod((_o, _x) -> begin
+        t["__contains__"] = pymethod((_o, _x) -> begin
             o = pyjlgetvalue(_o, V)
             x = pytryconvert_element(o, _x)
             x === PyConvertFail() ? false : in(x, o)
         end)
     end
     if hasmethod(reverse, Tuple{V})
-        t.__reversed__ = pymethod(o -> pyjl(reverse(pyjlgetvalue(o, V))))
+        t["__reversed__"] = pymethod(o -> pyjl(reverse(pyjlgetvalue(o, V))))
     end
     if hasmethod(iterate, Tuple{V})
-        t.__iter__ = pymethod(o -> pyjl(Iterator(pyjlgetvalue(o, V), nothing)))
+        t["__iter__"] = pymethod(o -> pyjl(Iterator(pyjlgetvalue(o, V), nothing)))
     end
-    t.__call__ = pymethod((o, args...; kwargs...) -> pyobject(pyjlgetvalue(o, V)(args...; kwargs...)))
+    t["__call__"] = pymethod((o, args...; kwargs...) -> pyobject(pyjlgetvalue(o, V)(args...; kwargs...)))
     if hasmethod(getindex, Tuple{V, Union{}})
-        t.__getitem__ = pymethod((_o, _k) -> begin
+        t["__getitem__"] = pymethod((_o, _k) -> begin
             o = pyjlgetvalue(_o, V)
             k = pytryconvert_indices(o, _k)
             if k === PyConvertFail()
@@ -408,7 +415,7 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Any, V<:T}
         end)
     end
     if hasmethod(setindex!, Tuple{V, Union{}, Union{}})
-        t.__setitem__ = pymethod((_o, _k, _v) -> begin
+        t["__setitem__"] = pymethod((_o, _k, _v) -> begin
             o = pyjlgetvalue(_o, V)
             k = pytryconvert_indices(o, _k)
             k === PyConvertFail && pythrow(pytypeerror("invalid index"))
@@ -418,12 +425,12 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Any, V<:T}
             pynone
         end)
     end
-    t.__dir__ = pymethod(o -> begin
+    t["__dir__"] = pymethod(o -> begin
         d = pyobjecttype.__dir__(o)
         d.extend(pylist([pyjl_attrname_jl2py(string(k)) for k in propertynames(pyjlgetvalue(o, V))]))
         d
     end)
-    t.__getattr__ = pymethod((_o, _k) -> begin
+    t["__getattr__"] = pymethod((_o, _k) -> begin
         # first do a generic lookup
         _x = C.PyObject_GenericGetAttr(_o, _k)
         if _x != C_NULL
@@ -440,7 +447,7 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Any, V<:T}
         end
         throw(PythonRuntimeError(st...))
     end)
-    t.__setattr__ = pymethod((_o, _k, _v) -> begin
+    t["__setattr__"] = pymethod((_o, _k, _v) -> begin
         # first do a generic lookup
         _x = C.PyObject_GenericSetAttr(_o, _k, _v)
         if _x != -1
@@ -475,19 +482,19 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Any, V<:T}
             pynotimplemented
         end
     end)
-    hasmethod(+, Tuple{V, Union{}}) && (t.__add__ = binop(+))
-    hasmethod(-, Tuple{V, Union{}}) && (t.__sub__ = binop(-))
-    hasmethod(*, Tuple{V, Union{}}) && (t.__mul__ = binop(*))
-    hasmethod(/, Tuple{V, Union{}}) && (t.__truediv__ = binop(/))
-    hasmethod(fld, Tuple{V, Union{}}) && (t.__floordiv__ = binop(fld))
-    hasmethod(mod, Tuple{V, Union{}}) && (t.__mod__ = binop(mod))
-    hasmethod(<<, Tuple{V, Union{}}) && (t.__lshift__ = binop(<<))
-    hasmethod(>>, Tuple{V, Union{}}) && (t.__rshift__ = binop(>>))
-    hasmethod(&, Tuple{V, Union{}}) && (t.__and__ = binop(&))
-    hasmethod(|, Tuple{V, Union{}}) && (t.__or__ = binop(|))
-    hasmethod(⊻, Tuple{V, Union{}}) && (t.__or__ = binop(⊻))
+    hasmethod(+, Tuple{V, Union{}}) && (t["__add__"] = binop(+))
+    hasmethod(-, Tuple{V, Union{}}) && (t["__sub__"] = binop(-))
+    hasmethod(*, Tuple{V, Union{}}) && (t["__mul__"] = binop(*))
+    hasmethod(/, Tuple{V, Union{}}) && (t["__truediv__"] = binop(/))
+    hasmethod(fld, Tuple{V, Union{}}) && (t["__floordiv__"] = binop(fld))
+    hasmethod(mod, Tuple{V, Union{}}) && (t["__mod__"] = binop(mod))
+    hasmethod(<<, Tuple{V, Union{}}) && (t["__lshift__"] = binop(<<))
+    hasmethod(>>, Tuple{V, Union{}}) && (t["__rshift__"] = binop(>>))
+    hasmethod(&, Tuple{V, Union{}}) && (t["__and__"] = binop(&))
+    hasmethod(|, Tuple{V, Union{}}) && (t["__or__"] = binop(|))
+    hasmethod(⊻, Tuple{V, Union{}}) && (t["__xor__"] = binop(⊻))
     if hasmethod(^, Tuple{V, Union{}})
-        t.__pow__ = pymethod((_o, _x, _m=pynone) -> begin
+        t["__pow__"] = pymethod((_o, _x, _m=pynone) -> begin
             try
                 o = pyjlgetvalue(_o, V)
                 x = prom(o, _x)
@@ -502,12 +509,12 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Any, V<:T}
             end
         end)
     end
-    hasmethod(==, Tuple{V, Union{}}) && (t.__eq__ = binop(==))
-    hasmethod(!=, Tuple{V, Union{}}) && (t.__ne__ = binop(!=))
-    hasmethod(<=, Tuple{V, Union{}}) && (t.__le__ = binop(<=))
-    hasmethod(< , Tuple{V, Union{}}) && (t.__lt__ = binop(< ))
-    hasmethod(>=, Tuple{V, Union{}}) && (t.__ge__ = binop(>=))
-    hasmethod(> , Tuple{V, Union{}}) && (t.__gt__ = binop(> ))
+    hasmethod(==, Tuple{V, Union{}}) && (t["__eq__"] = binop(==))
+    hasmethod(!=, Tuple{V, Union{}}) && (t["__ne__"] = binop(!=))
+    hasmethod(<=, Tuple{V, Union{}}) && (t["__le__"] = binop(<=))
+    hasmethod(< , Tuple{V, Union{}}) && (t["__lt__"] = binop(< ))
+    hasmethod(>=, Tuple{V, Union{}}) && (t["__ge__"] = binop(>=))
+    hasmethod(> , Tuple{V, Union{}}) && (t["__gt__"] = binop(> ))
 end
 
 pyjl_attrname_py2jl(x::AbstractString) =
@@ -519,7 +526,7 @@ pyjl_attrname_jl2py(x::AbstractString) =
 ### Nothing & Missing (falsy)
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Union{Nothing,Missing}, V<:T}
-    t.__bool__ = pymethod(o -> pyfalse)
+    t["__bool__"] = pymethod(o -> pyfalse)
 end
 
 ### Iterator (as Iterator)
@@ -532,8 +539,8 @@ end
 pyjl_mixin(::Type{T}) where {T<:Iterator} = pyiteratorabc
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Iterator, V<:T}
-    t.__iter__ = pymethod(o -> o)
-    t.__next__ = pymethod(_o -> begin
+    t["__iter__"] = pymethod(o -> o)
+    t["__next__"] = pymethod(_o -> begin
         o = pyjlgetvalue(_o, V)
         if o.st === nothing
             it = iterate(o.val)
@@ -559,32 +566,32 @@ pyjl_mixin(::Type{T}) where {T<:Rational} = pynumbersmodule.Rational
 pyjl_mixin(::Type{T}) where {T<:Integer} = pynumbersmodule.Integral
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Number, V<:T}
-    t.__bool__ = pymethod(o -> pybool(!iszero(pyjlgetvalue(o, V))))
-    t.__pos__ = pymethod(o -> pyobject(+pyjlgetvalue(o, V)))
-    t.__neg__ = pymethod(o -> pyobject(-pyjlgetvalue(o, V)))
+    t["__bool__"] = pymethod(o -> pybool(!iszero(pyjlgetvalue(o, V))))
+    t["__pos__"] = pymethod(o -> pyobject(+pyjlgetvalue(o, V)))
+    t["__neg__"] = pymethod(o -> pyobject(-pyjlgetvalue(o, V)))
 end
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Union{Complex,Real}, V<:T}
-    t.real = pyproperty(o -> pyobject(real(pyjlgetvalue(o, V))))
-    t.imag = pyproperty(o -> pyobject(imag(pyjlgetvalue(o, V))))
-    t.conjugate = pymethod(o -> pyobject(conj(pyjlgetvalue(o, V))))
-    t.__abs__ = pymethod(o -> pyobject(abs(pyjlgetvalue(o, V))))
-    t.__complex__ = pymethod(o -> pycomplex(pyjlgetvalue(o, V)))
+    t["real"] = pyproperty(o -> pyobject(real(pyjlgetvalue(o, V))))
+    t["imag"] = pyproperty(o -> pyobject(imag(pyjlgetvalue(o, V))))
+    t["conjugate"] = pymethod(o -> pyobject(conj(pyjlgetvalue(o, V))))
+    t["__abs__"] = pymethod(o -> pyobject(abs(pyjlgetvalue(o, V))))
+    t["__complex__"] = pymethod(o -> pycomplex(pyjlgetvalue(o, V)))
     if V<:Real
-        t.__float__ = pymethod(o -> pyfloat(pyjlgetvalue(o, V)))
-        t.__trunc__ = pymethod(o -> pyint(trunc(BigInt, pyjlgetvalue(o, V))))
-        t.__round__ = pymethod((o,n=pynone) -> pyisnone(n) ? pyint(round(BigInt, pyjlgetvalue(o, V))) : pyjl(round(pyjlgetvalue(o, V), digits=pyconvert(Int, n))))
-        t.__floor__ = pymethod(o -> pyint(floor(BigInt, pyjlgetvalue(o, V))))
-        t.__ceil__ = pymethod(o -> pyint(ceil(BigInt, pyjlgetvalue(o, V))))
+        t["__float__"] = pymethod(o -> pyfloat(pyjlgetvalue(o, V)))
+        t["__trunc__"] = pymethod(o -> pyint(trunc(BigInt, pyjlgetvalue(o, V))))
+        t["__round__"] = pymethod((o,n=pynone) -> pyisnone(n) ? pyint(round(BigInt, pyjlgetvalue(o, V))) : pyjl(round(pyjlgetvalue(o, V), digits=pyconvert(Int, n))))
+        t["__floor__"] = pymethod(o -> pyint(floor(BigInt, pyjlgetvalue(o, V))))
+        t["__ceil__"] = pymethod(o -> pyint(ceil(BigInt, pyjlgetvalue(o, V))))
     end
 end
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Union{Integer,Rational}, V<:T}
-    t.numerator = pyproperty(o -> pyobject(numerator(pyjlgetvalue(o, V))))
-    t.denominator = pyproperty(o -> pyobject(denominator(pyjlgetvalue(o, V))))
+    t["numerator"] = pyproperty(o -> pyobject(numerator(pyjlgetvalue(o, V))))
+    t["denominator"] = pyproperty(o -> pyobject(denominator(pyjlgetvalue(o, V))))
     if V<:Integer
-        t.__int__ = pymethod(o -> pyint(pyjlgetvalue(o, V)))
-        t.__invert__ = pymethod(o -> pyobject(~pyjlgetvalue(o, V)))
+        t["__int__"] = pymethod(o -> pyint(pyjlgetvalue(o, V)))
+        t["__invert__"] = pymethod(o -> pyobject(~pyjlgetvalue(o, V)))
     end
 end
 
@@ -593,8 +600,8 @@ end
 pyjl_mixin(::Type{T}) where {T<:AbstractDict} = pymutablemappingabc
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:AbstractDict, V<:T}
-    t.__iter__ = pymethod(o -> pyjl(Iterator(keys(pyjlgetvalue(o, V)), nothing)))
-    t.__getitem__ = pymethod((_o, _k) -> begin
+    t["__iter__"] = pymethod(o -> pyjl(Iterator(keys(pyjlgetvalue(o, V)), nothing)))
+    t["__getitem__"] = pymethod((_o, _k) -> begin
         o = pyjlgetvalue(_o, V)
         k = pytryconvert(keytype(o), _k)
         if k === PyConvertFail() || !haskey(o, k)
@@ -602,7 +609,7 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:AbstractDict, V<:T}
         end
         pyobject(o[k])
     end)
-    t.__setitem__ = pymethod((_o, _k, _v) -> begin
+    t["__setitem__"] = pymethod((_o, _k, _v) -> begin
         o = pyjlgetvalue(_o, V)
         k = pytryconvert(keytype(o), _k)
         if k === PyConvertFail()
@@ -613,7 +620,7 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:AbstractDict, V<:T}
         o[k] = v
         pynone
     end)
-    t.__delitem__ = pymethod((_o, _k) -> begin
+    t["__delitem__"] = pymethod((_o, _k) -> begin
         o = pyjlgetvalue(_o, V)
         k = pytryconvert(keytype(o), _k)
         if k === PyConvertFail() || !haskey(o, k)
@@ -622,12 +629,12 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:AbstractDict, V<:T}
         delete!(o, k)
         pynone
     end)
-    t.__contains__ = pymethod((_o, _k) -> begin
+    t["__contains__"] = pymethod((_o, _k) -> begin
         o = pyjlgetvalue(_o, V)
         k = pytryconvert(keytype(o), _k)
         k === PyConvertFail() ? false : haskey(o, k)
     end)
-    t.clear = pymethod(o -> (empty!(pyjlgetvalue(o, V)); pynone))
+    t["clear"] = pymethod(o -> (empty!(pyjlgetvalue(o, V)); pynone))
 end
 
 ### Set (as Set)
@@ -635,20 +642,20 @@ end
 pyjl_mixin(::Type{T}) where {T<:AbstractSet} = pymutablesetabc
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:AbstractSet, V<:T}
-    t.add = pymethod((_o, _v) -> begin
+    t["add"] = pymethod((_o, _v) -> begin
         o = pyjlgetvalue(_o, V)
         v = pytryconvert(eltype(o), _v)
         v === PyConvertFail() && pythrow(pytypeerror("Invalid value of type '$(pytype(v).__name__)'"))
         push!(o, v)
         pynone
     end)
-    t.discard = pymethod((_o, _v) -> begin
+    t["discard"] = pymethod((_o, _v) -> begin
         o = pyjlgetvalue(_o, V)
         v = pytryconvert(eltype(o), _v)
         v === PyConvertFail() || delete!(o, v)
         pynone
     end)
-    t.clear = pymethod(o -> (empty!(pyjlgetvalue(o, V)); pynone))
+    t["clear"] = pymethod(o -> (empty!(pyjlgetvalue(o, V)); pynone))
 end
 
 ### Array (as Collection)
@@ -720,10 +727,10 @@ end
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:AbstractArray, V<:T}
     if hasmethod(pointer, Tuple{V}) && hasmethod(strides, Tuple{V})
         if pyjl_isbufferabletype(eltype(V))
-            t.__jl_enable_buffer__ = true
+            t["__jl_enable_buffer__"] = true
         end
         if pyjl_isarrayabletype(eltype(V))
-            t.__array_interface__ = pyproperty(_o -> begin
+            t["__array_interface__"] = pyproperty(_o -> begin
                 o = pyjlgetvalue(_o, V)
                 typestr, descr = pytypestrformat(eltype(o))
                 pydict(
@@ -738,7 +745,7 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:AbstractArray, V<:T}
         end
     end
     if V <: PyObjectArray
-        t.__array_interface__ = pyproperty(_o -> begin
+        t["__array_interface__"] = pyproperty(_o -> begin
             o = pyjlgetvalue(_o, V)
             pydict(
                 shape = size(o),
@@ -749,15 +756,15 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:AbstractArray, V<:T}
             )
         end)
     end
-    t.ndim = pyproperty(o -> pyint(ndims(pyjlgetvalue(o, V))))
-    t.shape = pyproperty(o -> pytuple(map(pyint, size(pyjlgetvalue(o, V)))))
-    t.__array__ = pymethod(o -> pyhasattr(o, "__array_interface__") ? pynumpy.asarray(o) : pynumpy.asarray(PyObjectArray(pyjlgetvalue(o, V))))
-    t.__getitem__ = pymethod((_o, _k) -> begin
+    t["ndim"] = pyproperty(o -> pyint(ndims(pyjlgetvalue(o, V))))
+    t["shape"] = pyproperty(o -> pytuple(map(pyint, size(pyjlgetvalue(o, V)))))
+    t["__array__"] = pymethod(o -> pyhasattr(o, "__array_interface__") ? pynumpy.asarray(o) : pynumpy.asarray(PyObjectArray(pyjlgetvalue(o, V))))
+    t["__getitem__"] = pymethod((_o, _k) -> begin
         o = pyjlgetvalue(_o, V)
         k = pyjl_arrayidxs(o, _k)
         pyobject(o[k...])
     end)
-    t.__setitem__ = pymethod((_o, _k, _v) -> begin
+    t["__setitem__"] = pymethod((_o, _k, _v) -> begin
         o = pyjlgetvalue(_o, V)
         k = pyjl_arrayidxs(o, _k)
         v = pytryconvert(eltype(o), _v)
@@ -765,15 +772,15 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:AbstractArray, V<:T}
         o[k...] = v
         pynone
     end)
-    t.copy = pymethod(o -> pyjl(copy(pyjlgetvalue(o, V))))
+    t["copy"] = pymethod(o -> pyjl(copy(pyjlgetvalue(o, V))))
     if V <: AbstractVector
-        t.__delitem__ = pymethod((_o, _k) -> begin
+        t["__delitem__"] = pymethod((_o, _k) -> begin
             o = pyjlgetvalue(_o, V)
             k = pyjl_arrayidxs(o, _k)
             deleteat!(o, k...)
             pynone
         end)
-        t.insert = pymethod((_o, _k, _v) -> begin
+        t["insert"] = pymethod((_o, _k, _v) -> begin
             o = pyjlgetvalue(_o, V)
             ax = axes(o, 1)
             k = pyjl_axisidx(first(ax):(last(ax)+1), _k)
@@ -782,14 +789,14 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:AbstractArray, V<:T}
             insert!(o, k, v)
             pynone
         end)
-        t.sort = pymethod((_o; reverse=pyfalse, key=pynone) -> begin
+        t["sort"] = pymethod((_o; reverse=pyfalse, key=pynone) -> begin
             o = pyjlgetvalue(_o)
             rev = pytruth(reverse)
             by = pyisnone(key) ? identity : key
             sort!(o, rev=rev, by=by)
             pynone
         end)
-        t.clear = pymethod(o -> (empty!(pyjlgetvalue(o, V)); pynone))
+        t["clear"] = pymethod(o -> (empty!(pyjlgetvalue(o, V)); pynone))
     end
 end
 
@@ -798,7 +805,7 @@ end
 pyjl_mixin(::Type{T}) where {T<:Union{Tuple,NamedTuple}} = pysequenceabc
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Union{Tuple,NamedTuple}, V<:T}
-    t.__getitem__ = pymethod((_o, _k) -> begin
+    t["__getitem__"] = pymethod((_o, _k) -> begin
         o = pyjlgetvalue(_o, V)
         if o isa NamedTuple && pyisstr(_k)
             k = Symbol(string(_k))
@@ -815,51 +822,51 @@ end
 pyjl_abc(::Type{T}) where {T<:IO} = pyiomodule.IOBase
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:IO, V}
-    t.close = if hasmethod(close, Tuple{V})
+    t["close"] = if hasmethod(close, Tuple{V})
         pymethod(o -> (close(pyjlgetvalue(o, V)); pynone))
     else
         pymethod(o -> pythrow(pyiounsupportedoperation("close")))
     end
-    t.closed = if hasmethod(isopen, Tuple{V})
+    t["closed"] = if hasmethod(isopen, Tuple{V})
         pyproperty(o -> pybool(!isopen(pyjlgetvalue(o, V))))
     else
         pyproperty(o -> pythrow(pyiounsupportedoperation("closed")))
     end
-    t.fileno = if hasmethod(fd, Tuple{V})
+    t["fileno"] = if hasmethod(fd, Tuple{V})
         pymethod(o -> pyint(fd(pyjlgetvalue(o, V))))
     else
         pymethod(o -> pythrow(pyiounsupportedoperation("fileno")))
     end
-    t.flush = pymethod(o -> (flush(pyjlgetvalue(o, V)); pynone))
-    t.isatty = V<:Base.TTY ? pymethod(o -> pybool(true)) : pymethod(o -> pybool(false))
-    t.readable = if hasmethod(isreadable, Tuple{V})
+    t["flush"] = pymethod(o -> (flush(pyjlgetvalue(o, V)); pynone))
+    t["isatty"] = V<:Base.TTY ? pymethod(o -> pybool(true)) : pymethod(o -> pybool(false))
+    t["readable"] = if hasmethod(isreadable, Tuple{V})
         pymethod(o -> pybool(isreadable(pyjlgetvalue(o, V))))
     else
         pymethod(o -> pythrow(pyiounsupportedoperation("readable")))
     end
-    t.writable = if hasmethod(iswritable, Tuple{V})
+    t["writable"] = if hasmethod(iswritable, Tuple{V})
         pymethod(o -> pybool(iswritable(pyjlgetvalue(o, V))))
     else
         pymethod(o -> pythrow(pyiounsupportedoperation("writable")))
     end
-    t.tell = if hasmethod(position, Tuple{V})
+    t["tell"] = if hasmethod(position, Tuple{V})
         pymethod(o -> pyint(position(pyjlgetvalue(o, V))))
     else
         pymethod(o -> pythrow(pyiounsupportedoperation("tell")))
     end
-    t.writelines = pymethod((o, lines) -> begin
+    t["writelines"] = pymethod((o, lines) -> begin
         wr = o.write
         for line in lines
             wr(line)
         end
         pynone
     end)
-    t.seekable = if hasmethod(position, Tuple{V}) && hasmethod(seek, Tuple{V,Int}) && hasmethod(truncate, Tuple{V,Int})
+    t["seekable"] = if hasmethod(position, Tuple{V}) && hasmethod(seek, Tuple{V,Int}) && hasmethod(truncate, Tuple{V,Int})
         pymethod(o -> pybool(true))
     else
         pymethod(o -> pybool(false))
     end
-    t.truncate = if hasmethod(truncate, Tuple{V, Int})
+    t["truncate"] = if hasmethod(truncate, Tuple{V, Int})
         pymethod((_o, _n=pynone) -> begin
             o = pyjlgetvalue(_o, V)
             n = pyisnone(_n) ? position(o) : pyconvert(Int, _n)
@@ -869,7 +876,7 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:IO, V}
     else
         pymethod((_o, _n=pynone) -> pythrow(pyiounsupportedoperation("truncate")))
     end
-    t.seek = if hasmethod(seek, Tuple{V, Int}) && hasmethod(position, Tuple{V})
+    t["seek"] = if hasmethod(seek, Tuple{V, Int}) && hasmethod(position, Tuple{V})
         pymethod((_o, offset, whence=pyint(0)) -> begin
             o = pyjlgetvalue(_o, V)
             n = pyconvert(Int, offset)
@@ -889,8 +896,8 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:IO, V}
     else
         pymethod((args...) -> pythrow(pyiounsupportedoperation("seek")))
     end
-    t.__iter__ = pymethod(o -> o)
-    t.__next__ = pymethod(o -> (x=o.readline(); pylen(x)==0 ? pythrow(pystopiteration()) : x))
+    t["__iter__"] = pymethod(o -> o)
+    t["__next__"] = pymethod(o -> (x=o.readline(); pylen(x)==0 ? pythrow(pystopiteration()) : x))
 end
 
 ### RawIO (as RawIOBase)
@@ -910,8 +917,8 @@ pyjl_abc(::Type{T}) where {T<:BufferedIO} = pyiomodule.BufferedIOBase
 pyjlbufferedio(o::IO) = pyjl(o, BufferedIO{typeof(o)})
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:BufferedIO, V}
-    t.detach = pymethod(o -> pythrow(pyiounsupportedoperation("detach")))
-    t.readinto = if hasmethod(readbytes!, Tuple{V, Vector{UInt8}})
+    t["detach"] = pymethod(o -> pythrow(pyiounsupportedoperation("detach")))
+    t["readinto"] = if hasmethod(readbytes!, Tuple{V, Vector{UInt8}})
         pymethod((_o, _b) -> begin
             b = PyBuffer(_b, C.PyBUF_WRITABLE)
             o = pyjlgetvalue(_o, V)
@@ -921,7 +928,7 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:BufferedIO, V}
     else
         pymethod((o, b) -> pythrow(pyiounsupportedoperation("readinto")))
     end
-    t.read = if hasmethod(read, Tuple{V}) && hasmethod(read, Tuple{V, Int})
+    t["read"] = if hasmethod(read, Tuple{V}) && hasmethod(read, Tuple{V, Int})
         pymethod((_o, size=pynone) -> begin
             n = pyconvert(Union{Int,Nothing}, size)
             o = pyjlgetvalue(_o, V)
@@ -930,7 +937,7 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:BufferedIO, V}
     else
         pymethod((args...) -> pythrow(pyiounsupportedoperation("read")))
     end
-    t.write = if hasmethod(write, Tuple{V, Vector{UInt8}})
+    t["write"] = if hasmethod(write, Tuple{V, Vector{UInt8}})
         pymethod((_o, _b) -> begin
             b = PyBuffer(_b, C.PyBUF_SIMPLE)
             o = pyjlgetvalue(_o, V)
@@ -940,7 +947,7 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:BufferedIO, V}
     else
         pymethod((args...) -> pythrow(pyiounsupportedoperation("write")))
     end
-    t.readline = if hasmethod(read, Tuple{V, Type{UInt8}})
+    t["readline"] = if hasmethod(read, Tuple{V, Type{UInt8}})
         pymethod((_o, size=pynone) -> begin
             n = pyconvert(Union{Int,Nothing}, size)
             o = pyjlgetvalue(_o, V)
@@ -966,11 +973,11 @@ pyjl_abc(::Type{T}) where {T<:TextIO} = pyiomodule.TextIOBase
 pyjltextio(o::IO) = pyjl(o, TextIO{typeof(o)})
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:TextIO, V}
-    t.encoding = pyproperty(o -> pystr("utf-8"))
-    t.errors = pyproperty(o -> pystr("strict"))
-    t.newlines = pyproperty(o -> pynone)
-    t.detach = pymethod(o -> pythrow(pyiounsupportedoperation("detach")))
-    t.read = if hasmethod(read, Tuple{V, Type{Char}})
+    t["encoding"] = pyproperty(o -> pystr("utf-8"))
+    t["errors"] = pyproperty(o -> pystr("strict"))
+    t["newlines"] = pyproperty(o -> pynone)
+    t["detach"] = pymethod(o -> pythrow(pyiounsupportedoperation("detach")))
+    t["read"] = if hasmethod(read, Tuple{V, Type{Char}})
         pymethod((_o, size=pynone) -> begin
             n = pytryconvert(Union{Nothing,Int}, size)
             n === PyConvertFail() && pythrow(pytypeerror("'size' must be 'int' or 'None'"))
@@ -987,7 +994,7 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:TextIO, V}
     else
         pymethod((args...) -> pythrow(pyiounsupportedoperation("read")))
     end
-    t.readline = if hasmethod(read, Tuple{V, Type{Char}})
+    t["readline"] = if hasmethod(read, Tuple{V, Type{Char}})
         pymethod((_o, size=pynone) -> begin
             n = pytryconvert(Union{Nothing,Int}, size)
             n === PyConvertFail() && pythrow(pytypeerror("'size' must be 'int' or 'None'"))
@@ -1014,7 +1021,7 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:TextIO, V}
     else
         pymethod((args...) -> pythrow(pyiounsupportedoperation("readline")))
     end
-    t.write = if hasmethod(write, Tuple{V, String})
+    t["write"] = if hasmethod(write, Tuple{V, String})
         pymethod((_o, _x) -> begin
             x = pystr_asjuliastring(_x)
             o = pyjlgetvalue(_o)

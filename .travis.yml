@@ -1,0 +1,9 @@
+language: julia
+
+notifications:
+  email: false
+
+julia:
+- 1
+
+codecov: true

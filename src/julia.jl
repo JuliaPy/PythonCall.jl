@@ -225,26 +225,25 @@ const PYJLRAWTYPES = Dict{Type,PyObject}()
 
 pyjlrawtype(::Type{T}) where {T} = get!(PYJLRAWTYPES, T) do
     name = "julia.RawValue[$T]"
-    base = T==Any ? pyjlbasetype : pyjlrawtype(T==DataType ? Type : supertype(T))
+    base = pyjl_supertype(T)===nothing ? pyjlbasetype : pyjlrawtype(pyjl_supertype(T))
     attrs = pydict()
     attrs["__slots__"] = pytuple()
     attrs["__repr__"] = pymethod(o -> "<jl $(repr(pyjlgetvalue(o, T)))>")
     attrs["__str__"] = pymethod(o -> string(pyjlgetvalue(o, T)))
-    attrs["__call__"] = pymethod((o, args...; kwargs...) -> pyjlraw(pyjlgetvalue(o, T)(map(pyjlgetvalue, args)...)))
     attrs["__doc__"] = """
     A Julia '$T' with basic Julia semantics.
     """
     # Logic
     # Note that comparisons use isequal and isless, so that hashing is supported
-    attrs["__eq__"] = pymethod((o, x) -> pybool(isequal(pyjlgetvalue(o, T), pyjlgetvalue(x))))
-    attrs["__lt__"] = pymethod((o, x) -> pybool(isless(pyjlgetvalue(o, T), pyjlgetvalue(x))))
+    attrs["__eq__"] = pymethod((o, x) -> pybool(isequal(pyjlgetvalue(o, T), pyconvert(Any, x))))
+    attrs["__lt__"] = pymethod((o, x) -> pybool(isless(pyjlgetvalue(o, T), pyconvert(Any, x))))
     attrs["__bool__"] = pymethod(o -> (v=pyjlgetvalue(o, T); v isa Bool ? pybool(v) : pythrow(pytypeerror("Only 'Bool' can be tested for truthyness"))))
     attrs["__hash__"] = pymethod(o -> pyint(hash(pyjlgetvalue(o, T))))
     # Containers
-    attrs["__contains__"] = pymethod((o, v) -> pybool(pyjlgetvalue(v) in pyjlgetvalue(o, T)))
-    attrs["__getitem__"] = pymethod((o, i) -> pyjlraw(getindex(pyjlgetvalue(o, T), (pyistuple(i) ? [pyjlgetvalue(j) for j in i] : [pyjlgetvalue(i)])...)))
-    attrs["__setitem__"] = pymethod((o, i, v) -> pyjlraw(setindex!(pyjlgetvalue(o, T), pyjlgetvalue(v), (pyistuple(i) ? [pyjlgetvalue(j) for j in i] : [pyjlgetvalue(i)])...)))
-    attrs["__iter__"] = pymethod(o -> pyjlraw(Iterator(pyjlgetvalue(o, T), nothing)))
+    attrs["__contains__"] = pymethod((o, v) -> pybool(pyconvert(Any, v) in pyjlgetvalue(o, T)))
+    attrs["__getitem__"] = pymethod((o, i) -> o.__jl_wrap_result(pyjlraw(getindex(pyjlgetvalue(o, T), (pyistuple(i) ? [pyconvert(Any, j) for j in i] : [pyconvert(Any, i)])...))))
+    attrs["__setitem__"] = pymethod((o, i, v) -> (setindex!(pyjlgetvalue(o, T), pyconvert(Any, v), (pyistuple(i) ? [pyconvert(Any, j) for j in i] : [pyconvert(Any, i)])...); pynone))
+    attrs["__iter__"] = pymethod(o -> o.__jl_wrap_result(pyjlraw(Iterator(pyjlgetvalue(o, T), nothing))))
     if T <: Iterator
         attrs["__next__"] = pymethod(_o -> begin
             o = pyjlgetvalue(_o, T)
@@ -262,40 +261,89 @@ pyjlrawtype(::Type{T}) where {T} = get!(PYJLRAWTYPES, T) do
             end
         end)
     end
+    # Function call
+    # TODO: keywords
+    attrs["__call__"] = pymethod((o, args...) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T)(map(x->pyconvert(Any, x), args)...))))
+    # Attributes
+    attrs["__dir__"] = pymethod(o -> begin
+        d = pyobjecttype.__dir__(o)
+        d.extend(pylist([pyjl_attrname_jl2py(string(k)) for k in propertynames(pyjlgetvalue(o, T))]))
+        d
+    end)
+    attrs["__getattr__"] = pymethod((_o, _k) -> begin
+        # first do a generic lookup
+        _x = C.PyObject_GenericGetAttr(_o, _k)
+        if _x != C_NULL
+            return pynewobject(_x)
+        elseif !pyerroccurred(pyattributeerror)
+            pythrow()
+        end
+        st = pyerrfetch()
+        # try to get a julia property with this name
+        o = pyjlgetvalue(_o, T)
+        k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(_k)))
+        if hasproperty(o, k)
+            return _o.__jl_wrap_result(pyjlraw(getproperty(o, k)))
+        end
+        throw(PythonRuntimeError(st...))
+    end)
+    attrs["__setattr__"] = pymethod((_o, _k, _v) -> begin
+        # first do a generic lookup
+        _x = C.PyObject_GenericSetAttr(_o, _k, _v)
+        if _x != -1
+            return pynone
+        elseif !pyerroccurred(pyattributeerror)
+            pythrow()
+        end
+        st = pyerrfetch()
+        # try to set a julia property with this name
+        o = pyjlgetvalue(_o, V)
+        k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(_k)))
+        if hasproperty(o, k)
+            v = pyconvert(Any, _v)
+            setproperty!(o, k, v)
+            return pynone
+        end
+        throw(PythonRuntimeError(st...))
+    end)
     # Arithmetic
-    attrs["__add__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) + pyjlgetvalue(x)))
-    attrs["__sub__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) - pyjlgetvalue(x)))
-    attrs["__mul__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) * pyjlgetvalue(x)))
-    attrs["__truediv__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) / pyjlgetvalue(x)))
-    attrs["__floordiv__"] = pymethod((o, x) -> pyjlraw(fld(pyjlgetvalue(o, T), pyjlgetvalue(x))))
-    attrs["__mod__"] = pymethod((o, x) -> pyjlraw(mod(pyjlgetvalue(o, T), pyjlgetvalue(x))))
-    attrs["__pow__"] = pymethod((o, x, m=pynone) -> pyjlraw(pyisnone(m) ? pyjlgetvalue(o, T) ^ pyjlgetvalue(x) : powermod(pyjlgetvalue(o, T), pyjlgetvalue(x), pyjlgetvalue(m))))
-    attrs["__lshift__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) << pyjlgetvalue(x)))
-    attrs["__rshift__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) >> pyjlgetvalue(x)))
-    attrs["__and__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) & pyjlgetvalue(x)))
-    attrs["__xor__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) ⊻ pyjlgetvalue(x)))
-    attrs["__or__"] = pymethod((o, x) -> pyjlraw(pyjlgetvalue(o, T) | pyjlgetvalue(x)))
-    attrs["__neg__"] = pymethod(o -> pyjlraw(-pyjlgetvalue(o, T)))
-    attrs["__pos__"] = pymethod(o -> pyjlraw(+pyjlgetvalue(o, T)))
-    attrs["__abs__"] = pymethod(o -> pyjlraw(abs(pyjlgetvalue(o, T))))
-    attrs["__invert__"] = pymethod(o -> pyjlraw(~pyjlgetvalue(o, T)))
+    attrs["__add__"] = pymethod((o, x) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T) + pyconvert(Any, x))))
+    attrs["__sub__"] = pymethod((o, x) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T) - pyconvert(Any, x))))
+    attrs["__mul__"] = pymethod((o, x) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T) * pyconvert(Any, x))))
+    attrs["__truediv__"] = pymethod((o, x) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T) / pyconvert(Any, x))))
+    attrs["__floordiv__"] = pymethod((o, x) -> o.__jl_wrap_result(pyjlraw(fld(pyjlgetvalue(o, T), pyconvert(Any, x)))))
+    attrs["__mod__"] = pymethod((o, x) -> o.__jl_wrap_result(pyjlraw(mod(pyjlgetvalue(o, T), pyconvert(Any, x)))))
+    attrs["__pow__"] = pymethod((o, x, m=pynone) -> o.__jl_wrap_result(pyjlraw(pyisnone(m) ? pyjlgetvalue(o, T) ^ pyconvert(Any, x) : powermod(pyjlgetvalue(o, T), pyconvert(Any, x), pyjlgetvalue(m)))))
+    attrs["__lshift__"] = pymethod((o, x) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T) << pyconvert(Any, x))))
+    attrs["__rshift__"] = pymethod((o, x) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T) >> pyconvert(Any, x))))
+    attrs["__and__"] = pymethod((o, x) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T) & pyconvert(Any, x))))
+    attrs["__xor__"] = pymethod((o, x) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T) ⊻ pyconvert(Any, x))))
+    attrs["__or__"] = pymethod((o, x) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T) | pyconvert(Any, x))))
+    attrs["__neg__"] = pymethod(o -> o.__jl_wrap_result(pyjlraw(-pyjlgetvalue(o, T))))
+    attrs["__pos__"] = pymethod(o -> o.__jl_wrap_result(pyjlraw(+pyjlgetvalue(o, T))))
+    attrs["__abs__"] = pymethod(o -> o.__jl_wrap_result(pyjlraw(abs(pyjlgetvalue(o, T)))))
+    attrs["__invert__"] = pymethod(o -> o.__jl_wrap_result(pyjlraw(~pyjlgetvalue(o, T))))
     attrs["__complex__"] = pymethod(o -> pycomplex(convert(Complex{Cdouble}, pyjlgetvalue(o, T))))
     attrs["__float__"] = pymethod(o -> pyfloat(convert(Cdouble, pyjlgetvalue(o, T))))
     attrs["__int__"] = attrs["__index__"] = pymethod(o -> pyint(convert(Integer, pyjlgetvalue(o, T))))
     # Julia-specific
-    attrs["getfield"] = pymethod((o, k) -> pyjlraw(getfield(pyjlgetvalue(o, T), pyjlraw_propertyname(k))))
-    attrs["getprop"] = pymethod((o, k) -> pyjlraw(getproperty(pyjlgetvalue(o, T), pyjlraw_propertyname(k))))
-    attrs["setfield"] = pymethod((o, k, v) -> (setfield!(pyjlgetvalue(o, T), pyjlraw_propertyname(k), pyjlgetvalue(v)); nothing))
-    attrs["setprop"] = pymethod((o, k, v) -> (setproperty!(pyjlgetvalue(o, T), pyjlraw_propertyname(k), pyjlgetvalue(v)); nothing))
-    attrs["prop"] = pymethod((o, k, v=nothing) -> v===nothing ? o.getprop(k) : o.setprop(k, v))
-    attrs["field"] = pymethod((o, k, v=nothing) -> v===nothing ? o.getfield(k) : o.setfield(k, v))
-    attrs["typeof"] = isconcretetype(T) ? pymethod(o -> pyjlraw(T)) : pymethod(o -> pyjlraw(typeofpyjlgetvalue(o, T)))
+    attrs["__jl_getfield"] = pymethod((o, k) -> o.__jl_wrap_result(pyjlraw(getfield(pyjlgetvalue(o, T), pyjlraw_propertyname(k)))))
+    attrs["__jl_getprop"] = pymethod((o, k) -> o.__jl_wrap_result(pyjlraw(getproperty(pyjlgetvalue(o, T), pyjlraw_propertyname(k)))))
+    attrs["__jl_setfield"] = pymethod((o, k, v) -> (setfield!(pyjlgetvalue(o, T), pyjlraw_propertyname(k), pyjlgetvalue(v)); pynone))
+    attrs["__jl_setprop"] = pymethod((o, k, v) -> (setproperty!(pyjlgetvalue(o, T), pyjlraw_propertyname(k), pyjlgetvalue(v)); pynone))
+    attrs["__jl_prop"] = pymethod((o, k, v=nothing) -> v===nothing ? o.__jl_getprop(k) : o.__jl_setprop(k, v))
+    attrs["__jl_field"] = pymethod((o, k, v=nothing) -> v===nothing ? o.__jl_getfield(k) : o.__jl_setfield(k, v))
+    attrs["__jl_typeof"] = isconcretetype(T) ? pymethod(o -> o.__jl_wrap_result(pyjlraw(T))) : pymethod(o -> o.__jl_wrap_result(pyjlraw(typeof(pyjlgetvalue(o, T)))))
+    attrs["__jl_wrap_result"] = pymethod((o, v) -> v.__jl_raw())
+    attrs["__jl_pyobject"] = pymethod(o -> pyobject(pyjlgetvalue(o, T)))
+    attrs["__jl_raw"] = pymethod(o -> o)
+    attrs["__jl_curly"] = pymethod((o, args...) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T){map(x->pyconvert(Any, x), args)...})))
     # Done
     pytypetype(name, (base,), attrs)
 end
 export pyjlrawtype
 
-pyjlraw_propertyname(k::PyObject) = pyisstr(k) ? Symbol(pystr_asjuliastring(k)) : pyisint(k) ? pyint_tryconvert(Int, k) : pyjlgetvalue(k)
+pyjlraw_propertyname(k::PyObject) = pyisstr(k) ? Symbol(pystr_asjuliastring(k)) : pyisint(k) ? pyint_tryconvert(Int, k) : pyconvert(Any, k)
 
 pyjlraw(x, ::Type{T}) where {T} = x isa T ? pyjlnewvalue(x, pyjlrawtype(T)) : error("expecting a `$T`")
 pyjlraw(x) = pyjlraw(x, typeof(x))
@@ -317,7 +365,11 @@ end
 
 pyjl_supertype(::Type{T}) where {T} = supertype(T)
 pyjl_supertype(::Type{Any}) = nothing
+pyjl_supertype(::Type{Type{T}}) where {T} = Any
+pyjl_supertype(::Type{Type}) = Any
 pyjl_supertype(::Type{DataType}) = Type
+pyjl_supertype(::Type{UnionAll}) = Type
+pyjl_supertype(::Type{Union}) = Type
 
 pyjl_valuetype(::Type{T}) where {T} = T
 
@@ -344,14 +396,17 @@ pyjltype(::Type{T}) where {T} = get!(PYJLTYPES, T) do
 
     # Bases
     Ss = pyjl_supertypes(T)
-    bases = [length(Ss) == 1 ? pyjlbasetype : pyjltype(Ss[2])]
+    V = pyjl_valuetype(T)
+    bases = [pyjlrawtype(V)]
+    length(Ss) == 1 || pushfirst!(bases, pyjltype(Ss[2]))
     mixin = pyjl_mixin(T)
     pyisnone(mixin) || push!(bases, mixin)
 
     # Attributes
-    V = pyjl_valuetype(T)
     attrs = Dict{String,PyObject}()
     attrs["__slots__"] = pytuple()
+    attrs["__jl_wrap_result"] = pymethod((o, x) -> x.__jl_pyobject())
+    attrs["__jl_raw"] = pymethod(o -> pyjlraw(pyjlgetvalue(o, V)))
     for S in reverse(Ss)
         V <: pyjl_valuetype(S) || error()
         pyjl_addattrs(attrs, S, V)
@@ -387,9 +442,6 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Any, V<:T}
     if hasmethod(length, Tuple{V})
         t["__len__"] = pymethod(o -> length(pyjlgetvalue(o, V)))
     end
-    if hasmethod(hash, Tuple{V})
-        t["__hash__"] = pymethod(o -> hash(pyjlgetvalue(o, V)))
-    end
     if hasmethod(in, Tuple{Union{}, V})
         t["__contains__"] = pymethod((_o, _x) -> begin
             o = pyjlgetvalue(_o, V)
@@ -403,7 +455,6 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Any, V<:T}
     if hasmethod(iterate, Tuple{V})
         t["__iter__"] = pymethod(o -> pyjl(Iterator(pyjlgetvalue(o, V), nothing)))
     end
-    t["__call__"] = pymethod((o, args...; kwargs...) -> pyobject(pyjlgetvalue(o, V)(args...; kwargs...)))
     if hasmethod(getindex, Tuple{V, Union{}})
         t["__getitem__"] = pymethod((_o, _k) -> begin
             o = pyjlgetvalue(_o, V)
@@ -425,96 +476,13 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Any, V<:T}
             pynone
         end)
     end
-    t["__dir__"] = pymethod(o -> begin
-        d = pyobjecttype.__dir__(o)
-        d.extend(pylist([pyjl_attrname_jl2py(string(k)) for k in propertynames(pyjlgetvalue(o, V))]))
-        d
-    end)
-    t["__getattr__"] = pymethod((_o, _k) -> begin
-        # first do a generic lookup
-        _x = C.PyObject_GenericGetAttr(_o, _k)
-        if _x != C_NULL
-            return pynewobject(_x)
-        elseif !pyerroccurred(pyattributeerror)
-            pythrow()
-        end
-        st = pyerrfetch()
-        # try to get a julia property with this name
-        o = pyjlgetvalue(_o, V)
-        k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(_k)))
-        if hasproperty(o, k)
-            return pyobject(getproperty(o, k))
-        end
-        throw(PythonRuntimeError(st...))
-    end)
-    t["__setattr__"] = pymethod((_o, _k, _v) -> begin
-        # first do a generic lookup
-        _x = C.PyObject_GenericSetAttr(_o, _k, _v)
-        if _x != -1
-            return pynone
-        elseif !pyerroccurred(pyattributeerror)
-            pythrow()
-        end
-        st = pyerrfetch()
-        # try to set a julia property with this name
-        o = pyjlgetvalue(_o, V)
-        k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(_k)))
-        if hasproperty(o, k)
-            v = pyconvert(Any, _v)
-            setproperty!(o, k, v)
-            return pynone
-        end
-        throw(PythonRuntimeError(st...))
-    end)
-    # Blindly try to convert _x to something compatible with x
-    prom(o, _x) = if pyisjl(_x)
-        return pyjlgetvalue(_x)
-    else
-        x = pytryconvert(typeof(o), _x)
-        x === PyConvertFail() ? pyconvert(Any, x) : x
-    end
-    binop(op) = pymethod((_o, _x) -> begin
-        try
-            o = pyjlgetvalue(_o, V)
-            x = prom(o, _x)
-            pyobject(op(o, x))
-        catch
-            pynotimplemented
-        end
-    end)
-    hasmethod(+, Tuple{V, Union{}}) && (t["__add__"] = binop(+))
-    hasmethod(-, Tuple{V, Union{}}) && (t["__sub__"] = binop(-))
-    hasmethod(*, Tuple{V, Union{}}) && (t["__mul__"] = binop(*))
-    hasmethod(/, Tuple{V, Union{}}) && (t["__truediv__"] = binop(/))
-    hasmethod(fld, Tuple{V, Union{}}) && (t["__floordiv__"] = binop(fld))
-    hasmethod(mod, Tuple{V, Union{}}) && (t["__mod__"] = binop(mod))
-    hasmethod(<<, Tuple{V, Union{}}) && (t["__lshift__"] = binop(<<))
-    hasmethod(>>, Tuple{V, Union{}}) && (t["__rshift__"] = binop(>>))
-    hasmethod(&, Tuple{V, Union{}}) && (t["__and__"] = binop(&))
-    hasmethod(|, Tuple{V, Union{}}) && (t["__or__"] = binop(|))
-    hasmethod(⊻, Tuple{V, Union{}}) && (t["__xor__"] = binop(⊻))
-    if hasmethod(^, Tuple{V, Union{}})
-        t["__pow__"] = pymethod((_o, _x, _m=pynone) -> begin
-            try
-                o = pyjlgetvalue(_o, V)
-                x = prom(o, _x)
-                if pyisnone(_m)
-                    pyobject(o^x)
-                else
-                    m = prom(o, _m)
-                    pyobject(powermod(o, x, m))
-                end
-            catch
-                pynotimplemented
-            end
-        end)
-    end
-    hasmethod(==, Tuple{V, Union{}}) && (t["__eq__"] = binop(==))
-    hasmethod(!=, Tuple{V, Union{}}) && (t["__ne__"] = binop(!=))
-    hasmethod(<=, Tuple{V, Union{}}) && (t["__le__"] = binop(<=))
-    hasmethod(< , Tuple{V, Union{}}) && (t["__lt__"] = binop(< ))
-    hasmethod(>=, Tuple{V, Union{}}) && (t["__ge__"] = binop(>=))
-    hasmethod(> , Tuple{V, Union{}}) && (t["__gt__"] = binop(> ))
+    # Comparisons
+    t["__eq__"] = pymethod((o,x) -> pyjlgetvalue(o, V) == pyconvert(Any, x))
+    t["__ne__"] = pymethod((o,x) -> pyjlgetvalue(o, V) != pyconvert(Any, x))
+    t["__le__"] = pymethod((o,x) -> pyjlgetvalue(o, V) <= pyconvert(Any, x))
+    t["__lt__"] = pymethod((o,x) -> pyjlgetvalue(o, V) <  pyconvert(Any, x))
+    t["__ge__"] = pymethod((o,x) -> pyjlgetvalue(o, V) >= pyconvert(Any, x))
+    t["__gt__"] = pymethod((o,x) -> pyjlgetvalue(o, V) >  pyconvert(Any, x))
 end
 
 pyjl_attrname_py2jl(x::AbstractString) =

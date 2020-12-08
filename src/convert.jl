@@ -9,6 +9,8 @@ function pytryconvert(::Type{T}, o::PyObject) where {T}
     # special cases
     if T == PyObject
         return PyObject(o)
+    elseif pyisjl(o)
+        return tryconvert(T, pyjlgetvalue(o))
     end
 
     # types

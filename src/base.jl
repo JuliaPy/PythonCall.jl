@@ -78,7 +78,7 @@ Base.hasproperty(o::PyObject, k::Union{Symbol,AbstractString}) = pyhasattr(o, k)
 
 Base.getproperty(o::PyObject, k::Symbol) =
     if k == :jl!
-        T -> pyconvert(T, o)
+        (T=Any) -> pyconvert(T, o)
     elseif k == :jl!i
         pyconvert(Int, o)
     elseif k == :jl!u

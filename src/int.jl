@@ -25,7 +25,9 @@ function pyint_tryconvert(::Type{T}, o::PyObject) where {T}
         # if it fits in a longlong, use that
         rl = C.PyLong_AsLongLong(o)
         if rl != -1 || !pyerroccurred()
-            return BigInt(rl)
+            # NOTE: In this case we return an Int if possible, since a lot of Julia functions take an Int but not a BigInt
+            # This is the only major exception to the rule that the Python type determines the Julia type.
+            return (Int <: T && typemin(Int) ≤ r1 ≤ typemax(Int)) ? Int(r1) : BigInt(rl)
         elseif !pyerroccurred(pyoverflowerror)
             pythrow()
         else

@@ -14,14 +14,9 @@ mutable struct PyObject
             if CONFIG.isinitialized
                 ptr = getfield(o, :ptr)
                 if ptr != C_NULL
-                    s = gil_on()
-                    try
+                    with_gil() do
                         C.Py_DecRef(ptr)
-                    catch err
-                        println(stderr, err)
-                        Base.show_backtrace(stderr, catch_backtrace())
                     end
-                    s || gil_off()
                 end
             end
             setfield!(o, :ptr, CPyPtr(C_NULL))

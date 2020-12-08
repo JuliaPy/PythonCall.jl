@@ -4,11 +4,11 @@ mutable struct PyObjectArray{N} <: AbstractArray{PyObject, N}
         x = new{N}(fill(CPyPtr(C_NULL), dims))
         finalizer(x) do x
             if CONFIG.isinitialized
-                s = gil_on()
-                for ptr in x.ptrs
-                    C.Py_DecRef(ptr)
+                with_gil() do
+                    for ptr in x.ptrs
+                        C.Py_DecRef(ptr)
+                    end
                 end
-                s || gil_off()
             end
         end
     end

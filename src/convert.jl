@@ -62,18 +62,22 @@ Base.convert(::Type{Any}, o::PyObject) = o
 ### SPECIAL CONVERSIONS
 
 @generated _eltype(o) = try eltype(o); catch; missing; end
+_eltype(o::Type) = missing
 
 @generated _keytype(o) = try keytype(o); catch; missing; end
 _keytype(o::Base.RefValue) = Tuple{}
 _keytype(o::NamedTuple) = Union{Symbol,Int}
 _keytype(o::Tuple) = Int
+_keytype(o::Type) = missing
 
 @generated _valtype(o, k...) = try valtype(o); catch; missing; end
 _valtype(o::NamedTuple, k::Int) = fieldtype(typeof(o), k)
 _valtype(o::NamedTuple, k::Symbol) = fieldtype(typeof(o), k)
 _valtype(o::Tuple, k::Int) = fieldtype(typeof(o), k)
+_valtype(o::Type) = missing
 
 hasmultiindex(o) = true
+hasmultiindex(o::Type) = true
 hasmultiindex(o::AbstractDict) = false
 hasmultiindex(o::NamedTuple) = false
 hasmultiindex(o::Tuple) = false

@@ -55,6 +55,6 @@ for n in [
 ]
     j = Symbol(:py, lowercase(string(n)))
     p = QuoteNode(Symbol(:PyExc_, n))
-    @eval const $j = pylazyobject(() -> pyborrowedobject(unsafe_load(Ptr{CPyPtr}(C.@pyglobal($p)))))
+    @eval const $j = pylazyobject(() -> pyborrowedobject(unsafe_load(Ptr{CPyPtr}(C.pyglobal($p)))))
     @eval export $j
 end

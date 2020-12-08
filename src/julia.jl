@@ -34,17 +34,16 @@ cpyerrval(::Type{T}) where {T<:Ptr} = T(C_NULL)
 ### jlexception
 
 const pyjlexception = pylazyobject() do
-    # make the type
-    c = []
-    t = cpynewtype!(c; name="julia.Exception", base=pyexception, basicsize=0)
-    # put into a 0-dim array and take a pointer
-    ta = fill(t)
-    ptr = pointer(ta)
-    # ready the type
-    check(C.PyType_Ready(ptr))
-    # success
-    PYJLGCCACHE[CPyPtr(ptr)] = push!(c, ta)
-    pyborrowedobject(ptr)
+    attrs = pydict()
+    attrs["__module__"] = "julia"
+    attrs["__str__"] = pymethod(o -> begin
+        val = o.args[0]
+        pyisnone(val) && return "Unknown"
+        err, bt = pyjlgetvalue(val)
+        return sprint(showerror, err)
+    end)
+    t = pytypetype("Exception", (pyexception,), attrs)
+    t
 end
 export pyjlexception
 
@@ -175,10 +174,10 @@ const pyjlbasetype = pylazyobject() do
         dealloc = @cfunction(cpyjlvalue_dealloc, Cvoid, (CPyPtr,)),
         flags = C.Py_TPFLAGS_BASETYPE | C.Py_TPFLAGS_HAVE_VERSION_TAG | (CONFIG.isstackless ? C.Py_TPFLAGS_HAVE_STACKLESS_EXTENSION : 0x00),
         weaklistoffset = fieldoffset(CPyJlValueObject{Any}, 3),
-        getattro = C.@pyglobal(:PyObject_GenericGetAttr),
-        setattro = C.@pyglobal(:PyObject_GenericSetAttr),
+        getattro = C.pyglobal(:PyObject_GenericGetAttr),
+        setattro = C.pyglobal(:PyObject_GenericSetAttr),
         doc = "A Julia value with no semantics.",
-        as_buffer = (get=@cfunction(cpyjlvalue_get_buffer, Cint, (CPyPtr, Ptr{C.Py_buffer}, Cint)), release=@cfunction(cpyjlvalue_release_buffer, Cvoid, (CPyPtr, Ptr{C.Py_buffer})))
+        as_buffer = (get=@cfunction(cpyjlvalue_get_buffer, Cint, (CPyPtr, Ptr{C.Py_buffer}, Cint)), release=@cfunction(cpyjlvalue_release_buffer, Cvoid, (CPyPtr, Ptr{C.Py_buffer}))),
     )
     # put into a 0-dim array and take a pointer
     ta = fill(t)
@@ -224,10 +223,10 @@ export pyjlgetvalue
 const PYJLRAWTYPES = Dict{Type,PyObject}()
 
 pyjlrawtype(::Type{T}) where {T} = get!(PYJLRAWTYPES, T) do
-    name = "julia.RawValue[$T]"
     base = pyjl_supertype(T)===nothing ? pyjlbasetype : pyjlrawtype(pyjl_supertype(T))
     attrs = pydict()
     attrs["__slots__"] = pytuple()
+    attrs["__module__"] = "julia"
     attrs["__repr__"] = pymethod(o -> "<jl $(repr(pyjlgetvalue(o, T)))>")
     attrs["__str__"] = pymethod(o -> string(pyjlgetvalue(o, T)))
     attrs["__doc__"] = """
@@ -263,11 +262,21 @@ pyjlrawtype(::Type{T}) where {T} = get!(PYJLRAWTYPES, T) do
     end
     # Function call
     # TODO: keywords
-    attrs["__call__"] = pymethod((o, args...) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T)(map(x->pyconvert(Any, x), args)...))))
+    attrs["__call__"] = pymethod((o, args...; kwargs...) -> begin
+        f = pyjlgetvalue(o, T)
+        jargs = map(x->pyconvert(Any, x), args)
+        r = if isempty(kwargs)
+            f(jargs...)
+        else
+            jkwargs = Tuple(k => pyconvert(Any, v) for (k,v) in kwargs)
+            f(jargs...; jkwargs...)
+        end
+        o.__jl_wrap_result(pyjlraw(r))
+    end)
     # Attributes
     attrs["__dir__"] = pymethod(o -> begin
         d = pyobjecttype.__dir__(o)
-        d.extend(pylist([pyjl_attrname_jl2py(string(k)) for k in propertynames(pyjlgetvalue(o, T))]))
+        d.extend(pylist([pyjl_attrname_jl2py(string(k)) for k in propertynames(pyjlgetvalue(o, T), false)]))
         d
     end)
     attrs["__getattr__"] = pymethod((_o, _k) -> begin
@@ -282,10 +291,15 @@ pyjlrawtype(::Type{T}) where {T} = get!(PYJLRAWTYPES, T) do
         # try to get a julia property with this name
         o = pyjlgetvalue(_o, T)
         k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(_k)))
-        if hasproperty(o, k)
+        try
             return _o.__jl_wrap_result(pyjlraw(getproperty(o, k)))
+        catch err
+            if err isa ErrorException && occursin("has no field", err.msg)
+                throw(PythonRuntimeError(st...))
+            else
+                rethrow()
+            end
         end
-        throw(PythonRuntimeError(st...))
     end)
     attrs["__setattr__"] = pymethod((_o, _k, _v) -> begin
         # first do a generic lookup
@@ -299,12 +313,17 @@ pyjlrawtype(::Type{T}) where {T} = get!(PYJLRAWTYPES, T) do
         # try to set a julia property with this name
         o = pyjlgetvalue(_o, V)
         k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(_k)))
-        if hasproperty(o, k)
-            v = pyconvert(Any, _v)
+        v = pyconvert(Any, _v)
+        try
             setproperty!(o, k, v)
             return pynone
+        catch err
+            if err isa ErrorException && occursin("has no field", err.msg)
+                throw(PythonRuntimeError(st...))
+            else
+                rethrow()
+            end
         end
-        throw(PythonRuntimeError(st...))
     end)
     # Arithmetic
     attrs["__add__"] = pymethod((o, x) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T) + pyconvert(Any, x))))
@@ -339,7 +358,7 @@ pyjlrawtype(::Type{T}) where {T} = get!(PYJLRAWTYPES, T) do
     attrs["__jl_raw"] = pymethod(o -> o)
     attrs["__jl_curly"] = pymethod((o, args...) -> o.__jl_wrap_result(pyjlraw(pyjlgetvalue(o, T){map(x->pyconvert(Any, x), args)...})))
     # Done
-    pytypetype(name, (base,), attrs)
+    pytypetype("RawValue[$T]", (base,), attrs)
 end
 export pyjlrawtype
 
@@ -391,9 +410,6 @@ pyjl_valuetype(::Type{T}) where {S, T<:PyJlSubclass{S}} = pyjl_valuetype(S)
 pyjl_valuetype(::Type{T}) where {T<:PyJlSubclass} = error()
 
 pyjltype(::Type{T}) where {T} = get!(PYJLTYPES, T) do
-    # Name
-    name = "julia.Value[$T]"
-
     # Bases
     Ss = pyjl_supertypes(T)
     V = pyjl_valuetype(T)
@@ -404,6 +420,7 @@ pyjltype(::Type{T}) where {T} = get!(PYJLTYPES, T) do
 
     # Attributes
     attrs = Dict{String,PyObject}()
+    attrs["__module__"] = "julia"
     attrs["__slots__"] = pytuple()
     attrs["__jl_wrap_result"] = pymethod((o, x) -> x.__jl_pyobject())
     attrs["__jl_raw"] = pymethod(o -> pyjlraw(pyjlgetvalue(o, V)))
@@ -413,7 +430,7 @@ pyjltype(::Type{T}) where {T} = get!(PYJLTYPES, T) do
     end
 
     # Make the type
-    t = pytypetype(name, pytuple_fromiter(bases), pydict_fromstringiter(attrs))
+    t = pytypetype("Value[$T]", pytuple_fromiter(bases), pydict_fromstringiter(attrs))
 
     # Register an abstract base class
     abc = pyjl_abc(T)
@@ -483,6 +500,30 @@ function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Any, V<:T}
     t["__lt__"] = pymethod((o,x) -> pyjlgetvalue(o, V) <  pyconvert(Any, x))
     t["__ge__"] = pymethod((o,x) -> pyjlgetvalue(o, V) >= pyconvert(Any, x))
     t["__gt__"] = pymethod((o,x) -> pyjlgetvalue(o, V) >  pyconvert(Any, x))
+    # MIME display
+    for (mime, method) in (
+        (MIME"text/html"(), "_repr_html_"),
+        (MIME"text/markdown"(), "_repr_markdown_"),
+        (MIME"text/json"(), "_repr_json_"),
+        (MIME"application/javascript"(), "_repr_javascript_"),
+        (MIME"application/pdf"(), "_repr_pdf_"),
+        (MIME"image/jpeg"(), "_repr_jpeg_"),
+        (MIME"image/png"(), "_repr_png_"),
+        (MIME"image/svg+xml"(), "_repr_svg_"),
+        (MIME"text/latex"(), "_repr_latex_"))
+
+        t[method] = pymethod(_o -> begin
+            o = pyjlgetvalue(_o, V)
+            if showable(mime, o)
+                io = IOBuffer()
+                show(io, mime, o)
+                r = pybytes(take!(io))
+                istextmime(mime) ? r.decode("utf8") : r
+            else
+                pynone
+            end
+        end)
+    end
 end
 
 pyjl_attrname_py2jl(x::AbstractString) =
@@ -495,6 +536,30 @@ pyjl_attrname_jl2py(x::AbstractString) =
 
 function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Union{Nothing,Missing}, V<:T}
     t["__bool__"] = pymethod(o -> pyfalse)
+end
+
+### Module
+
+function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Module, V<:T}
+    t["__dir__"] = pymethod(_o -> begin
+        d = pyjltype(Any).__dir__(_o)
+        o = pyjlgetvalue(_o, V)
+        for n in names(o, all=true, imported=true)
+            d.append(pyjl_attrname_jl2py(string(n)))
+        end
+        for m in ccall(:jl_module_usings, Any, (Any,), o)::Vector
+            for n in names(m)
+                d.append(pyjl_attrname_jl2py(string(n)))
+            end
+        end
+        return d
+    end)
+end
+
+### Type
+
+function pyjl_addattrs(t, ::Type{T}, ::Type{V}) where {T<:Type, V<:T}
+    t["curly"] = pymethod((o, args...) -> o.__jl_curly(args...))
 end
 
 ### Iterator (as Iterator)

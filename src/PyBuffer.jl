@@ -26,9 +26,9 @@ mutable struct PyBuffer
         b = new(info)
         finalizer(b) do b
             if CONFIG.isinitialized
-                s = gil_on()
-                err = C.PyBuffer_Release(pointer(b.info))
-                s || gil_off()
+                err = with_gil() do
+                    C.PyBuffer_Release(pointer(b.info))
+                end
                 check(err)
             end
         end

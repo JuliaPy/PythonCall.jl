@@ -27,10 +27,8 @@ include("utils.jl")
     pyprogname_w :: Vector{Cwchar_t} = []
     "True if this is stackless Python."
     isstackless :: Bool = false
-    "True if the Python library was already loaded."
-    preloaded :: Bool = false
-    "True if the Python interpreter was already initialized."
-    preinitialized :: Bool = false
+    """True if Julia is embedded into Python (indicated by ENV["PYTHONJL_LIBPTR"] being set)."""
+    isembedded :: Bool = false
     "True if the Python interpreter is currently initialized."
     isinitialized :: Bool = false
     "The running Python version."
@@ -47,8 +45,6 @@ include("utils.jl")
     sysautolasttraceback :: Bool = true
     "True if the Python input hook is currently running."
     inputhookrunning :: Bool = false
-    "If NULL, we have the GIL. If non-NULL, this is the saved thread state."
-    gilstate :: Ptr{Cvoid} = C_NULL
 end
 Base.show(io::IO, ::MIME"text/plain", c::Config) =
     for k in fieldnames(Config)

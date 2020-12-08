@@ -5,6 +5,8 @@ module CPython
     using Base: @kwdef
     using UnsafePointers: UnsafePtr
 
+    @enum PyGILState_STATE::Cint PyGILState_LOCKED=0 PyGILState_UNLOCKED=1
+
     const Py_LT = Cint(0)
     const Py_LE = Cint(1)
     const Py_EQ = Cint(2)
@@ -301,9 +303,7 @@ module CPython
 
     const PyTypePtr = Ptr{PyTypeObject}
 
-    macro pyglobal(name)
-        :(CONFIG.preloaded ? cglobal($(esc(name))) : dlsym(CONFIG.libptr, $(esc(name))))
-    end
+    pyglobal(name) = dlsym(CONFIG.libptr, name)
 
     macro cdef(name, rettype, argtypes)
         name isa QuoteNode && name.value isa Symbol || error("name must be a symbol, got $name")
@@ -320,7 +320,7 @@ module CPython
             function $jname($(args...))
                 ptr = $refname[]
                 if ptr == C_NULL
-                    ptr = $refname[] = @pyglobal($name)
+                    ptr = $refname[] = pyglobal($name)
                 end
                 ccall(ptr, $rettype, $argtypes, $(args...))
             end
@@ -343,6 +343,9 @@ module CPython
 
     @cdef :PyEval_SaveThread Ptr{Cvoid} ()
     @cdef :PyEval_RestoreThread Cvoid (Ptr{Cvoid},)
+
+    @cdef :PyGILState_Ensure PyGILState_STATE ()
+    @cdef :PyGILState_Release Cvoid (PyGILState_STATE,)
 
     @cdef :PyImport_ImportModule PyPtr (Cstring,)
     @cdef :PyImport_Import PyPtr (PyPtr,)
@@ -480,7 +483,7 @@ module CPython
     function PyObject_GetBuffer(o, b, flags)
         p = UnsafePtr{PyTypeObject}(Py_Type(o)).as_buffer[]
         if p == C_NULL || p.get[] == C_NULL
-            PyErr_SetString(unsafe_load(Ptr{PyPtr}(@pyglobal(:PyExc_TypeError))), "a bytes-like object is required, not '$(String(UnsafePtr{PyTypeObject}(Py_Type(o)).name[]))'")
+            PyErr_SetString(unsafe_load(Ptr{PyPtr}(pyglobal(:PyExc_TypeError))), "a bytes-like object is required, not '$(String(UnsafePtr{PyTypeObject}(Py_Type(o)).name[]))'")
             return Cint(-1)
         end
         ccall(p.get[!], Cint, (PyPtr, Ptr{Py_buffer}, Cint), o, b, flags)
@@ -500,7 +503,7 @@ module CPython
     end
 
     function PyOS_RunInputHook()
-        hook = unsafe_load(Ptr{Ptr{Cvoid}}(@pyglobal(:PyOS_InputHook)))
+        hook = unsafe_load(Ptr{Ptr{Cvoid}}(pyglobal(:PyOS_InputHook)))
         hook == C_NULL || ccall(hook, Cint, ())
         nothing
     end

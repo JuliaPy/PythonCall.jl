@@ -94,6 +94,7 @@ pyobject(o::DateTime) = pydatetime(o)
 pyobject(o::Date) = pydate(o)
 pyobject(o::Time) = pytime(o)
 pyobject(o::IO) = pybufferedio(o)
+pyobject(o::Function) = pyjl(o, Function) # functions are singleton types - this avoids compiling a separate type for each one
 pyobject(o) = pyjl(o)
 export pyobject
 

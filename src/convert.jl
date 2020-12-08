@@ -21,14 +21,18 @@ function pytryconvert(::Type{T}, o::PyObject) where {T}
         r === PyConvertFail() || return r
     end
 
-    # interfaces
-    # TODO: buffer
-    # TODO: IO
-    # TODO: number?
+    # buffer/array interface
+    if (C.PyObject_CheckBuffer(o) != 0) || (pyhasattr(o, "__array__") && !pyisnone(o.__array__)) || (pyhasattr(o, "__array_interface__") && !pyisnone(o.__array_interface__))
+        r = tryconvert(T, PyArray(o))
+        r === PyConvertFail() || return r
+    end
+    # iterable interface (includes sequences, mappings and sets)
     if pyisinstance(o, pyiterableabc)
         r = pyiterable_tryconvert(T, o) :: Union{T, PyConvertFail}
         r === PyConvertFail() || return r
     end
+    # TODO: IO interface
+    # TODO: number interface
 
     # so that T=Any always succeeds
     if o isa T

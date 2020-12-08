@@ -1,5 +1,7 @@
 language: julia
 
+os: linux
+
 notifications:
   email: false
 
@@ -7,3 +9,13 @@ julia:
 - 1
 
 codecov: true
+
+jobs:
+  include:
+    - stage: "Documentation"
+      julia: 1
+      os: linux
+      script:
+        - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+        - julia --project=docs/ docs/make.jl
+      after_success: skip

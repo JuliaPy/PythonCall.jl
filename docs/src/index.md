@@ -1,3 +1,3 @@
 # Python.jl
 
-Hello world.
+Optimistic placeholder.

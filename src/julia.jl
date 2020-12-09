@@ -311,7 +311,7 @@ pyjlrawtype(::Type{T}) where {T} = get!(PYJLRAWTYPES, T) do
         end
         st = pyerrfetch()
         # try to set a julia property with this name
-        o = pyjlgetvalue(_o, V)
+        o = pyjlgetvalue(_o, T)
         k = Symbol(pyjl_attrname_py2jl(pystr_asjuliastring(_k)))
         v = pyconvert(Any, _v)
         try

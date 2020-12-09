@@ -8,6 +8,9 @@ notifications:
 julia:
 - 1
 
+env:
+- PYTHONJL_EXE=CONDA
+
 codecov: true
 
 jobs:

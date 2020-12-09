@@ -294,7 +294,7 @@ pyjlrawtype(::Type{T}) where {T} = get!(PYJLRAWTYPES, T) do
         try
             return _o.__jl_wrap_result(pyjlraw(getproperty(o, k)))
         catch err
-            if err isa ErrorException && occursin("has no field", err.msg)
+            if (err isa UndefVarError) || (err isa ErrorException && occursin("has no field", err.msg))
                 throw(PythonRuntimeError(st...))
             else
                 rethrow()
@@ -318,7 +318,7 @@ pyjlrawtype(::Type{T}) where {T} = get!(PYJLRAWTYPES, T) do
             setproperty!(o, k, v)
             return pynone
         catch err
-            if err isa ErrorException && occursin("has no field", err.msg)
+            if (err isa UndefVarError) || (err isa ErrorException && occursin("has no field", err.msg))
                 throw(PythonRuntimeError(st...))
             else
                 rethrow()

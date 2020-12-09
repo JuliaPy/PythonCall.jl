@@ -1,3 +1,6 @@
 using Documenter, Python
 
-makedocs(sitename="Python.jl")
+makedocs(
+    sitename = "Python.jl",
+    modules = [Python],
+)

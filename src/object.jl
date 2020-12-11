@@ -14,7 +14,7 @@ mutable struct PyObject
             if CONFIG.isinitialized
                 ptr = getfield(o, :ptr)
                 if ptr != C_NULL
-                    with_gil() do
+                    with_gil(false) do
                         C.Py_DecRef(ptr)
                     end
                 end

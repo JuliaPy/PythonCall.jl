@@ -1,137 +1,89 @@
-const SCOPES = Dict{Any,PyObject}()
-const COMPILECACHE = Dict{Tuple{String,String,String},PyObject}()
-
-scope(s) = get!(pydict, SCOPES, s)
-scope(s::PyObject) = s
-
-"""
-    pyeval(src, scope, locals=nothing)
-
-Evaluate Python expression `src` in the context of the given `scope` and `locals`. Return the value.
-
-If the `scope` is a Python object, it must be a `dict` to use as globals.
-
-Otherwise, a globals dict is created and reused for each unique `scope`. For example `pyeval(src, @__MODULE__)` evaluates in a scope unique to the current module.
-"""
-pyeval(src, globals, locals=nothing) = pyevalfunc(src, scope(globals), locals)
-
-"""
-    pyexec(src, scope, locals=nothing)
-
-Execute Python expression `src` in the context of the given `scope` and `locals`.
-
-If the `scope` is a Python object, it must be a `dict` to use as globals.
-
-Otherwise, a globals dict is created and reused for each unique `scope`. For example `pyexec(src, @__MODULE__)` executes in a scope unique to the current module.
-"""
-pyexec(src, globals, locals=nothing) = (pyexecfunc(src, scope(globals), locals); nothing)
-
-"""
-    pyevaldb(src, scope, locals=nothing)
-
-Same as `pyeval(src, scope, locals)` but evaluated inside a `pdb` debugger.
-"""
-pyevaldb(src, globals, locals=nothing) = pypdbmodule.runeval(src, scope(globals), locals)
-
-"""
-    pyexecdb(src, scope, locals=nothing)
-
-Same as `pyexec(src, scope, locals)` but evaluated inside a `pdb` debugger.
-"""
-pyexecdb(src, globals, locals=nothing) = (pypdbmodule.run(src, scope(globals), locals); nothing)
-
-"""
-    py"...."[flags]
-
-Evaluate (`v`) or execute (`x`) the given Python source code.
-
-Julia values may be interpolated into the source code with `\$` syntax. For a literal `\$`, enter `\$\$`.
-
-Execution occurs in a global scope unique to the current module.
-
-The flags can be any combination of the following characters:
-- `v` (evaluate): Evaluate a single expression and return its value.
-- `x` (execute): Execute the code and return `nothing`.
-- `g` (globals): Return the dict of globals for the scope instead.
-- `l` (locals): Perform the computation in a new local scope and return that scope.
-- `c` (compile): Cache a compiled version of the source and re-use it each time, for speed.
-- `d` (debug): Run inside a `pdb` debugger.
-
-If neither `v` nor `x` is specified and the code is a single line then `v` (evaluate) is assumed, otherwise `x` (execute).
-"""
-macro py_str(src::String, flags::String="")
-    # parse the flags
-    exec = '\n' in src
-    retglobals = false
-    retlocals = false
-    lazy = false
-    compile = false
-    debug = false
-    for f in flags
-        if f == 'x'
-            exec = true
-        elseif f == 'v'
-            exec = false
-        elseif f == 'g'
-            retglobals = true
-        elseif f == 'l'
-            retlocals = true
-        # elseif f == 'z'
-        #     lazy = true
-        elseif f == 'c'
-            compile = true
-        elseif f == 'd'
-            debug = true
-        else
-            error("invalid flags: `py\"...\"$flags`")
+function pyeval(::Type{R}, co::PyCode, globals::PyDict, locals::Union{PyDict,Nothing}=globals, extras::Union{NamedTuple,Nothing}=nothing) where {R}
+    # get code
+    cptr = pyptr(co)
+    # get globals & ensure __builtins__ is set
+    gptr = pyptr(globals)
+    if !globals.hasbuiltins
+        if C.PyMapping_HasKeyString(gptr, "__builtins__") == 0
+            err = C.PyMapping_SetItemString(gptr, "__builtins__", C.PyEval_GetBuiltins())
+            ism1(err) && pythrow()
+        end
+        globals.hasbuiltins = true
+    end
+    # get locals (ALLOCATES lptr if locals===nothing)
+    if locals === nothing
+        lptr = C.PyDict_New()
+        isnull(lptr) && pythrow()
+    else
+        lptr = pyptr(locals)
+    end
+    # insert extra locals
+    if extras !== nothing
+        for (k,v) in pairs(extras)
+            vo = C.PyObject_From(v)
+            if isnull(vo)
+                locals===nothing && C.Py_DecRef(lptr)
+                pythrow()
+            end
+            err = C.PyMapping_SetItemString(lptr, string(k), vo)
+            C.Py_DecRef(vo)
+            if ism1(err)
+                locals===nothing && C.Py_DecRef(lptr)
+                pythrow()
+            end
         end
     end
-    # parse src for $-interpolations
-    chunks = String[]
-    interps = []
-    i = firstindex(src)
-    while true
-        j = findnext('$', src, i)
-        if j === nothing
-            push!(chunks, src[i:end])
-            break
+    # Call eval (ALLOCATES rptr)
+    rptr = C.PyEval_EvalCode(cptr, gptr, lptr)
+    if isnull(rptr)
+        locals === nothing && C.Py_DecRef(lptr)
+        pythrow()
+    end
+    # TODO: convert rptr using PyObject_As
+    if co.mode == :exec
+        if R <: Nothing
+            C.Py_DecRef(rptr)
+            locals===nothing && C.Py_DecRef(lptr)
+            return nothing
+        elseif R <: NamedTuple && isconcretetype(R)
+            C.Py_DecRef(rptr)
+            locals===nothing && C.Py_DecRef(lptr)
+            error("returning NamedTuple not implemented yet")
         else
-            push!(chunks, src[i:prevind(src,j)])
+            C.Py_DecRef(rptr)
+            locals===nothing && C.Py_DecRef(lptr)
+            error("invalid return type $(R)")
         end
-        if checkbounds(Bool, src, j+1) && src[j+1] == '$'
-            push!(chunks, "\$")
-            i = j+2
-        else
-            ex, i = Meta.parse(src, j+1, greedy=false)
-            var = "_jl_interp_$(length(interps)+1)_"
-            push!(interps, var => ex)
-            push!(chunks, "($var)")
-        end
+    elseif co.mode == :eval
+        ret = C.PyObject_As(rptr, R)
+        ret === PYUNCONVERTED() && C.PyErr_SetString(C.PyExc_TypeError(), "Cannot convert this '$(C.PyType_Name(C.Py_Type(rptr)))' to a Julia '$R'")
+        C.Py_DecRef(rptr)
+        locals===nothing && C.Py_DecRef(lptr)
+        ret === PYERR() && pythrow()
+        ret === PYUNCONVERTED() && pythrow()
+        return ret
+    else
+        C.Py_DecRef(rptr)
+        locals===nothing && C.Py_DecRef(lptr)
+        error("invalid mode $(repr(co.mode))")
     end
-    newsrcstr = newsrc = join(chunks)
-    # compile the code so there is string information
-    cfile = "julia:$(__source__.file):$(__source__.line)"
-    cmode = exec ? "exec" : "eval"
-    newsrc = :(pycompile($newsrcstr, $cfile, $cmode))
-    if compile
-        # compile the code lazily (so the python parser is only invoked once)
-        # Julia crashes if you try to put pylazyobject(()->pycompile(...)) directly in the syntax tree. Is this a bug??
-        # Instead, we use a run-time lookup table.
-        newsrc = :(get!(()->$newsrc, COMPILECACHE, ($newsrcstr, $cfile, $cmode)))
-    end
-    # make the expression
-    ex = :(let
-        globals = scope(@__MODULE__)
-        locals = $(retlocals ? :(pydict()) : :globals)
-        $([:(check(C.PyDict_SetItemString(globals, $k, pyobject($(esc(v)))))) for (k,v) in interps]...)
-        result = $(debug ? (exec ? :pyexecdb : :pyevaldb) : (exec ? :pyexec : :pyeval))($newsrc, globals, locals)
-        $([:(check(C.PyDict_DelItemString(globals, $k))) for (k,v) in interps]...)
-        $(retlocals ? :locals : retglobals ? :globals : exec ? nothing : :result)
-    end)
-    if lazy
-        # wrap as a lazy object
-        ex = :(pylazyobject(() -> $ex))
-    end
-    ex
 end
-export @py_str
+export pyeval
+
+module CompiledCode end
+
+macro pyeval(R, code::String, locals=nothing)
+    co = PyCode(code, "<julia $(__source__.file):$(__source__.line)>", :eval)
+    nm = gensym()
+    Base.eval(CompiledCode, :($nm = $co))
+    :(pyeval($(esc(R)), $co, $(esc(:pyglobals)), $(esc(locals))))
+end
+export @pyeval
+
+macro pyexec(code::String, locals=nothing)
+    co = PyCode(code, "<julia $(__source__.file):$(__source__.line)>", :exec)
+    nm = gensym()
+    Base.eval(CompiledCode, :($nm = $co))
+    :(pyeval(Nothing, $co, $(esc(:pyglobals)), $(esc(locals))))
+end
+export @pyexec

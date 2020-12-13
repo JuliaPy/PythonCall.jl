@@ -101,3 +101,7 @@ function pointer_from_obj(o::T) where {T}
     end
     p, c
 end
+
+isnull(p::Ptr) = Ptr{Cvoid}(p) == C_NULL
+isnull(p::UnsafePtr) = isnull(pointer(p))
+ism1(x::T) where {T<:Number} = x == (zero(T)-one(T))

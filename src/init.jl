@@ -1,9 +1,3 @@
-function python_cmd(args)
-    env = copy(ENV)
-    env["PYTHONIOENCODING"] = "UTF-8"
-    setenv(`$(CONFIG.exepath) $args`, env)
-end
-
 function __init__()
     # Check if libpython is already loaded (i.e. if the Julia interpreter was started from a Python process)
     CONFIG.isembedded = haskey(ENV, "PYTHONJL_LIBPTR")
@@ -41,6 +35,13 @@ function __init__()
                 - PYTHONJL_EXE is "CONDA" or "CONDA:<env>"
                 - PYTHONJL_EXE is the path to the Python executable
                 """)
+        end
+
+        # For calling Python with UTF-8 IO
+        function python_cmd(args)
+            env = copy(ENV)
+            env["PYTHONIOENCODING"] = "UTF-8"
+            setenv(`$(CONFIG.exepath) $args`, env)
         end
 
         # Find Python library
@@ -113,78 +114,80 @@ function __init__()
             # Start the interpreter and register exit hooks
             C.Py_InitializeEx(0)
             CONFIG.isinitialized = true
-            check(C.Py_AtExit(@cfunction(()->(CONFIG.isinitialized = false; nothing), Cvoid, ())))
-            atexit() do
-                CONFIG.isinitialized = false
-                check(C.Py_FinalizeEx())
-            end
-
-            # Some modules expect sys.argv to be set
-            pysysmodule.argv = pylist([""; ARGS])
-
-            # Some modules test for interactivity by checking if sys.ps1 exists
-            if isinteractive() && !pyhasattr(pysysmodule, "ps1")
-                pysysmodule.ps1 = ">>> "
-            end
+            # check(C.Py_AtExit(@cfunction(()->(CONFIG.isinitialized = false; nothing), Cvoid, ())))
+            # atexit() do
+            #     CONFIG.isinitialized = false
+            #     check(C.Py_FinalizeEx())
+            # end
         end
     end
 
-    with_gil() do
+    # with_gil() do
 
-        # Is this the same Python as in Conda?
-        if !CONFIG.isconda &&
-            haskey(ENV, "CONDA_PREFIX") && isdir(ENV["CONDA_PREFIX"]) &&
-            haskey(ENV, "CONDA_PYTHON_EXE") && isfile(ENV["CONDA_PYTHON_EXE"]) &&
-            realpath(ENV["CONDA_PYTHON_EXE"]) == realpath(CONFIG.exepath===nothing ? pyconvert(String, pysysmodule.executable) : CONFIG.exepath)
+    #     if !CONFIG.isembedded
+    #         # Some modules expect sys.argv to be set
+    #         pysysmodule.argv = pylist([""; ARGS])
 
-            CONFIG.isconda = true
-            CONFIG.condaenv = ENV["CONDA_PREFIX"]
-            CONFIG.exepath === nothing && (CONFIG.exepath = pyconvert(String, pysysmodule.executable))
-        end
+    #         # Some modules test for interactivity by checking if sys.ps1 exists
+    #         if isinteractive() && !pyhasattr(pysysmodule, "ps1")
+    #             pysysmodule.ps1 = ">>> "
+    #         end
+    #     end
 
-        # Get the python version
-        CONFIG.version = let (a,b,c,d,e) = pyconvert(Tuple{Int,Int,Int,String,Int}, pysysmodule.version_info)
-            VersionNumber(a, b, c, (d,), (e,))
-        end
-        v"2" < CONFIG.version < v"4" || error("Only Python 3 is supported, this is Python $(CONFIG.version.major).$(CONFIG.version.minor) at $(CONFIG.exepath===nothing ? "unknown location" : CONFIG.exepath).")
+    #     # Is this the same Python as in Conda?
+    #     if !CONFIG.isconda &&
+    #         haskey(ENV, "CONDA_PREFIX") && isdir(ENV["CONDA_PREFIX"]) &&
+    #         haskey(ENV, "CONDA_PYTHON_EXE") && isfile(ENV["CONDA_PYTHON_EXE"]) &&
+    #         realpath(ENV["CONDA_PYTHON_EXE"]) == realpath(CONFIG.exepath===nothing ? pyconvert(String, pysysmodule.executable) : CONFIG.exepath)
 
-        # EXPERIMENTAL: hooks to perform actions when certain modules are loaded
-        if !CONFIG.isembedded
-            py"""
-            import sys
-            class JuliaCompatHooks:
-                def __init__(self):
-                    self.hooks = {}
-                def find_module(self, name, path=None):
-                    hs = self.hooks.get(name)
-                    if hs is not None:
-                        for h in hs:
-                            h()
-                def add_hook(self, name, h):
-                    if name not in self.hooks:
-                        self.hooks[name] = [h]
-                    else:
-                        self.hooks[name].append(h)
-                    if name in sys.modules:
-                        h()
-            JULIA_COMPAT_HOOKS = JuliaCompatHooks()
-            sys.meta_path.insert(0, JULIA_COMPAT_HOOKS)
+    #         CONFIG.isconda = true
+    #         CONFIG.condaenv = ENV["CONDA_PREFIX"]
+    #         CONFIG.exepath === nothing && (CONFIG.exepath = pyconvert(String, pysysmodule.executable))
+    #     end
 
-            # Before Qt is loaded, fix the path used to look up its plugins
-            qtfix_hook = $(pyjlfunction(() -> if CONFIG.qtfix; fix_qt_plugin_path(); nothing; end))
-            JULIA_COMPAT_HOOKS.add_hook("PyQt4", qtfix_hook)
-            JULIA_COMPAT_HOOKS.add_hook("PyQt5", qtfix_hook)
-            JULIA_COMPAT_HOOKS.add_hook("PySide", qtfix_hook)
-            JULIA_COMPAT_HOOKS.add_hook("PySide2", qtfix_hook)
-            """
+    #     # Get the python version
+    #     CONFIG.version = let (a,b,c,d,e) = pyconvert(Tuple{Int,Int,Int,String,Int}, pysysmodule.version_info)
+    #         VersionNumber(a, b, c, (d,), (e,))
+    #     end
+    #     v"2" < CONFIG.version < v"4" || error("Only Python 3 is supported, this is Python $(CONFIG.version.major).$(CONFIG.version.minor) at $(CONFIG.exepath===nothing ? "unknown location" : CONFIG.exepath).")
 
-            @require IJulia="7073ff75-c697-5162-941a-fcdaad2a7d2a" begin
-                IJulia.push_postexecute_hook() do
-                    if CONFIG.pyplotautoshow && "matplotlib.pyplot" in pysysmodule.modules
-                        pyplotshow()
-                    end
-                end
-            end
-        end
-    end
+    #     # EXPERIMENTAL: hooks to perform actions when certain modules are loaded
+    #     if !CONFIG.isembedded
+    #         py"""
+    #         import sys
+    #         class JuliaCompatHooks:
+    #             def __init__(self):
+    #                 self.hooks = {}
+    #             def find_module(self, name, path=None):
+    #                 hs = self.hooks.get(name)
+    #                 if hs is not None:
+    #                     for h in hs:
+    #                         h()
+    #             def add_hook(self, name, h):
+    #                 if name not in self.hooks:
+    #                     self.hooks[name] = [h]
+    #                 else:
+    #                     self.hooks[name].append(h)
+    #                 if name in sys.modules:
+    #                     h()
+    #         JULIA_COMPAT_HOOKS = JuliaCompatHooks()
+    #         sys.meta_path.insert(0, JULIA_COMPAT_HOOKS)
+
+    #         # Before Qt is loaded, fix the path used to look up its plugins
+    #         qtfix_hook = $(pyjlfunction(() -> if CONFIG.qtfix; fix_qt_plugin_path(); nothing; end))
+    #         JULIA_COMPAT_HOOKS.add_hook("PyQt4", qtfix_hook)
+    #         JULIA_COMPAT_HOOKS.add_hook("PyQt5", qtfix_hook)
+    #         JULIA_COMPAT_HOOKS.add_hook("PySide", qtfix_hook)
+    #         JULIA_COMPAT_HOOKS.add_hook("PySide2", qtfix_hook)
+    #         """
+
+    #         @require IJulia="7073ff75-c697-5162-941a-fcdaad2a7d2a" begin
+    #             IJulia.push_postexecute_hook() do
+    #                 if CONFIG.pyplotautoshow && "matplotlib.pyplot" in pysysmodule.modules
+    #                     pyplotshow()
+    #                 end
+    #             end
+    #         end
+    #     end
+    # end
 end

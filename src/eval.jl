@@ -1,78 +1,3 @@
-function pyeval(::Type{R}, co::PyCode, globals::PyDict, locals::Union{PyDict,Nothing}=globals, extras::Union{NamedTuple,Nothing,Tuple{}}=nothing) where {R}
-    # get code
-    cptr = pyptr(co)
-    # get globals & ensure __builtins__ is set
-    gptr = pyptr(globals)
-    if !globals.hasbuiltins
-        if C.PyMapping_HasKeyString(gptr, "__builtins__") == 0
-            err = C.PyMapping_SetItemString(gptr, "__builtins__", C.PyEval_GetBuiltins())
-            ism1(err) && pythrow()
-        end
-        globals.hasbuiltins = true
-    end
-    # get locals (ALLOCATES lptr if locals===nothing)
-    if locals === nothing
-        lptr = C.PyDict_New()
-        isnull(lptr) && pythrow()
-    else
-        lptr = pyptr(locals)
-    end
-    # insert extra locals
-    if extras isa NamedTuple
-        for (k,v) in pairs(extras)
-            vo = C.PyObject_From(v)
-            if isnull(vo)
-                locals===nothing && C.Py_DecRef(lptr)
-                pythrow()
-            end
-            err = C.PyMapping_SetItemString(lptr, string(k), vo)
-            C.Py_DecRef(vo)
-            if ism1(err)
-                locals===nothing && C.Py_DecRef(lptr)
-                pythrow()
-            end
-        end
-    end
-    # Call eval (ALLOCATES rptr)
-    rptr = C.PyEval_EvalCode(cptr, gptr, lptr)
-    if isnull(rptr)
-        locals === nothing && C.Py_DecRef(lptr)
-        pythrow()
-    end
-    # TODO: convert rptr using PyObject_As
-    if co.mode == :exec
-        if R <: Nothing
-            C.Py_DecRef(rptr)
-            locals===nothing && C.Py_DecRef(lptr)
-            return nothing
-        elseif R <: NamedTuple && isconcretetype(R)
-            C.Py_DecRef(rptr)
-            ret = C.PyMapping_ExtractAs(lptr, R)
-            locals===nothing && C.Py_DecRef(lptr)
-            ret === PYERR() && pythrow()
-            ret === NOTIMPLEMENTED() && pythrow()
-            return ret::R
-        else
-            C.Py_DecRef(rptr)
-            locals===nothing && C.Py_DecRef(lptr)
-            error("invalid return type $(R)")
-        end
-    elseif co.mode == :eval
-        ret = C.PyObject_As(rptr, R)
-        ret === NOTIMPLEMENTED() && C.PyErr_SetString(C.PyExc_TypeError(), "Cannot convert this '$(C.PyType_Name(C.Py_Type(rptr)))' to a Julia '$R'")
-        C.Py_DecRef(rptr)
-        locals===nothing && C.Py_DecRef(lptr)
-        ret === PYERR() && pythrow()
-        ret === NOTIMPLEMENTED() && pythrow()
-        return ret::R
-    else
-        C.Py_DecRef(rptr)
-        locals===nothing && C.Py_DecRef(lptr)
-        error("invalid mode $(repr(co.mode))")
-    end
-end
-export pyeval
-
 module CompiledCode
     import ..Python: PyCode
     stash(co::PyCode) = begin
@@ -138,22 +63,70 @@ pyeval_macro(src, mode, args...) = begin
     # for LHS interpolation, extract out type annotations
     if any(islhs)
         mode == :exec || error("interpolation on LHS only allowed in exec mode")
-        icode == 1 || error("cannot specify return type when interpolation on LHS is used")
-        rettypearg = :($NamedTuple{($([QuoteNode(Symbol(n)) for (n,lhs) in zip(intvars,islhs) if lhs]...),),Tuple{$([(ex isa Expr && ex.head == :(::)) ? ex.args[2] : Any for (ex,lhs) in zip(interps,islhs) if lhs]...)}})
     end
     # make the code object
     co = CompiledCode.stash(newcode, "<julia $(src.file):$(src.line)>", mode)
-    # call pyeval
-    ret = :(pyeval($(esc(rettypearg)), $(co), $(esc(:pyglobals)), $(esc(locals)), ($([:($k = $(esc(v))) for (k,v) in kvs]...),)))
-    # assign
-    if any(islhs)
-        ret = :(($([(ex isa Expr && ex.head == :(::)) ? esc(ex.args[1]) : esc(ex) for (ex,lhs) in zip(interps,islhs) if lhs]...),) = $ret; nothing)
+    # go
+    freelocals = locals === nothing ? :(GC.@preserve locals C.Py_DecRef(lptr)) : nothing
+    quote
+        # get the code pointer
+        cptr = pyptr($co)
+        # get the globals pointer
+        globals = $(esc(:pyglobals))
+        gptr = pyptr(globals)
+        # ensure globals includes builtins
+        if !globals.hasbuiltins
+            if C.PyMapping_HasKeyString(gptr, "__builtins__") == 0
+                err = C.PyMapping_SetItemString(gptr, "__builtins__", C.PyEval_GetBuiltins())
+                ism1(err) && pythrow()
+            end
+            globals.hasbuiltins = true
+        end
+        # get locals (ALLOCATES lptr if locals===nothing)
+        $(locals === nothing ? :(lptr = C.PyDict_New(); isnull(lptr) && pythrow()) : :(locals = $(esc(locals)); lptr = pyptr(locals)))
+        # insert extra locals
+        $([:(let; vo=C.PyObject_From($(esc(v))); isnull(vo) && ($freelocals; pythrow()); err=C.PyMapping_SetItemString(lptr, $(string(k)), vo); C.Py_DecRef(vo); ism1(err) && ($freelocals; pythrow()); end) for (k,v) in kvs]...)
+        # Call eval (ALLOCATES rptr)
+        rptr = GC.@preserve globals C.PyEval_EvalCode(cptr, gptr, lptr)
+        isnull(rptr) && ($freelocals; pythrow())
+        # extract values
+        $(
+            if mode == :eval
+                quote
+                    $freelocals
+                    res = C.PyObject_As(rptr, $(esc(rettypearg)))
+                    C.Py_DecRef(rptr)
+                    res == PYERR() && pythrow()
+                    res == NOTIMPLEMENTED() && (C.PyErr_SetString(C.PyExc_TypeError(), "Cannot convert return value of type '$(C.PyType_Name(C.Py_Type(rptr)))' to a Julia '$($(esc(rettypearg)))'"); pythrow())
+                    return res::$(esc(rettypearg))
+                end
+            elseif mode == :exec
+                quote
+                    C.Py_DecRef(rptr)
+                    $((((jv,jt) = (ex isa Expr && ex.head == :(::)) ? (ex.args[1], esc(ex.args[2])) : (ex, Any); quote
+                        $(esc(jv)) = let
+                            xo = C.PyMapping_GetItemString(lptr, $v)
+                            isnull(xo) && ($freelocals; pythrow())
+                            x = C.PyObject_As(xo, $jt)
+                            x===NOTIMPLEMENTED() && C.PyErr_SetString(C.PyExc_TypeError(), "Cannot convert return value '$($(string(jv)))' of type '$(C.PyType_Name(C.Py_Type(xo)))' to a Julia '$($jt)'")
+                            C.Py_DecRef(xo)
+                            x===PYERR() && ($freelocals; pythrow())
+                            x===NOTIMPLEMENTED() && ($freelocals; pythrow())
+                            x::$jt;
+                        end
+                    end) for (ex,v,lhs) in zip(interps,intvars,islhs) if lhs)...)
+                    $freelocals
+                    nothing
+                end
+            else
+                error()
+            end
+        )
     end
-    ret
 end
 
 """
-    @py [rettype] `...` [locals] [var=val, ...]
+    @py `...` [locals] [var=val, ...]
 
 Executes the given Python code.
 
@@ -161,8 +134,6 @@ Julia values can be interpolated using the usual `\$(...)` syntax.
 Additionally, assignment to interpolations is supported: e.g. `\$(x::T) = ...` will convert the right hand side to a `T` and assign it to `x`.
 
 The globals are `pyglobals`. The locals are `locals`, if given, otherwise a temporary scope is created. Extra values to be interted into the scope can be given with extra `var=val` arguments.
-
-The resulting expression has type `rettype`, which may be `Nothing` (the default) or `NamedTuple{names,types}` to extract variables with the given names as a named tuple.
 """
 macro py(args...)
     pyeval_macro(__source__, :exec, args...)

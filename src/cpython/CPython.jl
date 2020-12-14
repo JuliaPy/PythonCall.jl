@@ -1,9 +1,19 @@
 module CPython
 
 using Libdl
-using ..Python: CONFIG, isnull, ism1, PYERR, PYUNCONVERTED
+using ..Python: CONFIG, isnull, ism1, PYERR, NOTIMPLEMENTED, _typeintersect
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
+
+tryconvert(::Type{T}, x::PYERR) where {T} = PYERR()
+tryconvert(::Type{T}, x::NOTIMPLEMENTED) where {T} = NOTIMPLEMENTED()
+tryconvert(::Type{T}, x::T) where {T} = x
+tryconvert(::Type{T}, x) where {T} =
+    try
+        convert(T, x)
+    catch
+        NOTIMPLEMENTED()
+    end
 
 @enum PyGILState_STATE::Cint PyGILState_LOCKED=0 PyGILState_UNLOCKED=1
 
@@ -403,8 +413,25 @@ end
 
 ### EXCEPTIONS
 
-const PyExc_TypeError__ref = Ref(PyPtr())
-PyExc_TypeError() = pyloadglobal(PyExc_TypeError__ref, :PyExc_TypeError)
+for x in [:BaseException, :Exception, :StopIteration, :GeneratorExit, :ArithmeticError,
+    :LookupError, :AssertionError, :AttributeError, :BufferError, :EOFError,
+    :FloatingPointError, :OSError, :ImportError, :IndexError, :KeyError, :KeyboardInterrupt,
+    :MemoryError, :NameError, :OverflowError, :RuntimeError, :RecursionError,
+    :NotImplementedError, :SyntaxError, :IndentationError, :TabError, :ReferenceError,
+    :SystemError, :SystemExit, :TypeError, :UnboundLocalError, :UnicodeError,
+    :UnicodeEncodeError, :UnicodeDecodeError, :UnicodeTranslateError, :ValueError,
+    :ZeroDivisionError, :BlockingIOError, :BrokenPipeError, :ChildProcessError,
+    :ConnectionError, :ConnectionAbortedError, :ConnectionRefusedError, :FileExistsError,
+    :FileNotFoundError, :InterruptedError, :IsADirectoryError, :NotADirectoryError,
+    :PermissionError, :ProcessLookupError, :TimeoutError, :EnvironmentError, :IOError,
+    :WindowsError, :Warning, :UserWarning, :DeprecationWarning, :PendingDeprecationWarning,
+    :SyntaxWarning, :RuntimeWarning, :FutureWarning, :ImportWarning, :UnicodeWarning,
+    :BytesWarning, :ResourceWarning]
+    f = Symbol(:PyExc_, x)
+    r = Symbol(f, :__ref)
+    @eval const $r = Ref(PyPtr())
+    @eval $f() = pyloadglobal($r, $(QuoteNode(f)))
+end
 
 ### NONE
 
@@ -421,7 +448,7 @@ PyNone_As(o, ::Type{T}) where {T} =
     elseif Missing <: T
         missing
     else
-        PYUNCONVERTED()
+        NOTIMPLEMENTED()
     end
 
 ### OBJECT
@@ -492,6 +519,8 @@ end
 PyObject_From(x::PyObjectRef) = (Py_IncRef(x.ptr); x.ptr)
 PyObject_From(x::Nothing) = PyNone_New()
 PyObject_From(x::Bool) = PyBool_From(x)
+PyObject_From(x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}) = PyLong_From(x)
+PyObject_From(x::Union{Float16,Float32,Float64}) = PyFloat_From(x)
 PyObject_From(x::Union{String,SubString{String}}) = PyUnicode_From(x)
 PyObject_From(x::Tuple) = PyTuple_From(x)
 function PyObject_From(x)
@@ -516,8 +545,8 @@ end
 PyObject_CallNice(f, args...; kwargs...) = PyObject_CallArgs(f, args, kwargs)
 
 const PYOBJECT_AS_RULES = Dict{PyPtr, Union{Nothing,Function}}()
-const PYOBJECT_AS_CRULES = Dict{Type, Dict{PyPtr, Ptr{Cvoid}}}()
-const PYOBJECT_AS_CRULES_CACHE = Dict{Type, Dict{PyPtr, Any}}()
+const PYOBJECT_AS_CRULES = IdDict{Type, Dict{PyPtr, Ptr{Cvoid}}}()
+const PYOBJECT_AS_CRULES_CACHE = IdDict{Type, Dict{PyPtr, Any}}()
 
 function PyObject_As__rule(t::PyPtr)
     name = Py_DecRef(PyObject_GetAttrString(t, "__name__")) do tnameo
@@ -530,62 +559,66 @@ function PyObject_As__rule(t::PyPtr)
         end
     end
     name == PYERR() && return PYERR()
-    @show name
     PyObject_As__rule(t, Val(Symbol(name)))
 end
 
-PyObject_As__rule(::PyPtr, ::Val) = nothing
-PyObject_As__rule(::PyPtr, ::Val{Symbol("builtins.NoneType")}) = PyNone_As
-PyObject_As__rule(::PyPtr, ::Val{Symbol("builtins.bool")}) = PyBool_As
-PyObject_As__rule(::PyPtr, ::Val{Symbol("builtins.str")}) = PyUnicode_As
-PyObject_As__rule(::PyPtr, ::Val{Symbol("builtins.bytes")}) = PyBytes_As
+PyObject_As__rule(t::PyPtr, ::Val) = nothing
+PyObject_As__rule(t::PyPtr, ::Val{Symbol("builtins.NoneType")}) = Py_Is(t, Py_Type(Py_None())) ? PyNone_As : nothing
+PyObject_As__rule(t::PyPtr, ::Val{Symbol("builtins.bool")}) = Py_Is(t, PyBool_Type()) ? PyBool_As : nothing
+PyObject_As__rule(t::PyPtr, ::Val{Symbol("builtins.str")}) = Py_Is(t, PyUnicode_Type()) ? PyUnicode_As : nothing
+PyObject_As__rule(t::PyPtr, ::Val{Symbol("builtins.bytes")}) = Py_Is(t, PyBytes_Type()) ? PyBytes_As : nothing
+PyObject_As__rule(t::PyPtr, ::Val{Symbol("builtins.int")}) = Py_Is(t, PyLong_Type()) ? PyLong_As : nothing
+PyObject_As__rule(t::PyPtr, ::Val{Symbol("builtins.float")}) = Py_Is(t, PyFloat_Type()) ? PyFloat_As : nothing
 
 struct PyObject_As__crule_struct{T,F}
     f :: F
 end
-function (r::PyObject_As__crule_struct{T,F})(o::PyPtr, ptr::Ptr) where {T,F}
+function (r::PyObject_As__crule_struct{T,F})(o::PyPtr, ref::Base.RefValue{Any}) where {T,F}
     res = r.f(o, T)
     if res === PYERR()
         return Cint(2)
-    elseif res === PYUNCONVERTED()
+    elseif res === NOTIMPLEMENTED()
         return Cint(1)
     else
-        unsafe_store!(ptr, res)
+        ref[] = res
         return Cint(0)
     end
 end
 
 function PyObject_As(o::PyPtr, ::Type{T}) where {T}
-    # MRO
+    # Run through the MRO, applying conversion rules that depend on the supertypes of the type of o.
+    # For speed, the conversion functions are cached as C function pointers.
+    # These take as inputs the PyPtr o and a Ptr{Any} in which to store the result.
+    # They return 0 on success, 1 on no-conversion and 2 on error.
     mro = PyType_MRO(Py_Type(o))
     ref = Ref{Any}()
     rules = get!(Dict{PyPtr, Ptr{Cvoid}}, PYOBJECT_AS_CRULES, T)::Dict{PyPtr,Ptr{Cvoid}}
     for i in 1:PyTuple_Size(mro)
         t = PyTuple_GetItem(mro, i-1)
         isnull(t) && return PYERR()
-        crule = get(rules, t, nothing)
-        if crule === nothing
+        crule = get(rules, t, missing)
+        if crule === missing
             rule = PyObject_As__rule(t)
             rule === PYERR() && return PYERR()
             if rule === nothing
                 rules[t] = C_NULL
                 continue
             else
-                crulefunc = @cfunction($(PyObject_As__crule_struct{T, typeof(rule)}(rule)), Cint, (PyPtr, Ptr{Any}))
+                crulefunc = @cfunction($(PyObject_As__crule_struct{T, typeof(rule)}(rule)), Cint, (PyPtr, Any))
                 get!(Dict{PyPtr, Any}, PYOBJECT_AS_CRULES_CACHE, T)[t] = crulefunc
                 crule = rules[t] = Base.unsafe_convert(Ptr{Cvoid}, crulefunc)
             end
         elseif crule == C_NULL
             continue
         end
-        res = ccall(crule, Cint, (PyPtr, Ptr{Any}), o, ref)
+        res = ccall(crule, Cint, (PyPtr, Any), o, ref)
         if res == 0
             return ref[]::T
         elseif res == 2
             return PYERR()
         end
     end
-    PYUNCONVERTED()
+    NOTIMPLEMENTED()
 end
 PyObject_As(o, ::Type{T}) where {T} = GC.@preserve o PyObject_As(Base.unsafe_convert(PyPtr, o), T)
 
@@ -601,6 +634,31 @@ PyObject_As(o, ::Type{T}) where {T} = GC.@preserve o PyObject_As(Base.unsafe_con
 @cdef :PyMapping_SetItemString Cint (PyPtr, Cstring, PyPtr)
 @cdef :PyMapping_GetItemString PyPtr (PyPtr, Cstring)
 
+PyMapping_ExtractOneAs(o, k, ::Type{T}) where {T} =
+    Py_DecRef(PyMapping_GetItemString(o, string(k))) do x
+        v = PyObject_As(x, T)
+        if v === NOTIMPLEMENTED()
+            PyErr_SetString(PyExc_TypeError(), "Cannot convert this '$(PyType_Name(Py_Type(x)))' at key '$k' to a Julia '$T'")
+            PYERR()
+        else
+            v
+        end
+    end
+
+PyMapping_ExtractAs(o::PyPtr, ::Type{NamedTuple{names,types}}) where {names, types} = begin
+    t = PyMapping_ExtractAs(o, names, types)
+    t === PYERR() ? PYERR() : NamedTuple{names,types}(t)
+end
+PyMapping_ExtractAs(o::PyPtr, names::Tuple, ::Type{types}) where {types<:Tuple} = begin
+    v = PyMapping_ExtractOneAs(o, first(names), Base.tuple_type_head(types))
+    v === PYERR() && return PYERR()
+    vs = PyMapping_ExtractAs(o::PyPtr, Base.tail(names), Base.tuple_type_tail(types))
+    vs === PYERR() && return PYERR()
+    (v, vs...)
+end
+PyMapping_ExtractAs(o::PyPtr, names::Tuple{}, ::Type{Tuple{}}) = ()
+PyMapping_ExtractAs(o, ::Type{T}) where {T} = GC.@preserve o PyMapping_ExtractAs(Base.unsafe_convert(PyPtr, o), T)
+
 ### METHOD
 
 @cdef :PyInstanceMethod_New PyPtr (PyPtr,)
@@ -610,8 +668,8 @@ PyObject_As(o, ::Type{T}) where {T} = GC.@preserve o PyObject_As(Base.unsafe_con
 @cdef :PyUnicode_DecodeUTF8 PyPtr (Ptr{Cchar}, Py_ssize_t, Ptr{Cvoid})
 @cdef :PyUnicode_AsUTF8String PyPtr (PyPtr,)
 
-const PyUnicode_Type__ref = Ref{PyPtr}()
-PyUnicode_Type() = pyloadglobal(PyUnicode_Type__ref, :PyUnicode_Type)
+const PyUnicode_Type__ref = Ref(C_NULL)
+PyUnicode_Type() = PyPtr(pyglobal(PyUnicode_Type__ref, :PyUnicode_Type))
 
 PyUnicode_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_UNICODE_SUBCLASS)
 PyUnicode_CheckExact(o) = Py_TypeCheckExact(o, PyUnicode_Type())
@@ -619,14 +677,36 @@ PyUnicode_CheckExact(o) = Py_TypeCheckExact(o, PyUnicode_Type())
 PyUnicode_From(s::Union{Vector{Cuchar},Vector{Cchar},String,SubString{String}}) =
     PyUnicode_DecodeUTF8(pointer(s), sizeof(s), C_NULL)
 
-PyUnicode_As(o, ::Type) = PYUNCONVERTED()
-
-function PyUnicode_As(o, ::Type{T}) where {T<:Union{String,Vector{Int8},Vector{UInt8}}}
-    b = PyUnicode_AsUTF8String(o)
-    isnull(b) && return PYERR()
-    r = PyBytes_As(b, T)
-    Py_DecRef(b)
-    r
+PyUnicode_As(o, ::Type{T}) where {T} = begin
+    if (S = _typeintersect(T, AbstractString)) != Union{}
+        r = Py_DecRef(PyUnicode_AsUTF8String(o)) do b
+            PyBytes_As(b, S)
+        end
+        r === NOTIMPLEMENTED() || return r
+    end
+    if Symbol <: T
+        s = PyUnicode_As(o, String)
+        s === PYERR() && return PYERR()
+        s isa String && return Symbol(s)
+    end
+    if (S = _typeintersect(T, AbstractChar)) != Union{}
+        s = PyUnicode_As(o, String)
+        s === PYERR() && return PYERR()
+        if s isa String
+            if length(s) == 1
+                c = first(s)
+                r = tryconvert(S, c)
+                r === NOTIMPLEMENTED() || return r
+            end
+        end
+    end
+    if (S = _typeintersect(T, AbstractVector)) != Union{}
+        r = Py_DecRef(PyUnicode_AsUTF8String(o)) do b
+            PyBytes_As(b, S)
+        end
+        r === NOTIMPLEMENTED() || return r
+    end
+    NOTIMPLEMENTED()
 end
 
 ### BYTES
@@ -637,22 +717,35 @@ end
 PyBytes_From(s::Union{Vector{Cuchar},Vector{Cchar},String,SubString{String}}) =
     PyBytes_FromStringAndSize(pointer(s), sizeof(s))
 
-PyBytes_As(o, ::Type) = PYUNCONVERTED()
-
-function PyBytes_As(o, ::Type{String})
-    ptr = Ref{Ptr{Cchar}}()
-    len = Ref{Py_ssize_t}()
-    err = PyBytes_AsStringAndSize(o, ptr, len)
-    ism1(err) && return PYERR()
-    Base.unsafe_string(ptr[], len[])
-end
-
-function PyBytes_As(o, ::Type{Vector{T}}) where {T<:Union{UInt8,Int8}}
-    ptr = Ref{Ptr{Cchar}}()
-    len = Ref{Py_ssize_t}()
-    err = PyBytes_AsStringAndSize(o, ptr, len)
-    ism1(err) && return PYERR()
-    copy(Base.unsafe_wrap(Vector{T}, Ptr{T}(ptr[]), len[]))
+PyBytes_As(o, ::Type{T}) where {T} = begin
+    if (S = _typeintersect(T, AbstractVector{UInt8})) != Union{}
+        ptr = Ref{Ptr{Cchar}}()
+        len = Ref{Py_ssize_t}()
+        err = PyBytes_AsStringAndSize(o, ptr, len)
+        ism1(err) && return PYERR()
+        v = copy(Base.unsafe_wrap(Vector{UInt8}, Ptr{UInt8}(ptr[]), len[]))
+        r = tryconvert(S, v)
+        r === NOTIMPLEMENTED() || return r
+    end
+    if (S = _typeintersect(T, AbstractVector{Int8})) != Union{}
+        ptr = Ref{Ptr{Cchar}}()
+        len = Ref{Py_ssize_t}()
+        err = PyBytes_AsStringAndSize(o, ptr, len)
+        ism1(err) && return PYERR()
+        v = copy(Base.unsafe_wrap(Vector{Int8}, Ptr{Int8}(ptr[]), len[]))
+        r = tryconvert(S, v)
+        r === NOTIMPLEMENTED() || return r
+    end
+    if (S = _typeintersect(T, AbstractString)) != Union{}
+        ptr = Ref{Ptr{Cchar}}()
+        len = Ref{Py_ssize_t}()
+        err = PyBytes_AsStringAndSize(o, ptr, len)
+        ism1(err) && return PYERR()
+        s = Base.unsafe_string(ptr[], len[])
+        r = tryconvert(S, s)
+        r === NOTIMPLEMENTED() || return r
+    end
+    NOTIMPLEMENTED()
 end
 
 ### TUPLE
@@ -690,6 +783,13 @@ PyType_MRO(o) = GC.@preserve o UnsafePtr{PyTypeObject}(Base.unsafe_convert(PyPtr
 
 PyType_IsSubtypeFast(s, f) = PyType_HasFeature(s, f)
 PyType_HasFeature(s, f) = !iszero(PyType_Flags(s) & f)
+
+const PyType_Type__ref = Ref(C_NULL)
+PyType_Type() = PyPtr(pyglobal(PyType_Type__ref, :PyType_Type))
+
+PyType_Check(o) = Py_TypeCheck(o, Py_TPFLAGS_TYPE_SUBCLASS)
+
+PyType_CheckExact(o) = Py_TypeCheckExact(o, PyType_Type())
 
 ### NUMBER
 
@@ -745,7 +845,7 @@ Py_False() = PyPtr(pyglobal(Py_False__ref, :_Py_FalseStruct))
 
 PyBool_From(x::Bool) = (o = x ? Py_True() : Py_False(); Py_IncRef(o); o)
 
-PyBool_Check(o) = Py_Type(o) == PyBool_Type()
+PyBool_Check(o) = Py_TypeCheckExact(o, PyBool_Type())
 
 PyBool_As(o, ::Type{T}) where {T} =
     if Bool <: T
@@ -758,7 +858,7 @@ PyBool_As(o, ::Type{T}) where {T} =
             PYERR()
         end
     else
-        PYUNCONVERTED()
+        NOTIMPLEMENTED()
     end
 
 
@@ -770,10 +870,97 @@ PyBool_As(o, ::Type{T}) where {T} =
 @cdef :PyLong_AsLongLong Clonglong (PyPtr,)
 @cdef :PyLong_AsUnsignedLongLong Culonglong (PyPtr,)
 
+const PyLong_Type__ref = Ref(C_NULL)
+PyLong_Type() = PyPtr(pyglobal(PyLong_Type__ref, :PyLong_Type))
+
+PyLong_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_LONG_SUBCLASS)
+
+PyLong_CheckExact(o) = Py_TypeCheckExact(o, PyLong_Type())
+
+PyLong_From(x::Union{Bool,Int8,UInt8,Int16,UInt16,Int32,UInt32,Int64,UInt64,Int128,UInt128,BigInt}) =
+    if x isa Signed && typemin(Clonglong) ≤ x ≤ typemax(Clonglong)
+        PyLong_FromLongLong(x)
+    elseif typemin(Culonglong) ≤ x ≤ typemax(Culonglong)
+        PyLong_FromUnsignedLongLong(x)
+    else
+        PyLong_FromString(string(x), C_NULL, 10)
+    end
+
+PyLong_From(x::Integer) = begin
+    y = tryconvert(BigInt, x)
+    y === PYERR() && return PyPtr()
+    y === NOTIMPLEMENTED() && (PyErr_SetString(PyExc_NotImplementedError(), "Cannot convert this Julia '$(typeof(x))' to a Python 'int'"); return PyPtr())
+    PyLong_From(y::BigInt)
+end
+
+PyLong_As(o, ::Type{T}) where {T} = begin
+    if (S = _typeintersect(T, Integer)) != Union{}
+        # first try to convert to Clonglong (or Culonglong if unsigned)
+        x = S <: Unsigned ? PyLong_AsUnsignedLongLong(o) : PyLong_AsLongLong(o)
+        if !ism1(x) || !PyErr_IsSet()
+            # success
+            return tryconvert(S, x)
+        elseif PyErr_IsSet(PyExc_OverflowError())
+            # overflows Clonglong or Culonglong
+            PyErr_Clear()
+            if S in (Bool,Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128) && typemin(typeof(x)) ≤ typemin(S) && typemax(S) ≤ typemax(typeof(x))
+                # definitely overflows S, give up now
+                return NOTIMPLEMENTED()
+            else
+                # try converting to String then BigInt then S
+                s = PyObject_StrAs(o, String)
+                s === PYERR() && return PYERR()
+                y = tryparse(BigInt, s)
+                y === nothing && (PyErr_SetString(PyExc_ValueError(), "Cannot convert this '$(PyType_Name(Py_Type(o)))' to a Julia 'BigInt' because its string representation cannot be parsed as an integer"); return PYERR())
+                return tryconvert(S, y::BigInt)
+            end
+        else
+            # other error
+            return PYERR()
+        end
+    elseif (S = _typeintersect(T, Real)) != Union{}
+        return tryconvert(S, PyLong_As(o, Integer))
+    elseif (S = _typeintersect(T, Number)) != Union{}
+        return tryconvert(S, PyLong_As(o, Integer))
+    else
+        return tryconvert(T, PyLong_As(o, Integer))
+    end
+    NOTIMPLEMENTED()
+end
+
 ### FLOAT
 
 @cdef :PyFloat_FromDouble PyPtr (Cdouble,)
 @cdef :PyFloat_AsDouble Cdouble (PyPtr,)
+
+const PyFloat_Type__ref = Ref(C_NULL)
+PyFloat_Type() = PyPtr(pyglobal(PyFloat_Type__ref, :PyFloat_Type))
+
+PyFloat_Check(o) = Py_TypeCheck(o, PyFloat_Type())
+
+PyFloat_CheckExact(o) = Py_TypeCheckExact(o, PyFloat_Type())
+
+PyFloat_From(o::Union{Float16,Float32,Float64}) = PyFloat_FromDouble(o)
+
+PyFloat_As(o, ::Type{T}) where {T} = begin
+    x = PyFloat_AsDouble(o)
+    ism1(x) && PyErr_IsSet() && return PYERR()
+    if Float64 <: T
+        return convert(Float64, x)
+    elseif Float32 <: T
+        return convert(Float32, x)
+    elseif Float16 <: T
+        return convert(Float16, x)
+    elseif (S = _typeintersect(T, AbstractFloat)) != Union{}
+        return tryconvert(S, x)
+    elseif (S = _typeintersect(T, Real)) != Union{}
+        return tryconvert(S, x)
+    elseif (S = _typeintersect(T, Number)) != Union{}
+        return tryconvert(S, x)
+    else
+        return tryconvert(T, x)
+    end
+end
 
 ### COMPLEX
 

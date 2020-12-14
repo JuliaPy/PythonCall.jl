@@ -56,7 +56,7 @@ const CONFIG = Config()
 struct PYERR end
 
 # Used to signal that conversion failed
-struct PYUNCONVERTED end
+struct NOTIMPLEMENTED end
 
 # C API
 include("cpython/CPython.jl")

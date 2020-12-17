@@ -68,16 +68,39 @@ pybufferformat_to_type(fmt::AbstractString) =
 
 ### TYPE UTILITIES
 
-struct PyConvertFail end
+# Used to signal a Python error from functions that return general Julia objects
+struct PYERR end
 
-tryconvert(::Type{T}, x) where {T} =
-try
-    convert(T, x)
-catch
-    PyConvertFail()
-end
+# Used to signal that conversion failed
+struct NOTIMPLEMENTED end
+
+# Somewhere to stash results
+const RESULT = Ref{Any}(nothing)
+_putresult(::Type{T}, x::T) where {T} = (RESULT[] = x)
+takeresult(::Type{T}) where {T} = (r = RESULT[]::T; RESULT[] = nothing; r)
+
+const RESULT_INT = Ref{Int}()
+_putresult(::Type{Int}, x::Int) = (RESULT_INT[] = x)
+takeresult(::Type{Int}) = RESULT_INT[]
+
+putresult(::Type{T}, x::T) where {T} = (_putresult(T, x); 1)
+putresult(::Type{T}, x::PYERR) where {T} = -1
+putresult(::Type{T}, x::NOTIMPLEMENTED) where {T} = 0
+
+moveresult(::Type{T}, ::Type{T}) where {T} = 1
+moveresult(::Type{S}, ::Type{T}) where {S,T} = putresult(T, takeresult(S))
+
+tryconvert(::Type{T}, x::PYERR) where {T} = PYERR()
+tryconvert(::Type{T}, x::NOTIMPLEMENTED) where {T} = NOTIMPLEMENTED()
 tryconvert(::Type{T}, x::T) where {T} = x
-tryconvert(::Type{T}, x::PyConvertFail) where {T} = x
+tryconvert(::Type{T}, x) where {T} =
+    try
+        convert(T, x)
+    catch
+        NOTIMPLEMENTED()
+    end
+
+CTryConvertRule_wrapref(o, ::Type{T}, ::Type{S}) where {T,S} = putresult(T, S(C.PyObjectRef(o)))
 
 @generated _typeintersect(::Type{T1}, ::Type{T2}) where {T1,T2} = typeintersect(T1, T2)
 
@@ -105,3 +128,6 @@ end
 isnull(p::Ptr) = Ptr{Cvoid}(p) == C_NULL
 isnull(p::UnsafePtr) = isnull(pointer(p))
 ism1(x::T) where {T<:Number} = x == (zero(T)-one(T))
+
+# Put something in here to keep it around forever
+const CACHE = []

@@ -1,48 +1,77 @@
 mutable struct PyException <: Exception
-    tptr :: CPyPtr
-    vptr :: CPyPtr
-    bptr :: CPyPtr
-    function PyException(::Val{:new}, t::Ptr=C_NULL, v::Ptr=C_NULL, b::Ptr=C_NULL, borrowed::Bool=false)
-        o = new(CPyPtr(t), CPyPtr(v), CPyPtr(b))
-        if borrowed
-            C.Py_IncRef(t)
-            C.Py_IncRef(v)
-            C.Py_IncRef(b)
-        end
-        finalizer(o) do o
-            if CONFIG.isinitialized
-                tptr = getfield(o, :tptr)
-                vptr = getfield(o, :vptr)
-                bptr = getfield(o, :bptr)
-                if !isnull(tptr) || !isnull(vptr) || !isnull(bptr)
-                    with_gil(false) do
-                        C.Py_DecRef(tptr)
-                        C.Py_DecRef(vptr)
-                        C.Py_DecRef(bptr)
-                    end
-                end
-            end
-        end
-        return o
-    end
+    tref :: PyRef
+    vref :: PyRef
+    bref :: PyRef
+    PyException(::Val{:new}, t::Ptr=C_NULL, v::Ptr=C_NULL, b::Ptr=C_NULL, borrowed::Bool=false) =
+        new(PyRef(Val(:new), t, borrowed), PyRef(Val(:new), v, borrowed), PyRef(Val(:new), b, borrowed))
 end
 export PyException
 
 pythrow() = throw(PyException(Val(:new), C.PyErr_FetchTuple()...))
 
+"""
+    check(x)
+
+Checks if the Python error indicator is set. If so, throws the current Python exception. Otherwise returns `x`.
+"""
+check(x) = C.PyErr_IsSet() ? pythrow() : x
+
+"""
+    checkm1(x, ambig=false)
+
+Same as `check(x)` but errors are indicated by `x == -1` instead.
+
+If `ambig` is true the error indicator is also checked.
+"""
+checkm1(x::Number, ambig::Bool=false) = ism1(x) ? ambig ? check(x) : pythrow() : x
+
+"""
+    checknull(x, ambig=false)
+
+Same as `check(x)` but errors are indicated by `x == C_NULL` instead.
+
+If `ambig` is true the error indicator is also checked.
+"""
+checknull(x::Ptr, ambig::Bool=false) = isnull(x) ? ambig ? check(x) : pythrow() : x
+
+"""
+    checkerr(x, ambig=false)
+
+Same as `check(x)` but errors are indicated by `x == PYERR()` instead.
+
+If `ambig` is true the error indicator is also checked.
+"""
+checkerr(x, ambig::Bool=false) = x===PYERR() ? ambig ? check(x) : pythrow() : x
+
+"""
+    checknullconvert(T, x, ambig=false) :: T
+
+Same as `checknull(x, ambig)` but steals a reference to `x` and converts the result to a `T`.
+"""
+checknullconvert(::Type{T}, x::Ptr, ambig::Bool=false) where {T} = begin
+    if isnull(x) && (!ambig || C.PyErr_IsSet())
+        C.Py_DecRef(x)
+        pythrow()
+    end
+    r = C.PyObject_Convert(x, T)
+    C.Py_DecRef(x)
+    checkm1(r)
+    C.takeresult(T)
+end
+
 function Base.showerror(io::IO, e::PyException)
-    if isnull(e.tptr)
+    if isnull(e.tref)
         print(io, "Python: mysterious error (no error was actually set)")
         return
     end
 
     if CONFIG.sysautolasttraceback
         err = C.Py_DecRef(C.PyImport_ImportModule("sys"), PYERR()) do sys
-            err = C.PyObject_SetAttrString(sys, "last_type", isnull(e.tptr) ? C.Py_None() : e.tptr)
+            err = C.PyObject_SetAttrString(sys, "last_type", isnull(e.tref) ? C.Py_None() : e.tref.ptr)
             ism1(err) && return PYERR()
-            err = C.PyObject_SetAttrString(sys, "last_value", isnull(e.vptr) ? C.Py_None() : e.vptr)
+            err = C.PyObject_SetAttrString(sys, "last_value", isnull(e.vref) ? C.Py_None() : e.vref.ptr)
             ism1(err) && return PYERR()
-            err = C.PyObject_SetAttrString(sys, "last_traceback", isnull(e.bptr) ? C.Py_None() : e.bptr)
+            err = C.PyObject_SetAttrString(sys, "last_traceback", isnull(e.bref) ? C.Py_None() : e.bref.ptr)
             ism1(err) && return PYERR()
             nothing
         end
@@ -85,68 +114,53 @@ function Base.showerror(io::IO, e::PyException)
     print(io, "Python: ")
 
     # print the type name
-    tname = C.Py_DecRef(C.PyObject_GetAttrString(e.tptr, "__name__")) do tnameo
-        C.PyUnicode_As(tnameo, String)
-    end
-    if tname === PYERR()
-        C.PyErr_Clear()
-        print(io, "<error while printing type>")
-    else
+    try
+        tname = @pyv String `$(e.tref).__name__`
         print(io, tname)
+    catch
+        print(io, "<error while printing type>")
     end
 
     # print the error message
-    if !isnull(e.vptr)
+    if !isnull(e.vref)
         print(io, ": ")
-        vstr = C.PyObject_StrAs(e.vptr, String)
-        if vstr === PYERR()
-            C.PyErr_Clear()
-            print(io, "<error while printing value>")
-        else
+        try
+            vstr = @pyv String `str($(e.vref))`
             print(io, vstr)
+        catch
+            print(io, "<error while printing value>")
         end
     end
 
     # print the stacktrace
-    if !isnull(e.bptr)
+    if !isnull(e.bref)
         @label pystacktrace
         println(io)
         printstyled(io, "Python stacktrace:")
-        err = C.Py_DecRef(C.PyImport_ImportModule("traceback")) do tb
-            C.Py_DecRef(C.PyObject_GetAttrString(tb, "extract_tb")) do extr
-                C.Py_DecRef(C.PyObject_CallNice(extr, C.PyObjectRef(e.bptr))) do fs
-                    nfs = C.PySequence_Length(fs)
-                    ism1(nfs) && return PYERR()
-                    for i in 1:nfs
-                        println(io)
-                        printstyled(io, " [", i, "] ")
-                        # name
-                        err = C.Py_DecRef(C.PySequence_GetItem(fs, i-1)) do f
-                            name = C.Py_DecRef(C.PyObject_GetAttrString(f, "name")) do nameo
-                                C.PyObject_StrAs(nameo, String)
-                            end
-                            name === PYERR() && return PYERR()
-                            printstyled(io, name, bold=true)
-                            printstyled(io, " at ")
-                            fname = C.Py_DecRef(C.PyObject_GetAttrString(f, "filename")) do fnameo
-                                C.PyObject_StrAs(fnameo, String)
-                            end
-                            fname === PYERR() && return PYERR()
-                            printstyled(io, fname, ":", bold=true)
-                            lineno = C.Py_DecRef(C.PyObject_GetAttrString(f, "lineno")) do linenoo
-                                C.PyObject_StrAs(linenoo, String)
-                            end
-                            lineno === PYERR() && return PYERR()
-                            printstyled(io, lineno, bold=true)
-                            nothing
-                        end
-                        err === PYERR() && return PYERR()
-                    end
+        try
+            @py ```
+            import traceback
+            $(fs :: C.PyObjectRef) = fs = traceback.extract_tb($(e.bref))
+            $(nfs :: Int) = len(fs)
+            ```
+            try
+                for i in 1:nfs
+                    @py ```
+                    f = $(fs)[$(i-1)]
+                    $(name::String) = f.name
+                    $(fname::String) = f.filename
+                    $(lineno::Int) = f.lineno
+                    ```
+                    println(io)
+                    printstyled(io, " [", i, "] ")
+                    printstyled(io, name, bold=true)
+                    printstyled(io, " at ")
+                    printstyled(io, fname, ":", lineno, bold=true)
                 end
+            finally
+                C.Py_DecRef(fs)
             end
-        end
-        if err === PYERR()
-            C.PyErr_Clear()
+        catch
             print(io, "<error while printing stacktrace>")
         end
     end

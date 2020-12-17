@@ -52,11 +52,26 @@ Base.show(io::IO, ::MIME"text/plain", c::Config) =
     end
 const CONFIG = Config()
 
-# Used to signal a Python error from functions that return general Julia objects
-struct PYERR end
+"""
+    ispyreftype(::Type{T})
 
-# Used to signal that conversion failed
-struct NOTIMPLEMENTED end
+True if `T` is a wrapper type for a single Python reference.
+
+Such objects must implement:
+- `pyptr(o::T) =` the underlying pointer (or NULL on error)
+- `unsafe_convert(::Type{CPyPtr}, o::T) = checknull(pyptr(o))`
+"""
+ispyreftype(::Type) = false
+
+"""
+    pyptr(o)
+
+Retrieve the underlying Python object pointer from o.
+"""
+function pyptr end
+
+convertref(::Type{T}, x) where {T} = ispyreftype(T) ? x : convert(T, x)
+tryconvertref(::Type{T}, x) where {T} = ispyreftype(T) ? x : tryconvert(T, x)
 
 # C API
 include("cpython/CPython.jl")
@@ -72,12 +87,17 @@ const CPyPtr = C.PyPtr
 # include("error.jl")
 # include("import.jl")
 include("gil.jl")
-
-include("PyException.jl")
-include("PyCode.jl")
-include("PyDict.jl")
-
 include("eval.jl")
+include("builtins.jl")
+
+include("PyRef.jl")
+include("PyCode.jl")
+include("PyInternedString.jl")
+include("PyException.jl")
+include("PyObject.jl")
+include("PyDict.jl")
+include("PyList.jl")
+include("PySet.jl")
 
 # # abstract interfaces
 # include("number.jl")

@@ -72,42 +72,6 @@ end
 
 PyObject_CallNice(f, args...; kwargs...) = PyObject_CallArgs(f, args, kwargs)
 
-# const PYCONVERT_RULES = IdDict{Type, Dict{PyPtr, Ptr{Cvoid}}}()
-# const PYCONVERT_RULES_CACHE = IdDict{Type, Dict{PyPtr, Any}}()
-
-# @generated PyConvert_GetRules(::Type{T}) where {T} =
-#     get!(Dict{PyPtr, Ptr{Cvoid}}, PYCONVERT_RULES, T)
-
-# function PyObject_Convert__rule(t::PyPtr)
-#     name = Py_DecRef(PyObject_GetAttrString(t, "__name__")) do tnameo
-#         Py_DecRef(PyObject_GetAttrString(t, "__module__")) do mnameo
-#             r = PyUnicode_TryConvert(tnameo, String)
-#             r == 1 || return PYERR()
-#             tname = takeresult(String)
-#             r = PyUnicode_TryConvert(mnameo, String)
-#             r == 1 || return PYERR()
-#             mname = takeresult(String)
-#             "$mname.$tname"
-#         end
-#     end
-#     name == PYERR() && return PYERR()
-#     PyObject_Convert__rule(t, Val(Symbol(name)))
-# end
-
-# PyObject_Convert__rule(t::PyPtr, ::Val) = nothing
-# PyObject_Convert__rule(t::PyPtr, ::Val{Symbol("builtins.NoneType")}) = Py_Is(t, Py_Type(Py_None())) ? PyNone_TryConvert : nothing
-# PyObject_Convert__rule(t::PyPtr, ::Val{Symbol("builtins.bool")}) = Py_Is(t, PyBool_Type()) ? PyBool_TryConvert : nothing
-# PyObject_Convert__rule(t::PyPtr, ::Val{Symbol("builtins.str")}) = Py_Is(t, PyUnicode_Type()) ? PyUnicode_TryConvert : nothing
-# PyObject_Convert__rule(t::PyPtr, ::Val{Symbol("builtins.bytes")}) = Py_Is(t, PyBytes_Type()) ? PyBytes_TryConvert : nothing
-# PyObject_Convert__rule(t::PyPtr, ::Val{Symbol("builtins.int")}) = Py_Is(t, PyLong_Type()) ? PyLong_TryConvert : nothing
-# PyObject_Convert__rule(t::PyPtr, ::Val{Symbol("builtins.float")}) = Py_Is(t, PyFloat_Type()) ? PyFloat_TryConvert : nothing
-# PyObject_Convert__rule(t::PyPtr, ::Val{Symbol("builtins.complex")}) = Py_Is(t, PyComplex_Type()) ? PyComplex_TryConvert : nothing
-
-# struct PyObject_Convert__rule_struct{T,F}
-#     f :: F
-# end
-# (r::PyObject_Convert__rule_struct{T,F})(o::PyPtr) where {T,F} = r.f(o, T)::Int
-
 const ERRPTR = Ptr{Cvoid}(1)
 
 const TRYCONVERT_COMPILED_RULES = IdDict{Type, Dict{PyPtr, Ptr{Cvoid}}}()
@@ -183,8 +147,8 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
     # discard rules where S is a subtype of the union of all previous S for rules with the same implementation
     # in particular this removes rules with S==Union{} and removes duplicates
     rules = [S=>rule for (i,(S,rule)) in enumerate(rules) if !(S <: Union{[S′ for (S′,rule′) in rules[1:i-1] if rule==rule′]...})]
-    println("CONVERSION RULES FOR '$(PyType_Name(t))' TO '$T':")
-    display(rules)
+    # println("CONVERSION RULES FOR '$(PyType_Name(t))' TO '$T':")
+    # display(rules)
     # make the function implementing these rules
     rulefunc = @eval (o::PyPtr) -> begin
         $((:(r = $rule(o, $T, $S)::Int; r == 0 || return r) for (S,rule) in rules)...)

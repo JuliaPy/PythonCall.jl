@@ -115,7 +115,7 @@ function Base.showerror(io::IO, e::PyException)
 
     # print the type name
     try
-        tname = @pyv String `$(e.tref).__name__`
+        tname = @pyv `$(e.tref).__name__`::String
         print(io, tname)
     catch
         print(io, "<error while printing type>")
@@ -125,7 +125,7 @@ function Base.showerror(io::IO, e::PyException)
     if !isnull(e.vref)
         print(io, ": ")
         try
-            vstr = @pyv String `str($(e.vref))`
+            vstr = @pyv `str($(e.vref))`::String
             print(io, vstr)
         catch
             print(io, "<error while printing value>")

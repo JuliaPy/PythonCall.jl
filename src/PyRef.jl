@@ -47,3 +47,20 @@ PyRef() = pynewref(CPyPtr())
 
 Base.convert(::Type{PyRef}, x::PyRef) = x
 Base.convert(::Type{PyRef}, x) = PyRef(x)
+
+# Cache some common standard modules
+for name in ["os", "io", "sys", "pprint", "collections", "collections.abc", "numbers", "fractions", "datetime", "numpy", "pandas"]
+    f = Symbol("py", replace(name, "."=>""), "module")
+    rf = Symbol("_", f)
+    @eval $rf = PyRef()
+    @eval $f(::Type{T}) where {T} = begin
+        r = $rf
+        if isnull(r.ptr)
+            m = pyimport(PyRef, $name)
+            C.Py_IncRef(m.ptr)
+            r.ptr = m.ptr
+        end
+        (r isa T) ? r : pyconvert(T, r)
+    end
+    @eval $f() = $f(PyObject)
+end

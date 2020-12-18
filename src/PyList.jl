@@ -25,15 +25,15 @@ end
 Base.unsafe_convert(::Type{CPyPtr}, x::PyList) = checknull(pyptr(x))
 C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PyList} = C.putresult(T, T(pyborrowedref(o)))
 
-# Base.length(x::PyList) = @pyv Int `len($x)`
-Base.length(x::PyList) = Int(checkm1(C.PyObject_Length(x)))
+# Base.length(x::PyList) = @pyv `len($x)`::Int
+Base.length(x::PyList) = Int(pylen(x))
 
 Base.size(x::PyList) = (length(x),)
 
 Base.getindex(x::PyList{T}, i::Integer) where {T} = begin
     checkbounds(x, i)
     # The following line implements this function, but is typically 3x slower.
-    # @pyv T `$x[$(i-1)]`
+    # @pyv `$x[$(i-1)]`::T
     p = checknull(C.PySequence_GetItem(x, i-1))
     r = C.PyObject_Convert(p, T)
     C.Py_DecRef(p)
@@ -59,9 +59,9 @@ Base.push!(x::PyList{T}, v) where {T} = (@py `$x.append($(convertref(T, v)))`; x
 
 Base.pushfirst!(x::PyList, v) = insert!(x, 1, v)
 
-Base.pop!(x::PyList{T}) where {T} = @pyv T `$x.pop()`
+Base.pop!(x::PyList{T}) where {T} = @pyv `$x.pop()`::T
 
-Base.popat!(x::PyList{T}, i::Integer) where {T} = (checkbounds(x, i); @pyv T `$x.pop($(i-1))`)
+Base.popat!(x::PyList{T}, i::Integer) where {T} = (checkbounds(x, i); @pyv `$x.pop($(i-1))`::T)
 
 Base.popfirst!(x::PyList) = pop!(x, 1)
 
@@ -72,4 +72,4 @@ Base.sort!(x::PyList; rev::Bool=false) = (@py `$x.sort(reverse=$rev)`; x)
 
 Base.empty!(x::PyList) = (@py `$x.clear()`; x)
 
-Base.copy(x::PyList) = @pyv typeof(x) `$x.copy()`
+Base.copy(x::PyList) = @pyv `$x.copy()`::typeof(x)

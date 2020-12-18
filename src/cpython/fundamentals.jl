@@ -39,6 +39,14 @@ Py_Is(o1, o2) = Base.unsafe_convert(PyPtr, o1) == Base.unsafe_convert(PyPtr, o2)
 
 @cdef :PyImport_ImportModule PyPtr (Cstring,)
 @cdef :PyImport_Import PyPtr (PyPtr,)
+@cdef :PyImport_GetModuleDict PyPtr ()
+
+PyImport_GetModule(name) = begin
+    ms = PyImport_GetModuleDict()
+    ok = PyMapping_HasKeyString(ms, name)
+    ism1(ok) && return PyPtr()
+    ok != 0 ? PyMapping_GetItemString(ms, name) : PyPtr()
+end
 
 ### ERRORS
 

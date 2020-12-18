@@ -7,10 +7,10 @@ for n in [:Container, :Hashable, :Iterable, :Iterator, :Reversible, :Generator, 
     tr = Symbol(p, :__ref)
     c = Symbol(p, :_Check)
     @eval const $tr = Ref(PyPtr())
-    @eval $t() = begin
+    @eval $t(doimport::Bool=true) = begin
         ptr = $tr[]
         isnull(ptr) || return ptr
-        a = PyImport_ImportModule("collections.abc")
+        a = doimport ? PyImport_ImportModule("collections.abc") : PyImport_GetModule("collections.abc")
         isnull(a) && return a
         b = PyObject_GetAttrString(a, $(string(n)))
         Py_DecRef(a)
@@ -18,8 +18,8 @@ for n in [:Container, :Hashable, :Iterable, :Iterator, :Reversible, :Generator, 
         $tr[] = b
     end
     @eval $c(o) = begin
-        t = $t()
-        isnull(t) && return Cint(-1)
+        t = $t(false)
+        isnull(t) && return (PyErr_IsSet() ? Cint(-1) : Cint(0))
         PyObject_IsInstance(o, t)
     end
 end

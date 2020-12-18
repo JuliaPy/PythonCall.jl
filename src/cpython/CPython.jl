@@ -48,6 +48,8 @@ include("set.jl")
 include("buffer.jl")
 include("collections.jl")
 include("range.jl")
+include("ctypes.jl")
+include("numpy.jl")
 
 __init__() = begin
     PyObject_TryConvert_AddRules("builtins.NoneType", [
@@ -134,26 +136,66 @@ __init__() = begin
         PyRationalABC_Type,
         PyIntegralABC_Type,
     ])
-    ### Numpy
-    # These aren't necessary but exist just to preserve the datatype.
-    # TODO: Access these types directly.
-    # TODO: Compound types?
-    PyObject_TryConvert_AddRule("numpy.int8", Int8, PyLongable_TryConvertRule_integer, 100)
-    PyObject_TryConvert_AddRule("numpy.int16", Int16, PyLongable_TryConvertRule_integer, 100)
-    PyObject_TryConvert_AddRule("numpy.int32", Int32, PyLongable_TryConvertRule_integer, 100)
-    PyObject_TryConvert_AddRule("numpy.int64", Int64, PyLongable_TryConvertRule_integer, 100)
-    PyObject_TryConvert_AddRule("numpy.int128", Int128, PyLongable_TryConvertRule_integer, 100)
-    PyObject_TryConvert_AddRule("numpy.uint8", UInt8, PyLongable_TryConvertRule_integer, 100)
-    PyObject_TryConvert_AddRule("numpy.uint16", UInt16, PyLongable_TryConvertRule_integer, 100)
-    PyObject_TryConvert_AddRule("numpy.uint32", UInt32, PyLongable_TryConvertRule_integer, 100)
-    PyObject_TryConvert_AddRule("numpy.uint64", UInt64, PyLongable_TryConvertRule_integer, 100)
-    PyObject_TryConvert_AddRule("numpy.uint128", UInt128, PyLongable_TryConvertRule_integer, 100)
-    PyObject_TryConvert_AddRule("numpy.float16", Float16, PyFloatable_TryConvertRule_convert, 100)
-    PyObject_TryConvert_AddRule("numpy.float32", Float32, PyFloatable_TryConvertRule_convert, 100)
-    PyObject_TryConvert_AddRule("numpy.float64", Float64, PyFloatable_TryConvertRule_convert, 100)
-    PyObject_TryConvert_AddRule("numpy.complex32", Complex{Float16}, PyComplexable_TryConvertRule_convert, 100)
-    PyObject_TryConvert_AddRule("numpy.complex64", Complex{Float32}, PyComplexable_TryConvertRule_convert, 100)
-    PyObject_TryConvert_AddRule("numpy.complex128", Complex{Float64}, PyComplexable_TryConvertRule_convert, 100)
+
+    ### ctypes
+    for (p,T) in [("char", Cchar), ("wchar", Cwchar_t), ("byte", Cchar), ("ubyte", Cuchar),
+        ("short", Cshort), ("ushort", Cushort), ("int", Cint), ("uint", Cuint),
+        ("long", Clong), ("ulong", Culong), ("longlong", Culonglong), ("size_t", Csize_t),
+        ("ssize_t", Cssize_t), ("float", Cfloat), ("double", Cdouble), #=("longdouble", ???),=#
+        ("char_p", Ptr{Cchar}), ("wchar_p", Ptr{Cwchar_t}), ("void_p", Ptr{Cvoid})]
+        isptr = occursin("_p", p)
+        isfloat = occursin("float", p) || occursin("double", p)
+        isint = !(isfloat || isptr)
+        isreal = isint || isfloat
+        PyObject_TryConvert_AddRules("ctypes.c_$p", [
+            (p=="char_p" ? Cstring : p=="wchar_p" ? Cwstring : Union{}, PySimpleCData_TryConvert_value{T,false}()),
+            (T, PySimpleCData_TryConvert_value{T,false}()),
+            (isint ? Integer : Union{}, PySimpleCData_TryConvert_value{T,true}()),
+            (isint ? Rational : Union{}, PySimpleCData_TryConvert_value{T,true}()),
+            (isreal ? Float64 : Union{}, PySimpleCData_TryConvert_value{T,false}()),
+            (isreal ? BigFloat : Union{}, PySimpleCData_TryConvert_value{T,false}()),
+            (isreal ? Float32 : Union{}, PySimpleCData_TryConvert_value{T,false}()),
+            (isreal ? Float16 : Union{}, PySimpleCData_TryConvert_value{T,false}()),
+            (isreal ? AbstractFloat : Union{}, PySimpleCData_TryConvert_value{T,true}()),
+            (isreal ? Real : Union{}, PySimpleCData_TryConvert_value{T,true}()),
+            (isreal ? Number : Union{}, PySimpleCData_TryConvert_value{T,true}()),
+            (isptr ? Ptr : Union{}, PySimpleCData_TryConvert_value{T,false}()),
+            (Any, PySimpleCData_TryConvert_value{T,true}()),
+        ])
+    end
+
+    ### numpy
+    # TODO: Compound types
+    # TODO: datetime64, timedelta64
+    for (p,T) in [("int8", Int8), ("int16", Int16), ("int32", Int32), ("int64", Int64),
+        ("int128", Int128), ("uint8", UInt8), ("uint16", UInt16), ("uint32", UInt32),
+        ("uint64", UInt64), ("uint128", UInt128), ("float16", Float16), ("float32", Float32),
+        ("float64", Float64), ("complex32", Complex{Float16}),
+        ("complex64", Complex{Float32}), ("complex128", Complex{Float64})]
+        isint = occursin("int", p)
+        isfloat = occursin("float", p)
+        iscomplex = occursin("complex", p)
+        isreal = isint || isfloat
+        PyObject_TryConvert_AddRules("numpy.$p", [
+            (T, PyNumpySimpleData_TryConvert_value{T,false}(), 100),
+            (isint ? Integer : Union{}, PyNumpySimpleData_TryConvert_value{T,true}()),
+            (isint ? Rational : Union{}, PyNumpySimpleData_TryConvert_value{T,true}()),
+            (isreal ? Float64 : Union{}, PyNumpySimpleData_TryConvert_value{T,false}()),
+            (isreal ? BigFloat : Union{}, PyNumpySimpleData_TryConvert_value{T,false}()),
+            (isreal ? Float32 : Union{}, PyNumpySimpleData_TryConvert_value{T,false}()),
+            (isreal ? Float16 : Union{}, PyNumpySimpleData_TryConvert_value{T,false}()),
+            (isreal ? AbstractFloat : Union{}, PyNumpySimpleData_TryConvert_value{T,true}()),
+            (isreal ? Real : Union{}, PyNumpySimpleData_TryConvert_value{T,true}()),
+            (iscomplex ? Complex{Float64} : Union{}, PyNumpySimpleData_TryConvert_value{T,false}()),
+            (iscomplex ? Complex{BigFloat} : Union{}, PyNumpySimpleData_TryConvert_value{T,false}()),
+            (iscomplex ? Complex{Float32} : Union{}, PyNumpySimpleData_TryConvert_value{T,false}()),
+            (iscomplex ? Complex{Float16} : Union{}, PyNumpySimpleData_TryConvert_value{T,false}()),
+            (iscomplex ? (Complex{T} where {T<:AbstractFloat}) : Union{}, PyNumpySimpleData_TryConvert_value{T,true}()),
+            (iscomplex ? (Complex{T} where {T<:Real}) : Union{}, PyNumpySimpleData_TryConvert_value{T,true}()),
+            (Number, PyNumpySimpleData_TryConvert_value{T,true}()),
+            (Any, PyNumpySimpleData_TryConvert_value{T,true}()),
+        ])
+    end
 end
 
 end

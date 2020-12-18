@@ -44,7 +44,7 @@ Base.iterate(x::PySet) = begin
     iterate(x, pynewref(it))
 end
 
-# Base.length(x::PySet) = @pyv Int `len($x)`
+# Base.length(x::PySet) = @pyv `len($x)`::Int
 Base.length(x::PySet) = Int(checkm1(C.PyObject_Length(x)))
 
 Base.in(_v, x::PySet{T}) where {T} = begin
@@ -64,7 +64,7 @@ Base.delete!(x::PySet{T}, _v) where {T} = begin
     x
 end
 
-Base.pop!(x::PySet{T}) where {T} = @pyv T `$x.pop()`
+Base.pop!(x::PySet{T}) where {T} = @pyv `$x.pop()`::T
 
 Base.pop!(x::PySet{T}, _v) where {T} = begin
     v = tryconvert(T, _v)
@@ -80,4 +80,4 @@ end
 
 Base.empty!(x::PySet) = (@py `$x.clear()`; x)
 
-Base.copy(x::PySet) = @pyv typeof(x) `$x.copy()`
+Base.copy(x::PySet) = @pyv `$x.copy()`::typeof(x)

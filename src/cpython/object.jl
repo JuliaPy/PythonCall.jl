@@ -75,21 +75,53 @@ PyObject_CallNice(f, args...; kwargs...) = PyObject_CallArgs(f, args, kwargs)
 
 const ERRPTR = Ptr{Cvoid}(1)
 
+"""
+Mapping of Julia types to mappings of Python types to compiled functions implementing the conversion.
+
+That is, `ccall(TRYCONVERT_COMPILED_RULES[T][Py_Type(o)], Int, (PyPtr,), o)` attempts to convert `o` to a `T`.
+On success, this returns `1` and the result can be obtained with `takeresult(T)`.
+Otherwise returns `0` if no conversion was possible, or `-1` on error.
+"""
 const TRYCONVERT_COMPILED_RULES = IdDict{Type, Dict{PyPtr, Ptr{Cvoid}}}()
-const TRYCONVERT_RULES = Dict{String, Vector{Tuple{Int, Type, Function}}}()
-const TRYCONVERT_EXTRATYPES = Vector{Function}()
+
+"""
+Mapping of type names to lists of rules.
+
+A rule is a triple `(priority, type, impl)`.
+
+Rules are applied in priority order, then in MRO order, then in the order in this list. You should currently only use the following values:
+- `0` (the default) for most rules.
+- `100` for "canonical" rules which are the preferred way to convert a type, e.g. `float` to `Float64`.
+- `-100` for "last ditch" rules once all other options have been exhausted (currently used for anything to `PyObject` or `PyRef`).
+
+The rule is applied only when the `type` has non-trivial intersection with the target type `T`.
+
+Finally `impl` is the function implementing the conversion.
+Its signature is `(o, T, S)` where `o` is the `PyPtr` object to convert, `T` is the desired type, and `S = typeintersect(T, type)`.
+On success it returns `putresult(T, x)` where `x` is the converted value (this stores the result and returns `1`).
+If conversion was not possible, returns `0` (indicating we move on to the next rule in the list).
+On error, returns `-1`.
+"""
+const TRYCONVERT_RULES = Dict{String, Vector{Tuple{Int, Type, Any}}}()
+
+"""
+List of niladic functions returning a pointer to a type. We always check for subtypes of these types in TryConvert.
+
+Can also return NULL. Without an error set, this indicates the type is not loaded (e.g. its containing module is not loaded) and therefore is skipped over.
+"""
+const TRYCONVERT_EXTRATYPES = Vector{Any}()
 
 @generated PyObject_TryConvert_CompiledRules(::Type{T}) where {T} =
     get!(Dict{PyPtr, Ptr{Cvoid}}, TRYCONVERT_COMPILED_RULES, T)
 PyObject_TryConvert_Rules(n::String) =
     get!(Vector{Tuple{Int, Type, Function}}, TRYCONVERT_RULES, n)
-PyObject_TryConvert_AddRule(n::String, T::Type, rule::Function, priority::Int=0) =
+PyObject_TryConvert_AddRule(n::String, T, rule, priority=0) =
     push!(PyObject_TryConvert_Rules(n), (priority, T, rule))
 PyObject_TryConvert_AddRules(n::String, xs) =
     for x in xs
         PyObject_TryConvert_AddRule(n, x...)
     end
-PyObject_TryConvert_AddExtraType(tfunc::Function) =
+PyObject_TryConvert_AddExtraType(tfunc) =
     push!(TRYCONVERT_EXTRATYPES, tfunc)
 PyObject_TryConvert_AddExtraTypes(xs) =
     for x in xs
@@ -110,7 +142,7 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
     basemros = Vector{PyPtr}[tmro]
     for xtf in TRYCONVERT_EXTRATYPES
         xt = xtf()
-        isnull(xt) && return ERRPTR
+        isnull(xt) && (PyErr_IsSet() ? (return ERRPTR) : continue)
         xb = PyPtr()
         for b in tmro
             r = PyObject_IsSubclass(b, xt)
@@ -166,7 +198,7 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
     # These are the conversion rules of the types found above
 
     # gather rules of the form (priority, order, S, rule) from these types
-    rules = Tuple{Int, Int, Type, Function}[]
+    rules = Tuple{Int, Int, Type, Any}[]
     for n in allnames
         for (p, S, r) in PyObject_TryConvert_Rules(n)
             push!(rules, (p, length(rules)+1, S, r))

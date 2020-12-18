@@ -39,6 +39,7 @@ cpyop(::Type{T}, f::Function, args...) where {T} = checknullconvert(T, cpyop(f, 
 Convert Python object `x` to a `T`.
 """
 pyconvert(::Type{T}, x) where {T} = checknullconvert(T, C.PyObject_From(x))
+export pyconvert
 
 """
     pyis(x, y) :: Bool
@@ -64,6 +65,7 @@ pyis(x::X, y::Y) where {X,Y} = begin
     end
     xo == yo
 end
+export pyis
 
 """
     pyhasattr(x, k) :: Bool
@@ -129,8 +131,19 @@ export pyrepr
 Equivalent to `str(x)` in Python.
 """
 pystr(::Type{T}, x) where {T} = cpyop(T, C.PyObject_Str, x)
+pystr(::Type{T}, x::Union{String, SubString{String}, Vector{Int8}, Vector{UInt8}}) where {T} = checknullconvert(T, C.PyUnicode_From(x))
 pystr(x) = pystr(PyObject, x)
 export pystr
+
+"""
+    pybytes([T=PyObject,] x) :: T
+
+Equivalent to `str(x)` in Python.
+"""
+pybytes(::Type{T}, x) where {T} = cpyop(T, C.PyObject_Bytes, x)
+pybytes(::Type{T}, x::Union{Vector{Int8}, Vector{UInt8}, String, SubString{String}}) where {T} = checknullconvert(T, C.PyBytes_From(x))
+pybytes(x) = pybytes(PyObject, x)
+export pybytes
 
 """
     pylen(x) :: Integer
@@ -626,3 +639,87 @@ Equivalent to `-x` in Python.
 pyinv(::Type{T}, x) where {T} = cpyop(T, C.PyNumber_Invert, x)
 pyinv(x) = pyinv(typeof(x), x)
 export pyinv
+
+# pycollist(x::AbstractArray{T,N}) where {T,N} = N==0 ? pyobject(x[]) : pylist_fromiter(pycollist(y) for y in eachslice(x; dims=N))
+# export pycollist
+
+# pyrowlist(x::AbstractArray{T,N}) where {T,N} = N==0 ? pyobject(x[]) : pylist_fromiter(pyrowlist(y) for y in eachslice(x; dims=1))
+# export pyrowlist
+
+"""
+    pyiter([T=PyObject] x) :: T
+
+Equivalent to `iter(x)` in Python.
+"""
+pyiter(::Type{T}, x) where {T} = cpyop(T, C.PyObject_GetIter, x)
+pyiter(x) = pyiter(PyObject, x)
+export pyiter
+
+"""
+    pywith(f, o, d=nothing)
+
+Equivalent to `with o as x: f(x)` in Python, where `x` is a `PyObject`.
+
+On success, the value of `f(x)` is returned.
+If an exception occurs but is suppressed then `d` is returned.
+"""
+function pywith(f, _o, d=nothing)
+    o = PyObject(_o)
+    t = pytype(o)
+    exit = t.__exit__
+    value = t.__enter__(o)
+    exited = false
+    try
+        return f(value)
+    catch err
+        if err isa PyException
+            exited = true
+            if pytruth(exit(o, err.tref, err.vref, err.bref))
+                rethrow()
+            else
+                return d
+            end
+        else
+            rethrow()
+        end
+    finally
+        exited || exit(o, pynone(), pynone(), pynone())
+    end
+end
+export pywith
+
+### MULTIMEDIA DISPLAY
+
+for (mime, method) in [
+    (MIME"text/html", "_repr_html_"), (MIME"text/markdown", "_repr_markdown_"),
+    (MIME"text/json", "_repr_json_"), (MIME"application/javascript", "_repr_javascript_"),
+    (MIME"application/pdf", "_repr_pdf_"), (MIME"image/jpeg", "_repr_jpeg_"),
+    (MIME"image/png", "_repr_png_"), (MIME"image/svg+xml", "_repr_svg_"),
+    (MIME"text/latex", "_repr_latex_")
+    ]
+
+    T = istextmime(mime()) ? String : Vector{UInt8}
+    @eval begin
+        _py_mime_show(io::IO, mime::$mime, o) = begin
+            try
+                x = pycall(PyRef, pygetattr(Ref, o, $method))
+                pyis(x, pynone(PyRef)) || return write(io, pyconvert($T, x))
+            catch
+            end
+            throw(MethodError(show, (io, mime, o)))
+        end
+        _py_mime_showable(::$mime, o) = begin
+            try
+                x = pycall(PyRef, pygetattr(PyRef, o, $method))
+                if pyis(x, pynone(PyRef))
+                    false
+                else
+                    pyconvert($T, x)
+                    true
+                end
+            catch
+                false
+            end
+        end
+    end
+end

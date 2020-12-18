@@ -78,14 +78,7 @@ include("cpython/CPython.jl")
 
 const C = CPython
 const CPyPtr = C.PyPtr
-# struct CPyObjRef
-#     ptr :: CPyPtr
-# end
 
-# # core
-# include("object.jl")
-# include("error.jl")
-# include("import.jl")
 include("gil.jl")
 include("eval.jl")
 include("builtins.jl")
@@ -98,72 +91,12 @@ include("PyObject.jl")
 include("PyDict.jl")
 include("PyList.jl")
 include("PySet.jl")
+include("PyIterable.jl")
+include("PyIO.jl")
+include("PyPandasDataFrame.jl")
 
-# # abstract interfaces
-# include("number.jl")
-# include("sequence.jl")
+include("gui.jl")
 
-# # fundamental objects
-# include("type.jl")
-# include("none.jl")
-
-# # numeric objects
-# include("bool.jl")
-# include("int.jl")
-# include("float.jl")
-# include("complex.jl")
-
-# # sequence objects
-# include("str.jl")
-# include("bytes.jl")
-# include("bytearray.jl")
-# include("tuple.jl")
-# include("list.jl")
-
-# # mapping objects
-# include("dict.jl")
-# include("set.jl")
-
-# # function objects
-# include("function.jl")
-
-# # other objects
-# include("slice.jl")
-# include("range.jl")
-
-# # standard library
-# include("builtins.jl")
-# include("eval.jl")
-# include("stdlib.jl")
-# include("io.jl")
-# include("fraction.jl")
-# include("datetime.jl")
-# include("collections.jl")
-
-# # other packages
-# include("pandas.jl")
-# include("numpy.jl")
-# include("matplotlib.jl")
-
-# # other Julia wrappers around Python values
-# include("PyIterable.jl")
-# include("PyList.jl")
-# include("PyDict.jl")
-# include("PySet.jl")
-# include("PyObjectArray.jl")
-# include("PyBuffer.jl")
-# include("PyArray.jl")
-# include("PyIO.jl")
-
-# # other functionality
-# include("convert.jl")
-# include("newtype.jl")
-# include("julia.jl")
-# include("base.jl")
-# include("pywith.jl")
-# include("gui.jl")
-
-# initialize
 include("init.jl")
 
 end # module

@@ -1,18 +1,19 @@
 pyeval_filename(src) = isfile(string(src.file)) ? "$(src.file):$(src.line)" : "julia:$(src.file):$(src.line)"
 
-pyeval_macro(filename, mode, args...) = begin
-    # find the code argument
-    icode = findfirst(args) do x
-        x isa Expr && x.head == :macrocall && x.args[1] == :(`foo`).args[1]
+pyeval_macro(filename, mode, codearg, args...) = begin
+    # unwrap rettype
+    if codearg isa Expr && codearg.head == :(::)
+        rettypearg = codearg.args[end]
+        codearg = codearg.args[1]
+    else
+        rettypearg = mode == :eval ? PyObject : Nothing
     end
-    icode in (1,2) || error()
-    code = args[icode].args[end]
-    # the return type
-    rettypearg = icode==2 ? args[1] : mode==:eval ? PyObject : Nothing
+    # extract the code
+    code = codearg.args[end]
     # parse the remaining arguments - the first one is optionally the locals, the rest are var=value pairs to include in the locals
     kvs = []
     locals = nothing
-    for (i,arg) in enumerate(args[icode+1:end])
+    for (i,arg) in enumerate(args)
         if arg isa Expr && arg.head == :(=) && arg.args[1] isa Symbol
             push!(kvs, arg.args[1] => arg.args[2])
         elseif i == 1
@@ -45,7 +46,7 @@ pyeval_macro(filename, mode, args...) = begin
     # currently only the pattern "^ $(...) =" is recognized as a LHS
     # TODO: multiple assignment
     # TODO: mutating assignment
-    islhs = [((match(r"[\n;]\s*$", codechunks[i])!==nothing) || (i==1 && match(r"^\s*$", codechunks[i])!==nothing)) && match(r"^\s*=($|[^=])", codechunks[i+1])!==nothing for (i,ex) in enumerate(interps)]
+    islhs = [((match(r"[\n;=]\s*$", codechunks[i])!==nothing) || (i==1 && match(r"^\s*$", codechunks[i])!==nothing)) && match(r"^\s*=($|[^=])", codechunks[i+1])!==nothing for (i,ex) in enumerate(interps)]
     # do the interpolation
     intvars = ["_jl_interp_$(i)_" for i in 1:length(interps)]
     for (k,v,lhs) in zip(intvars, interps, islhs)
@@ -134,10 +135,14 @@ end
 Executes the given Python code.
 
 Julia values can be interpolated using the usual `\$(...)` syntax.
-Additionally, assignment to interpolations is supported: e.g. `\$(x::T) = ...` will convert the right hand side to a `T` and assign it to `x`.
-Currently only single assignment is supported, and it must occur at the start of a line; multiple assignment (`\$x, \$y = ...`) or mutating assignment (`\$x += ...`) will not be recognized.
 
-The globals are `pyglobals`. The locals are `locals`, if given, otherwise a temporary scope is created. Extra values to be interted into the scope can be given with extra `var=val` arguments.
+Additionally, assignment to interpolations is supported: e.g. `\$(x::T) = ...` will convert the right hand side to a `T` and assign it to `x`.
+- Currently only single assignment is supported. Multiple assignment (`\$x, \$y = ...`) or mutating assignment (`\$x += ...`) will not be recognized.
+- What actually happens is that the assignment is to a temporary Python variable, which is then read when execution successfully finishes.
+  Hence if an exception occurs, no assignments will happen.
+
+The globals are `pyglobals`.
+The locals are `locals`, if given, otherwise a temporary scope is created. Extra values to be interted into the scope can be given with extra `var=val` arguments.
 """
 macro py(args...)
     pyeval_macro(pyeval_filename(__source__), :exec, args...)
@@ -145,23 +150,26 @@ end
 export @py
 
 """
-    py"..."
+    @pyg `...` [var=val, ...]
 
-Shorthand for ```@py `...` ```.
+Executes the given Python code in the global scope.
+
+This is simply shorthand for ```@py `...` pyglobals ``` (see [`@py`](@ref)).
 """
-macro py_str(code::String)
-    pyeval_macro(pyeval_filename(__source__), :exec, Expr(:macrocall, :(`foo`).args[1], code))
+macro pyg(code, args...)
+    :(@py $code $(esc(:pyglobals)) $(args...))
 end
-export @py_str
+export @pyg
 
 """
-    @pyv [rettype] `...` [locals] [var=val, ...]
+    @pyv `...`[::rettype] [locals] [var=val, ...]
 
 Evaluate the given Python code.
 
 Julia values can be interpolated using the usual `\$(...)` syntax.
 
-The globals are `pyglobals`. The locals are `locals`, if given, otherwise a temporary scope is created. Extra values to be interted into the scope can be given with extra `var=val` arguments.
+The globals are `pyglobals`.
+The locals are `locals`, if given, otherwise a temporary scope is created. Extra values to be interted into the scope can be given with extra `var=val` arguments.
 
 The result is converted to a `rettype`, which defaults to `PyObject`.
 """
@@ -169,16 +177,6 @@ macro pyv(args...)
     pyeval_macro(pyeval_filename(__source__), :eval, args...)
 end
 export @pyv
-
-"""
-    pyv"..."
-
-Shorthand for ```@pyv `...` ```.
-"""
-macro pyv_str(code::String)
-    pyeval_macro(pyeval_filename(__source__), :eval, Expr(:macrocall, :(`foo`).args[1], code))
-end
-export @pyv_str
 
 """
     py`...` :: PyCode

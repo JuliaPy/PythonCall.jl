@@ -72,7 +72,7 @@ Base.length(x::PyDict) = Int(pylen(x))
 
 Base.empty!(x::PyDict) = (@py `$x.clear()`; x)
 
-Base.copy(x::PyDict) = @pyv typeof(x) `$x.copy()`
+Base.copy(x::PyDict) = @pyv `$x.copy()`::typeof(x)
 
 Base.haskey(x::PyDict{K}, _k) where {K} = begin
     k = tryconvertref(K, _k)

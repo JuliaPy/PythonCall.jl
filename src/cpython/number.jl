@@ -39,10 +39,10 @@ for n in [:Number, :Complex, :Real, :Rational, :Integral]
     tr = Symbol(p, :__ref)
     c = Symbol(p, :_Check)
     @eval const $tr = Ref(PyPtr())
-    @eval $t() = begin
+    @eval $t(doimport::Bool=true) = begin
         ptr = $tr[]
         isnull(ptr) || return ptr
-        a = PyImport_ImportModule("numbers")
+        a = doimport ? PyImport_ImportModule("numbers") : PyImport_GetModule("numbers")
         isnull(a) && return a
         b = PyObject_GetAttrString(a, $(string(n)))
         Py_DecRef(a)
@@ -50,8 +50,8 @@ for n in [:Number, :Complex, :Real, :Rational, :Integral]
         $tr[] = b
     end
     @eval $c(o) = begin
-        t = $t()
-        isnull(t) && return Cint(-1)
+        t = $t(false)
+        isnull(t) && return (PyErr_IsSet() ? Cint(-1) : Cint(0))
         PyObject_IsInstance(o, t)
     end
 end

@@ -32,3 +32,26 @@
 @cdef :PyNumber_Long PyPtr (PyPtr,)
 @cdef :PyNumber_Float PyPtr (PyPtr,)
 @cdef :PyNumber_Index PyPtr (PyPtr,)
+
+for n in [:Number, :Complex, :Real, :Rational, :Integral]
+    p = Symbol(:Py, n, :ABC)
+    t = Symbol(p, :_Type)
+    tr = Symbol(p, :__ref)
+    c = Symbol(p, :_Check)
+    @eval const $tr = Ref(PyPtr())
+    @eval $t() = begin
+        ptr = $tr[]
+        isnull(ptr) || return ptr
+        a = PyImport_ImportModule("numbers")
+        isnull(a) && return a
+        b = PyObject_GetAttrString(a, $(string(n)))
+        Py_DecRef(a)
+        isnull(b) && return b
+        $tr[] = b
+    end
+    @eval $c(o) = begin
+        t = $t()
+        isnull(t) && return Cint(-1)
+        PyObject_IsInstance(o, t)
+    end
+end

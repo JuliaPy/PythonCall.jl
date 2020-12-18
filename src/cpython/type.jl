@@ -38,3 +38,8 @@ PyType_FullName(o) = begin
     # done
     "$m.$n"
 end
+
+PyType_MROAsVector(o) = begin
+    mro = PyType_MRO(o)
+    PyPtr[PyTuple_GetItem(mro, i-1) for i in 1:PyTuple_Size(mro)]
+end

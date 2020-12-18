@@ -128,7 +128,7 @@ export pyrepr
 
 Equivalent to `str(x)` in Python.
 """
-pystr(::Type{T}, x) where {T} = cpyop(T, C.PyObject_Repr, x)
+pystr(::Type{T}, x) where {T} = cpyop(T, C.PyObject_Str, x)
 pystr(x) = pystr(PyObject, x)
 export pystr
 

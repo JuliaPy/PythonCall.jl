@@ -47,6 +47,7 @@ include("dict.jl")
 include("set.jl")
 include("buffer.jl")
 include("collections.jl")
+include("range.jl")
 
 __init__() = begin
     PyObject_TryConvert_AddRules("builtins.NoneType", [
@@ -56,30 +57,36 @@ __init__() = begin
     PyObject_TryConvert_AddRules("builtins.bool", [
         (Bool, PyBool_TryConvertRule_bool, 100),
     ])
-    PyObject_TryConvert_AddRules("builtins.int", [
-        (Integer, PyLong_TryConvertRule_integer, 100),
-        (Rational, PyLong_TryConvertRule_tryconvert),
-        (Real, PyLong_TryConvertRule_tryconvert),
-        (Number, PyLong_TryConvertRule_tryconvert),
-        (Any, PyLong_TryConvertRule_tryconvert),
+    PyObject_TryConvert_AddRules("numbers.Integral", [
+        (Integer, PyLongable_TryConvertRule_integer, 100),
+        (Rational, PyLongable_TryConvertRule_tryconvert),
+        (Real, PyLongable_TryConvertRule_tryconvert),
+        (Number, PyLongable_TryConvertRule_tryconvert),
+        (Any, PyLongable_TryConvertRule_tryconvert),
     ])
     PyObject_TryConvert_AddRules("builtins.float", [
-        (Float64, PyFloat_TryConvertRule_convert, 100),
-        (BigFloat, PyFloat_TryConvertRule_convert),
-        (Float32, PyFloat_TryConvertRule_convert),
-        (Float16, PyFloat_TryConvertRule_convert),
-        (AbstractFloat, PyFloat_TryConvertRule_tryconvert),
-        (Real, PyFloat_TryConvertRule_tryconvert),
-        (Number, PyFloat_TryConvertRule_tryconvert),
+        (Float64, PyFloatable_TryConvertRule_convert, 100)
+    ])
+    PyObject_TryConvert_AddRules("numbers.Real", [
+        (Float64, PyFloatable_TryConvertRule_convert),
+        (BigFloat, PyFloatable_TryConvertRule_convert),
+        (Float32, PyFloatable_TryConvertRule_convert),
+        (Float16, PyFloatable_TryConvertRule_convert),
+        (AbstractFloat, PyFloatable_TryConvertRule_tryconvert),
+        (Real, PyFloatable_TryConvertRule_tryconvert),
+        (Number, PyFloatable_TryConvertRule_tryconvert),
     ])
     PyObject_TryConvert_AddRules("builtins.complex", [
-        (Complex{Float64}, PyComplex_TryConvertRule_convert, 100),
-        (Complex{BigFloat}, PyComplex_TryConvertRule_convert),
-        (Complex{Float32}, PyComplex_TryConvertRule_convert),
-        (Complex{Float16}, PyComplex_TryConvertRule_convert),
-        (Complex{T} where {T<:AbstractFloat}, PyComplex_TryConvertRule_tryconvert),
-        (Complex{T} where {T<:Real}, PyComplex_TryConvertRule_tryconvert),
-        (Number, PyComplex_TryConvertRule_tryconvert),
+        (Complex{Float64}, PyComplexable_TryConvertRule_convert, 100),
+    ])
+    PyObject_TryConvert_AddRules("numbers.Complex", [
+        (Complex{Float64}, PyComplexable_TryConvertRule_convert),
+        (Complex{BigFloat}, PyComplexable_TryConvertRule_convert),
+        (Complex{Float32}, PyComplexable_TryConvertRule_convert),
+        (Complex{Float16}, PyComplexable_TryConvertRule_convert),
+        (Complex{T} where {T<:AbstractFloat}, PyComplexable_TryConvertRule_tryconvert),
+        (Complex{T} where {T<:Real}, PyComplexable_TryConvertRule_tryconvert),
+        (Number, PyComplexable_TryConvertRule_tryconvert),
     ])
     PyObject_TryConvert_AddRules("builtins.bytes", [
         (Vector{UInt8}, PyBytes_TryConvertRule_vector),
@@ -95,6 +102,10 @@ __init__() = begin
     ])
     PyObject_TryConvert_AddRules("builtins.tuple", [
         (Tuple, PyIterable_ConvertRule_tuple, 100),
+    ])
+    PyObject_TryConvert_AddRules("builtins.range", [
+        (StepRange{T,S} where {T<:Integer, S<:Integer}, PyRange_TryConvertRule_steprange, 100),
+        (UnitRange{T} where {T<:Integer}, PyRange_TryConvertRule_unitrange),
     ])
     PyObject_TryConvert_AddRules("collections.abc.Iterable", [
         (Vector, PyIterable_ConvertRule_vector),
@@ -112,13 +123,37 @@ __init__() = begin
         (Dict, PyMapping_ConvertRule_dict),
     ])
     PyObject_TryConvert_AddExtraTypes([
-        ("collections.abc.Iterable", PyIterableABC_SubclassCheck),
-        ("collections.abc.Callable", PyCallableABC_SubclassCheck),
-        ("collections.abc.Sequence", PySequenceABC_SubclassCheck),
-        ("collections.abc.Mapping", PyMappingABC_SubclassCheck),
-        ("collections.abc.Set", PySetABC_SubclassCheck),
-        ("builtins.bufferable", PyType_CheckBuffer),
+        PyIterableABC_Type,
+        PyCallableABC_Type,
+        PySequenceABC_Type,
+        PyMappingABC_Type,
+        PySetABC_Type,
+        PyNumberABC_Type,
+        PyComplexABC_Type,
+        PyRealABC_Type,
+        PyRationalABC_Type,
+        PyIntegralABC_Type,
     ])
+    ### Numpy
+    # These aren't necessary but exist just to preserve the datatype.
+    # TODO: Access these types directly.
+    # TODO: Compound types?
+    PyObject_TryConvert_AddRule("numpy.int8", Int8, PyLongable_TryConvertRule_integer, 100)
+    PyObject_TryConvert_AddRule("numpy.int16", Int16, PyLongable_TryConvertRule_integer, 100)
+    PyObject_TryConvert_AddRule("numpy.int32", Int32, PyLongable_TryConvertRule_integer, 100)
+    PyObject_TryConvert_AddRule("numpy.int64", Int64, PyLongable_TryConvertRule_integer, 100)
+    PyObject_TryConvert_AddRule("numpy.int128", Int128, PyLongable_TryConvertRule_integer, 100)
+    PyObject_TryConvert_AddRule("numpy.uint8", UInt8, PyLongable_TryConvertRule_integer, 100)
+    PyObject_TryConvert_AddRule("numpy.uint16", UInt16, PyLongable_TryConvertRule_integer, 100)
+    PyObject_TryConvert_AddRule("numpy.uint32", UInt32, PyLongable_TryConvertRule_integer, 100)
+    PyObject_TryConvert_AddRule("numpy.uint64", UInt64, PyLongable_TryConvertRule_integer, 100)
+    PyObject_TryConvert_AddRule("numpy.uint128", UInt128, PyLongable_TryConvertRule_integer, 100)
+    PyObject_TryConvert_AddRule("numpy.float16", Float16, PyFloatable_TryConvertRule_convert, 100)
+    PyObject_TryConvert_AddRule("numpy.float32", Float32, PyFloatable_TryConvertRule_convert, 100)
+    PyObject_TryConvert_AddRule("numpy.float64", Float64, PyFloatable_TryConvertRule_convert, 100)
+    PyObject_TryConvert_AddRule("numpy.complex32", Complex{Float16}, PyComplexable_TryConvertRule_convert, 100)
+    PyObject_TryConvert_AddRule("numpy.complex64", Complex{Float32}, PyComplexable_TryConvertRule_convert, 100)
+    PyObject_TryConvert_AddRule("numpy.complex128", Complex{Float64}, PyComplexable_TryConvertRule_convert, 100)
 end
 
 end

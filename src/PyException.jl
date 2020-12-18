@@ -140,28 +140,21 @@ function Base.showerror(io::IO, e::PyException)
         try
             @py ```
             import traceback
-            $(fs :: C.PyObjectRef) = fs = traceback.extract_tb($(e.bref))
-            $(nfs :: Int) = len(fs)
+            $(fs :: Vector{Tuple{String, String, Int}}) = [(x.name, x.filename, x.lineno) for x in traceback.extract_tb($(e.bref))]
             ```
-            try
-                for i in 1:nfs
-                    @py ```
-                    f = $(fs)[$(i-1)]
-                    $(name::String) = f.name
-                    $(fname::String) = f.filename
-                    $(lineno::Int) = f.lineno
-                    ```
-                    println(io)
-                    printstyled(io, " [", i, "] ")
-                    printstyled(io, name, bold=true)
-                    printstyled(io, " at ")
-                    printstyled(io, fname, ":", lineno, bold=true)
-                end
-            finally
-                C.Py_DecRef(fs)
+            for (i,(name, fname, lineno)) in enumerate(fs)
+                println(io)
+                printstyled(io, " [", i, "] ")
+                printstyled(io, name, bold=true)
+                printstyled(io, " at ")
+                # if (m=match(r"^(.*):([0-9]+)$", fname)) !== nothing
+                #     fname = m.captures[1]
+                #     lineno += parse(Int, m.captures[2]) - 1
+                # end
+                printstyled(io, fname, ":", lineno, bold=true)
             end
-        catch
-            print(io, "<error while printing stacktrace>")
+        catch err
+            print(io, "<error while printing stacktrace: $err>")
         end
     end
 end

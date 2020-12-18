@@ -27,7 +27,8 @@ PyLong_From(x::Integer) = begin
     PyLong_From(y::BigInt)
 end
 
-PyLong_TryConvertRule_integer(o, ::Type{T}, ::Type{S}) where {T, S<:Integer} = begin
+# "Longable" means an 'int' or anything with an '__int__' method.
+PyLongable_TryConvertRule_integer(o, ::Type{T}, ::Type{S}) where {T, S<:Integer} = begin
     # first try to convert to Clonglong (or Culonglong if unsigned)
     x = S <: Unsigned ? PyLong_AsUnsignedLongLong(o) : PyLong_AsLongLong(o)
     if !ism1(x) || !PyErr_IsSet()
@@ -56,7 +57,7 @@ PyLong_TryConvertRule_integer(o, ::Type{T}, ::Type{S}) where {T, S<:Integer} = b
     end
 end
 
-PyLong_TryConvertRule_tryconvert(o, ::Type{T}, ::Type{S}) where {T,S} = begin
+PyLongable_TryConvertRule_tryconvert(o, ::Type{T}, ::Type{S}) where {T,S} = begin
     r = PyLong_TryConvertRule_integer(o, Integer, Integer)
     r == 1 ? putresult(T, tryconvert(S, takeresult(Integer))) : r
 end

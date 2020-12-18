@@ -45,7 +45,7 @@ pyeval_macro(filename, mode, args...) = begin
     # currently only the pattern "^ $(...) =" is recognized as a LHS
     # TODO: multiple assignment
     # TODO: mutating assignment
-    islhs = [((match(r"\n\s*$", codechunks[i])!==nothing) || (i==1 && match(r"^\s*$", codechunks[i])!==nothing)) && match(r"^\s*=($|[^=])", codechunks[i+1])!==nothing for (i,ex) in enumerate(interps)]
+    islhs = [((match(r"[\n;]\s*$", codechunks[i])!==nothing) || (i==1 && match(r"^\s*$", codechunks[i])!==nothing)) && match(r"^\s*=($|[^=])", codechunks[i+1])!==nothing for (i,ex) in enumerate(interps)]
     # do the interpolation
     intvars = ["_jl_interp_$(i)_" for i in 1:length(interps)]
     for (k,v,lhs) in zip(intvars, interps, islhs)

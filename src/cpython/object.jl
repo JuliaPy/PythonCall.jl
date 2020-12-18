@@ -37,6 +37,7 @@ PyObject_From(x::Union{Float16,Float32,Float64}) = PyFloat_From(x)
 PyObject_From(x::Complex{<:Union{Float16,Float32,Float64}}) = PyComplex_From(x)
 PyObject_From(x::Union{String,SubString{String}}) = PyUnicode_From(x)
 PyObject_From(x::Tuple) = PyTuple_From(x)
+PyObject_From(x::AbstractRange{<:Union{Bool,Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = PyRange_From(x)
 PyObject_From(x::T) where {T} =
     if ispyreftype(T)
         GC.@preserve x begin
@@ -76,7 +77,7 @@ const ERRPTR = Ptr{Cvoid}(1)
 
 const TRYCONVERT_COMPILED_RULES = IdDict{Type, Dict{PyPtr, Ptr{Cvoid}}}()
 const TRYCONVERT_RULES = Dict{String, Vector{Tuple{Int, Type, Function}}}()
-const TRYCONVERT_EXTRATYPES = Vector{Tuple{String, Function}}()
+const TRYCONVERT_EXTRATYPES = Vector{Function}()
 
 @generated PyObject_TryConvert_CompiledRules(::Type{T}) where {T} =
     get!(Dict{PyPtr, Ptr{Cvoid}}, TRYCONVERT_COMPILED_RULES, T)
@@ -88,51 +89,82 @@ PyObject_TryConvert_AddRules(n::String, xs) =
     for x in xs
         PyObject_TryConvert_AddRule(n, x...)
     end
-PyObject_TryConvert_AddExtraType(n::String, pred::Function) =
-    pushfirst!(TRYCONVERT_EXTRATYPES, (n, pred))
+PyObject_TryConvert_AddExtraType(tfunc::Function) =
+    push!(TRYCONVERT_EXTRATYPES, tfunc)
 PyObject_TryConvert_AddExtraTypes(xs) =
     for x in xs
-        PyObject_TryConvert_AddExtraType(x...)
+        PyObject_TryConvert_AddExtraType(x)
     end
 
 PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
-    # first get the MRO
-    mrotuple = PyType_MRO(t)
-    mrotypes = PyPtr[]
-    mronames = String[]
-    for i in 1:PyTuple_Size(mrotuple)
-        b = PyTuple_GetItem(mrotuple, i-1)
-        isnull(b) && return ERRPTR
-        push!(mrotypes, b)
-        n = PyType_FullName(b)
-        n === PYERR() && return ERRPTR
-        push!(mronames, n)
+
+    ### STAGE 1: Get a list of supertypes to consider.
+    #
+    # This includes the MRO of t, but also the MRO of any extra type (such as an ABC)
+    # that we explicitly check for because it may not appear the the MRO of t.
+
+    # MRO of t
+    tmro = PyType_MROAsVector(t)
+    # find the "MROs" of all base types we are considering
+    basetypes = PyPtr[t]
+    basemros = Vector{PyPtr}[tmro]
+    for xtf in TRYCONVERT_EXTRATYPES
+        xt = xtf()
+        isnull(xt) && return ERRPTR
+        xb = PyPtr()
+        for b in tmro
+            r = PyObject_IsSubclass(b, xt)
+            ism1(r) && return ERRPTR
+            r != 0 && (xb = b)
+        end
+        if xb != PyPtr()
+            push!(basetypes, xt)
+            push!(basemros, [xb; PyType_MROAsVector(xt)])
+        end
     end
-    # find any extra types
-    extranames = Dict{Int, Vector{String}}()
-    for (name, pred) in TRYCONVERT_EXTRATYPES
-        i = nothing
-        for (j,t) in enumerate(mrotypes)
-            r = pred(t)
-            if r === PYERR()
-                return ERRPTR
-            elseif r isa Bool
-                if r
-                    i = j
-                end
-            elseif r isa Cint
-                r == -1 && return ERRPTR
-                if r != 0
-                    i = j
-                end
-            else
-                @warn "Unexpected return type from a Python convert extra-types predicate: `$(typeof(r))`"
+    for b in basetypes[2:end]
+        push!(basemros, [b])
+    end
+    # merge the MROs
+    # this is a port of the merge() function at the bottom of:
+    # https://www.python.org/download/releases/2.3/mro/
+    alltypes = PyPtr[]
+    while !isempty(basemros)
+        # find the first head not contained in any tail
+        ok = false
+        b = PyPtr()
+        for bmro in basemros
+            b = bmro[1]
+            if all(bmro -> b ∉ bmro[2:end], basemros)
+                ok = true
+                break
             end
         end
-        i === nothing || push!(get!(Vector{String}, extranames, i), name)
+        ok || error("Fatal inheritence error: could not merge MROs")
+        # add it to the list
+        push!(alltypes, b)
+        # remove it from consideration
+        for bmro in basemros
+            filter!(x -> x != b, bmro)
+        end
+        # remove empty lists
+        filter!(x -> !isempty(x), basemros)
     end
-    # merge all the type names together
-    allnames = [n for (i,mroname) in enumerate(mronames) for n in [mroname; get(Vector{String}, extranames, i)]]
+    allnames = map(PyType_FullName, alltypes)
+    # as a special case, we check for the buffer type explicitly
+    for (i,b) in reverse(collect(enumerate(alltypes)))
+        if PyType_CheckBuffer(b)
+            insert!(allnames, i+1, "<buffer>")
+            break
+        end
+    end
+    # check the original MRO is preserved
+    @assert filter(x -> x in tmro, alltypes) == tmro
+
+    ### STAGE 2: Get a list of applicable conversion rules.
+    #
+    # These are the conversion rules of the types found above
+
     # gather rules of the form (priority, order, S, rule) from these types
     rules = Tuple{Int, Int, Type, Function}[]
     for n in allnames
@@ -147,8 +179,11 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
     # discard rules where S is a subtype of the union of all previous S for rules with the same implementation
     # in particular this removes rules with S==Union{} and removes duplicates
     rules = [S=>rule for (i,(S,rule)) in enumerate(rules) if !(S <: Union{[S′ for (S′,rule′) in rules[1:i-1] if rule==rule′]...})]
-    # println("CONVERSION RULES FOR '$(PyType_Name(t))' TO '$T':")
-    # display(rules)
+
+    @debug "PYTHON CONVERSION FOR '$(PyType_FullName(t))' to '$T'" basetypes=map(PyType_FullName, basetypes) alltypes=allnames rules=rules
+
+    ### STAGE 3: Define and compile a function implementing these rules.
+
     # make the function implementing these rules
     rulefunc = @eval (o::PyPtr) -> begin
         $((:(r = $rule(o, $T, $S)::Int; r == 0 || return r) for (S,rule) in rules)...)

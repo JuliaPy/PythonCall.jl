@@ -6,7 +6,6 @@ for n in [:Container, :Hashable, :Iterable, :Iterator, :Reversible, :Generator, 
     t = Symbol(p, :_Type)
     tr = Symbol(p, :__ref)
     c = Symbol(p, :_Check)
-    ct = Symbol(p, :_SubclassCheck)
     @eval const $tr = Ref(PyPtr())
     @eval $t() = begin
         ptr = $tr[]
@@ -18,17 +17,10 @@ for n in [:Container, :Hashable, :Iterable, :Iterator, :Reversible, :Generator, 
         isnull(b) && return b
         $tr[] = b
     end
-    @eval $c(_o) = GC.@preserve _o begin
-        o = Base.unsafe_convert(PyPtr, _o)
+    @eval $c(o) = begin
         t = $t()
         isnull(t) && return Cint(-1)
         PyObject_IsInstance(o, t)
-    end
-    @eval $ct(_o) = GC.@preserve _o begin
-        o = Base.unsafe_convert(PyPtr, _o)
-        t = $t()
-        isnull(t) && return Cint(-1)
-        PyObject_IsSubclass(o, t)
     end
 end
 

@@ -29,14 +29,23 @@
 @cdef :PyObject_Call PyPtr (PyPtr, PyPtr, PyPtr)
 @cdef :PyObject_CallObject PyPtr (PyPtr, PyPtr)
 
+const PyObject_Type__ref = Ref(PyPtr())
+PyObject_Type() = pyglobal(PyObject_Type__ref, :PyBaseObject_Type)
+
 PyObject_From(x::PyObjectRef) = (Py_IncRef(x.ptr); x.ptr)
 PyObject_From(x::Nothing) = PyNone_New()
+PyObject_From(x::Missing) = PyNone_New()
 PyObject_From(x::Bool) = PyBool_From(x)
 PyObject_From(x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}) = PyLong_From(x)
+PyObject_From(x::Rational{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = PyFraction_From(x)
 PyObject_From(x::Union{Float16,Float32,Float64}) = PyFloat_From(x)
 PyObject_From(x::Complex{<:Union{Float16,Float32,Float64}}) = PyComplex_From(x)
 PyObject_From(x::Union{String,SubString{String}}) = PyUnicode_From(x)
+PyObject_From(x::Char) = PyUnicode_From(string(x))
 PyObject_From(x::Tuple) = PyTuple_From(x)
+PyObject_From(x::AbstractVector) = PyList_From(x) # REMOVE WHEN PYJULIA IMPLEMENTED
+PyObject_From(x::AbstractDict) = PyDict_From(x) # REMOVE WHEN PYJULIA IMPLEMENTED
+PyObject_From(x::AbstractSet) = PySet_From(x) # REMOVE WHEN PYJULIA IMPLEMENTED
 PyObject_From(x::AbstractRange{<:Union{Bool,Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = PyRange_From(x)
 PyObject_From(x::T) where {T} =
     if ispyreftype(T)

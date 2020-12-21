@@ -33,10 +33,15 @@ def _init_():
     lib.jl_eval_string.restype = c.c_void_p
     res = lib.jl_eval_string(
         '''
-        ENV["PYTHONJL_LIBPTR"] = "{}"
-        import Python
-        Python.with_gil() do
-            Python.pyimport("sys").modules["julia"].Main = Python.pyjl(Main)
+        try
+            ENV["PYTHONJL_LIBPTR"] = "{}"
+            import Python
+            Python.with_gil() do
+                Python.pyimport("sys").modules["julia"].Main = Python.pyjlraw(Main)
+            end
+        catch err
+            @error "Error loading Python.jl" err=err
+            rethrow()
         end
         '''.format(c.pythonapi._handle).encode('utf8'))
     if res is None:

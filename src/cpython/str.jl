@@ -11,34 +11,43 @@ PyUnicode_CheckExact(o) = Py_TypeCheckExact(o, PyUnicode_Type())
 PyUnicode_From(s::Union{Vector{Cuchar},Vector{Cchar},String,SubString{String}}) =
     PyUnicode_DecodeUTF8(pointer(s), sizeof(s), C_NULL)
 
-PyUnicode_TryConvertRule_string(o, ::Type{T}, ::Type{String}) where {T} = begin
+PyUnicode_AsString(o) = begin
     b = PyUnicode_AsUTF8String(o)
-    isnull(b) && return -1
-    r = PyBytes_TryConvertRule_string(b, String, String)
+    isnull(b) && return ""
+    r = PyBytes_AsString(b)
     Py_DecRef(b)
-    r == 1 || return r
-    moveresult(String, T)
+    r
 end
 
-PyUnicode_TryConvertRule_vector(o, ::Type{T}, ::Type{S}) where {T, S<:Vector} = begin
+PyUnicode_AsVector(o, ::Type{T}=UInt8) where {T} = begin
     b = PyUnicode_AsUTF8String(o)
-    isnull(b) && return -1
-    r = PyBytes_TryConvertRule_vector(b, S, S)
+    isnull(b) && return T[]
+    r = PyBytes_AsVector(b, T)
     Py_DecRef(b)
-    r == 1 || return r
-    moveresult(S, T)
+    r
+end
+
+PyUnicode_TryConvertRule_string(o, ::Type{T}, ::Type{String}) where {T} = begin
+    r = PyUnicode_AsString(o)
+    isempty(r) && PyErr_IsSet() && return -1
+    putresult(T, r)
+end
+
+PyUnicode_TryConvertRule_vector(o, ::Type{T}, ::Type{Vector{X}}) where {T, X} = begin
+    r = PyUnicode_AsVector(o, X)
+    isempty(r) && PyErr_IsSet() && return -1
+    putresult(T, r)
 end
 
 PyUnicode_TryConvertRule_symbol(o, ::Type{T}, ::Type{Symbol}) where {T} = begin
-    r = PyUnicode_TryConvertRule_string(o, String, String)
-    r == 1 || return r
-    putresult(T, Symbol(takeresult(String)))
+    r = PyUnicode_AsString(o)
+    isempty(r) && PyErr_IsSet() && return -1
+    putresult(T, Symbol(r))
 end
 
 PyUnicode_TryConvertRule_char(o, ::Type{T}, ::Type{Char}) where {T} = begin
-    r = PyUnicode_TryConvertRule_string(o, String, String)
-    r == 1 || return r
-    s = takeresult(String)
-    length(s) == 1 || return 0
-    putresult(T, first(s))
+    r = PyUnicode_AsString(o)
+    isempty(r) && PyErr_IsSet() && return -1
+    length(r) == 1 || return 0
+    putresult(T, first(r))
 end

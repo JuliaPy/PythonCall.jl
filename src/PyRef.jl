@@ -14,7 +14,7 @@ mutable struct PyRef
         x = new(CPyPtr(ptr))
         borrowed && C.Py_IncRef(ptr)
         finalizer(x) do x
-            if !CONFIG.isinitialized
+            if CONFIG.isinitialized
                 ptr = x.ptr
                 if !isnull(ptr)
                     with_gil(false) do

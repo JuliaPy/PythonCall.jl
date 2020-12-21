@@ -93,9 +93,12 @@ include("PyList.jl")
 include("PySet.jl")
 include("PyIterable.jl")
 include("PyIO.jl")
+include("PyBuffer.jl")
 include("PyPandasDataFrame.jl")
 
+include("julia.jl")
 include("gui.jl")
+include("matplotlib.jl")
 
 include("init.jl")
 

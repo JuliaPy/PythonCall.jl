@@ -640,12 +640,6 @@ pyinv(::Type{T}, x) where {T} = cpyop(T, C.PyNumber_Invert, x)
 pyinv(x) = pyinv(typeof(x), x)
 export pyinv
 
-# pycollist(x::AbstractArray{T,N}) where {T,N} = N==0 ? pyobject(x[]) : pylist_fromiter(pycollist(y) for y in eachslice(x; dims=N))
-# export pycollist
-
-# pyrowlist(x::AbstractArray{T,N}) where {T,N} = N==0 ? pyobject(x[]) : pylist_fromiter(pyrowlist(y) for y in eachslice(x; dims=1))
-# export pyrowlist
-
 """
     pyiter([T=PyObject] x) :: T
 
@@ -687,6 +681,101 @@ function pywith(f, _o, d=nothing)
     end
 end
 export pywith
+
+"""
+    pytuple([T=PyObject,] [x]) :: T
+
+Create a Python `tuple` from the elements of `x`.
+"""
+pytuple(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PyTuple_Type(), x) : C.PyTuple_FromIter(x))
+pytuple(::Type{T}) where {T} = checknullconvert(T, C.PyTuple_New(0))
+pytuple(x) = pytuple(PyObject, x)
+pytuple() = pytuple(PyObject)
+export pytuple
+
+"""
+    pylist([T=PyObject,] [x]) :: T
+
+Create a Python `list` from the elements of `x`.
+"""
+pylist(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PyList_Type(), x) : C.PyList_FromIter(x))
+pylist(::Type{T}) where {T} = checknullconvert(T, C.PyList_New(0))
+pylist(x) = pylist(PyObject, x)
+pylist() = pylist(PyObject)
+export pylist
+
+"""
+    pycollist([T=PyObject,] x::AbstractArray) :: T
+
+Create a nested Python `list`-of-`list`s from the elements of `x`. For matrices, this is a list of columns.
+"""
+pycollist(::Type{T}, x::AbstractArray) where {T} = ndims(x)==0 ? pyconvert(T, x[]) : pylist(T, pycollist(PyRef, y) for y in eachslice(x; dims=ndims(x)))
+pycollist(x::AbstractArray) = pycollist(PyObject, x)
+export pycollist
+
+"""
+    pyrowlist([T=PyObject,] x::AbstractArray) :: T
+
+Create a nested Python `list`-of-`list`s from the elements of `x`. For matrices, this is a list of rows.
+"""
+pyrowlist(::Type{T}, x::AbstractArray) where {T} = ndims(x)==0 ? pyconvert(T, x[]) : pylist(T, pyrowlist(PyRef, y) for y in eachslice(x; dims=1))
+pyrowlist(x::AbstractArray) = pyrowlist(PyObject, x)
+export pyrowlist
+
+"""
+    pyset([T=PyObject,] [x]) :: T
+
+Create a Python `set` from the elements of `x`.
+"""
+pyset(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PySet_Type(), x) : C.PySet_FromIter(x))
+pyset(::Type{T}) where {T} = checknullconvert(T, C.PySet_New(C_NULL))
+pyset(x) = pyset(PyObject, x)
+pyset() = pyset(PyObject)
+export pyset
+
+"""
+    pyfrozenset([T=PyObject,] [x]) :: T
+
+Create a Python `frozenset` from the elements of `x`.
+"""
+pyfrozenset(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PyFrozenSet_Type(), x) : C.PyFrozenSet_FromIter(x))
+pyfrozenset(::Type{T}) where {T} = checknullconvert(T, C.PyFrozenSet_New(C_NULL))
+pyfrozenset(x) = pyfrozenset(PyObject, x)
+pyfrozenset() = pyfrozenset(PyObject)
+export pyfrozenset
+
+"""
+    pydict([T=PyObject,] [x]) :: T
+
+Create a Python `dict` from the key-value pairs in `x`.
+"""
+pydict(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PyDict_Type(), x) : C.PyDict_FromPairs(x))
+pydict(::Type{T}) where {T} = checknullconvert(T, C.PyDict_New())
+pydict(x) = pydict(PyObject, x)
+pydict() = pydict(PyObject)
+export pydict
+
+"""
+    pyslice([T=PyObject,] [start,] stop, [step]) :: T
+
+Equivalent to `slice(start, stop, step)` in Python (or `start:stop:step` while indexing).
+"""
+pyslice(::Type{T}, x) where {T} = cpyop(T, x->C.PySlice_New(C_NULL, x, C_NULL), x)
+pyslice(::Type{T}, x, y) where {T} = cpyop(T, (x,y)->C.PySlice_New(x, y, C_NULL), x, y)
+pyslice(::Type{T}, x, y, z) where {T} = cpyop(T, C.PySlice_New, x, y, z)
+pyslice(x) = pyslice(PyObject, x)
+pyslice(x, y) = pyslice(PyObject, x, y)
+pyslice(x, y, z) = pyslice(PyObject, x, y, z)
+export pyslice
+
+"""
+    pyellipsis([T=PyObject])
+
+Equivalent to `Ellipsis` in Python (or `...` while indexing).
+"""
+pyellipsis(::Type{T}) where {T} = checknullconvert(T, C.PyEllipsis_New())
+pyellipsis() = pyellipsis(PyObject)
+export pyellipsis
 
 ### MULTIMEDIA DISPLAY
 

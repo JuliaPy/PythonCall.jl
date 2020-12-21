@@ -10,20 +10,31 @@ PyBytes_CheckExact(o) = Py_TypeCheckExact(o, PyBytes_Type())
 PyBytes_From(s::Union{Vector{Cuchar},Vector{Cchar},String,SubString{String}}) =
     PyBytes_FromStringAndSize(pointer(s), sizeof(s))
 
-PyBytes_TryConvertRule_vector(o, ::Type{T}, ::Type{Vector{X}}) where {T,X} = begin
+PyBytes_AsString(o) = begin
     ptr = Ref{Ptr{Cchar}}()
     len = Ref{Py_ssize_t}()
     err = PyBytes_AsStringAndSize(o, ptr, len)
-    ism1(err) && return -1
-    v = copy(Base.unsafe_wrap(Vector{X}, Ptr{X}(ptr[]), len[]))
+    ism1(err) && return ""
+    Base.unsafe_string(ptr[], len[])
+end
+
+PyBytes_AsVector(o, ::Type{T}=UInt8) where {T} = begin
+    T in (Int8, UInt8) || throw(MethodError(PyBytes_AsVector, (o, T)))
+    ptr = Ref{Ptr{Cchar}}()
+    len = Ref{Py_ssize_t}()
+    err = PyBytes_AsStringAndSize(o, ptr, len)
+    ism1(err) && return T[]
+    copy(Base.unsafe_wrap(Vector{T}, Ptr{T}(ptr[]), len[]))
+end
+
+PyBytes_TryConvertRule_vector(o, ::Type{T}, ::Type{Vector{X}}) where {T,X} = begin
+    v = PyBytes_AsVector(o, X)
+    isempty(v) && PyErr_IsSet() && return -1
     return putresult(T, v)
 end
 
 PyBytes_TryConvertRule_string(o, ::Type{T}, ::Type{String}) where {T} = begin
-    ptr = Ref{Ptr{Cchar}}()
-    len = Ref{Py_ssize_t}()
-    err = PyBytes_AsStringAndSize(o, ptr, len)
-    ism1(err) && return -1
-    v = Base.unsafe_string(ptr[], len[])
+    v = PyBytes_AsString(o)
+    isempty(v) && PyErr_IsSet() && return -1
     return putresult(T, v)
 end

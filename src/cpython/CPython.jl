@@ -50,6 +50,13 @@ include("collections.jl")
 include("range.jl")
 include("ctypes.jl")
 include("numpy.jl")
+include("slice.jl")
+include("fraction.jl")
+include("newtype.jl")
+include("juliaerror.jl")
+include("juliabase.jl")
+include("juliaraw.jl")
+include("arg.jl")
 
 __init__() = begin
     PyObject_TryConvert_AddRules("builtins.NoneType", [
@@ -123,6 +130,9 @@ __init__() = begin
     ])
     PyObject_TryConvert_AddRules("collections.abc.Mapping", [
         (Dict, PyMapping_ConvertRule_dict),
+    ])
+    PyObject_TryConvert_AddRules("julia.ValueBase", [
+        (Any, PyJuliaValue_TryConvert_any),
     ])
     PyObject_TryConvert_AddExtraTypes([
         PyIterableABC_Type,

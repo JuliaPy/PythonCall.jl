@@ -11,14 +11,14 @@ PyFloat_CheckExact(o) = Py_TypeCheckExact(o, PyFloat_Type())
 PyFloat_From(o::Union{Float16,Float32,Float64}) = PyFloat_FromDouble(o)
 
 # "Floatable" means a 'float' or anything with a '__float__' method
-PyFloatable_TryConvertRule_convert(o, ::Type{T}, ::Type{S}) where {T,S} = begin
+PyFloatable_TryConvertRule_convert(o, ::Type{S}) where {S} = begin
     x = PyFloat_AsDouble(o)
     ism1(x) && PyErr_IsSet() && return -1
-    putresult(T, convert(S, x))
+    putresult(convert(S, x))
 end
 
-PyFloatable_TryConvertRule_tryconvert(o, ::Type{T}, ::Type{S}) where {T,S} = begin
+PyFloatable_TryConvertRule_tryconvert(o, ::Type{S}) where {S} = begin
     x = PyFloat_AsDouble(o)
     ism1(x) && PyErr_IsSet() && return -1
-    putresult(T, tryconvert(S, x))
+    putresult(tryconvert(S, x))
 end

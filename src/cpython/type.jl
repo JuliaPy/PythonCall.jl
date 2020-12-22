@@ -2,7 +2,7 @@
 @cdef :PyType_Ready Cint (PyPtr,)
 
 Py_Type(o) = GC.@preserve o UnsafePtr(Base.unsafe_convert(PyPtr, o)).type[!]
-Py_TypeCheck(o, t) = PyType_IsSubtype(Py_Type(o), t)
+Py_TypeCheck(o, t) = PyType_IsSubtype(Py_Type(o), t) != 0
 Py_TypeCheckExact(o, t) = Py_Type(o) == Base.unsafe_convert(PyPtr, t)
 Py_TypeCheckFast(o, f) = PyType_IsSubtypeFast(Py_Type(o), f)
 
@@ -24,17 +24,15 @@ PyType_FullName(o) = begin
     # get __module__
     mo = PyObject_GetAttrString(o, "__module__")
     isnull(mo) && return PYERR()
-    r = PyUnicode_TryConvertRule_string(mo, String, String)
+    m = PyUnicode_AsString(mo)
     Py_DecRef(mo)
-    r == 1 || return PYERR()
-    m = takeresult(String)
+    isempty(m) && PyErr_IsSet() && return PYERR()
     # get __qualname__
     no = PyObject_GetAttrString(o, "__qualname__")
     isnull(no) && return PYERR()
-    r = PyUnicode_TryConvertRule_string(no, String, String)
+    n = PyUnicode_AsString(no)
     Py_DecRef(no)
-    r == 1 || return PYERR()
-    n = takeresult(String)
+    isempty(n) && PyErr_IsSet() && return PYERR()
     # done
     "$m.$n"
 end

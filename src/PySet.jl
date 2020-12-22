@@ -23,7 +23,7 @@ pyptr(x::PySet) = begin
     ptr
 end
 Base.unsafe_convert(::Type{CPyPtr}, x::PySet) = checknull(pyptr(x))
-C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PySet} = C.putresult(T, T(pyborrowedref(o)))
+C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PySet} = C.putresult(T(pyborrowedref(o)))
 
 Base.iterate(x::PySet{T}, it::PyRef) where {T} = begin
     ptr = C.PyIter_Next(it)

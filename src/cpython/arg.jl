@@ -76,7 +76,7 @@ PyArg_Find(args::PyPtr, kwargs::PyPtr, i::Union{Int,Nothing}, k::Union{String,No
         return PyPtr()
     end
 
-PyArg_GetArg(::Type{T}, name::String, args::PyPtr, kwargs::PyPtr=PyPtr(), i::Union{Int,Nothing}=nothing, k::Union{String,Nothing}=nothing, d::Union{PyPtr,NODEFAULT}=NODEFAULT()) where {T} = begin
+PyArg_GetArg(::Type{T}, name::String, args::PyPtr, kwargs::PyPtr=PyPtr(), i::Union{Int,Nothing}=nothing, k::Union{String,Nothing}=nothing, d::Union{T,NODEFAULT}=NODEFAULT()) where {T} = begin
     ro = PyArg_Find(args, kwargs, i, k)
     if isnull(ro)
         if k !== nothing
@@ -96,14 +96,14 @@ PyArg_GetArg(::Type{T}, name::String, args::PyPtr, kwargs::PyPtr=PyPtr(), i::Uni
             PyErr_SetString(PyExc_TypeError(), "Argument $(k !== nothing ? "'$k'" : i !== nothing ? "$i" : error("impossible")) to $name() must be convertible to a Julia '$T'")
             return -1
         else
-            putresult(T, d)
+            putresult(d)
             return 0
         end
     else
         return 0
     end
 end
-PyArg_GetArg(::Type{T}, name::String, args::PyPtr, i::Union{Int,Nothing}, k::Union{String,Nothing}=nothing, d::Union{PyPtr,NODEFAULT}=NODEFAULT()) where {T} =
+PyArg_GetArg(::Type{T}, name::String, args::PyPtr, i::Union{Int,Nothing}, k::Union{String,Nothing}=nothing, d::Union{T,NODEFAULT}=NODEFAULT()) where {T} =
     PyArg_GetArg(T, name, args, PyPtr(), i, k, d)
-PyArg_GetArg(::Type{T}, name::String, args::PyPtr, kwargs::PyPtr, k::Union{String,Nothing}, d::Union{PyPtr, NODEFAULT}=NODEFAULT()) where {T} =
+PyArg_GetArg(::Type{T}, name::String, args::PyPtr, kwargs::PyPtr, k::Union{String,Nothing}, d::Union{T, NODEFAULT}=NODEFAULT()) where {T} =
     PyArg_GetArg(T, name, args, kwargs, nothing, k, d)

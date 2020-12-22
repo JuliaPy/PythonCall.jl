@@ -27,27 +27,27 @@ PyUnicode_AsVector(o, ::Type{T}=UInt8) where {T} = begin
     r
 end
 
-PyUnicode_TryConvertRule_string(o, ::Type{T}, ::Type{String}) where {T} = begin
+PyUnicode_TryConvertRule_string(o, ::Type{String}) = begin
     r = PyUnicode_AsString(o)
     isempty(r) && PyErr_IsSet() && return -1
-    putresult(T, r)
+    putresult(r)
 end
 
-PyUnicode_TryConvertRule_vector(o, ::Type{T}, ::Type{Vector{X}}) where {T, X} = begin
+PyUnicode_TryConvertRule_vector(o, ::Type{Vector{X}}) where {X} = begin
     r = PyUnicode_AsVector(o, X)
     isempty(r) && PyErr_IsSet() && return -1
-    putresult(T, r)
+    putresult(r)
 end
 
-PyUnicode_TryConvertRule_symbol(o, ::Type{T}, ::Type{Symbol}) where {T} = begin
+PyUnicode_TryConvertRule_symbol(o, ::Type{Symbol}) = begin
     r = PyUnicode_AsString(o)
     isempty(r) && PyErr_IsSet() && return -1
-    putresult(T, Symbol(r))
+    putresult(Symbol(r))
 end
 
-PyUnicode_TryConvertRule_char(o, ::Type{T}, ::Type{Char}) where {T} = begin
+PyUnicode_TryConvertRule_char(o, ::Type{Char}) = begin
     r = PyUnicode_AsString(o)
     isempty(r) && PyErr_IsSet() && return -1
     length(r) == 1 || return 0
-    putresult(T, first(r))
+    putresult(first(r))
 end

@@ -74,7 +74,7 @@ export PyPandasDataFrame
 ispyreftype(::Type{PyPandasDataFrame}) = true
 pyptr(df::PyPandasDataFrame) = df.ref
 Base.unsafe_convert(::Type{CPyPtr}, df::PyPandasDataFrame) = checknull(pyptr(df))
-C.PyObject_TryConvert__initial(o, ::Type{PyPandasDataFrame}) = C.putresult(PyPandasDataFrame, PyPandasDataFrame(pyborrowedref(o)))
+C.PyObject_TryConvert__initial(o, ::Type{PyPandasDataFrame}) = C.putresult(PyPandasDataFrame(pyborrowedref(o)))
 
 Base.show(io::IO, x::PyPandasDataFrame) = print(io, pystr(String, x))
 Base.show(io::IO, mime::MIME, o::PyPandasDataFrame) = _py_mime_show(io, mime, o)

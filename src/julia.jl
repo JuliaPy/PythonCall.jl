@@ -14,6 +14,15 @@ pyjlraw(x) = pyjlraw(PyObject, x)
 export pyjlraw
 
 """
+    pyjl([T=PyObject,] x)
+
+Wrap `x` as a Python `julia.AnyValue` (or subclass) object.
+"""
+pyjl(::Type{T}, x) where {T} = checknullconvert(T, C.PyJuliaValue_From(x))
+pyjl(x) = pyjl(PyObject, x)
+export pyjl
+
+"""
     pyjlgetvalue()
 """
 pyjlgetvalue(o) = pyisjl(o) ? cpyop(C.PyJuliaValue_GetValue, o) : error("Not a Julia value")

@@ -43,7 +43,20 @@ PyMappingMethods_Create(c, x::Dict) = PyMappingMethods_Create(c; x...)
 PyMappingMethods_Create(c, x::NamedTuple) = PyMappingMethods_Create(c; x...)
 
 PySequenceMethods_Create(c, x::PySequenceMethods) = x
-PySequenceMethods_Create(c; opts...) = C.PySequenceMethods(; [k => (v isa Ptr ? v : v isa Base.CFunction ? cacheptr!(c, v) : error()) for (k,v) in pairs(opts)]...)
+PySequenceMethods_Create(c;
+    length=C_NULL, concat=C_NULL, repeat=C_NULL, item=C_NULL, ass_item=C_NULL,
+    contains=C_NULL, inplace_concat=C_NULL, inplace_repeat=C_NULL,
+) =
+    PySequenceMethods(
+        length = @cachefuncptr!(c, length, Py_ssize_t, (PyPtr,)),
+        concat = @cachefuncptr!(c, concat, PyPtr, (PyPtr, PyPtr)),
+        repeat = @cachefuncptr!(c, repeat, PyPtr, (PyPtr, Py_ssize_t)),
+        item = @cachefuncptr!(c, item, PyPtr, (PyPtr, Py_ssize_t)),
+        ass_item = @cachefuncptr!(c, ass_item, Cint, (PyPtr, Py_ssize_t, PyPtr)),
+        contains = @cachefuncptr!(c, contains, Cint, (PyPtr, PyPtr)),
+        inplace_concat = @cachefuncptr!(c, inplace_concat, PyPtr, (PyPtr, PyPtr)),
+        inplace_repeat = @cachefuncptr!(c, inplace_repeat, PyPtr, (PyPtr, Py_ssize_t)),
+    )
 PySequenceMethods_Create(c, x::Dict) = PySequenceMethods_Create(c; x...)
 PySequenceMethods_Create(c, x::NamedTuple) = PySequenceMethods_Create(c; x...)
 
@@ -60,7 +73,7 @@ PyMethodDef_Create(c, x::PyMethodDef) = x
 PyMethodDef_Create(c; name=C_NULL, meth=C_NULL, flags=0, doc=C_NULL) =
     PyMethodDef(
         name = cachestrptr!(c, name),
-        meth = iszero(flags & Py_METH_VARARGS) ? @cachefuncptr!(c, meth, PyPtr, (PyPtr, PyPtr)) : @cachefuncptr!(c, meth, PyPtr, (PyPtr, PyPtr, PyPtr)),
+        meth = iszero(flags & Py_METH_KEYWORDS) ? @cachefuncptr!(c, meth, PyPtr, (PyPtr, PyPtr)) : @cachefuncptr!(c, meth, PyPtr, (PyPtr, PyPtr, PyPtr)),
         flags = flags,
         doc = cachestrptr!(c, doc),
     )
@@ -83,7 +96,7 @@ PyType_Create(c;
     type=C_NULL, name, as_number=C_NULL, as_mapping=C_NULL, as_sequence=C_NULL,
     as_buffer=C_NULL, methods=C_NULL, getset=C_NULL, dealloc=C_NULL, getattr=C_NULL,
     setattr=C_NULL, repr=C_NULL, hash=C_NULL, call=C_NULL, str=C_NULL, getattro=C_NULL,
-    setattro=C_NULL, doc=C_NULL, iter=C_NULL, iternext=C_NULL, opts...
+    setattro=C_NULL, doc=C_NULL, iter=C_NULL, iternext=C_NULL, richcompare=C_NULL, opts...
 ) = begin
     type = cacheptr!(c, type)
     name = cachestrptr!(c, name)
@@ -114,12 +127,13 @@ PyType_Create(c;
     setattro = @cachefuncptr!(c, setattro, Cint, (PyPtr, PyPtr, PyPtr))
     doc = cachestrptr!(c, doc)
     iter = @cachefuncptr!(c, iter, PyPtr, (PyPtr,))
-    iternext = @cachefuncptr!(c, iter, PyPtr, (PyPtr,))
+    iternext = @cachefuncptr!(c, iternext, PyPtr, (PyPtr,))
+    richcompare = @cachefuncptr!(c, richcompare, PyPtr, (PyPtr, PyPtr, Cint))
     PyTypeObject(;
         ob_base=PyVarObject(ob_base=PyObject(type=type)), name=name, as_number=as_number,
         as_mapping=as_mapping, as_sequence=as_sequence, as_buffer=as_buffer,
         methods=methods, getset=getset, dealloc=dealloc, getattr=getattr, setattr=setattr,
         repr=repr, hash=hash, call=call, str=str, getattro=getattro, setattro=setattro,
-        iter=iter, iternext=iternext, opts...
+        iter=iter, iternext=iternext, richcompare=richcompare, opts...
     )
 end

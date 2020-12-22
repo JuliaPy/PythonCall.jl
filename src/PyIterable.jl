@@ -13,7 +13,7 @@ export PyIterable
 ispyreftype(::Type{<:PyIterable}) = true
 pyptr(x::PyIterable) = pyptr(x.ref)
 Base.unsafe_convert(::Type{CPyPtr}, x::PyIterable) = checknull(pyptr(x))
-C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PyIterable} = C.putresult(T, T(pyborrowedref(o)))
+C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PyIterable} = C.putresult(T(pyborrowedref(o)))
 
 Base.length(x::PyIterable) = Int(pylen(x))
 

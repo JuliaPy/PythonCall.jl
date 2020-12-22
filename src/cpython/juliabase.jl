@@ -55,7 +55,7 @@ PyJuliaBaseValue_Type() = begin
     ptr
 end
 
-PyJuliaValue_Check(o) = Py_TypeCheck(o, PyJuliaBaseValue_Type()) != 0
+PyJuliaValue_Check(o) = Py_TypeCheck(o, PyJuliaBaseValue_Type())
 
 PyJuliaValue_GetValue(__o) = begin
     _o = Base.cconvert(PyPtr, __o)
@@ -76,6 +76,12 @@ PyJuliaValue_SetValue(__o, v) = begin
 end
 
 PyJuliaValue_New(t, v) = begin
+    if isnull(t)
+        if !PyErr_IsSet()
+            PyErr_SetString(PyExc_Exception(), "Got NULL type with no error set")
+        end
+        return PyPtr()
+    end
     bt = PyJuliaBaseValue_Type()
     isnull(bt) && return PyPtr()
     PyType_IsSubtype(t, bt) != 0 || (PyErr_SetString(PyExc_TypeError(), "Expecting a subtype of 'julia.ValueBase'"); return PyPtr())
@@ -92,7 +98,7 @@ PyJuliaBaseValue_New(v) = begin
     PyJuliaValue_New(t, v)
 end
 
-PyJuliaValue_TryConvert_any(o, ::Type{T}, ::Type{S}) where {T,S} = begin
+PyJuliaValue_TryConvert_any(o, ::Type{S}) where {S} = begin
     x = PyJuliaValue_GetValue(o)
-    putresult(T, tryconvert(S, x))
+    putresult(tryconvert(S, x))
 end

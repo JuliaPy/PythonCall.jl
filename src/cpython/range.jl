@@ -31,7 +31,7 @@ PyRange_From(r::AbstractRange{<:Integer}) =
 steptype(::Type{<:(StepRange{A,B} where {A})}) where {B} = B
 steptype(::Type{<:StepRange}) = Any
 
-PyRange_TryConvertRule_steprange(o, ::Type{T}, ::Type{S}) where {T,S<:StepRange} = begin
+PyRange_TryConvertRule_steprange(o, ::Type{S}) where {S<:StepRange} = begin
     A = _typeintersect(Integer, eltype(S))
     B = _typeintersect(Integer, steptype(S))
     # get start
@@ -57,10 +57,10 @@ PyRange_TryConvertRule_steprange(o, ::Type{T}, ::Type{S}) where {T,S<:StepRange}
     c = takeresult(A)
     # success
     a′, c′ = promote(a, c - oftype(c, sign(b)))
-    putresult(T, tryconvert(S, StepRange(a′, b, c′)))
+    putresult(tryconvert(S, StepRange(a′, b, c′)))
 end
 
-PyRange_TryConvertRule_unitrange(o, ::Type{T}, ::Type{S}) where {T,S<:UnitRange} = begin
+PyRange_TryConvertRule_unitrange(o, ::Type{S}) where {S<:UnitRange} = begin
     A = _typeintersect(Integer, eltype(S))
     # get step
     bo = PyObject_GetAttrString(o, "step")
@@ -86,5 +86,5 @@ PyRange_TryConvertRule_unitrange(o, ::Type{T}, ::Type{S}) where {T,S<:UnitRange}
     c = takeresult(A)
     # success
     a′, c′ = promote(a, c - oftype(c, 1))
-    putresult(T, tryconvert(S, UnitRange(a′, c′)))
+    putresult(tryconvert(S, UnitRange(a′, c′)))
 end

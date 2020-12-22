@@ -1,7 +1,7 @@
 module CPython
 
 using Libdl
-import ..Python: CONFIG, isnull, ism1, PYERR, NOTIMPLEMENTED, _typeintersect, tryconvert, ispyreftype, pyptr, putresult, takeresult, moveresult, CACHE, Python
+import ..Python: CONFIG, isnull, ism1, PYERR, NOTIMPLEMENTED, _typeintersect, tryconvert, ispyreftype, pyptr, putresult, takeresult, CACHE, Python
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
 
@@ -56,6 +56,12 @@ include("newtype.jl")
 include("juliaerror.jl")
 include("juliabase.jl")
 include("juliaraw.jl")
+include("juliaany.jl")
+include("juliaiterator.jl")
+include("juliatype.jl")
+include("juliadict.jl")
+include("juliaarray.jl")
+include("juliavector.jl")
 include("arg.jl")
 
 __init__() = begin
@@ -132,7 +138,7 @@ __init__() = begin
         (Dict, PyMapping_ConvertRule_dict),
     ])
     PyObject_TryConvert_AddRules("julia.ValueBase", [
-        (Any, PyJuliaValue_TryConvert_any),
+        (Any, PyJuliaValue_TryConvert_any, 200),
     ])
     PyObject_TryConvert_AddExtraTypes([
         PyIterableABC_Type,

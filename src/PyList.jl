@@ -23,7 +23,7 @@ pyptr(x::PyList) = begin
     ptr
 end
 Base.unsafe_convert(::Type{CPyPtr}, x::PyList) = checknull(pyptr(x))
-C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PyList} = C.putresult(T, T(pyborrowedref(o)))
+C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PyList} = C.putresult(T(pyborrowedref(o)))
 
 # Base.length(x::PyList) = @pyv `len($x)`::Int
 Base.length(x::PyList) = Int(pylen(x))

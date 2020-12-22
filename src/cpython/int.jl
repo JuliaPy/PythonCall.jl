@@ -28,12 +28,12 @@ PyLong_From(x::Integer) = begin
 end
 
 # "Longable" means an 'int' or anything with an '__int__' method.
-PyLongable_TryConvertRule_integer(o, ::Type{T}, ::Type{S}) where {T, S<:Integer} = begin
+PyLongable_TryConvertRule_integer(o, ::Type{S}) where {S<:Integer} = begin
     # first try to convert to Clonglong (or Culonglong if unsigned)
     x = S <: Unsigned ? PyLong_AsUnsignedLongLong(o) : PyLong_AsLongLong(o)
     if !ism1(x) || !PyErr_IsSet()
         # success
-        return putresult(T, tryconvert(S, x))
+        return putresult(tryconvert(S, x))
     elseif PyErr_IsSet(PyExc_OverflowError())
         # overflows Clonglong or Culonglong
         PyErr_Clear()
@@ -44,12 +44,12 @@ PyLongable_TryConvertRule_integer(o, ::Type{T}, ::Type{S}) where {T, S<:Integer}
             # try converting to String then BigInt then S
             so = PyObject_Str(o)
             isnull(so) && return -1
-            r = PyUnicode_TryConvertRule_string(so, String, String)
+            s = PyUnicode_AsString(so)
             Py_DecRef(so)
-            r == 1 || return r
-            y = tryparse(BigInt, takeresult(String))
+            isempty(s) && PyErr_IsSet() && return -1
+            y = tryparse(BigInt, s)
             y === nothing && (PyErr_SetString(PyExc_ValueError(), "Cannot convert this '$(PyType_Name(Py_Type(o)))' to a Julia 'BigInt' because its string representation cannot be parsed as an integer"); return -1)
-            return putresult(T, tryconvert(S, y))
+            return putresult(tryconvert(S, y))
         end
     else
         # other error
@@ -57,7 +57,7 @@ PyLongable_TryConvertRule_integer(o, ::Type{T}, ::Type{S}) where {T, S<:Integer}
     end
 end
 
-PyLongable_TryConvertRule_tryconvert(o, ::Type{T}, ::Type{S}) where {T,S} = begin
-    r = PyLong_TryConvertRule_integer(o, Integer, Integer)
-    r == 1 ? putresult(T, tryconvert(S, takeresult(Integer))) : r
+PyLongable_TryConvertRule_tryconvert(o, ::Type{S}) where {S} = begin
+    r = PyLongable_TryConvertRule_integer(o, Integer)
+    r == 1 ? putresult(tryconvert(S, takeresult(Integer))) : r
 end

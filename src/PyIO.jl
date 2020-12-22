@@ -37,7 +37,7 @@ export PyIO
 ispyreftype(::Type{PyIO}) = true
 pyptr(io::PyIO) = pyptr(io.ref)
 Base.unsafe_convert(::Type{CPyPtr}, io::PyIO) = checknull(pyptr(io))
-C.PyObject_TryConvert__initial(o, ::Type{PyIO}) = C.putresult(PyIO, PyIO(pyborrowedref(o)))
+C.PyObject_TryConvert__initial(o, ::Type{PyIO}) = C.putresult(PyIO(pyborrowedref(o)))
 
 """
     PyIO(f, o; ...)

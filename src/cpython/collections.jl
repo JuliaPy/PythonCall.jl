@@ -1,3 +1,13 @@
+PyABC_Register(s, t) = begin
+    r = PyObject_GetAttrString(t, "register")
+    isnull(r) && return Cint(-1)
+    u = PyObject_CallNice(r, PyObjectRef(s))
+    Py_DecRef(r)
+    isnull(u) && return Cint(-1)
+    Py_DecRef(u)
+    Cint(0)
+end
+
 for n in [:Container, :Hashable, :Iterable, :Iterator, :Reversible, :Generator, :Sized,
     :Callable, :Collection, :Sequence, :MutableSequence, :ByteString, :Set, :MutableSet,
     :Mapping, :MutableMapping, :MappingView, :ItemsView, :KeysView, :ValuesView,
@@ -24,7 +34,7 @@ for n in [:Container, :Hashable, :Iterable, :Iterator, :Reversible, :Generator, 
     end
 end
 
-PyIterable_ConvertRule_vector(o, ::Type{T}, ::Type{S}) where {T, S<:Vector} = begin
+PyIterable_ConvertRule_vector(o, ::Type{S}) where {S<:Vector} = begin
     it = PyObject_GetIter(o)
     isnull(it) && return -1
     xs = S()
@@ -41,14 +51,14 @@ PyIterable_ConvertRule_vector(o, ::Type{T}, ::Type{S}) where {T, S<:Vector} = be
             return -1
         else
             Py_DecRef(it)
-            return putresult(T, xs)
+            return putresult(xs)
         end
     end
 end
-PyIterable_ConvertRule_vector(o, ::Type{T}, ::Type{Vector}) where {T} =
-    PyIterable_ConvertRule_vector(o, T, Vector{Python.PyObject})
+PyIterable_ConvertRule_vector(o, ::Type{Vector}) =
+    PyIterable_ConvertRule_vector(o, Vector{Python.PyObject})
 
-PyIterable_ConvertRule_set(o, ::Type{T}, ::Type{S}) where {T, S<:Set} = begin
+PyIterable_ConvertRule_set(o, ::Type{S}) where {S<:Set} = begin
     it = PyObject_GetIter(o)
     isnull(it) && return -1
     xs = S()
@@ -65,14 +75,14 @@ PyIterable_ConvertRule_set(o, ::Type{T}, ::Type{S}) where {T, S<:Set} = begin
             return -1
         else
             Py_DecRef(it)
-            return putresult(T, xs)
+            return putresult(xs)
         end
     end
 end
-PyIterable_ConvertRule_set(o, ::Type{T}, ::Type{Set}) where {T} =
+PyIterable_ConvertRule_set(o, ::Type{Set}) =
     PyIterable_ConvertRule_set(o, T, Set{Python.PyObject})
 
-PyIterable_ConvertRule_tuple(o, ::Type{T}, ::Type{S}) where {T,S<:Tuple} = begin
+PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
     if !(Tuple isa DataType)
         PyErr_SetString(PyExc_Exception(), "When converting Python 'tuple' to Julia 'Tuple', the destination type must be a 'DataType', i.e. not parametric and not a union. Got '$S'.")
         return -1
@@ -112,13 +122,13 @@ PyIterable_ConvertRule_tuple(o, ::Type{T}, ::Type{S}) where {T,S<:Tuple} = begin
             return -1
         else
             Py_DecRef(it)
-            return putresult(T, S(xs))
+            return putresult(S(xs))
         end
     end
 end
-PyIterable_ConvertRule_tuple(o, ::Type{T}, ::Type{Tuple{}}) where {T} = putresult(T, ())
+PyIterable_ConvertRule_tuple(o, ::Type{Tuple{}}) = putresult(())
 
-PyIterable_ConvertRule_pair(o, ::Type{T}, ::Type{Pair{K,V}}) where {T,K,V} = begin
+PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V}}) where {K,V} = begin
     it = PyObject_GetIter(o)
     isnull(it) && return -1
     # get the first item
@@ -158,20 +168,20 @@ PyIterable_ConvertRule_pair(o, ::Type{T}, ::Type{Pair{K,V}}) where {T,K,V} = beg
     end
     # done
     Py_DecRef(it)
-    putresult(T, Pair{K,V}(k, v))
+    putresult(Pair{K,V}(k, v))
 end
-PyIterable_ConvertRule_pair(o, ::Type{T}, ::Type{Pair{K}}) where {T,K} =
-    PyIterable_ConvertRule_pair(o, T, Pair{K,Python.PyObject})
-PyIterable_ConvertRule_pair(o, ::Type{T}, ::Type{Pair{K,V} where K}) where {T,V} =
-    PyIterable_ConvertRule_pair(o, T, Pair{Python.PyObject,V})
-PyIterable_ConvertRule_pair(o, ::Type{T}, ::Type{Pair}) where {T} =
-    PyIterable_ConvertRule_pair(o, T, Pair{Python.PyObject,Python.PyObject})
-PyIterable_ConvertRule_pair(o, ::Type{T}, ::Type{S}) where {T,S<:Pair} = begin
+PyIterable_ConvertRule_pair(o, ::Type{Pair{K}}) where {K} =
+    PyIterable_ConvertRule_pair(o, Pair{K,Python.PyObject})
+PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V} where K}) where {V} =
+    PyIterable_ConvertRule_pair(o, Pair{Python.PyObject,V})
+PyIterable_ConvertRule_pair(o, ::Type{Pair}) =
+    PyIterable_ConvertRule_pair(o, Pair{Python.PyObject,Python.PyObject})
+PyIterable_ConvertRule_pair(o, ::Type{S}) where {S<:Pair} = begin
     PyErr_SetString(PyExc_Exception(), "When converting Python iterable to Julia 'Pair', the destination type cannot be too complicated: the two types must either be fully specified or left unspecified. Got '$S'.")
     return -1
 end
 
-PyMapping_ConvertRule_dict(o, ::Type{T}, ::Type{S}) where {T, S<:Dict} = begin
+PyMapping_ConvertRule_dict(o, ::Type{S}) where {S<:Dict} = begin
     it = PyObject_GetIter(o)
     isnull(it) && return -1
     xs = S()
@@ -196,13 +206,13 @@ PyMapping_ConvertRule_dict(o, ::Type{T}, ::Type{S}) where {T, S<:Dict} = begin
             return -1
         else
             Py_DecRef(it)
-            return putresult(T, xs)
+            return putresult(xs)
         end
     end
 end
-PyMapping_ConvertRule_dict(o, ::Type{T}, ::Type{Dict{K}}) where {T,K} =
-    PyMapping_ConvertRule_dict(o, T, Dict{K,Python.PyObject})
-PyMapping_ConvertRule_dict(o, ::Type{T}, ::Type{Dict{K,V} where K}) where {T,V} =
-    PyMapping_ConvertRule_dict(o, T, Dict{Python.PyObject,V})
-PyMapping_ConvertRule_dict(o, ::Type{T}, ::Type{Dict}) where {T} =
-    PyMapping_ConvertRule_dict(o, T, Dict{Python.PyObject,Python.PyObject})
+PyMapping_ConvertRule_dict(o, ::Type{Dict{K}}) where {K} =
+    PyMapping_ConvertRule_dict(o, Dict{K,Python.PyObject})
+PyMapping_ConvertRule_dict(o, ::Type{Dict{K,V} where K}) where {V} =
+    PyMapping_ConvertRule_dict(o, Dict{Python.PyObject,V})
+PyMapping_ConvertRule_dict(o, ::Type{Dict}) =
+    PyMapping_ConvertRule_dict(o, Dict{Python.PyObject,Python.PyObject})

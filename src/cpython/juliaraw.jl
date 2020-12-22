@@ -1,7 +1,4 @@
-JLRAWTYPES = Dict{Type, PyPtr}()
-
 const PyJuliaRawValue_Type__ref = Ref(PyPtr())
-
 PyJuliaRawValue_Type() = begin
     ptr = PyJuliaRawValue_Type__ref[]
     if isnull(ptr)
@@ -34,12 +31,14 @@ PyJuliaRawValue_Type() = begin
     ptr
 end
 
+PyJuliaRawValue_New(x) = PyJuliaValue_New(PyJuliaRawValue_Type(), x)
+
 pyjlraw_repr(xo::PyPtr) = try
     x = PyJuliaValue_GetValue(xo)
     s = "<jl $(repr(x))>"
     PyUnicode_From(s)
 catch err
-    PyErr_SetJuliaError(err, catch_backtrace())
+    PyErr_SetJuliaError(err)
     return PyPtr()
 end
 
@@ -48,9 +47,12 @@ pyjlraw_str(xo::PyPtr) = try
     s = string(x)
     PyUnicode_From(s)
 catch err
-    PyErr_SetJuliaError(err, catch_backtrace())
+    PyErr_SetJuliaError(err)
     return PyPtr()
 end
+
+pyjl_attr_py2jl(k::String) = replace(k, r"_[b]+$" => (x -> "!"^(length(x)-1)))
+pyjl_attr_jl2py(k::String) = replace(k, r"!+$" => (x -> "_" * "b"^length(x)))
 
 pyjlraw_getattro(xo::PyPtr, ko::PyPtr) = begin
     # Try generic lookup first
@@ -64,6 +66,7 @@ pyjlraw_getattro(xo::PyPtr, ko::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)
     k = PyUnicode_AsString(ko)
     isempty(k) && PyErr_IsSet() && return PyPtr()
+    k = pyjl_attr_py2jl(k)
     try
         v = getproperty(x, Symbol(k))
         PyJuliaRawValue_New(v)
@@ -85,6 +88,7 @@ pyjlraw_setattro(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)
     k = PyUnicode_AsString(ko)
     isempty(k) && PyErr_IsSet() && return Cint(-1)
+    k = pyjl_attr_py2jl(k)
     ism1(PyObject_Convert(vo, Any)) && return Cint(-1)
     v = takeresult(Any)
     try
@@ -104,14 +108,14 @@ pyjlraw_dir(xo::PyPtr, _::PyPtr) = begin
     isnull(ro) && return PyPtr()
     x = PyJuliaValue_GetValue(xo)
     ks = try
-        collect(map(string, propertynames(x)))::Vector{String}
+        collect(map(string, propertynames(x)))
     catch err
         Py_DecRef(ro)
         PyErr_SetJuliaError(err)
         return PyPtr()
     end
     for k in ks
-        ko = PyUnicode_From(k)
+        ko = PyUnicode_From(pyjl_attr_jl2py(k))
         isnull(ko) && (Py_DecRef(ro); return PyPtr())
         err = PyList_Append(ro, ko)
         Py_DecRef(ko)
@@ -199,10 +203,4 @@ pyjlraw_setitem(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
             Cint(-1)
         end
     end
-end
-
-PyJuliaRawValue_New(x) = begin
-    t = PyJuliaRawValue_Type()
-    isnull(t) && return PyPtr()
-    PyJuliaValue_New(t, x)
 end

@@ -19,14 +19,14 @@ PyComplex_From(x::Union{Float16,Float32,Float64}) = PyComplex_FromDoubles(x, 0)
 PyComplex_From(x::Complex{<:Union{Float16,Float32,Float64}}) = PyComplex_FromDoubles(real(x), imag(x))
 
 # "Complexable" means a 'complex' or anything with a '__complex__' method
-PyComplexable_TryConvertRule_convert(o, ::Type{T}, ::Type{S}) where {T,S} = begin
+PyComplexable_TryConvertRule_convert(o, ::Type{S}) where {S} = begin
     x = PyComplex_AsComplex(o)
     ism1(x) && PyErr_IsSet() && return -1
-    putresult(T, convert(S, x))
+    putresult(convert(S, x))
 end
 
-PyComplexable_TryConvertRule_tryconvert(o, ::Type{T}, ::Type{S}) where {T,S} = begin
+PyComplexable_TryConvertRule_tryconvert(o, ::Type{S}) where {S} = begin
     x = PyComplexable_AsComplex(o)
     ism1(x) && PyErr_IsSet() && return -1
-    putresult(T, tryconvert(S, x))
+    putresult(tryconvert(S, x))
 end

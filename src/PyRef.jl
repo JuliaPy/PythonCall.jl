@@ -36,7 +36,7 @@ ispyreftype(::Type{PyRef}) = true
 pyptr(x::PyRef) = x.ptr
 isnull(x::PyRef) = isnull(pyptr(x))
 Base.unsafe_convert(::Type{CPyPtr}, x::PyRef) = pyptr(x)
-C.PyObject_TryConvert__initial(o, ::Type{PyRef}) = C.putresult(PyRef, pyborrowedref(o))
+C.PyObject_TryConvert__initial(o, ::Type{PyRef}) = C.putresult(pyborrowedref(o))
 
 PyRef(x) = begin
     ptr = C.PyObject_From(x)

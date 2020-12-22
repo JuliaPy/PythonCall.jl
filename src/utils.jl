@@ -76,19 +76,10 @@ struct NOTIMPLEMENTED end
 
 # Somewhere to stash results
 const RESULT = Ref{Any}(nothing)
-_putresult(::Type{T}, x::T) where {T} = (RESULT[] = x)
-takeresult(::Type{T}) where {T} = (r = RESULT[]::T; RESULT[] = nothing; r)
-
-const RESULT_INT = Ref{Int}()
-_putresult(::Type{Int}, x::Int) = (RESULT_INT[] = x)
-takeresult(::Type{Int}) = RESULT_INT[]
-
-putresult(::Type{T}, x::T) where {T} = (_putresult(T, x); 1)
-putresult(::Type{T}, x::PYERR) where {T} = -1
-putresult(::Type{T}, x::NOTIMPLEMENTED) where {T} = 0
-
-moveresult(::Type{T}, ::Type{T}) where {T} = 1
-moveresult(::Type{S}, ::Type{T}) where {S,T} = putresult(T, takeresult(S))
+putresult(x) = (RESULT[] = x; 1)
+putresult(x::PYERR) = -1
+putresult(x::NOTIMPLEMENTED) = 0
+takeresult(::Type{T}=Any) where {T} = (r = RESULT[]::T; RESULT[] = nothing; r)
 
 tryconvert(::Type{T}, x::PYERR) where {T} = PYERR()
 tryconvert(::Type{T}, x::NOTIMPLEMENTED) where {T} = NOTIMPLEMENTED()
@@ -100,7 +91,7 @@ tryconvert(::Type{T}, x) where {T} =
         NOTIMPLEMENTED()
     end
 
-CTryConvertRule_wrapref(o, ::Type{T}, ::Type{S}) where {T,S} = putresult(T, S(C.PyObjectRef(o)))
+CTryConvertRule_wrapref(o, ::Type{S}) where {S} = putresult(S(C.PyObjectRef(o)))
 
 @generated _typeintersect(::Type{T1}, ::Type{T2}) where {T1,T2} = typeintersect(T1, T2)
 

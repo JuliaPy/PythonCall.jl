@@ -27,14 +27,14 @@ PyBytes_AsVector(o, ::Type{T}=UInt8) where {T} = begin
     copy(Base.unsafe_wrap(Vector{T}, Ptr{T}(ptr[]), len[]))
 end
 
-PyBytes_TryConvertRule_vector(o, ::Type{T}, ::Type{Vector{X}}) where {T,X} = begin
+PyBytes_TryConvertRule_vector(o, ::Type{Vector{X}}) where {X} = begin
     v = PyBytes_AsVector(o, X)
     isempty(v) && PyErr_IsSet() && return -1
-    return putresult(T, v)
+    return putresult(v)
 end
 
-PyBytes_TryConvertRule_string(o, ::Type{T}, ::Type{String}) where {T} = begin
+PyBytes_TryConvertRule_string(o, ::Type{String}) = begin
     v = PyBytes_AsString(o)
     isempty(v) && PyErr_IsSet() && return -1
-    return putresult(T, v)
+    return putresult(v)
 end

@@ -27,10 +27,13 @@ pynewobject(p::Ptr, check::Bool=false) = (check && isnull(p)) ? pythrow() : PyOb
 pyborrowedobject(p::Ptr, check::Bool=false) = (check && isnull(p)) ? pythrow() : PyObject(Val(:nocopy), pyborrowedref(p))
 pylazyobject(mk) = PyObject(Val(:lazy), mk)
 
-C.PyObject_TryConvert__initial(o, ::Type{PyObject}) = C.putresult(PyObject, pyborrowedobject(o))
+C.PyObject_TryConvert__initial(o, ::Type{PyObject}) = C.putresult(pyborrowedobject(o))
 
+Base.convert(::Type{Any}, x::PyObject) = x
 Base.convert(::Type{PyObject}, x::PyObject) = x
 Base.convert(::Type{PyObject}, x) = PyObject(x)
+
+Base.convert(::Type{T}, x::PyObject) where {T} = pyconvert(T, x)
 
 ### Cache some common values
 

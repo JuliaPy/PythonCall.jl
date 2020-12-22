@@ -43,20 +43,18 @@ PyObject_From(x::Complex{<:Union{Float16,Float32,Float64}}) = PyComplex_From(x)
 PyObject_From(x::Union{String,SubString{String}}) = PyUnicode_From(x)
 PyObject_From(x::Char) = PyUnicode_From(string(x))
 PyObject_From(x::Tuple) = PyTuple_From(x)
-PyObject_From(x::AbstractVector) = PyList_From(x) # REMOVE WHEN PYJULIA IMPLEMENTED
-PyObject_From(x::AbstractDict) = PyDict_From(x) # REMOVE WHEN PYJULIA IMPLEMENTED
-PyObject_From(x::AbstractSet) = PySet_From(x) # REMOVE WHEN PYJULIA IMPLEMENTED
 PyObject_From(x::AbstractRange{<:Union{Bool,Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = PyRange_From(x)
-PyObject_From(x::T) where {T} =
-    if ispyreftype(T)
+PyObject_From(x) =
+    if ispyreftype(typeof(x))
         GC.@preserve x begin
             ptr = pyptr(x)
             Py_IncRef(ptr)
             ptr
         end
     else
-        PyErr_SetString(PyExc_TypeError(), "Cannot convert this Julia '$(typeof(x))' to a Python object.")
-        PyPtr()
+        PyJuliaValue_From(x)
+        # PyErr_SetString(PyExc_TypeError(), "Cannot convert this Julia '$(typeof(x))' to a Python object.")
+        # PyPtr()
     end
 
 function PyObject_CallArgs(f, args::Tuple, kwargs::Union{Nothing,NamedTuple,Base.Iterators.Pairs{Symbol},Base.Iterators.Pairs{Union{}}}=nothing)
@@ -82,16 +80,12 @@ end
 
 PyObject_CallNice(f, args...; kwargs...) = PyObject_CallArgs(f, args, kwargs)
 
-const ERRPTR = Ptr{Cvoid}(1)
-
 """
-Mapping of Julia types to mappings of Python types to compiled functions implementing the conversion.
-
-That is, `ccall(TRYCONVERT_COMPILED_RULES[T][Py_Type(o)], Int, (PyPtr,), o)` attempts to convert `o` to a `T`.
-On success, this returns `1` and the result can be obtained with `takeresult(T)`.
-Otherwise returns `0` if no conversion was possible, or `-1` on error.
+Mapping of Julia types to mappings of Python types to vectors of compiled functions implementing the conversion.
 """
-const TRYCONVERT_COMPILED_RULES = IdDict{Type, Dict{PyPtr, Ptr{Cvoid}}}()
+const TRYCONVERT_COMPILED_RULES = IdDict{Type, Dict{PyPtr, Vector{Ptr{Cvoid}}}}()
+
+const TRYCONVERT_COMPILED_RULES_CACHE = Dict{Any, PyPtr}()
 
 """
 Mapping of type names to lists of rules.
@@ -107,7 +101,7 @@ The rule is applied only when the `type` has non-trivial intersection with the t
 
 Finally `impl` is the function implementing the conversion.
 Its signature is `(o, T, S)` where `o` is the `PyPtr` object to convert, `T` is the desired type, and `S = typeintersect(T, type)`.
-On success it returns `putresult(T, x)` where `x` is the converted value (this stores the result and returns `1`).
+On success it returns `putresult(x)` where `x::T` is the converted value (this stores the result and returns `1`).
 If conversion was not possible, returns `0` (indicating we move on to the next rule in the list).
 On error, returns `-1`.
 """
@@ -121,7 +115,8 @@ Can also return NULL. Without an error set, this indicates the type is not loade
 const TRYCONVERT_EXTRATYPES = Vector{Any}()
 
 @generated PyObject_TryConvert_CompiledRules(::Type{T}) where {T} =
-    get!(Dict{PyPtr, Ptr{Cvoid}}, TRYCONVERT_COMPILED_RULES, T)
+    get!(Dict{PyPtr, Vector{Ptr{Cvoid}}}, TRYCONVERT_COMPILED_RULES, T)
+
 PyObject_TryConvert_Rules(n::String) =
     get!(Vector{Tuple{Int, Type, Function}}, TRYCONVERT_RULES, n)
 PyObject_TryConvert_AddRule(n::String, T, rule, priority=0) =
@@ -151,11 +146,11 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
     basemros = Vector{PyPtr}[tmro]
     for xtf in TRYCONVERT_EXTRATYPES
         xt = xtf()
-        isnull(xt) && (PyErr_IsSet() ? (return ERRPTR) : continue)
+        isnull(xt) && (PyErr_IsSet() ? (return PYERR()) : continue)
         xb = PyPtr()
         for b in tmro
             r = PyObject_IsSubclass(b, xt)
-            ism1(r) && return ERRPTR
+            ism1(r) && return PYERR()
             r != 0 && (xb = b)
         end
         if xb != PyPtr()
@@ -223,40 +218,47 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
 
     @debug "PYTHON CONVERSION FOR '$(PyType_FullName(t))' to '$T'" basetypes=map(PyType_FullName, basetypes) alltypes=allnames rules=rules
 
-    ### STAGE 3: Define and compile a function implementing these rules.
+    ### STAGE 3: Define and compile functions implementing these rules.
 
-    # make the function implementing these rules
-    rulefunc = @eval (o::PyPtr) -> begin
-        $((:(r = $rule(o, $T, $S)::Int; r == 0 || return r) for (S,rule) in rules)...)
-        return 0
+    map(rules) do x
+        get!(TRYCONVERT_COMPILED_RULES_CACHE, x) do
+            S, rule = x
+            # make the function implementing the rule
+            rulefunc = @eval (o::PyPtr) -> $rule(o, $S)
+            # compile it
+            crulefunc = @cfunction($rulefunc, Int, (PyPtr,))
+            # cache it
+            push!(CACHE, crulefunc)
+            # get the function pointer
+            Base.unsafe_convert(Ptr{Cvoid}, crulefunc)
+        end
     end
-    # compile it
-    rulecfunc = @cfunction($rulefunc, Int, (PyPtr,))
-    push!(CACHE, rulecfunc)
-    Base.unsafe_convert(Ptr{Cvoid}, rulecfunc)
 end
+
+const TRYCONVERT_ERR_ARRAY = Ptr{Cvoid}[]
 
 PyObject_TryConvert(o::PyPtr, ::Type{T}) where {T} = begin
     # First try based only on the type T
-    # Used mainly by wrapper types.
+    # Used mainly by wrapper types for immediate conversion.
     r = PyObject_TryConvert__initial(o, T) :: Int
     r == 0 || return r
 
     # Try to find an appropriate conversion based on `T` and the type of `o`.
     rules = PyObject_TryConvert_CompiledRules(T)
     t = Py_Type(o)
-    rule = get(rules, t, ERRPTR)
-    if rule == ERRPTR
-        rule = PyObject_TryConvert_CompileRule(T, t)
-        rule == ERRPTR && return -1
-        rules[t] = rule
+    crules = get(rules, t, TRYCONVERT_ERR_ARRAY)
+    if crules === TRYCONVERT_ERR_ARRAY
+        crules = PyObject_TryConvert_CompileRule(T, t)
+        crules === PYERR() && return -1
+        rules[t] = crules
     end
-    if !isnull(rule)
-        r = ccall(rule, Int, (PyPtr,), o)
+    for crule in crules
+        r = ccall(crule, Int, (PyPtr,), o)
         r == 0 || return r
     end
 
-    0
+    # Failed to convert
+    return 0
 end
 PyObject_TryConvert(o, ::Type{T}) where {T} = GC.@preserve o PyObject_TryConvert(Base.unsafe_convert(PyPtr, o), T)
 

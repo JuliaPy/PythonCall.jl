@@ -136,7 +136,17 @@ function __init__()
         (PyDict, CTryConvertRule_wrapref, 100),
     ])
     C.PyObject_TryConvert_AddRules("<buffer>", [
+        (PyArray, CTryConvertRule_trywrapref, 200),
         (PyBuffer, CTryConvertRule_wrapref, -200),
+    ])
+    C.PyObject_TryConvert_AddRules("<arrayinterface>", [
+        (PyArray, CTryConvertRule_trywrapref, 200),
+    ])
+    C.PyObject_TryConvert_AddRules("<arraystruct>", [
+        (PyArray, CTryConvertRule_trywrapref, 200),
+    ])
+    C.PyObject_TryConvert_AddRules("<array>", [
+        (PyArray, CTryConvertRule_trywrapref, 0),
     ])
 
     with_gil() do
@@ -174,33 +184,33 @@ function __init__()
 
         # EXPERIMENTAL: hooks to perform actions when certain modules are loaded
         if !CONFIG.isembedded
-            # py"""
-            # import sys
-            # class JuliaCompatHooks:
-            #     def __init__(self):
-            #         self.hooks = {}
-            #     def find_module(self, name, path=None):
-            #         hs = self.hooks.get(name)
-            #         if hs is not None:
-            #             for h in hs:
-            #                 h()
-            #     def add_hook(self, name, h):
-            #         if name not in self.hooks:
-            #             self.hooks[name] = [h]
-            #         else:
-            #             self.hooks[name].append(h)
-            #         if name in sys.modules:
-            #             h()
-            # JULIA_COMPAT_HOOKS = JuliaCompatHooks()
-            # sys.meta_path.insert(0, JULIA_COMPAT_HOOKS)
+            @py ```
+            import sys
+            class JuliaCompatHooks:
+                def __init__(self):
+                    self.hooks = {}
+                def find_module(self, name, path=None):
+                    hs = self.hooks.get(name)
+                    if hs is not None:
+                        for h in hs:
+                            h()
+                def add_hook(self, name, h):
+                    if name not in self.hooks:
+                        self.hooks[name] = [h]
+                    else:
+                        self.hooks[name].append(h)
+                    if name in sys.modules:
+                        h()
+            JULIA_COMPAT_HOOKS = JuliaCompatHooks()
+            sys.meta_path.insert(0, JULIA_COMPAT_HOOKS)
 
-            # # Before Qt is loaded, fix the path used to look up its plugins
-            # qtfix_hook = $(pyjlfunction(() -> if CONFIG.qtfix; fix_qt_plugin_path(); nothing; end))
-            # JULIA_COMPAT_HOOKS.add_hook("PyQt4", qtfix_hook)
-            # JULIA_COMPAT_HOOKS.add_hook("PyQt5", qtfix_hook)
-            # JULIA_COMPAT_HOOKS.add_hook("PySide", qtfix_hook)
-            # JULIA_COMPAT_HOOKS.add_hook("PySide2", qtfix_hook)
-            # """
+            # Before Qt is loaded, fix the path used to look up its plugins
+            qtfix_hook = $(() -> (CONFIG.qtfix && fix_qt_plugin_path(); nothing))
+            JULIA_COMPAT_HOOKS.add_hook("PyQt4", qtfix_hook)
+            JULIA_COMPAT_HOOKS.add_hook("PyQt5", qtfix_hook)
+            JULIA_COMPAT_HOOKS.add_hook("PySide", qtfix_hook)
+            JULIA_COMPAT_HOOKS.add_hook("PySide2", qtfix_hook)
+            ```
 
             @require IJulia="7073ff75-c697-5162-941a-fcdaad2a7d2a" begin
                 IJulia.push_postexecute_hook() do

@@ -779,23 +779,25 @@ export pyellipsis
 
 ### MULTIMEDIA DISPLAY
 
-for (mime, method) in [
+const _py_mimes = [
     (MIME"text/html", "_repr_html_"), (MIME"text/markdown", "_repr_markdown_"),
     (MIME"text/json", "_repr_json_"), (MIME"application/javascript", "_repr_javascript_"),
     (MIME"application/pdf", "_repr_pdf_"), (MIME"image/jpeg", "_repr_jpeg_"),
     (MIME"image/png", "_repr_png_"), (MIME"image/svg+xml", "_repr_svg_"),
     (MIME"text/latex", "_repr_latex_")
-    ]
+]
+const _py_mimetype = Union{map(first, _py_mimes)...}
 
+for (mime, method) in _py_mimes
     T = istextmime(mime()) ? String : Vector{UInt8}
     @eval begin
         _py_mime_show(io::IO, mime::$mime, o) = begin
             try
-                x = pycall(PyRef, pygetattr(Ref, o, $method))
+                x = pycall(PyRef, pygetattr(PyRef, o, $method))
                 pyis(x, pynone(PyRef)) || return write(io, pyconvert($T, x))
             catch
             end
-            throw(MethodError(show, (io, mime, o)))
+            throw(MethodError(_py_mime_show, (io, mime, o)))
         end
         _py_mime_showable(::$mime, o) = begin
             try

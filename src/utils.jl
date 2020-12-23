@@ -83,6 +83,9 @@ pytypestrdescr(::Type{T}) where {T} = begin
     T == Float16 ? ("$(c)f2", nothing) :
     T == Float32 ? ("$(c)f4", nothing) :
     T == Float64 ? ("$(c)f8", nothing) :
+    T == Complex{Float16} ? ("$(c)c4", nothing) :
+    T == Complex{Float32} ? ("$(c)c8", nothing) :
+    T == Complex{Float64} ? ("$(c)c16", nothing) :
     T == C.PyObjectRef ? ("|O", nothing) :
     if isstructtype(T) && isconcretetype(T) && Base.allocatedinline(T)
         n = fieldcount(T)
@@ -100,6 +103,52 @@ pytypestrdescr(::Type{T}) where {T} = begin
         ("|$(sizeof(T))V", flds)
     else
         ("", nothing)
+    end
+end
+
+pytypestrdescr_to_type(ts::String, descr) = begin
+    # byte swapped?
+    bsc = ts[1]
+    bs = bsc=='<' ? !islittleendian() : bsc=='>' ? islittleendian() : bsc=='|' ? false : error("endianness character not supported: $ts")
+    bs && error("byte-swapping not supported: $ts")
+    # element type
+    etc = ts[2]
+    if etc == 'b'
+        sz = parse(Int, ts[3:end])
+        sz == sizeof(Bool) && return Bool
+        error("bool of this size not supported: $ts")
+    elseif etc == 'i'
+        sz = parse(Int, ts[3:end])
+        sz == 1 && return Int8
+        sz == 2 && return Int16
+        sz == 4 && return Int32
+        sz == 8 && return Int64
+        sz == 16 && return Int128
+        error("signed int of this size not supported: $ts")
+    elseif etc == 'u'
+        sz = parse(Int, ts[3:end])
+        sz == 1 && return UInt8
+        sz == 2 && return UInt16
+        sz == 4 && return UInt32
+        sz == 8 && return UInt64
+        sz == 16 && return UInt128
+        error("unsigned int of this size not supported: $ts")
+    elseif etc == 'f'
+        sz = parse(Int, ts[3:end])
+        sz == 2 && return Float16
+        sz == 4 && return Float32
+        sz == 8 && return Float64
+        error("float of this size not supported: $ts")
+    elseif etc == 'c'
+        sz = parse(Int, ts[3:end])
+        sz == 4 && return Complex{Float16}
+        sz == 8 && return Complex{Float32}
+        sz == 16 && return Complex{Float64}
+        error("complex of this size not supported: $ts")
+    elseif etc == 'O'
+        return C.PyObjectRef
+    else
+        error("type not supported: $ts")
     end
 end
 
@@ -129,6 +178,12 @@ tryconvert(::Type{T}, x) where {T} =
     end
 
 CTryConvertRule_wrapref(o, ::Type{S}) where {S} = putresult(S(C.PyObjectRef(o)))
+CTryConvertRule_trywrapref(o, ::Type{S}) where {S} =
+    try
+        putresult(S(C.PyObjectRef(o)))
+    catch
+        0
+    end
 
 @generated _typeintersect(::Type{T1}, ::Type{T2}) where {T1,T2} = typeintersect(T1, T2)
 

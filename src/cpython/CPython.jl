@@ -62,6 +62,7 @@ include("juliatype.jl")
 include("juliadict.jl")
 include("juliaarray.jl")
 include("juliavector.jl")
+include("juliamodule.jl")
 include("arg.jl")
 
 __init__() = begin

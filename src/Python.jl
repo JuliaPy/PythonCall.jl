@@ -94,6 +94,7 @@ include("PySet.jl")
 include("PyIterable.jl")
 include("PyIO.jl")
 include("PyBuffer.jl")
+include("PyArray.jl")
 include("PyObjectArray.jl")
 include("PyPandasDataFrame.jl")
 

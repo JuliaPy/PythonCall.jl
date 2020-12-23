@@ -25,6 +25,15 @@ PyJuliaAnyValue_Type() = begin
             ),
             methods = [
                 (name="__dir__", flags=Py_METH_NOARGS, meth=pyjlany_dir),
+                (name="_repr_html_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("text/html"))),
+                (name="_repr_markdown_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("text/markdown"))),
+                (name="_repr_json_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("text/json"))),
+                (name="_repr_javascript_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("application/javascript"))),
+                (name="_repr_pdf_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("application/pdf"))),
+                (name="_repr_jpeg_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("image/jpeg"))),
+                (name="_repr_png_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("image/png"))),
+                (name="_repr_svg_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("image/svg+xml"))),
+                (name="_repr_latex_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("text/latex"))),
             ],
         ))
         ptr = PyPtr(pointer(t))
@@ -42,7 +51,10 @@ PyJuliaValue_From(x) = PyJuliaAnyValue_New(x)
 pyjlany_repr(xo::PyPtr) = try
     x = PyJuliaValue_GetValue(xo)
     # s = "<jl $(repr(x))>"
-    s = sprint((io,x)->show(io,MIME"text/plain"(),x), x, context=:limit=>true)
+    io = IOBuffer()
+    ioc = IOContext(io, :limit=>true, :compact=>true, :color=>true)
+    show(ioc, MIME("text/plain"), x)
+    s = String(take!(io))
     s = string("jl:", '\n' in s ? '\n' : ' ', s)
     PyUnicode_From(s)
 catch err
@@ -314,5 +326,29 @@ pyjlany_richcompare(xo::PyPtr, yo::PyPtr, op::Cint) = begin
             PyErr_SetJuliaError(err)
             PyPtr()
         end
+    end
+end
+
+struct pyjlany_repr_mime{M<:MIME}
+    mime :: M
+end
+(f::pyjlany_repr_mime{M})(xo::PyPtr, ::PyPtr) where {M} = begin
+    x = PyJuliaValue_GetValue(xo)
+    io = IOBuffer()
+    try
+        show(io, f.mime, x)
+    catch err
+        if err isa MethodError && err.f === show && err.args === (io, f.mime, x)
+            return PyNone_New()
+        else
+            PyErr_SetJuliaError(err)
+            return PyPtr()
+        end
+    end
+    data = take!(io)
+    if istextmime(f.mime)
+        PyUnicode_From(data)
+    else
+        PyBytes_From(data)
     end
 end

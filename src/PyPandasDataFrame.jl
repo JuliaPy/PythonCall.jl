@@ -1,37 +1,38 @@
-# const pypandas = pylazyobject(() -> pyimport("pandas"))
-# const pypandasdataframetype = pylazyobject(() -> pypandas.DataFrame)
+asvector(x::AbstractVector) = x
+asvector(x) = collect(x)
 
-# asvector(x::AbstractVector) = x
-# asvector(x) = collect(x)
+"""
+    pycolumntable([T=PyObject,] src) :: T
+
+Construct a "column table" from the `Tables.jl`-compatible table `src`, namely a Python `dict` mapping column names to column vectors.
+"""
+function pycolumntable(::Type{T}, src) where {T}
+    cols = Tables.columns(src)
+    pydict(T, pystr(String(n)) => asvector(Tables.getcolumn(cols, n)) for n in Tables.columnnames(cols))
+end
+pycolumntable(::Type{T}; cols...) where {T} = pycolumntable(T, cols)
+pycolumntable(src) = pycolumntable(PyObject, src)
+pycolumntable(; opts...) = pycolumntable(PyObject, opts)
+export pycolumntable
+
+"""
+    pyrowtable([T=PyObject,] src) :: T
+
+Construct a "row table" from the `Tables.jl`-compatible table `src`, namely a Python `list` of rows, each row being a Python `dict` mapping column names to values.
+"""
+function pyrowtable(::Type{T}, src) where {T}
+    rows = Tables.rows(src)
+    names = Tables.columnnames(rows)
+    pynames = [pystr(String(n)) for n in names]
+    pylist(T, pydict(pn => Tables.getcolumn(row, n) for (n,pn) in zip(names, pynames)) for row in rows)
+end
+pyrowtable(::Type{T}; cols...) where {T} = pyrowtable(T, cols)
+pyrowtable(src) = pyrowtable(PyObject, src)
+pyrowtable(; opts...) = pyrowtable(PyObject, opts)
+export pyrowtable
 
 # """
-#     pycolumntable(src)
-
-# Construct a "column table" from the `Tables.jl`-compatible table `src`, namely a Python `dict` mapping column names to column vectors.
-# """
-# function pycolumntable(src)
-#     cols = Tables.columns(src)
-#     pydict_fromiter(pystr(String(n)) => asvector(Tables.getcolumn(cols, n)) for n in Tables.columnnames(cols))
-# end
-# pycolumntable(; cols...) = pycolumntable(cols)
-# export pycolumntable
-
-# """
-#     pyrowtable(src)
-
-# Construct a "row table" from the `Tables.jl`-compatible table `src`, namely a Python `list` of rows, each row being a Python `dict` mapping column names to values.
-# """
-# function pyrowtable(src)
-#     rows = Tables.rows(src)
-#     names = Tables.columnnames(rows)
-#     pynames = [pystr(String(n)) for n in names]
-#     pylist_fromiter(pydict_fromiter(pn => Tables.getcolumn(row, n) for (n,pn) in zip(names, pynames)) for row in rows)
-# end
-# pyrowtable(; cols...) = pyrowtable(cols)
-# export pyrowtable
-
-# """
-#     pypandasdataframe([src]; ...)
+#     pypandasdataframe([T=PyObject,] [src]; ...) :: T
 
 # Construct a pandas dataframe from `src`.
 
@@ -77,8 +78,8 @@ Base.unsafe_convert(::Type{CPyPtr}, df::PyPandasDataFrame) = checknull(pyptr(df)
 C.PyObject_TryConvert__initial(o, ::Type{PyPandasDataFrame}) = C.putresult(PyPandasDataFrame(pyborrowedref(o)))
 
 Base.show(io::IO, x::PyPandasDataFrame) = print(io, pystr(String, x))
-Base.show(io::IO, mime::MIME, o::PyPandasDataFrame) = _py_mime_show(io, mime, o)
-Base.showable(mime::MIME, o::PyPandasDataFrame) = _py_mime_showable(mime, o)
+Base.show(io::IO, mime::_py_mimetype, o::PyPandasDataFrame) = _py_mime_show(io, mime, o)
+Base.showable(mime::_py_mimetype, o::PyPandasDataFrame) = _py_mime_showable(mime, o)
 
 ### Tables.jl / TableTraits.jl integration
 

@@ -186,16 +186,35 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
         # remove empty lists
         filter!(x -> !isempty(x), basemros)
     end
-    allnames = map(PyType_FullName, alltypes)
-    # as a special case, we check for the buffer type explicitly
+    # check the original MRO is preserved
+    @assert filter(x -> x in tmro, alltypes) == tmro
+    # some special cases
+    extranames = Dict()
     for (i,b) in reverse(collect(enumerate(alltypes)))
-        if PyType_CheckBuffer(b)
-            insert!(allnames, i+1, "<buffer>")
+        if PyObject_HasAttrString(b, "__array_struct__") != 0
+            push!(get!(Vector, extranames, i), "<arraystruct>")
             break
         end
     end
-    # check the original MRO is preserved
-    @assert filter(x -> x in tmro, alltypes) == tmro
+    for (i,b) in reverse(collect(enumerate(alltypes)))
+        if PyObject_HasAttrString(b, "__array_interface__") != 0
+            push!(get!(Vector, extranames, i), "<arrayinterface>")
+            break
+        end
+    end
+    for (i,b) in reverse(collect(enumerate(alltypes)))
+        if PyObject_HasAttrString(b, "__array__") != 0
+            push!(get!(Vector, extranames, i), "<array>")
+            break
+        end
+    end
+    for (i,b) in reverse(collect(enumerate(alltypes)))
+        if PyType_CheckBuffer(b)
+            push!(get!(Vector, extranames, i), "<buffer>")
+            break
+        end
+    end
+    allnames = [n for (i,t) in enumerate(alltypes) for n in [PyType_FullName(t); get(Vector, extranames, i)]]
 
     ### STAGE 2: Get a list of applicable conversion rules.
     #

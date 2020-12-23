@@ -29,11 +29,10 @@ pylazyobject(mk) = PyObject(Val(:lazy), mk)
 
 C.PyObject_TryConvert__initial(o, ::Type{PyObject}) = C.putresult(pyborrowedobject(o))
 
-Base.convert(::Type{Any}, x::PyObject) = x
 Base.convert(::Type{PyObject}, x::PyObject) = x
+Base.convert(::Type{Any}, x::PyObject) = x
+Base.convert(::Type{T}, x::PyObject) where {T} = x isa T ? x : pyconvert(T, x)
 Base.convert(::Type{PyObject}, x) = PyObject(x)
-
-Base.convert(::Type{T}, x::PyObject) where {T} = pyconvert(T, x)
 
 ### Cache some common values
 
@@ -137,8 +136,8 @@ function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
     end
 end
 
-Base.show(io::IO, mime::MIME, o::PyObject) = _py_mime_show(io, mime, o)
-Base.showable(mime::MIME, o::PyObject) = _py_mime_showable(mime, o)
+Base.show(io::IO, mime::_py_mimetype, o::PyObject) = _py_mime_show(io, mime, o)
+Base.showable(mime::_py_mimetype, o::PyObject) = _py_mime_showable(mime, o)
 
 ### PROPERTIES
 

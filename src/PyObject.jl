@@ -62,6 +62,7 @@ Base.show(io::IO, o::PyObject) = begin
 end
 
 function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
+    prefix = get(io, :typeinfo, Any) != typeof(o)
     h, w = displaysize(io)
     h -= 3
     x = try
@@ -73,26 +74,29 @@ function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
         if '\n' ∈ x
             # multiple lines
             # each one is truncated to one screen width
-            print(io, "py:")
-            h -= 1
+            if prefix
+                print(io, "py:")
+                h -= 1
+            end
             xs = split(x, '\n')
-            printlines(xs) =
-                for x in xs
+            printlines(xs, nl=true) =
+                for (i,x) in enumerate(xs)
+                    (nl || i>1) && print(io, '\n')
                     if length(x) ≤ w
-                        print(io, '\n', x)
+                        print(io, x)
                     else
-                        print(io, '\n', x[1:nextind(x, 0, w-1)], '…')
+                        print(io, x[1:nextind(x, 0, w-1)], '…')
                     end
                 end
             if length(xs) ≤ h
                 # all lines fit on screen
-                printlines(xs)
+                printlines(xs, prefix)
             else
                 # too many lines, skip the middle ones
                 h -= 1
                 h2 = cld(h, 2)
                 h3 = (length(xs)+1)-(h-h2)
-                printlines(xs[1:h2])
+                printlines(xs[1:h2], prefix)
                 linelen = min(
                     checkbounds(Bool, xs, h2) ? length(xs[h2]) : 0,
                     checkbounds(Bool, xs, h3) ? length(xs[h3]) : 0,
@@ -103,14 +107,16 @@ function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
                 print(io, "\n", pad > 0 ? " "^pad : "", msg)
                 printlines(xs[h3:end])
             end
-        elseif length(x) ≤ w-4
+        elseif length(x) ≤ (prefix ? w-4 : w)
             # one short line
-            print(io, "py: ", x)
+            print(io, prefix ? "py: " : "", x)
             return
         else
             # one long line
-            println(io, "py:")
-            h -= 1
+            if prefix
+                println(io, "py:")
+                h -= 1
+            end
             a = h * w
             if length(x) ≤ a
                 # whole string fits on screen
@@ -127,7 +133,7 @@ function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
             end
         end
     else
-        print(io, "py: ", x)
+        print(io, prefix ? "py: " : "", x)
     end
 end
 

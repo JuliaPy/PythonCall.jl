@@ -1,3 +1,11 @@
+"""
+    PyObjectArray(undef, dims...)
+    PyObjectArray(array)
+
+An array of `PyObject`s which supports the Python buffer protocol.
+
+Internally, the objects are stored as an array of pointers.
+"""
 mutable struct PyObjectArray{N} <: AbstractArray{PyObject, N}
     ptrs :: Array{CPyPtr, N}
     function PyObjectArray{N}(::UndefInitializer, dims::NTuple{N,Integer}) where {N}
@@ -34,10 +42,11 @@ function Base.getindex(x::PyObjectArray, i::Integer...)
 end
 
 function Base.setindex!(x::PyObjectArray, _v, i::Integer...)
-    v = convert(PyObject, _v)
+    vo = C.PyObject_From(_v)
+    isnull(vo) && pythrow()
     C.Py_DecRef(x.ptrs[i...])
-    pyincref!(v)
-    x.ptrs[i...] = pyptr(v)
+    C.Py_IncRef(vo)
+    x.ptrs[i...] = vo
     x
 end
 
@@ -46,3 +55,15 @@ function Base.deleteat!(x::PyObjectArray, i::Integer)
     deleteat!(x.ptrs, i)
     x
 end
+
+C._pyjlarray_get_buffer(o, buf, flags, x::PyObjectArray) =
+    C.pyjl_get_buffer_impl(o, buf, flags, pointer(x.ptrs), sizeof(CPyPtr), length(x), ndims(x), "O", size(x), strides(x.ptrs), true)
+
+C._pyjlarray_array_interface(x::PyObjectArray) =
+    C.PyDict_From(Dict(
+        "shape" => size(x),
+        "typestr" => "|O",
+        "data" => (UInt(pointer(x.ptrs)), false),
+        "strides" => strides(x.ptrs) .* sizeof(CPyPtr),
+        "version" => 3,
+    ))

@@ -1,5 +1,5 @@
 """
-    PyBuffer(o)
+    PyBuffer(o, [flags=C.PyBUF_FULL_RO])
 
 A reference to the underlying buffer of `o`, if it satisfies the buffer protocol.
 
@@ -20,16 +20,15 @@ Has the following properties:
 """
 mutable struct PyBuffer
     info :: Array{C.Py_buffer, 0}
-    function PyBuffer(o::PyObject, flags::Integer=C.PyBUF_FULL_RO)
+    function PyBuffer(o, flags::Integer=C.PyBUF_FULL_RO)
         info = fill(C.Py_buffer())
         check(C.PyObject_GetBuffer(o, pointer(info), flags))
         b = new(info)
         finalizer(b) do b
             if CONFIG.isinitialized
-                err = with_gil() do
+                with_gil(false) do
                     C.PyBuffer_Release(pointer(b.info))
                 end
-                check(err)
             end
         end
         b

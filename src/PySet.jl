@@ -1,73 +1,83 @@
 """
-    PySet{T=PyObject}(o=pyset())
+    PySet{T=PyObject}([o])
 
 Wrap the Python set `o` (or anything satisfying the set interface) as a Julia set with elements of type `T`.
+
+If `o` is not given, an empty set is created.
 """
 struct PySet{T} <: AbstractSet{T}
-    o :: PyObject
-    PySet{T}(o::PyObject) where {T} = new{T}(o)
+    ref :: PyRef
+    PySet{T}(o) where {T} = new{T}(PyRef(o))
+    PySet{T}() where {T} = new{T}(PyRef())
 end
-PySet{T}(o=pyset()) where {T} = PySet{T}(pyset(o))
-PySet(o=pyset()) = PySet{PyObject}(o)
+PySet(o) = PySet{PyObject}(o)
+PySet() = PySet{PyObject}()
 export PySet
 
-pyobject(x::PySet) = x.o
+ispyreftype(::Type{<:PySet}) = true
+pyptr(x::PySet) = begin
+    ptr = x.ref.ptr
+    if isnull(ptr)
+        ptr = x.ref.ptr = C.PySet_New(C_NULL)
+    end
+    ptr
+end
+Base.unsafe_convert(::Type{CPyPtr}, x::PySet) = checknull(pyptr(x))
+C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PySet} = C.putresult(T(pyborrowedref(o)))
 
-function Base.iterate(x::PySet{T}, it=pyiter(x.o)) where {T}
+Base.iterate(x::PySet{T}, it::PyRef) where {T} = begin
     ptr = C.PyIter_Next(it)
-    if ptr == C_NULL
-        pyerrcheck()
-        nothing
+    if ptr != C_NULL
+        r = C.PyObject_Convert(ptr, T)
+        C.Py_DecRef(ptr)
+        checkm1(r)
+        (C.takeresult(T), it)
+    elseif C.PyErr_IsSet()
+        pythrow()
     else
-        (pyconvert(T, pynewobject(ptr)), it)
+        nothing
     end
 end
-
-Base.length(x::PySet) = Int(pylen(x.o))
-
-function Base.in(_v, x::PySet{T}) where {T}
-    v = tryconvert(T, _v)
-    v === PyConvertFail() ? false : pycontains(x, v)
+Base.iterate(x::PySet) = begin
+    it = C.PyObject_GetIter(x)
+    isnull(it) && pythrow()
+    iterate(x, pynewref(it))
 end
 
-function Base.push!(x::PySet{T}, v) where {T}
-    x.o.add(convert(T, v))
+# Base.length(x::PySet) = @pyv `len($x)`::Int
+Base.length(x::PySet) = Int(checkm1(C.PyObject_Length(x)))
+
+Base.in(_v, x::PySet{T}) where {T} = begin
+    v = tryconvertref(T, _v)
+    v === PYERR() && pythrow()
+    v === NOTIMPLEMENTED() && return false
+    pycontains(x, v)
+end
+
+Base.push!(x::PySet{T}, v) where {T} = (@py `$x.add($(convertref(T, v)))`; x)
+
+Base.delete!(x::PySet{T}, _v) where {T} = begin
+    v = tryconvertref(T, _v)
+    v === PYERR() && pythrow()
+    v === NOTIMPLEMENTED() && return x
+    @py `$x.discard($v)`
     x
 end
 
-function Base.delete!(x::PySet{T}, _v) where {T}
+Base.pop!(x::PySet{T}) where {T} = @pyv `$x.pop()`::T
+
+Base.pop!(x::PySet{T}, _v) where {T} = begin
     v = tryconvert(T, _v)
-    v === PyConvertFail() || x.o.discard(v)
-    x
+    v === PYERR() && pythrow()
+    (v !== NOTIMPLEMENTED() && v in x) ? (delete!(x, v); v) : error("not an element")
 end
 
-function Base.pop!(x::PySet{T}) where {T}
-    v = x.o.pop()
-    pyconvert(T, v)
-end
-
-function Base.pop!(x::PySet{T}, _v) where {T}
-    v = convert(T, _v)
-    x.o.remove(v)
-    v
-end
-
-function Base.pop!(x::PySet{T}, _v, d) where {T}
+Base.pop!(x::PySet{T}, _v, d) where {T} = begin
     v = tryconvert(T, _v)
-    (v !== PyConvertFail() && v in x) ? pop!(x, v) : d
+    v === PYERR() && pythrow()
+    (v !== NOTIMPLEMENTED() && v in x) ? (delete!(x, v); v) : d
 end
 
-function Base.filter!(f, x::PySet{T}) where {T}
-    d = pylist()
-    for _v in x.o
-        if !f(pyconvert(T, _v))
-            d.append(_v)
-        end
-    end
-    x.o.difference_update(d)
-    x
-end
+Base.empty!(x::PySet) = (@py `$x.clear()`; x)
 
-Base.empty!(x::PySet) = (x.o.clear(); x)
-
-Base.copy(x::PySet) = typeof(x)(x.o.copy())
+Base.copy(x::PySet) = @pyv `$x.copy()`::typeof(x)

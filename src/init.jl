@@ -1,9 +1,3 @@
-function python_cmd(args)
-    env = copy(ENV)
-    env["PYTHONIOENCODING"] = "UTF-8"
-    setenv(`$(CONFIG.exepath) $args`, env)
-end
-
 function __init__()
     # Check if libpython is already loaded (i.e. if the Julia interpreter was started from a Python process)
     CONFIG.isembedded = haskey(ENV, "PYTHONJL_LIBPTR")
@@ -41,6 +35,13 @@ function __init__()
                 - PYTHONJL_EXE is "CONDA" or "CONDA:<env>"
                 - PYTHONJL_EXE is the path to the Python executable
                 """)
+        end
+
+        # For calling Python with UTF-8 IO
+        function python_cmd(args)
+            env = copy(ENV)
+            env["PYTHONIOENCODING"] = "UTF-8"
+            setenv(`$(CONFIG.exepath) $args`, env)
         end
 
         # Find Python library
@@ -116,41 +117,74 @@ function __init__()
             check(C.Py_AtExit(@cfunction(()->(CONFIG.isinitialized = false; nothing), Cvoid, ())))
             atexit() do
                 CONFIG.isinitialized = false
-                check(C.Py_FinalizeEx())
-            end
-
-            # Some modules expect sys.argv to be set
-            pysysmodule.argv = pylist([""; ARGS])
-
-            # Some modules test for interactivity by checking if sys.ps1 exists
-            if isinteractive() && !pyhasattr(pysysmodule, "ps1")
-                pysysmodule.ps1 = ">>> "
+                checkm1(C.Py_FinalizeEx())
             end
         end
     end
 
+    C.PyObject_TryConvert_AddRules("builtins.object", [
+        (PyObject, CTryConvertRule_wrapref, -100),
+        (PyRef, CTryConvertRule_wrapref, -200),
+    ])
+    C.PyObject_TryConvert_AddRules("collections.abc.Sequence", [
+        (PyList, CTryConvertRule_wrapref, 100),
+    ])
+    C.PyObject_TryConvert_AddRules("collections.abc.Set", [
+        (PySet, CTryConvertRule_wrapref, 100),
+    ])
+    C.PyObject_TryConvert_AddRules("collections.abc.Mapping", [
+        (PyDict, CTryConvertRule_wrapref, 100),
+    ])
+    C.PyObject_TryConvert_AddRules("<buffer>", [
+        (PyArray, CTryConvertRule_trywrapref, 200),
+        (PyBuffer, CTryConvertRule_wrapref, -200),
+    ])
+    C.PyObject_TryConvert_AddRules("<arrayinterface>", [
+        (PyArray, CTryConvertRule_trywrapref, 200),
+    ])
+    C.PyObject_TryConvert_AddRules("<arraystruct>", [
+        (PyArray, CTryConvertRule_trywrapref, 200),
+    ])
+    C.PyObject_TryConvert_AddRules("<array>", [
+        (PyArray, CTryConvertRule_trywrapref, 0),
+    ])
+
     with_gil() do
+
+        @pyg `import sys, os`
+
+        if !CONFIG.isembedded
+            @py ```
+            # Some modules expect sys.argv to be set
+            # TODO: Append ARGS
+            sys.argv = [""]
+
+            # Some modules test for interactivity by checking if sys.ps1 exists
+            if $(isinteractive()) and not hasattr(sys, "ps1"):
+                sys.ps1 = ">>> "
+            ```
+        end
 
         # Is this the same Python as in Conda?
         if !CONFIG.isconda &&
             haskey(ENV, "CONDA_PREFIX") && isdir(ENV["CONDA_PREFIX"]) &&
             haskey(ENV, "CONDA_PYTHON_EXE") && isfile(ENV["CONDA_PYTHON_EXE"]) &&
-            realpath(ENV["CONDA_PYTHON_EXE"]) == realpath(CONFIG.exepath===nothing ? pyconvert(String, pysysmodule.executable) : CONFIG.exepath)
+            realpath(ENV["CONDA_PYTHON_EXE"]) == realpath(CONFIG.exepath===nothing ? @pyv(`sys.executable`::String) : CONFIG.exepath)
 
             CONFIG.isconda = true
             CONFIG.condaenv = ENV["CONDA_PREFIX"]
-            CONFIG.exepath === nothing && (CONFIG.exepath = pyconvert(String, pysysmodule.executable))
+            CONFIG.exepath === nothing && (CONFIG.exepath = @pyv(`sys.executable`::String))
         end
 
         # Get the python version
-        CONFIG.version = let (a,b,c,d,e) = pyconvert(Tuple{Int,Int,Int,String,Int}, pysysmodule.version_info)
+        CONFIG.version = let (a,b,c,d,e) = @pyv(`sys.version_info`::Tuple{Int,Int,Int,String,Int})
             VersionNumber(a, b, c, (d,), (e,))
         end
-        v"2" < CONFIG.version < v"4" || error("Only Python 3 is supported, this is Python $(CONFIG.version.major).$(CONFIG.version.minor) at $(CONFIG.exepath===nothing ? "unknown location" : CONFIG.exepath).")
+        v"3" ≤ CONFIG.version < v"4" || error("Only Python 3 is supported, this is Python $(CONFIG.version) at $(CONFIG.exepath===nothing ? "unknown location" : CONFIG.exepath).")
 
         # EXPERIMENTAL: hooks to perform actions when certain modules are loaded
         if !CONFIG.isembedded
-            py"""
+            @py ```
             import sys
             class JuliaCompatHooks:
                 def __init__(self):
@@ -171,18 +205,16 @@ function __init__()
             sys.meta_path.insert(0, JULIA_COMPAT_HOOKS)
 
             # Before Qt is loaded, fix the path used to look up its plugins
-            qtfix_hook = $(pyjlfunction(() -> if CONFIG.qtfix; fix_qt_plugin_path(); nothing; end))
+            qtfix_hook = $(() -> (CONFIG.qtfix && fix_qt_plugin_path(); nothing))
             JULIA_COMPAT_HOOKS.add_hook("PyQt4", qtfix_hook)
             JULIA_COMPAT_HOOKS.add_hook("PyQt5", qtfix_hook)
             JULIA_COMPAT_HOOKS.add_hook("PySide", qtfix_hook)
             JULIA_COMPAT_HOOKS.add_hook("PySide2", qtfix_hook)
-            """
+            ```
 
             @require IJulia="7073ff75-c697-5162-941a-fcdaad2a7d2a" begin
                 IJulia.push_postexecute_hook() do
-                    if CONFIG.pyplotautoshow && "matplotlib.pyplot" in pysysmodule.modules
-                        pyplotshow()
-                    end
+                    CONFIG.pyplotautoshow && pyplotshow()
                 end
             end
         end

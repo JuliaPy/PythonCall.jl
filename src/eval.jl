@@ -1,137 +1,203 @@
-const SCOPES = Dict{Any,PyObject}()
-const COMPILECACHE = Dict{Tuple{String,String,String},PyObject}()
+pyeval_filename(src) = isfile(string(src.file)) ? "$(src.file):$(src.line)" : "julia:$(src.file):$(src.line)"
 
-scope(s) = get!(pydict, SCOPES, s)
-scope(s::PyObject) = s
-
-"""
-    pyeval(src, scope, locals=nothing)
-
-Evaluate Python expression `src` in the context of the given `scope` and `locals`. Return the value.
-
-If the `scope` is a Python object, it must be a `dict` to use as globals.
-
-Otherwise, a globals dict is created and reused for each unique `scope`. For example `pyeval(src, @__MODULE__)` evaluates in a scope unique to the current module.
-"""
-pyeval(src, globals, locals=nothing) = pyevalfunc(src, scope(globals), locals)
-
-"""
-    pyexec(src, scope, locals=nothing)
-
-Execute Python expression `src` in the context of the given `scope` and `locals`.
-
-If the `scope` is a Python object, it must be a `dict` to use as globals.
-
-Otherwise, a globals dict is created and reused for each unique `scope`. For example `pyexec(src, @__MODULE__)` executes in a scope unique to the current module.
-"""
-pyexec(src, globals, locals=nothing) = (pyexecfunc(src, scope(globals), locals); nothing)
-
-"""
-    pyevaldb(src, scope, locals=nothing)
-
-Same as `pyeval(src, scope, locals)` but evaluated inside a `pdb` debugger.
-"""
-pyevaldb(src, globals, locals=nothing) = pypdbmodule.runeval(src, scope(globals), locals)
-
-"""
-    pyexecdb(src, scope, locals=nothing)
-
-Same as `pyexec(src, scope, locals)` but evaluated inside a `pdb` debugger.
-"""
-pyexecdb(src, globals, locals=nothing) = (pypdbmodule.run(src, scope(globals), locals); nothing)
-
-"""
-    py"...."[flags]
-
-Evaluate (`v`) or execute (`x`) the given Python source code.
-
-Julia values may be interpolated into the source code with `\$` syntax. For a literal `\$`, enter `\$\$`.
-
-Execution occurs in a global scope unique to the current module.
-
-The flags can be any combination of the following characters:
-- `v` (evaluate): Evaluate a single expression and return its value.
-- `x` (execute): Execute the code and return `nothing`.
-- `g` (globals): Return the dict of globals for the scope instead.
-- `l` (locals): Perform the computation in a new local scope and return that scope.
-- `c` (compile): Cache a compiled version of the source and re-use it each time, for speed.
-- `d` (debug): Run inside a `pdb` debugger.
-
-If neither `v` nor `x` is specified and the code is a single line then `v` (evaluate) is assumed, otherwise `x` (execute).
-"""
-macro py_str(src::String, flags::String="")
-    # parse the flags
-    exec = '\n' in src
-    retglobals = false
-    retlocals = false
-    lazy = false
-    compile = false
-    debug = false
-    for f in flags
-        if f == 'x'
-            exec = true
-        elseif f == 'v'
-            exec = false
-        elseif f == 'g'
-            retglobals = true
-        elseif f == 'l'
-            retlocals = true
-        # elseif f == 'z'
-        #     lazy = true
-        elseif f == 'c'
-            compile = true
-        elseif f == 'd'
-            debug = true
+pyeval_macro(filename, mode, codearg, args...) = begin
+    # unwrap rettype
+    if codearg isa Expr && codearg.head == :(::)
+        rettypearg = codearg.args[end]
+        codearg = codearg.args[1]
+    else
+        rettypearg = mode == :eval ? PyObject : Nothing
+    end
+    # extract the code
+    code = codearg.args[end]
+    # parse the remaining arguments - the first one is optionally the locals, the rest are var=value pairs to include in the locals
+    kvs = []
+    locals = nothing
+    for (i,arg) in enumerate(args)
+        if arg isa Expr && arg.head == :(=) && arg.args[1] isa Symbol
+            push!(kvs, arg.args[1] => arg.args[2])
+        elseif i == 1
+            locals = arg
         else
-            error("invalid flags: `py\"...\"$flags`")
+            error()
         end
     end
-    # parse src for $-interpolations
-    chunks = String[]
+    # find any interpolations
+    i = firstindex(code)
+    codechunks = String[]
     interps = []
-    i = firstindex(src)
+    chunk = ""
     while true
-        j = findnext('$', src, i)
+        j = findnext('$', code, i)
         if j === nothing
-            push!(chunks, src[i:end])
+            push!(codechunks, chunk * code[i:end])
             break
-        else
-            push!(chunks, src[i:prevind(src,j)])
-        end
-        if checkbounds(Bool, src, j+1) && src[j+1] == '$'
-            push!(chunks, "\$")
+        elseif checkbounds(Bool, code, j+1) && code[j+1] == '$'
+            chunk *= code[i:j]
             i = j+2
         else
-            ex, i = Meta.parse(src, j+1, greedy=false)
-            var = "_jl_interp_$(length(interps)+1)_"
-            push!(interps, var => ex)
-            push!(chunks, "($var)")
+            push!(codechunks, chunk * code[i:j-1])
+            chunk = ""
+            ex, i = Meta.parse(code, j+1, greedy=false)
+            push!(interps, ex)
         end
     end
-    newsrcstr = newsrc = join(chunks)
-    # compile the code so there is string information
-    cfile = "julia:$(__source__.file):$(__source__.line)"
-    cmode = exec ? "exec" : "eval"
-    newsrc = :(pycompile($newsrcstr, $cfile, $cmode))
-    if compile
-        # compile the code lazily (so the python parser is only invoked once)
-        # Julia crashes if you try to put pylazyobject(()->pycompile(...)) directly in the syntax tree. Is this a bug??
-        # Instead, we use a run-time lookup table.
-        newsrc = :(get!(()->$newsrc, COMPILECACHE, ($newsrcstr, $cfile, $cmode)))
+    # identify which are LHS and which are RHS
+    # currently only the pattern "^ $(...) =" is recognized as a LHS
+    # TODO: multiple assignment
+    # TODO: mutating assignment
+    islhs = [((match(r"[\n;=]\s*$", codechunks[i])!==nothing) || (i==1 && match(r"^\s*$", codechunks[i])!==nothing)) && match(r"^\s*=($|[^=])", codechunks[i+1])!==nothing for (i,ex) in enumerate(interps)]
+    # do the interpolation
+    intvars = ["_jl_interp_$(i)_" for i in 1:length(interps)]
+    for (k,v,lhs) in zip(intvars, interps, islhs)
+        lhs || push!(kvs, Symbol(k) => v)
     end
-    # make the expression
-    ex = :(let
-        globals = scope(@__MODULE__)
-        locals = $(retlocals ? :(pydict()) : :globals)
-        $([:(check(C.PyDict_SetItemString(globals, $k, pyobject($(esc(v)))))) for (k,v) in interps]...)
-        result = $(debug ? (exec ? :pyexecdb : :pyevaldb) : (exec ? :pyexec : :pyeval))($newsrc, globals, locals)
-        $([:(check(C.PyDict_DelItemString(globals, $k))) for (k,v) in interps]...)
-        $(retlocals ? :locals : retglobals ? :globals : exec ? nothing : :result)
-    end)
-    if lazy
-        # wrap as a lazy object
-        ex = :(pylazyobject(() -> $ex))
+    newcode = join([c * (checkbounds(Bool, intvars, i) ? islhs[i] ? intvars[i] : "($(intvars[i]))" : "") for (i,c) in enumerate(codechunks)])
+    # for LHS interpolation, extract out type annotations
+    if any(islhs)
+        mode == :exec || error("interpolation on LHS only allowed in exec mode")
     end
-    ex
+    if mode == :exec
+        outkvts = [(ex isa Expr && ex.head == :(::)) ? (esc(ex.args[1]), v, esc(ex.args[2])) : (esc(ex), v, PyObject) for (ex,v,lhs) in zip(interps,intvars,islhs) if lhs]
+    end
+    # make the code object
+    co = PyCode(newcode, filename, mode)
+    # go
+    freelocals = locals === nothing ? :(C.Py_DecRef(lptr)) : :(GC.@preserve locals nothing)
+    ret = quote
+        let
+            # evaluate the inputs (so any errors are thrown before we have object references)
+            $([:($(Symbol(:input,i)) = $(esc(v))) for (i,(k,v)) in enumerate(kvs)]...)
+            # get the code pointer
+            cptr = checknull(pyptr($co))
+            # get the globals pointer
+            globals = $(esc(:pyglobals))
+            gptr = checknull(pyptr(globals))
+            # ensure globals includes builtins
+            if !globals.hasbuiltins
+                if C.PyMapping_HasKeyString(gptr, "__builtins__") == 0
+                    err = C.PyMapping_SetItemString(gptr, "__builtins__", C.PyEval_GetBuiltins())
+                    ism1(err) && pythrow()
+                end
+                globals.hasbuiltins = true
+            end
+            # get locals (ALLOCATES lptr if locals===nothing)
+            $(locals === nothing ? :(lptr = checknull(C.PyDict_New())) : :(locals = $(esc(locals)); lptr = checknull(pyptr(locals))))
+            # insert extra locals
+            $([:(let; vo=C.PyObject_From($(Symbol(:input,i))); isnull(vo) && ($freelocals; pythrow()); err=C.PyObject_SetItem(lptr, $(PyInternedString(string(k))), vo); C.Py_DecRef(vo); ism1(err) && ($freelocals; pythrow()); end) for (i,(k,v)) in enumerate(kvs)]...)
+            # Call eval (ALLOCATES rptr)
+            rptr = GC.@preserve globals C.PyEval_EvalCode(cptr, gptr, lptr)
+            isnull(rptr) && ($freelocals; pythrow())
+            # extract values
+            $(
+                if mode == :eval
+                    quote
+                        $freelocals
+                        res = C.PyObject_Convert(rptr, $(esc(rettypearg)))
+                        C.Py_DecRef(rptr)
+                        ism1(res) && pythrow()
+                        C.takeresult($(esc(rettypearg)))
+                    end
+                elseif mode == :exec
+                    quote
+                        C.Py_DecRef(rptr)
+                        $((quote
+                            $(Symbol(:output,i)) = let
+                                xo = C.PyObject_GetItem(lptr, $(PyInternedString(v)))
+                                isnull(xo) && ($freelocals; pythrow())
+                                res = C.PyObject_Convert(xo, $t)
+                                C.Py_DecRef(xo)
+                                ism1(res) && ($freelocals; pythrow())
+                                C.takeresult($t)
+                            end
+                        end for (i,(_,v,t)) in enumerate(outkvts))...)
+                        $freelocals
+                        ($((Symbol(:output,i) for i in 1:length(outkvts))...),)
+                    end
+                else
+                    error()
+                end
+            )
+        end
+    end
+    if mode == :exec
+        ret = quote
+            ($((k for (k,_,_) in outkvts)...),) = $ret
+            nothing
+        end
+    end
+    ret
 end
-export @py_str
+
+"""
+    @py `...` [locals] [var=val, ...]
+
+Executes the given Python code.
+
+Julia values can be interpolated using the usual `\$(...)` syntax.
+
+Additionally, assignment to interpolations is supported: e.g. `\$(x::T) = ...` will convert the right hand side to a `T` and assign it to `x`.
+- Currently only single assignment is supported. Multiple assignment (`\$x, \$y = ...`) or mutating assignment (`\$x += ...`) will not be recognized.
+- What actually happens is that the assignment is to a temporary Python variable, which is then read when execution successfully finishes.
+  Hence if an exception occurs, no assignments will happen.
+
+The globals are `pyglobals`.
+The locals are `locals`, if given, otherwise a temporary scope is created. Extra values to be interted into the scope can be given with extra `var=val` arguments.
+"""
+macro py(args...)
+    pyeval_macro(pyeval_filename(__source__), :exec, args...)
+end
+export @py
+
+"""
+    @pyg `...` [var=val, ...]
+
+Executes the given Python code in the global scope.
+
+This is simply shorthand for ```@py `...` pyglobals ``` (see [`@py`](@ref)).
+"""
+macro pyg(code, args...)
+    :(@py $code $(esc(:pyglobals)) $(args...))
+end
+export @pyg
+
+"""
+    @pyv `...`[::rettype] [locals] [var=val, ...]
+
+Evaluate the given Python code.
+
+Julia values can be interpolated using the usual `\$(...)` syntax.
+
+The globals are `pyglobals`.
+The locals are `locals`, if given, otherwise a temporary scope is created. Extra values to be interted into the scope can be given with extra `var=val` arguments.
+
+The result is converted to a `rettype`, which defaults to `PyObject`.
+"""
+macro pyv(args...)
+    pyeval_macro(pyeval_filename(__source__), :eval, args...)
+end
+export @pyv
+
+"""
+    py`...` :: PyCode
+
+A Python code object in "exec" mode which is compiled only once.
+
+Suitable for using as the `code` argument to `pyeval`.
+"""
+macro py_cmd(code::String)
+    PyCode(code, pyeval_filename(__source__), :exec)
+end
+export @py_cmd
+
+"""
+    pyv`...` :: PyCode
+
+A Python code object in "eval" mode which is compiled only once.
+
+Suitable for using as the `code` argument to `pyexec`.
+"""
+macro pyv_cmd(code::String)
+    PyCode(code, pyeval_filename(__source__), :eval)
+end
+export @pyv_cmd

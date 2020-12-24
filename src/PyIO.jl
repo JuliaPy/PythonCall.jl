@@ -10,7 +10,7 @@ If `text=false` then `o` must be a binary stream and arbitrary binary I/O is pos
 For efficiency, reads and writes are buffered before being sent to `o`. The size of the buffer is `buflen`.
 """
 mutable struct PyIO <: IO
-    o :: PyObject
+    ref :: PyRef
     # true to close the file automatically
     own :: Bool
     # true if `o` is text, false if binary
@@ -24,8 +24,8 @@ mutable struct PyIO <: IO
     obuflen :: Int
     obuf :: Vector{UInt8}
 
-    function PyIO(o::PyObject; own::Bool=false, text::Union{Missing,Bool}=missing, buflen::Integer=4096, ibuflen=buflen, obuflen=buflen)
-        io = new(PyObject(o), own, text===missing ? pyisinstance(o, pyiomodule.TextIOBase) : text, false, ibuflen, UInt8[], obuflen, UInt8[])
+    function PyIO(o; own::Bool=false, text::Union{Missing,Bool}=missing, buflen::Integer=4096, ibuflen=buflen, obuflen=buflen)
+        io = new(PyRef(o), own, text===missing ? pyisinstance(o, pyiomodule().TextIOBase) : text, false, ibuflen, UInt8[], obuflen, UInt8[])
         finalizer(io) do io
             io.own ? close(io) : flush(io)
         end
@@ -33,6 +33,11 @@ mutable struct PyIO <: IO
     end
 end
 export PyIO
+
+ispyreftype(::Type{PyIO}) = true
+pyptr(io::PyIO) = pyptr(io.ref)
+Base.unsafe_convert(::Type{CPyPtr}, io::PyIO) = checknull(pyptr(io))
+C.PyObject_TryConvert__initial(o, ::Type{PyIO}) = C.putresult(PyIO(pyborrowedref(o)))
 
 """
     PyIO(f, o; ...)
@@ -50,12 +55,10 @@ function PyIO(f::Function, o; opts...)
     end
 end
 
-pyobject(io::PyIO) = io.o
-
 # If obuf is non-empty, write it to the underlying stream.
 function putobuf(io::PyIO)
     if !isempty(io.obuf)
-        io.text ? io.o.write(String(io.obuf)) : io.o.write(io.obuf)
+        @py `$io.write($(io.text ? pystr(io.obuf) : pybytes(io.obuf)))`
         empty!(io.obuf)
     end
     nothing
@@ -63,26 +66,21 @@ end
 
 # If ibuf is empty, read some more from the underlying stream.
 # After this call, if ibuf is empty then we are at EOF.
+# TODO: in binary mode, `io.readinto()` to avoid copying data
 function getibuf(io::PyIO)
     if isempty(io.ibuf)
-        if io.text
-            append!(io.ibuf, PyVector{UInt8,UInt8,false,true}(pystr_asutf8string(io.o.read(io.ibuflen))))
-        else
-            resize!(io.ibuf, io.ibuflen)
-            n = io.o.readinto(io.ibuf).jl!i
-            resize!(io.ibuf, n)
-        end
+        append!(io.ibuf, @pyv `$io.read($(io.ibuflen))`::Vector{UInt8})
     end
     nothing
 end
 
 function Base.flush(io::PyIO)
     putobuf(io)
-    io.o.flush()
+    @py `$io.flush()`
     nothing
 end
 
-Base.close(io::PyIO) = (flush(io); io.o.close(); nothing)
+Base.close(io::PyIO) = (flush(io); @py `$io.close()`; nothing)
 
 function Base.eof(io::PyIO)
     if io.eof
@@ -95,13 +93,13 @@ function Base.eof(io::PyIO)
     end
 end
 
-Base.fd(io::PyIO) = io.o.fileno().jl!i
+Base.fd(io::PyIO) = @pyv `$io.fileno()`::Int
 
-Base.isreadable(io::PyIO) = io.o.readable().jl!b
+Base.isreadable(io::PyIO) = @pyv `$io.readable()`::Bool
 
-Base.iswritable(io::PyIO) = io.o.writable().jl!b
+Base.iswritable(io::PyIO) = @pyv `$io.writable()`::Bool
 
-Base.isopen(io::PyIO) = !io.o.closed.jl!b
+Base.isopen(io::PyIO) = @pyv `not $io.closed`::Bool
 
 function Base.unsafe_write(io::PyIO, ptr::Ptr{UInt8}, n::UInt)
     while true
@@ -150,7 +148,7 @@ function Base.seek(io::PyIO, pos::Integer)
     putobuf(io)
     empty!(io.ibuf)
     io.eof = false
-    io.o.seek(pos, 0)
+    @py `$io.seek($pos, 0)`
     io
 end
 
@@ -164,7 +162,7 @@ function Base.seekstart(io::PyIO)
     putobuf(io)
     empty!(io.ibuf)
     io.eof = false
-    io.o.seek(0, 0)
+    @py `$io.seek(0, 0)`
     io
 end
 
@@ -172,7 +170,7 @@ function Base.seekend(io::PyIO)
     putobuf(io)
     empty!(io.ibuf)
     io.eof = false
-    io.o.seek(0, 2)
+    @py `$io.seek(0, 2)`
     io
 end
 
@@ -188,7 +186,7 @@ function Base.skip(io::PyIO, n::Integer)
         if 0 ≤ n ≤ io.ibuflen
             read(io, n)
         else
-            io.o.seek(n - length(io.ibuf), 1)
+            @py `$io.seek($(n - length(io.ibuf)), 1)`
             empty!(io.ibuf)
             io.eof = false
         end
@@ -199,11 +197,11 @@ function Base.position(io::PyIO)
     putobuf(io)
     if io.text
         if isempty(io.ibuf)
-            io.o.position().jl!i
+            @pyv `$io.position()`::Int
         else
             error("`position(io)` text PyIO streams only implemented for empty input buffer (e.g. do `read(io, length(io.ibuf))` first)")
         end
     else
-        io.o.position().jl!i - length(io.ibuf)
+        (@py `$io.position()`::Int) - length(io.ibuf)
     end
 end

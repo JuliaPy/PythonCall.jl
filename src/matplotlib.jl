@@ -1,6 +1,3 @@
-pymatplotlib = pylazyobject(() -> pyimport("matplotlib"))
-pyplot = pylazyobject(() -> pyimport("matplotlib.pyplot"))
-
 """
     pyplotshow([fig]; close=true, [format])
 
@@ -10,11 +7,24 @@ If `close` is true, the figure is also closed.
 
 The `format` specifies the file format of the generated image. By default this is `pyplot.rcParams["savefig.format"]`.
 """
-function pyplotshow(fig; close::Bool=true, format::String=pyplot.rcParams.get("savefig.format", "png").jl!s)
-    fig = pyisinstance(fig, pyplot.Figure) ? PyObject(fig) : pyplot.figure(fig)
-    io = IOBuffer()
-    fig.savefig(io, format=format)
-    data = take!(io)
+function pyplotshow(fig; close::Bool=true, format::String="")
+    @py ```
+    import matplotlib.pyplot as plt, io
+    fig = $fig
+    if not isinstance(fig, plt.Figure):
+        fig = plt.figure(fig)
+    buf = io.BytesIO()
+    format = $format
+    if not format:
+        format = plt.rcParams.get("savefig.format", "png")
+    if format not in ["png", "jpg", "jpeg", "tif", "tiff", "svg", "pdf"]:
+        raise ValueError("Unsupported format: {}".format(format))
+    fig.savefig(buf, format=format)
+    $(data::Vector{UInt8}) = buf.getvalue()
+    if $close:
+        plt.close(fig)
+    $(format::String) = format
+    ```
     if format == "png"
         display(MIME"image/png"(), data)
     elseif format in ("jpg", "jpeg")
@@ -26,13 +36,17 @@ function pyplotshow(fig; close::Bool=true, format::String=pyplot.rcParams.get("s
     elseif format == "pdf"
         display(MIME"application/pdf"(), data)
     else
-        error("Unsupported format: $(repr(format)) (try one of: png, jpg, jpeg, tif, tiff, svg, xml)")
+        error()
     end
-    close && pyplot.close(fig)
     nothing
 end
 function pyplotshow(; opts...)
-    for fig in pyplot.get_fignums()
+    @py ```
+    import sys
+    plt = sys.modules.get("matplotlib.pyplot", None)
+    $(fignums::Vector{Int}) = [] if plt is None else plt.get_fignums()
+    ```
+    for fig in fignums
         pyplotshow(fig; opts...)
     end
 end

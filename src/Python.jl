@@ -52,86 +52,56 @@ Base.show(io::IO, ::MIME"text/plain", c::Config) =
     end
 const CONFIG = Config()
 
+"""
+    ispyreftype(::Type{T})
+
+True if `T` is a wrapper type for a single Python reference.
+
+Such objects must implement:
+- `pyptr(o::T) =` the underlying pointer (or NULL on error)
+- `unsafe_convert(::Type{CPyPtr}, o::T) = checknull(pyptr(o))`
+"""
+ispyreftype(::Type) = false
+
+"""
+    pyptr(o)
+
+Retrieve the underlying Python object pointer from o.
+"""
+function pyptr end
+
+convertref(::Type{T}, x) where {T} = ispyreftype(T) ? x : convert(T, x)
+tryconvertref(::Type{T}, x) where {T} = ispyreftype(T) ? x : tryconvert(T, x)
+
 # C API
-include("cpython.jl")
+include("cpython/CPython.jl")
 
 const C = CPython
 const CPyPtr = C.PyPtr
-struct CPyObjRef
-    ptr :: CPyPtr
-end
 
-# core
-include("object.jl")
-include("error.jl")
-include("import.jl")
 include("gil.jl")
-
-# abstract interfaces
-include("number.jl")
-include("sequence.jl")
-
-# fundamental objects
-include("type.jl")
-include("none.jl")
-
-# numeric objects
-include("bool.jl")
-include("int.jl")
-include("float.jl")
-include("complex.jl")
-
-# sequence objects
-include("str.jl")
-include("bytes.jl")
-include("bytearray.jl")
-include("tuple.jl")
-include("list.jl")
-
-# mapping objects
-include("dict.jl")
-include("set.jl")
-
-# function objects
-include("function.jl")
-
-# other objects
-include("slice.jl")
-include("range.jl")
-
-# standard library
-include("builtins.jl")
 include("eval.jl")
-include("stdlib.jl")
-include("io.jl")
-include("fraction.jl")
-include("datetime.jl")
-include("collections.jl")
+include("builtins.jl")
 
-# other packages
-include("pandas.jl")
-include("numpy.jl")
-include("matplotlib.jl")
-
-# other Julia wrappers around Python values
-include("PyIterable.jl")
-include("PyList.jl")
+include("PyRef.jl")
+include("PyCode.jl")
+include("PyInternedString.jl")
+include("PyException.jl")
+include("PyObject.jl")
 include("PyDict.jl")
+include("PyList.jl")
 include("PySet.jl")
-include("PyObjectArray.jl")
+include("PyIterable.jl")
+include("PyIO.jl")
 include("PyBuffer.jl")
 include("PyArray.jl")
-include("PyIO.jl")
+include("PyObjectArray.jl")
+include("PyPandasDataFrame.jl")
 
-# other functionality
-include("convert.jl")
-include("newtype.jl")
 include("julia.jl")
-include("base.jl")
-include("pywith.jl")
 include("gui.jl")
+include("matplotlib.jl")
 
-# initialize
 include("init.jl")
 
 end # module

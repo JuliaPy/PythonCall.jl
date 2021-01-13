@@ -14,6 +14,11 @@ PyJuliaDictValue_Type() = begin
                 (name="values", flags=Py_METH_NOARGS, meth=pyjldict_values),
                 (name="items", flags=Py_METH_NOARGS, meth=pyjldict_items),
                 (name="get", flags=Py_METH_VARARGS, meth=pyjldict_get),
+                (name="clear", flags=Py_METH_NOARGS, meth=pyjldict_clear),
+                (name="pop", flags=Py_METH_VARARGS, meth=pyjldict_pop),
+                (name="popitem", flags=Py_METH_NOARGS, meth=pyjldict_popitem),
+                # (name="update", flags=Py_METH_VARARGS|Py_METH_KEYWORDS, meth=pyjldict_update),
+                (name="setdefault", flags=Py_METH_VARARGS, meth=pyjldict_setdefault),
             ],
             as_sequence = (
                 contains = pyjldict_contains,
@@ -73,6 +78,83 @@ pyjldict_get(xo::PyPtr, args::PyPtr) = begin
     catch err
         PyErr_SetJuliaError(err)
         Cint(-1)
+    end
+end
+
+pyjldict_setdefault(xo::PyPtr, args::PyPtr) = begin
+    x = PyJuliaValue_GetValue(xo)::AbstractDict
+    ism1(PyArg_CheckNumArgsBetween("get", args, 1, 2)) && return PyPtr()
+    ko = PyTuple_GetItem(args, 0)
+    vo = PyTuple_Size(args) < 2 ? Py_None() : PyTuple_GetItem(args, 1)
+    r = PyObject_TryConvert(ko, keytype(x))
+    r == -1 && return PyPtr()
+    r ==  0 && (Py_IncRef(vo); return vo)
+    k = takeresult(keytype(x))
+    try
+        if haskey(x, k)
+            PyObject_From(x[k])
+        else
+            r = PyObject_Convert(vo, valtype(x))
+            r == -1 && return PyPtr()
+            x[k] = takeresult(valtype(x))
+            Py_IncRef(vo)
+            vo
+        end
+    catch err
+        PyErr_SetJuliaError(err)
+        Cint(-1)
+    end
+end
+
+pyjldict_clear(xo::PyPtr, ::PyPtr) = begin
+    x = PyJuliaValue_GetValue(xo)::AbstractDict
+    try
+        empty!(x)
+        PyNone_New()
+    catch err
+        PyErr_SetJuliaError(err)
+        PyPtr()
+    end
+end
+
+pyjldict_popitem(xo::PyPtr, ::PyPtr) = begin
+    x = PyJuliaValue_GetValue(xo)::AbstractDict
+    try
+        if isempty(x)
+            PyErr_SetString(PyExc_KeyError(), "pop empty dictionary")
+            PyPtr()
+        else
+            k, v = pop!(x)
+            PyTuple_From((k,v))
+        end
+    catch err
+        PyErr_SetJuliaError(err)
+        PyPtr()
+    end
+end
+
+pyjldict_pop(xo::PyPtr, args::PyPtr) = begin
+    x = PyJuliaValue_GetValue(xo)::AbstractDict
+    ism1(PyArg_CheckNumArgsBetween("pop", args, 1, 2)) && return PyPtr()
+    ko = PyTuple_GetItem(args, 0)
+    vo = PyTuple_Size(args)==2 ? PyTuple_GetItem(args, 1) : PyPtr()
+    r = PyObject_TryConvert(PyTuple_GetItem(args, 0), keytype(x))
+    r == -1 && return PyPtr()
+    r ==  0 && (isnull(vo) ? (PyErr_SetObject(PyExc_KeyError(), ko)) : (Py_IncRef(vo); vo))
+    k = takeresult(keytype(x))
+    try
+        if haskey(x, k)
+            PyObject_From(pop!(x, k))
+        elseif isnull(vo)
+            PyErr_SetObject(PyExc_KeyError(), ko)
+            PyPtr()
+        else
+            Py_IncRef(vo)
+            vo
+        end
+    catch err
+        PyErr_SetJuliaError(err)
+        PyPtr()
     end
 end
 

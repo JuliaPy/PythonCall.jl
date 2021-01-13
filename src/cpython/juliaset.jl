@@ -17,7 +17,7 @@ PyJuliaSetValue_Type() = begin
                 (name="discard", flags=Py_METH_O, meth=pyjlset_discard),
                 (name="intersection", flags=Py_METH_O, meth=pyjlset_intersection),
                 (name="intersection_update", flags=Py_METH_O, meth=pyjlset_intersection_update),
-                # (name="isdisjoint", flags=Py_METH_O, meth=pyjlset_isdisjoint),
+                (name="isdisjoint", flags=Py_METH_O, meth=pyjlset_isdisjoint),
                 # (name="issubset", flags=Py_METH_O, meth=pyjlset_issubset),
                 # (name="issuperset", flags=Py_METH_O, meth=pyjlset_issuperset),
                 (name="pop", flags=Py_METH_NOARGS, meth=pyjlset_pop),
@@ -248,3 +248,32 @@ pyjlset_union(xo, yo) = pyjlset_binop_named(xo, yo, pyjlset_or_generic, pyjlset_
 pyjlset_symmetric_difference(xo, yo) = pyjlset_binop_named(xo, yo, pyjlset_xor_generic, pyjlset_xor_special)
 pyjlset_intersection(xo, yo) = pyjlset_binop_named(xo, yo, pyjlset_and_generic, pyjlset_and_special)
 pyjlset_difference(xo, yo) = pyjlset_binop_named(xo, yo, pyjlset_sub_generic, pyjlset_sub_special)
+
+pyjlset_isdisjoint(x::PyPtr, y::PyPtr) = _pyjlset_isdisjoint(PyJuliaValue_GetValue(x)::AbstractSet, y)
+_pyjlset_isdisjoint(x::AbstractSet, yso::PyPtr) = begin
+    isempty(x) && return PyObject_From(true)
+    it = PyObject_GetIter(yso)
+    isnull(it) && return PyPtr()
+    try
+        while true
+            yo = PyIter_Next(it)
+            if !isnull(yo)
+                r = PyObject_TryConvert(yo, eltype(x))
+                Py_DecRef(yo)
+                r == -1 && return PyPtr()
+                r ==  0 && continue
+                y = takeresult(eltype(x))
+                y in x && return PyObject_From(false)
+            elseif PyErr_IsSet()
+                return PyPtr()
+            else
+                return PyObject_From(true)
+            end
+        end
+    catch err
+        PyErr_SetJuliaError(err)
+        return PyPtr()
+    finally
+        Py_DecRef(it)
+    end
+end

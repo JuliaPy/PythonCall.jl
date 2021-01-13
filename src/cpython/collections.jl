@@ -34,6 +34,49 @@ for n in [:Container, :Hashable, :Iterable, :Iterator, :Reversible, :Generator, 
     end
 end
 
+"""
+    PyIterable_Collect(xs::PyPtr, T::Type, [skip=false]) :: Vector{T}
+
+Convert the elements of `xs` to type `T` and collect them into a vector.
+On error, an empty vector is returned.
+
+If `skip` then elements which cannot be converted to a `T` are skipped over,
+instead of raising an error. Other errors are still propagated.
+"""
+PyIterable_Collect(xso::PyPtr, ::Type{T}, skip::Bool=false) where {T} = begin
+    xs = T[]
+    it = PyObject_GetIter(xso)
+    isnull(it) && return xs
+    try
+        while true
+            xo = PyIter_Next(it)
+            if !isnull(xo)
+                if skip
+                    r = PyObject_TryConvert(xo, T)
+                    Py_DecRef(xo)
+                    r == -1 && (empty!(xs); break)
+                    r ==  0 && continue
+                else
+                    r = PyObject_Convert(xo, T)
+                    Py_DecRef(xo)
+                    r == -1 && (empty!(xs); break)
+                end
+                x = takeresult(T)
+                push!(xs, x)
+            else
+                PyErr_IsSet() && empty!(xs)
+                break
+            end
+        end
+    catch err
+        empty!(xs)
+        PyErr_SetJuliaError(err)
+    finally
+        Py_DecRef(it)
+    end
+    return xs
+end
+
 PyIterable_ConvertRule_vector(o, ::Type{S}) where {S<:Vector} = begin
     it = PyObject_GetIter(o)
     isnull(it) && return -1

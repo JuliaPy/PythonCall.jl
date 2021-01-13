@@ -28,7 +28,53 @@ end
 ### PROTOCOLS
 
 PyNumberMethods_Create(c, x::PyNumberMethods) = x
-PyNumberMethods_Create(c; opts...) = C.PyNumberMethods(; [k => (v isa Ptr ? v : v isa Base.CFunction ? cacheptr!(c, v) : error()) for (k,v) in pairs(opts)]...)
+PyNumberMethods_Create(c;
+    add=C_NULL, subtract=C_NULL, multiply=C_NULL, remainder=C_NULL, divmod=C_NULL, power=C_NULL,
+    negative=C_NULL, positive=C_NULL, absolute=C_NULL, bool=C_NULL, invert=C_NULL,
+    lshift=C_NULL, rshift=C_NULL, and=C_NULL, or=C_NULL, xor=C_NULL, int=C_NULL, float=C_NULL,
+    inplace_add=C_NULL, inplace_subtract=C_NULL, inplace_multiply=C_NULL,
+    inplace_remainder=C_NULL, inplace_power=C_NULL, inplace_lshift=C_NULL, inplace_rshift=C_NULL,
+    inplace_and=C_NULL, inplace_xor=C_NULL, inplace_or=C_NULL, floordivide=C_NULL,
+    truedivide=C_NULL, inplace_floordivide=C_NULL, inplace_truedivide=C_NULL, index=C_NULL,
+    matrixmultiply=C_NULL, inplace_matrixmultiply=C_NULL
+) =
+    PyNumberMethods(
+        add = @cachefuncptr!(c, add, PyPtr, (PyPtr, PyPtr)),
+        subtract = @cachefuncptr!(c, subtract, PyPtr, (PyPtr, PyPtr)),
+        multiply = @cachefuncptr!(c, multiply, PyPtr, (PyPtr, PyPtr)),
+        remainder = @cachefuncptr!(c, remainder, PyPtr, (PyPtr, PyPtr)),
+        divmod = @cachefuncptr!(c, divmod, PyPtr, (PyPtr, PyPtr)),
+        power = @cachefuncptr!(c, power, PyPtr, (PyPtr, PyPtr, PyPtr)),
+        negative = @cachefuncptr!(c, negative, PyPtr, (PyPtr,)),
+        positive = @cachefuncptr!(c, positive, PyPtr, (PyPtr,)),
+        absolute = @cachefuncptr!(c, absolute, PyPtr, (PyPtr,)),
+        bool = @cachefuncptr!(c, bool, Cint, (PyPtr,)),
+        invert = @cachefuncptr!(c, invert, PyPtr, (PyPtr,)),
+        lshift = @cachefuncptr!(c, lshift, PyPtr, (PyPtr, PyPtr)),
+        rshift = @cachefuncptr!(c, rshift, PyPtr, (PyPtr, PyPtr)),
+        and = @cachefuncptr!(c, and, PyPtr, (PyPtr, PyPtr)),
+        xor = @cachefuncptr!(c, xor, PyPtr, (PyPtr, PyPtr)),
+        or = @cachefuncptr!(c, or, PyPtr, (PyPtr, PyPtr)),
+        int = @cachefuncptr!(c, int, PyPtr, (PyPtr,)),
+        float = @cachefuncptr!(c, float, PyPtr, (PyPtr,)),
+        inplace_add = @cachefuncptr!(c, inplace_add, PyPtr, (PyPtr, PyPtr)),
+        inplace_subtract = @cachefuncptr!(c, inplace_subtract, PyPtr, (PyPtr, PyPtr)),
+        inplace_multiply = @cachefuncptr!(c, inplace_multiply, PyPtr, (PyPtr, PyPtr)),
+        inplace_remainder = @cachefuncptr!(c, inplace_remainder, PyPtr, (PyPtr, PyPtr)),
+        inplace_power = @cachefuncptr!(c, inplace_power, PyPtr, (PyPtr, PyPtr, PyPtr)),
+        inplace_lshift = @cachefuncptr!(c, inplace_lshift, PyPtr, (PyPtr, PyPtr)),
+        inplace_rshift = @cachefuncptr!(c, inplace_rshift, PyPtr, (PyPtr, PyPtr)),
+        inplace_and = @cachefuncptr!(c, inplace_and, PyPtr, (PyPtr, PyPtr)),
+        inplace_xor = @cachefuncptr!(c, inplace_xor, PyPtr, (PyPtr, PyPtr)),
+        inplace_or = @cachefuncptr!(c, inplace_or, PyPtr, (PyPtr, PyPtr)),
+        floordivide = @cachefuncptr!(c, floordivide, PyPtr, (PyPtr, PyPtr)),
+        truedivide = @cachefuncptr!(c, truedivide, PyPtr, (PyPtr, PyPtr)),
+        inplace_floordivide = @cachefuncptr!(c, inplace_floordivide, PyPtr, (PyPtr, PyPtr)),
+        inplace_truedivide = @cachefuncptr!(c, inplace_truedivide, PyPtr, (PyPtr, PyPtr)),
+        index = @cachefuncptr!(c, index, PyPtr, (PyPtr,)),
+        matrixmultiply = @cachefuncptr!(c, matrixmultiply, PyPtr, (PyPtr, PyPtr)),
+        inplace_matrixmultiply = @cachefuncptr!(c, inplace_matrixmultiply, PyPtr, (PyPtr, PyPtr)),
+    )
 PyNumberMethods_Create(c, x::Dict) = PyNumberMethods_Create(c; x...)
 PyNumberMethods_Create(c, x::NamedTuple) = PyNumberMethods_Create(c; x...)
 

@@ -26,7 +26,7 @@ PyComplexable_TryConvertRule_convert(o, ::Type{S}) where {S} = begin
 end
 
 PyComplexable_TryConvertRule_tryconvert(o, ::Type{S}) where {S} = begin
-    x = PyComplexable_AsComplex(o)
+    x = PyComplex_AsComplex(o)
     ism1(x) && PyErr_IsSet() && return -1
     putresult(tryconvert(S, x))
 end

@@ -9,7 +9,7 @@ PyJuliaModuleValue_Type() = begin
             name = "julia.ModuleValue",
             base = base,
             methods = [
-                (name="eval", flags=Py_METH_VARARGS, meth=pyjlmodule_eval),
+                (name="seval", flags=Py_METH_VARARGS, meth=pyjlmodule_seval),
             ],
         ))
         ptr = PyPtr(pointer(t))
@@ -24,28 +24,20 @@ end
 PyJuliaModuleValue_New(x::Module) = PyJuliaValue_New(PyJuliaModuleValue_Type(), x)
 PyJuliaValue_From(x::Module) = PyJuliaModuleValue_New(x)
 
-pyjlmodule_eval(xo::PyPtr, args::PyPtr) = begin
-    x = PyJuliaValue_GetValue(xo)::Module
-    ism1(PyArg_CheckNumArgsBetween("eval", args, 1, 2)) && return PyPtr()
+pyjlmodule_seval(xo::PyPtr, args::PyPtr) = begin
+    ism1(PyArg_CheckNumArgsBetween("seval", args, 1, 2)) && return PyPtr()
     if PyTuple_Size(args) == 1
         m = PyJuliaValue_GetValue(xo)::Module
-        exo = PyTuple_GetItem(args, 0)
+        ism1(PyArg_GetArg(String, "seval", args, 0)) && return PyPtr()
+        s = takeresult(String)
     else
-        ism1(PyArg_GetArg(Module, "eval", args, 0)) && return PyPtr()
+        ism1(PyArg_GetArg(Module, "seval", args, 0)) && return PyPtr()
         m = takeresult(Module)
-        exo = PyTuple_GetItem(args, 1)
+        ism1(PyArg_GetArg(String, "seval", args, 1)) && return PyPtr()
+        s = takeresult(String)
     end
     try
-        if PyUnicode_Check(exo)
-            c = PyUnicode_AsString(exo)
-            isempty(c) && PyErr_IsSet() && return PyPtr()
-            ex = Meta.parse(c)
-        else
-            ism1(PyObject_Convert(exo, Any)) && return PyPtr()
-            ex = takeresult()
-        end
-        r = Base.eval(m, ex)
-        PyObject_From(r)
+        PyObject_From(Base.eval(m, Meta.parse(s)))
     catch err
         PyErr_SetJuliaError(err)
         PyPtr()

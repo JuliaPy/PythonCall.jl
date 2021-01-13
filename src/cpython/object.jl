@@ -155,7 +155,8 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
         end
         if xb != PyPtr()
             push!(basetypes, xt)
-            push!(basemros, [xb; PyType_MROAsVector(xt)])
+            xmro = PyType_MROAsVector(xt)
+            push!(basemros, xb in xmro ? xmro : [xb; xmro])
         end
     end
     for b in basetypes[2:end]
@@ -176,7 +177,7 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
                 break
             end
         end
-        ok || error("Fatal inheritence error: could not merge MROs")
+        ok || error("Fatal inheritence error: could not merge MROs (alltypes=$alltypes, basemros=$basemros)")
         # add it to the list
         push!(alltypes, b)
         # remove it from consideration

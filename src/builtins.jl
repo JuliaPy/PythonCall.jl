@@ -685,7 +685,9 @@ export pywith
 """
     pytuple([T=PyObject,] [x]) :: T
 
-Create a Python `tuple` from the elements of `x`.
+Create a Python `tuple` from the elements of iterable `x`.
+
+If `x` is a Python object, this is equivalent to `tuple(x)` in Python.
 """
 pytuple(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PyTuple_Type(), x) : C.PyTuple_FromIter(x))
 pytuple(::Type{T}) where {T} = checknullconvert(T, C.PyTuple_New(0))
@@ -696,7 +698,9 @@ export pytuple
 """
     pylist([T=PyObject,] [x]) :: T
 
-Create a Python `list` from the elements of `x`.
+Create a Python `list` from the elements of iterable `x`.
+
+If `x` is a Python object, this is equivalent to `list(x)` in Python.
 """
 pylist(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PyList_Type(), x) : C.PyList_FromIter(x))
 pylist(::Type{T}) where {T} = checknullconvert(T, C.PyList_New(0))
@@ -725,7 +729,9 @@ export pyrowlist
 """
     pyset([T=PyObject,] [x]) :: T
 
-Create a Python `set` from the elements of `x`.
+Create a Python `set` from the elements of iterable `x`.
+
+If `x` is a Python object, this is equivalent to `set(x)` in Python.
 """
 pyset(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PySet_Type(), x) : C.PySet_FromIter(x))
 pyset(::Type{T}) where {T} = checknullconvert(T, C.PySet_New(C_NULL))
@@ -736,7 +742,9 @@ export pyset
 """
     pyfrozenset([T=PyObject,] [x]) :: T
 
-Create a Python `frozenset` from the elements of `x`.
+Create a Python `frozenset` from the elements of iterable `x`.
+
+If `x` is a Python object, this is equivalent to `frozenset(x)` in Python.
 """
 pyfrozenset(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PyFrozenSet_Type(), x) : C.PyFrozenSet_FromIter(x))
 pyfrozenset(::Type{T}) where {T} = checknullconvert(T, C.PyFrozenSet_New(C_NULL))
@@ -747,7 +755,9 @@ export pyfrozenset
 """
     pydict([T=PyObject,] [x]) :: T
 
-Create a Python `dict` from the key-value pairs in `x`.
+Create a Python `dict` from the key-value pairs in iterable `x`.
+
+If `x` is a Python object, this is equivalent to `dict(x)` in Python.
 """
 pydict(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PyDict_Type(), x) : C.PyDict_FromPairs(x))
 pydict(::Type{T}) where {T} = checknullconvert(T, C.PyDict_New())
@@ -769,13 +779,22 @@ pyslice(x, y, z) = pyslice(PyObject, x, y, z)
 export pyslice
 
 """
-    pyellipsis([T=PyObject])
+    pyellipsis([T=PyObject]) :: T
 
 Equivalent to `Ellipsis` in Python (or `...` while indexing).
 """
 pyellipsis(::Type{T}) where {T} = checknullconvert(T, C.PyEllipsis_New())
 pyellipsis() = pyellipsis(PyObject)
 export pyellipsis
+
+"""
+    pynotimplemented([T=PyObject]) :: T
+
+Equivalent to `NotImplemented` in Python.
+"""
+pynotimplemented(::Type{T}) where {T} = checknullconvert(T, C.PyNotImplemented_New())
+pynotimplemented() = pynotimplemented(PyObject)
+export pynotimplemented
 
 ### MULTIMEDIA DISPLAY
 

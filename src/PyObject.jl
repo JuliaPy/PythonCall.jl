@@ -168,6 +168,30 @@ Base.getproperty(o::PyObject, k::Symbol) =
         (; opts...) -> PyIO(o; opts...)
     elseif k == :jl!pandasdf
         (; opts...) -> PyPandasDataFrame(o; opts...)
+    elseif k == :jl!buffer
+        (args...) -> PyBuffer(o, args...)
+    elseif k == :jl!array
+        f_arr() = PyArray(o)
+        f_arr(::Type{T}) where {T} = PyArray{T}(o)
+        f_arr(::Type{T}, N::Integer) where {T} = PyArray{T,N}(o)
+        f_arr(::Type{T}, N::Integer, ::Type{R}) where {T,R} = PyArray{T,N,R}(o)
+        f_arr(::Type{T}, N::Integer, ::Type{R}, M::Bool) where {T,R} = PyArray{T,N,R,M}(o)
+        f_arr(::Type{T}, N::Integer, ::Type{R}, M::Bool, L::Bool) where {T,R} = PyArray{T,N,R,M,L}(o)
+        f_arr
+    elseif k == :jl!vector
+        f_vec() = PyVector(o)
+        f_vec(::Type{T}) where {T} = PyVector{T}(o)
+        f_vec(::Type{T}, ::Type{R}) where {T,R} = PyVector{T,R}(o)
+        f_vec(::Type{T}, ::Type{R}, M::Bool) where {T,R} = PyVector{T,R,M}(o)
+        f_vec(::Type{T}, ::Type{R}, M::Bool, L::Bool) where {T,R} = PyVector{T,R,M,L}(o)
+        f_vec
+    elseif k == :jl!matrix
+        f_mat() = PyMatrix(o)
+        f_mat(::Type{T}) where {T} = PyMatrix{T}(o)
+        f_mat(::Type{T}, ::Type{R}) where {T,R} = PyMatrix{T,R}(o)
+        f_mat(::Type{T}, ::Type{R}, M::Bool) where {T,R} = PyMatrix{T,R,M}(o)
+        f_mat(::Type{T}, ::Type{R}, M::Bool, L::Bool) where {T,R} = PyMatrix{T,R,M,L}(o)
+        f_mat
     else
         pygetattr(PyObject, o, k)
     end

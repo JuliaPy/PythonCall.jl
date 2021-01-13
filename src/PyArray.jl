@@ -4,8 +4,9 @@
 Interpret the Python array `o` as a Julia array.
 
 The input may be anything supporting the buffer protocol or the numpy array interface.
-This includes, `bytes`, `bytearray`, `array.array`, `numpy.ndarray`, `pandas.Series`.
+This includes `bytes`, `bytearray`, `array.array`, `numpy.ndarray`, `pandas.Series`.
 
+All type parameters are optional:
 - `T` is the (Julia) element type.
 - `N` is the number of dimensions.
 - `R` is the type of elements of the underlying buffer (which may be different from `T` to allow some basic conversion).

@@ -215,7 +215,17 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
             break
         end
     end
-    allnames = [n for (i,t) in enumerate(alltypes) for n in [PyType_FullName(t); get(Vector, extranames, i)]]
+    allnames = String[]
+    for (i,t) in enumerate(alltypes)
+        n = PyType_FullName(t)
+        if n === PYERR()
+            # if we cannot get the fully qualified name of the type, just skip it (it was probably dynamically generated)
+            PyErr_Clear()
+        else
+            push!(allnames, n)
+        end
+        append!(allnames, get(Vector, extranames, i))
+    end
 
     ### STAGE 2: Get a list of applicable conversion rules.
     #
@@ -236,7 +246,7 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
     # in particular this removes rules with S==Union{} and removes duplicates
     rules = [S=>rule for (i,(S,rule)) in enumerate(rules) if !(S <: Union{[S′ for (S′,rule′) in rules[1:i-1] if rule==rule′]...})]
 
-    @debug "PYTHON CONVERSION FOR '$(PyType_FullName(t))' to '$T'" basetypes=map(PyType_FullName, basetypes) alltypes=allnames rules=rules
+    @debug "PYTHON CONVERSION FOR '$(PyType_Name(t))' to '$T'" basetypes=map(PyType_Name, basetypes) alltypes=allnames rules=rules
 
     ### STAGE 3: Define and compile functions implementing these rules.
 

@@ -35,6 +35,9 @@ PyJuliaAnyValue_Type() = begin
                 (name="_repr_svg_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("image/svg+xml"))),
                 (name="_repr_latex_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("text/latex"))),
             ],
+            getset = [
+                (name="__name__", get=pyjlany_name),
+            ]
         ))
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
@@ -351,4 +354,15 @@ end
     else
         PyBytes_From(data)
     end
+end
+
+pyjlany_name(xo::PyPtr, ::Ptr{Cvoid}) = try
+    PyObject_From(string(nameof(PyJuliaValue_GetValue(xo))))
+catch err
+    if err isa MethodError && err.f === nameof
+        PyErr_SetString(PyExc_AttributeError(), "__name__")
+    else
+        PyErr_SetJuliaError(err)
+    end
+    PyPtr()
 end

@@ -81,11 +81,10 @@ const CPyPtr = C.PyPtr
 
 include("gil.jl")
 include("eval.jl")
-include("builtins.jl")
-
 include("PyRef.jl")
 include("PyCode.jl")
 include("PyInternedString.jl")
+include("builtins.jl")
 include("PyException.jl")
 include("PyObject.jl")
 include("PyDict.jl")

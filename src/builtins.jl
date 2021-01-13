@@ -754,15 +754,16 @@ export pyfrozenset
 
 """
     pydict([T=PyObject,] [x]) :: T
+    pydict([T=PyObject;] key=value, ...)
 
-Create a Python `dict` from the key-value pairs in iterable `x`.
+Create a Python `dict` from the given key-value pairs in `x` or keyword arguments.
 
 If `x` is a Python object, this is equivalent to `dict(x)` in Python.
 """
 pydict(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PyDict_Type(), x) : C.PyDict_FromPairs(x))
-pydict(::Type{T}) where {T} = checknullconvert(T, C.PyDict_New())
+pydict(::Type{T}; opts...) where {T} = checknullconvert(T, isempty(opts) ? C.PyDict_New() : C.PyDict_FromStringPairs(opts))
 pydict(x) = pydict(PyObject, x)
-pydict() = pydict(PyObject)
+pydict(; opts...) = pydict(PyObject; opts...)
 export pydict
 
 """
@@ -795,6 +796,33 @@ Equivalent to `NotImplemented` in Python.
 pynotimplemented(::Type{T}) where {T} = checknullconvert(T, C.PyNotImplemented_New())
 pynotimplemented() = pynotimplemented(PyObject)
 export pynotimplemented
+
+"""
+    pymethod([T=PyObject,] x) :: T
+
+Convert `x` to a Python instance method.
+"""
+pymethod(::Type{T}, x) where {T} = cpyop(T, C.PyInstanceMethod_New, x)
+pymethod(x) = pymethod(PyObject, x)
+export pymethod
+
+"""
+    pytype([T=PyObject,] x) :: T
+
+Equivalent to `type(x)` in Python.
+"""
+pytype(::Type{T}, x) where {T} = cpyop(T, o -> (t=C.Py_Type(o); C.Py_IncRef(t); t), x)
+pytype(x) = pytype(PyObject, x)
+export pytype
+
+"""
+    pytype([T=PyObject,] name, bases, dict) :: T
+
+Equivalent to `type(name, bases, dict)` in Python.
+"""
+pytype(::Type{T}, name, bases, dict) where {T} = @pyv `type($name, $(pytuple(bases)), $(dict isa NamedTuple ? pydict(;dict...) : pydict(dict)))`::T
+pytype(name, bases, dict) = pytype(PyObject, name, bases, dict)
+export pytype
 
 ### MULTIMEDIA DISPLAY
 

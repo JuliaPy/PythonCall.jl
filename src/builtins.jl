@@ -861,3 +861,16 @@ for (mime, method) in _py_mimes
         end
     end
 end
+
+### IO
+
+"""
+    pytextio([T=PyObject], io::IO) :: T
+
+Convert `io` to a Python text IO stream.
+
+Specifically a `julia.TextIOValue`. By default, `IO` object are converted to a buffered IO stream, a `julia.BufferedIOValue`.
+"""
+pytextio(::Type{T}, io::IO) where {T} = checknullconvert(T, C.PyJuliaTextIOValue_New(io))
+pytextio(io::IO) = pytextio(PyObject, io)
+export pytextio

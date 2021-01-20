@@ -135,6 +135,12 @@ function __init__()
     C.PyObject_TryConvert_AddRules("collections.abc.Mapping", [
         (PyDict, CTryConvertRule_wrapref, 100),
     ])
+    C.PyObject_TryConvert_AddRules("_io._IOBase", [
+        (PyIO, CTryConvertRule_trywrapref, 100),
+    ])
+    C.PyObject_TryConvert_AddRules("io.IOBase", [
+        (PyIO, CTryConvertRule_trywrapref, 100),
+    ])
     C.PyObject_TryConvert_AddRules("<buffer>", [
         (PyArray, CTryConvertRule_trywrapref, 200),
         (PyBuffer, CTryConvertRule_wrapref, -200),

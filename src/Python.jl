@@ -45,6 +45,10 @@ include("utils.jl")
     sysautolasttraceback :: Bool = true
     "True if the Python input hook is currently running."
     inputhookrunning :: Bool = false
+    "When true, if being run inside an IPython kernel then integrate IO."
+    ipythonintegration :: Bool = true
+    "When true, this is being run inside an IPython kernal."
+    isipython :: Bool = false
 end
 Base.show(io::IO, ::MIME"text/plain", c::Config) =
     for k in fieldnames(Config)
@@ -100,6 +104,7 @@ include("PyPandasDataFrame.jl")
 include("julia.jl")
 include("gui.jl")
 include("matplotlib.jl")
+include("ipython.jl")
 
 include("init.jl")
 

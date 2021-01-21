@@ -224,5 +224,28 @@ function __init__()
                 end
             end
         end
+
+        # EXPERIMENTAL: IPython integration
+        if CONFIG.isembedded && CONFIG.ipythonintegration
+            if !CONFIG.isipython
+                @py ```
+                try:
+                    ok = "IPython" in sys.modules and sys.modules["IPython"].get_ipython() is not None
+                except:
+                    ok = False
+                $(CONFIG.isipython::Bool) = ok
+                ```
+            end
+            if CONFIG.isipython
+                # Set `Base.stdout` to `sys.stdout` and ensure it is flushed after each execution
+                @eval Base stdout=$(@pyv `sys.stdout`::PyIO)
+                pushdisplay(TextDisplay(Base.stdout))
+                pushdisplay(IPythonDisplay())
+                @py ```
+                mkcb = lambda cb: lambda: cb()
+                sys.modules["IPython"].get_ipython().events.register("post_execute", mkcb($(() -> flush(Base.stdout))))
+                ```
+            end
+        end
     end
 end

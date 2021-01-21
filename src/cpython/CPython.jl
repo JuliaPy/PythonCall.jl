@@ -143,7 +143,7 @@ __init__() = begin
         (Dict, PyMapping_ConvertRule_dict),
     ])
     PyObject_TryConvert_AddRules("julia.ValueBase", [
-        (Any, PyJuliaValue_TryConvert_any, 200),
+        (Any, PyJuliaValue_TryConvert_any, 1000),
     ])
     PyObject_TryConvert_AddExtraTypes([
         PyIterableABC_Type,

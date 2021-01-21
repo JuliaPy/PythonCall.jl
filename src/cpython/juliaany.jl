@@ -91,7 +91,7 @@ pyjlany_getattro(xo::PyPtr, ko::PyPtr) = begin
         v = getproperty(x, Symbol(k))
         PyObject_From(v)
     catch err
-        if (err isa UndefVarError && err.var === Symbol(k)) || (err isa ErrorException && occursin("has no field", err.msg))
+        if !hasproperty(x, Symbol(k)) || (err isa UndefVarError && err.var === Symbol(k)) || (err isa ErrorException && occursin("has no field", err.msg))
             PyErr_SetStringFromJuliaError(PyExc_AttributeError(), err)
         else
             PyErr_SetJuliaError(err)
@@ -129,7 +129,7 @@ pyjlany_setattro(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
         setproperty!(x, Symbol(k), v)
         Cint(0)
     catch err
-        if (err isa UndefVarError && err.var === Symbol(k)) || (err isa ErrorException && occursin("has no field", err.msg))
+        if !hasproperty(x, Symbol(k)) || (err isa UndefVarError && err.var === Symbol(k)) || (err isa ErrorException && occursin("has no field", err.msg))
             PyErr_SetStringFromJuliaError(PyExc_AttributeError(), err)
         else
             PyErr_SetJuliaError(err)

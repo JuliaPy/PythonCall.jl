@@ -63,83 +63,74 @@ function event_loop_off(g::Symbol)
     return
 end
 
-# function event_loop_on(g::Symbol; interval::Real=40e-3, fix::Bool=false)
-#     # check if already running
-#     if haskey(EVENT_LOOPS, g)
-#         return g => EVENT_LOOPS[g]
-#     end
-#     # start a new event loop
-#     if g in (:pyqt4, :pyqt5, :pyside, :pyside2)
-#         fix && fix_qt_plugin_path()
-#         modname =
-#             g == :pyqt4 ? "PyQt4" :
-#             g == :pyqt5 ? "PyQt5" :
-#             g == :pyside ? "PySide" :
-#             g == :pyside2 ? "PySide2" : error()
-#         mod = pyimport("$modname.QtCore")
-#         instance = mod.QCoreApplication.instance
-#         AllEvents = mod.QEventLoop.AllEvents
-#         processEvents = mod.QCoreApplication.processEvents
-#         maxtime = pyobject(1000*interval)
-#         EVENT_LOOPS[g] = Timer(0; interval=interval) do t
-#             app = instance()
-#             if !pyisnone(app)
-#                 app._in_event_loop = true
-#                 processEvents(AllEvents, maxtime)
-#             end
-#         end
-#     elseif g in (:gtk, :gtk3)
-#         if g == :gtk3
-#             gi = pyimport("gi")
-#             if pyisnone(gi.get_required_version("Gtk"))
-#                 gi.require_version("Gtk", "3.0")
-#             end
-#         end
-#         mod = pyimport(g==:gtk ? "gtk" : g==:gtk3 ? "gi.repository.Gtk" : error())
-#         events_pending = mod.events_pending
-#         main_iteration = mod.main_iteration
-#         EVENT_LOOPS[g] = Timer(0; interval=interval) do t
-#             while pytruth(events_pending())
-#                 main_iteration()
-#             end
-#         end
-#     elseif g in (:wx,)
-#         mod = pyimport("wx")
-#         GetApp = mod.GetApp
-#         EventLoop = mod.EventLoop
-#         EventLoopActivator = mod.EventLoopActivator
-#         EVENT_LOOPS[g] = Timer(0; interval=interval) do t
-#             app = GetApp()
-#             if !pyisnone(app)
-#                 app._in_event_loop = true
-#                 evtloop = EventLoop()
-#                 ea = EventLoopActivator(evtloop)
-#                 Pending = evtloop.Pending
-#                 Dispatch = evtloop.Dispatch
-#                 while pytruth(Pending())
-#                     Dispatch()
-#                 end
-#                 finalize(ea) # deactivate event loop
-#                 app.ProcessIdle()
-#             end
-#         end
-#     elseif g in (:tkinter,)
-#         mod = pyimport("tkinter")
-#         _tkinter = pyimport("_tkinter")
-#         flag = _tkinter.ALL_EVENTS | _tkinter.DONT_WAIT
-#         root = PyObject(pynone)
-#         EVENT_LOOPS[g] = Timer(0; interval=interval) do t
-#             new_root = mod._default_root
-#             if !pyisnone(new_root)
-#                 root = new_root
-#             end
-#             if !pyisnone(root)
-#                 while pytruth(root.dooneevent(flag))
-#                 end
-#             end
-#         end
-#     else
-#         error("invalid gui: $(repr(g))")
-#     end
-#     g => EVENT_LOOPS[g]
-# end
+function event_loop_on(g::Symbol; interval::Real=40e-3, fix::Bool=false)
+    fix && g in (:pyqt4, :pyqt5, :pyside, :pyside2) && fix_qt_plugin_path()
+    @py ```
+    def make_event_loop(g, interval):
+        if g in ("pyqt4","pyqt5","pyside","pyside2"):
+            if g == "pyqt4":
+                import PyQt4.QtCore as QtCore
+            elif g == "pyqt5":
+                import PyQt5.QtCore as QtCore
+            elif g == "pyside":
+                import PySide.QtCore as QtCore
+            elif g == "pyside2":
+                import PySide2.QtCore as QtCore
+            instance = QtCore.QCoreApplication.instance
+            AllEvents = QtCore.QEventLoop.AllEvents
+            processEvents = QtCore.QCoreApplication.processEvents
+            maxtime = interval * 1000
+            def event_loop():
+                app = instance()
+                if app is not None:
+                    app._in_event_loop = True
+                    processEvents(AllEvents, maxtime)
+        elif g in ("gtk","gtk3"):
+            if g == "gtk3":
+                import gi
+                if gi.get_required_version("Gtk") is None:
+                    gi.require_version("Gtk", "3.0")
+                import gi.repository.Gtk as gtk
+            elif g == "gtk":
+                import gtk
+            events_pending = gtk.events_pending
+            main_iteration = gtk.main_iteration
+            def event_loop():
+                while events_pending():
+                    main_iteration()
+        elif g == "wx":
+            import wx
+            GetApp = wx.GetApp
+            EventLoop = wx.EventLoop
+            EventLoopActivator = wx.EventLoopActivator
+            def event_loop():
+                app = GetApp()
+                if app is not None:
+                    app._in_event_loop = True
+                    evtloop = EventLoop()
+                    ea = EventLoopActivator(evtloop)
+                    Pending = evtloop.Pending
+                    Dispatch = evtloop.Dispatch
+                    while Pending():
+                        Dispatch()
+                    app.ProcessIdle()
+        elif g == "tkinter":
+            import tkinter, _tkinter
+            flag = _tkinter.ALL_EVENTS | _tkinter.DONT_WAIT
+            root = None
+            def event_loop():
+                global root
+                new_root = tkinter._default_root
+                if new_root is not None:
+                    root = new_root
+                if root is not None:
+                    while root.dooneevent(flag):
+                        pass
+        else:
+            raise ValueError("invalid event loop name: {}".format(g))
+        return event_loop
+    $event_loop = make_event_loop($(string(g)), $interval)
+    ```
+    t = EVENT_LOOPS[g] = Timer(t -> event_loop(), 0; interval=interval)
+    g => t
+end

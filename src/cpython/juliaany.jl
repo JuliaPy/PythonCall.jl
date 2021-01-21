@@ -265,7 +265,7 @@ pyjlany_setitem(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
             x[k...] = v
             Cint(0)
         end
-    catch
+    catch err
         if err isa BoundsError && err.a === x
             PyErr_SetStringFromJuliaError(PyExc_IndexError(), err)
         elseif err isa KeyError && (err.key === k || (err.key,) === k)

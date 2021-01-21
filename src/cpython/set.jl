@@ -30,7 +30,7 @@ _PySet_FromIter(r::PyPtr, xs) = begin
             ism1(err) && (Py_DecRef(r); return PyPtr())
         end
         return r
-    catch
+    catch err
         Py_DecRef(r)
         PyErr_SetString(PyExc_Exception(), "Julia error: $err")
         return PyPtr()

@@ -148,7 +148,7 @@ pyjlarray_setitem(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
                 Cint(-1)
             end
         end
-    catch
+    catch err
         if err isa BoundsError && err.a === x
             PyErr_SetStringFromJuliaError(PyExc_IndexError(), err)
         elseif err isa MethodError && err.f === deleteat!

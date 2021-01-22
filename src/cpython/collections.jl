@@ -126,7 +126,7 @@ PyIterable_ConvertRule_set(o, ::Type{Set}) =
     PyIterable_ConvertRule_set(o, T, Set{Python.PyObject})
 
 PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
-    if !(Tuple isa DataType)
+    if !(S isa DataType)
         PyErr_SetString(PyExc_Exception(), "When converting Python 'tuple' to Julia 'Tuple', the destination type must be a 'DataType', i.e. not parametric and not a union. Got '$S'.")
         return -1
     end
@@ -153,7 +153,7 @@ PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
             else
                 Py_DecRef(it)
                 Py_DecRef(xo)
-                return -1
+                return 0
             end
             r = PyObject_TryConvert(xo, t)
             Py_DecRef(xo)

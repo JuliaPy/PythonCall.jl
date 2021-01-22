@@ -1,6 +1,6 @@
 module CPython
 
-using Libdl
+using Libdl, Dates
 import ..Python: CONFIG, isnull, ism1, PYERR, NOTIMPLEMENTED, _typeintersect, tryconvert, ispyreftype, pyptr, putresult, takeresult, CACHE, Python
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
@@ -54,6 +54,7 @@ include("ctypes.jl")
 include("numpy.jl")
 include("slice.jl")
 include("fraction.jl")
+include("datetime.jl")
 include("newtype.jl")
 include("juliaerror.jl")
 include("juliabase.jl")
@@ -141,6 +142,19 @@ __init__() = begin
     ])
     PyObject_TryConvert_AddRules("collections.abc.Mapping", [
         (Dict, PyMapping_ConvertRule_dict),
+    ])
+    PyObject_TryConvert_AddRules("datetime.time", [
+        (Time, PyTime_TryConvertRule_time, 100),
+    ])
+    PyObject_TryConvert_AddRules("datetime.date", [
+        (Date, PyDate_TryConvertRule_date, 100),
+    ])
+    PyObject_TryConvert_AddRules("datetime.datetime", [
+        (DateTime, PyDateTime_TryConvertRule_datetime, 100),
+    ])
+    PyObject_TryConvert_AddRules("datetime.timedelta", [
+        (Dates.CompoundPeriod, PyTimeDelta_TryConvertRule_compoundperiod, 100),
+        (Dates.Period, PyTimeDelta_TryConvertRule_period),
     ])
     PyObject_TryConvert_AddRules("julia.ValueBase", [
         (Any, PyJuliaValue_TryConvert_any, 1000),

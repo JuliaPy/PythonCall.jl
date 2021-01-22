@@ -44,6 +44,10 @@ PyObject_From(x::Union{String,SubString{String}}) = PyUnicode_From(x)
 PyObject_From(x::Char) = PyUnicode_From(string(x))
 PyObject_From(x::Tuple) = PyTuple_From(x)
 PyObject_From(x::AbstractRange{<:Union{Bool,Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = PyRange_From(x)
+PyObject_From(x::DateTime) = PyDateTime_From(x)
+PyObject_From(x::Date) = PyDate_From(x)
+PyObject_From(x::Time) = PyTime_From(x)
+PyObject_From(x::Union{Period,Dates.CompoundPeriod}) = PyTimeDelta_From(x)
 PyObject_From(x) =
     if ispyreftype(typeof(x))
         GC.@preserve x begin

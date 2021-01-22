@@ -1,4 +1,4 @@
-for (n,m) in [(:OS, "os"), (:Sys, "sys")]
+for (n,m) in [(:OS, "os"), (:Sys, "sys"), (:DateTime, "datetime")]
     p = Symbol(:Py_, n, :Module)
     r = Symbol(p, :__ref)
     @eval const $r = Ref(PyPtr())

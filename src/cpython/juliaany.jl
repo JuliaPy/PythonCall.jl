@@ -35,6 +35,8 @@ PyJuliaAnyValue_Type() = begin
                 (name="_repr_svg_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("image/svg+xml"))),
                 (name="_repr_latex_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("text/latex"))),
                 (name="__jl_raw", flags=Py_METH_NOARGS, meth=pyjlany_toraw),
+                (name="__jl_show", flags=Py_METH_NOARGS, meth=pyjlany_show),
+                (name="__jl_help", flags=Py_METH_NOARGS, meth=pyjlany_help),
             ],
             getset = [
                 (name="__name__", get=pyjlany_name),
@@ -54,11 +56,7 @@ PyJuliaValue_From(x) = PyJuliaAnyValue_New(x)
 
 pyjlany_repr(xo::PyPtr) = try
     x = PyJuliaValue_GetValue(xo)
-    # s = "<jl $(repr(x))>"
-    io = IOBuffer()
-    ioc = IOContext(io, :limit=>true, :compact=>true, :color=>true)
-    show(ioc, MIME("text/plain"), x)
-    s = String(take!(io))
+    s = repr(x)
     s = string("jl:", '\n' in s ? '\n' : ' ', s)
     PyUnicode_From(s)
 catch err
@@ -369,3 +367,27 @@ catch err
 end
 
 pyjlany_toraw(xo::PyPtr, ::PyPtr) = PyJuliaRawValue_New(PyJuliaValue_GetValue(xo))
+
+pyjlany_show(xo::PyPtr, ::PyPtr) = try
+    x = PyJuliaValue_GetValue(xo)
+    io = stdout
+    io = IOContext(io, :limit=>get(io,:limit,true), :compact=>get(io,:limit,true), :color=>get(io,:color,true))
+    show(io, MIME("text/plain"), x)
+    println(io)
+    PyNone_New()
+catch err
+    PyErr_SetJuliaError(err)
+    PyPtr()
+end
+
+pyjlany_help(xo::PyPtr, ::PyPtr) = try
+    x = Docs.doc(PyJuliaValue_GetValue(xo))
+    io = stdout
+    io = IOContext(io, :limit=>get(io,:limit,true), :compact=>get(io,:limit,true), :color=>get(io,:color,true))
+    show(io, MIME("text/plain"), x)
+    println(io)
+    PyNone_New()
+catch err
+    PyErr_SetJuliaError(err)
+    PyPtr()
+end

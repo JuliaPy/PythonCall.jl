@@ -42,24 +42,8 @@ PyArg_CheckNoKwargs(name::String, kwargs::PyPtr) = begin
     if isnull(kwargs) || PyObject_Length(kwargs) == 0
         return 0
     else
-        it = PyObject_GetIter(kwargs)
-        isnull(it) && return -1
-        argnames = String[]
-        while true
-            argnameo = PyIter_Next(it)
-            if !isnull(argnameo)
-                argname = PyUnicode_AsString(argnameo)
-                Py_DecRef(argnameo)
-                isempty(argname) && PyErr_IsSet() && (Py_DecRef(it); return -1)
-                push!(argnames, argname)
-            elseif PyErr_IsSet()
-                Py_DecRef(it)
-                return -1
-            else
-                Py_DecRef(it)
-                break
-            end
-        end
+        argnames = PyIterable_Collect(kwargs, String)
+        isempty(argnames) && PyErr_IsSet() && return -1
         PyErr_SetString(PyExc_TypeError(), "$name() got unexpected keyword arguments: $(join(["'$n'" for n in argnames], ", "))")
         return -1
     end

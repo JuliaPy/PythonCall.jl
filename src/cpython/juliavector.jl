@@ -125,31 +125,15 @@ pyjlvector_append(xo::PyPtr, vo::PyPtr) = begin
 end
 
 pyjlvector_extend(xo::PyPtr, vso::PyPtr) = begin
-    # TODO: this might be quicker if we introduce a function barrier so typeof(x) is known
     x = PyJuliaValue_GetValue(xo)::AbstractVector
-    it = PyObject_GetIter(vso)
-    isnull(it) && return PyPtr()
-    try
-        while true
-            vo = PyIter_Next(it)
-            if !isnull(vo)
-                r = PyObject_TryConvert(vo, eltype(x))
-                Py_DecRef(vo)
-                r == -1 && return PyPtr()
-                r ==  0 && (PyErr_SetString(PyExc_TypeError(), "array value must be a Julia '$(eltype(x))', not a '$(PyType_Name(Py_Type(vo)))'"); return PyPtr())
-                push!(x, takeresult(eltype(x)))
-            elseif PyErr_IsSet()
-                return PyPtr()
-            else
-                return PyNone_New()
-            end
-        end
-    catch err
-        PyErr_SetJuliaError(err)
-        PyPtr()
-    finally
-        Py_DecRef(it)
+    r = PyIterable_Map(vso) do vo
+        r = PyObject_Convert(vo, eltype(x))
+        r == -1 && return -1
+        v = takeresult(eltype(x))
+        push!(x, v)
+        return 1
     end
+    r == -1 ? PyPtr() : PyNone_New()
 end
 
 pyjlvector_pop(xo::PyPtr, args::PyPtr) = begin

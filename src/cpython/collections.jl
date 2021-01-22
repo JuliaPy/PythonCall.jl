@@ -35,7 +35,52 @@ for n in [:Container, :Hashable, :Iterable, :Iterator, :Reversible, :Generator, 
 end
 
 """
-    PyIterable_Collect(xs::PyPtr, T::Type, [skip=false]) :: Vector{T}
+    PyIterable_Map(f, xs::PyPtr) :: Int
+
+Calls `f(x)` for each element `x::PyPtr` of `xs`.
+
+The function `f` must return an integer, where -1 signals a Python error,
+0 signals to stop iterating, 1 to continue.
+
+If `f` throws a Julia error, it is caught and converted to a Python error.
+In this situation, `x` is automatically decref'd, but it is up to the user
+to ensure that other references created by `f` are cleared.
+
+Return -1 on error, 0 if iteration was stopped, 1 if it reached the end.
+"""
+PyIterable_Map(f, xso::PyPtr) = begin
+    it = PyObject_GetIter(xso)
+    isnull(it) && return PyPtr()
+    xo = PyPtr()
+    try
+        while true
+            xo = PyIter_Next(it)
+            if !isnull(xo)
+                r = f(xo)
+                Py_DecRef(xo)
+                xo = PyPtr()
+                if r == -1
+                    return -1
+                elseif r == 0
+                    return 0
+                end
+            elseif PyErr_IsSet()
+                return -1
+            else
+                return 1
+            end
+        end
+    catch err
+        PyErr_SetJuliaError(err)
+        -1
+    finally
+        Py_DecRef(it)
+        Py_DecRef(xo)
+    end
+end
+
+"""
+    PyIterable_Collect(xs::PyPtr, xs, [skip=false]) :: Vector{T}
 
 Convert the elements of `xs` to type `T` and collect them into a vector.
 On error, an empty vector is returned.
@@ -45,85 +90,45 @@ instead of raising an error. Other errors are still propagated.
 """
 PyIterable_Collect(xso::PyPtr, ::Type{T}, skip::Bool=false) where {T} = begin
     xs = T[]
-    it = PyObject_GetIter(xso)
-    isnull(it) && return xs
-    try
-        while true
-            xo = PyIter_Next(it)
-            if !isnull(xo)
-                if skip
-                    r = PyObject_TryConvert(xo, T)
-                    Py_DecRef(xo)
-                    r == -1 && (empty!(xs); break)
-                    r ==  0 && continue
-                else
-                    r = PyObject_Convert(xo, T)
-                    Py_DecRef(xo)
-                    r == -1 && (empty!(xs); break)
-                end
-                x = takeresult(T)
-                push!(xs, x)
-            else
-                PyErr_IsSet() && empty!(xs)
-                break
-            end
-        end
-    catch err
-        empty!(xs)
-        PyErr_SetJuliaError(err)
-    finally
-        Py_DecRef(it)
-    end
-    return xs
-end
-
-PyIterable_ConvertRule_vector(o, ::Type{S}) where {S<:Vector} = begin
-    it = PyObject_GetIter(o)
-    isnull(it) && return -1
-    xs = S()
-    while true
-        xo = PyIter_Next(it)
-        if !isnull(xo)
+    r = if skip
+        PyIterable_Map(xso) do xo
             r = PyObject_TryConvert(xo, eltype(xs))
-            Py_DecRef(xo)
-            r == 1 || (Py_DecRef(it); return r)
+            r == -1 && return -1
+            r ==  0 && return  1
             x = takeresult(eltype(xs))
             push!(xs, x)
-        elseif PyErr_IsSet()
-            Py_DecRef(it)
-            return -1
-        else
-            Py_DecRef(it)
-            return putresult(xs)
+            return 1
         end
-    end
-end
-PyIterable_ConvertRule_vector(o, ::Type{Vector}) =
-    PyIterable_ConvertRule_vector(o, Vector{Python.PyObject})
-
-PyIterable_ConvertRule_set(o, ::Type{S}) where {S<:Set} = begin
-    it = PyObject_GetIter(o)
-    isnull(it) && return -1
-    xs = S()
-    while true
-        xo = PyIter_Next(it)
-        if !isnull(xo)
-            r = PyObject_TryConvert(xo, eltype(xs))
-            Py_DecRef(xo)
-            r == 1 || (Py_DecRef(it); return r)
+    else
+        PyIterable_Map(xso) do xo
+            r = PyObject_Convert(xo, eltype(xs))
+            r == -1 && return -1
             x = takeresult(eltype(xs))
             push!(xs, x)
-        elseif PyErr_IsSet()
-            Py_DecRef(it)
-            return -1
-        else
-            Py_DecRef(it)
-            return putresult(xs)
+            return 1
         end
     end
+    r == -1 && empty!(xs)
+    xs
 end
-PyIterable_ConvertRule_set(o, ::Type{Set}) =
-    PyIterable_ConvertRule_set(o, T, Set{Python.PyObject})
+
+PyIterable_ConvertRule_vecorset(o, ::Type{S}) where {S<:Union{Vector,Set}} = begin
+    xs = S()
+    r = PyIterable_Map(o) do xo
+        r = PyObject_TryConvert(xo, eltype(xs))
+        r == -1 && return -1
+        r ==  0 && return  0
+        x = takeresult(eltype(xs))
+        push!(xs, x)
+        return 1
+    end
+    r == 1 && putresult(xs)
+    r
+end
+PyIterable_ConvertRule_vecorset(o, ::Type{Vector}) =
+    PyIterable_ConvertRule_vecorset(o, Vector{Python.PyObject})
+PyIterable_ConvertRule_vecorset(o, ::Type{Set}) =
+    PyIterable_ConvertRule_vecorset(o, Set{Python.PyObject})
 
 PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
     if !(S isa DataType)
@@ -138,80 +143,51 @@ PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
     else
         isvararg = false
     end
-    it = PyObject_GetIter(o)
-    isnull(it) && return -1
     xs = Union{ts..., isvararg ? vartype : Union{}}[]
-    i = 0
-    while true
-        xo = PyIter_Next(it)
-        if !isnull(xo)
-            i += 1
-            if i ≤ length(ts)
-                t = ts[i]
-            elseif isvararg
-                t = vartype
-            else
-                Py_DecRef(it)
-                Py_DecRef(xo)
-                return 0
-            end
-            r = PyObject_TryConvert(xo, t)
-            Py_DecRef(xo)
-            r == 1 || (Py_DecRef(it); return r)
-            x = takeresult(t)
-            push!(xs, x)
-        elseif PyErr_IsSet()
-            Py_DecRef(it)
-            return -1
+    r = PyIterable_Map(o) do xo
+        if length(xs) < length(ts)
+            t = ts[length(xs)+1]
+        elseif isvararg
+            t = vartype
         else
-            Py_DecRef(it)
-            return putresult(S(xs))
+            return 0
         end
+        r = PyObject_TryConvert(xo, t)
+        r == -1 && return -1
+        r ==  0 && return  0
+        x = takeresult(t)
+        push!(xs, x)
+        return 1
     end
+    r == -1 ? -1 : r == 0 ? 0 : length(xs) ≥ length(ts) ? putresult(S(xs)) : 0
 end
-PyIterable_ConvertRule_tuple(o, ::Type{Tuple{}}) = putresult(())
 
 PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V}}) where {K,V} = begin
-    it = PyObject_GetIter(o)
-    isnull(it) && return -1
-    # get the first item
-    ko = PyIter_Next(it)
-    if isnull(ko)
-        Py_DecRef(it)
-        return PyErr_IsSet() ? -1 : 0
+    k = Ref{K}()
+    v = Ref{V}()
+    i = Ref(0)
+    r = PyIterable_Map(o) do xo
+        if i[] == 0
+            # key
+            r = PyObject_TryConvert(xo, eltype(k))
+            r == -1 && return -1
+            r ==  0 && return  0
+            i[] = 1
+            k[] = takeresult(eltype(k))
+            return 1
+        elseif i[] == 1
+            # value
+            r == PyObject_TryConvert(xo, eltype(v))
+            r == -1 && return -1
+            r ==  0 && return  0
+            i[] = 2
+            v[] = takeresult(eltype(v))
+            return 1
+        else
+            return 0
+        end
     end
-    # convert it
-    r = PyObject_TryConvert(ko, K)
-    Py_DecRef(ko)
-    if r != 1
-        Py_DecRef(it)
-        return r
-    end
-    k = takeresult(K)
-    # get the second item
-    vo = PyIter_Next(it)
-    if isnull(vo)
-        Py_DecRef(it)
-        return PyErr_IsSet() ? -1 : 0
-    end
-    # convert it
-    r = PyObject_TryConvert(vo, V)
-    Py_DecRef(vo)
-    if r != 1
-        Py_DecRef(it)
-        return r
-    end
-    v = takeresult(V)
-    # too many values?
-    xo = PyIter_Next(it)
-    if !isnull(xo)
-        Py_DecRef(xo)
-        Py_DecRef(it)
-        return 0
-    end
-    # done
-    Py_DecRef(it)
-    putresult(Pair{K,V}(k, v))
+    r == -1 ? -1 : r == 0 ? 0 : i[]==2 ? putresult(Pair{K,V}(k[], v[])) : 0
 end
 PyIterable_ConvertRule_pair(o, ::Type{Pair{K}}) where {K} =
     PyIterable_ConvertRule_pair(o, Pair{K,Python.PyObject})
@@ -225,33 +201,25 @@ PyIterable_ConvertRule_pair(o, ::Type{S}) where {S<:Pair} = begin
 end
 
 PyMapping_ConvertRule_dict(o, ::Type{S}) where {S<:Dict} = begin
-    it = PyObject_GetIter(o)
-    isnull(it) && return -1
     xs = S()
-    while true
-        ko = PyIter_Next(it)
-        if !isnull(ko)
-            # get the key
-            r = PyObject_TryConvert(ko, keytype(xs))
-            r == 1 || (Py_DecRef(it); Py_DecRef(ko); return r)
-            k = takeresult(keytype(xs))
-            # get the value
-            vo = PyObject_GetItem(o, ko)
-            isnull(vo) && (Py_DecRef(it); Py_DecRef(ko); return -1)
-            r = PyObject_TryConvert(vo, valtype(xs))
-            Py_DecRef(vo)
-            Py_DecRef(ko)
-            r == 1 || (Py_DecRef(it); return -1)
-            v = takeresult(valtype(xs))
-            xs[k] = v
-        elseif PyErr_IsSet()
-            Py_DecRef(it)
-            return -1
-        else
-            Py_DecRef(it)
-            return putresult(xs)
-        end
+    r = PyIterable_Map(o) do ko
+        # get the key
+        r = PyObject_TryConvert(ko, keytype(xs))
+        r == -1 && return -1
+        r ==  0 && return  0
+        k = takeresult(keytype(xs))
+        # get the value
+        vo = PyObject_GetItem(o, ko)
+        isnull(vo) && return -1
+        r = PyObject_TryConvert(vo, valtype(xs))
+        Py_DecRef(vo)
+        r == -1 && return -1
+        r ==  0 && return  0
+        v = takeresult(keytype(xs))
+        # done
+        xs[k] = v
     end
+    r == -1 ? -1 : r == 0 ? 0 : putresult(xs)
 end
 PyMapping_ConvertRule_dict(o, ::Type{Dict{K}}) where {K} =
     PyMapping_ConvertRule_dict(o, Dict{K,Python.PyObject})

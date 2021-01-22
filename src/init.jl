@@ -162,8 +162,8 @@ function __init__()
         if !CONFIG.isembedded
             @py ```
             # Some modules expect sys.argv to be set
-            # TODO: Append ARGS
             sys.argv = [""]
+            sys.argv.extend($ARGS)
 
             # Some modules test for interactivity by checking if sys.ps1 exists
             if $(isinteractive()) and not hasattr(sys, "ps1"):

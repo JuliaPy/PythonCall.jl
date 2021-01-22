@@ -329,21 +329,11 @@ end
 pyjlio_writelines(xo::PyPtr, lines::PyPtr) = begin
     wr = PyObject_GetAttrString(xo, "write")
     isnull(wr) && return PyPtr()
-    it = PyObject_GetIter(lines)
-    isnull(it) && (Py_DecRef(wr); return PyPtr())
-    while true
-        line = PyIter_Next(it)
-        if !isnull(line)
-            ret = PyObject_CallNice(wr, PyObjectRef(line))
-            Py_DecRef(line)
-            isnull(ret) && (Py_DecRef(wr); Py_DecRef(it); return PyPtr())
-            Py_DecRef(ret)
-        else
-            Py_DecRef(wr)
-            Py_DecRef(it)
-            return PyErr_IsSet() ? PyPtr() : PyNone_New()
-        end
+    r = PyIterable_Map(lines) do line
+        r = PyObject_CallNice(wr, PyObjectRef(line))
+        isnull(r) ? -1 : 1
     end
+    r == -1 ? PyPtr() : PyNone_New()
 end
 
 pyjlio_readlines(xo::PyPtr, args::PyPtr) = begin

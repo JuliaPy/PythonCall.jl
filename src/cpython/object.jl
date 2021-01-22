@@ -47,7 +47,7 @@ PyObject_From(x::AbstractRange{<:Union{Bool,Int8,Int16,Int32,Int64,Int128,UInt8,
 PyObject_From(x::DateTime) = PyDateTime_From(x)
 PyObject_From(x::Date) = PyDate_From(x)
 PyObject_From(x::Time) = PyTime_From(x)
-PyObject_From(x::Union{Period,Dates.CompoundPeriod}) = PyTimeDelta_From(x)
+PyObject_From(x::Union{Second,Millisecond,Microsecond,Nanosecond}) = PyTimeDelta_From(x)
 PyObject_From(x) =
     if ispyreftype(typeof(x))
         GC.@preserve x begin

@@ -216,10 +216,6 @@ PyTimeDelta_FromParts(; days=0, seconds=0, microseconds=0, milliseconds=0, minut
     PyObject_CallNice(t, days, seconds, microseconds, milliseconds, minutes, hours, weeks)
 end
 
-PyTimeDelta_From(x::Week) = PyTimeDelta_FromParts(weeks=Dates.value(x))
-PyTimeDelta_From(x::Day) = PyTimeDelta_FromParts(days=Dates.value(x))
-PyTimeDelta_From(x::Hour) = PyTimeDelta_FromParts(hours=Dates.value(x))
-PyTimeDelta_From(x::Minute) = PyTimeDelta_FromParts(minutes=Dates.value(x))
 PyTimeDelta_From(x::Second) = PyTimeDelta_FromParts(seconds=Dates.value(x))
 PyTimeDelta_From(x::Millisecond) = PyTimeDelta_FromParts(milliseconds=Dates.value(x))
 PyTimeDelta_From(x::Microsecond) = PyTimeDelta_FromParts(microseconds=Dates.value(x))
@@ -230,6 +226,10 @@ PyTimeDelta_From(x::Nanosecond) =
         PyErr_SetString(PyExc_ValueError(), "cannot create 'datetime.timedelta' with resolution less than microseconds")
         PyPtr()
     end
+PyTimeDelta_From(x::Union{Minute,Hour,Day,Week,Month,Year}) = begin
+    PyErr_SetString(PyExc_ValueError(), "cannot create 'datetime.timedelta' from a Julia '$(typeof(x))' because the latter does not specify a fixed period of time")
+    PyPtr()
+end
 PyTimeDelta_From(x::Period) = begin
     PyErr_SetString(PyExc_ValueError(), "cannot create 'datetime.timedelta' from a Julia '$(typeof(x))'")
     PyPtr()
@@ -275,27 +275,30 @@ PyTimeDelta_AsParts(o::PyPtr) = begin
 end
 
 PyTimeDelta_TryConvertRule_compoundperiod(o::PyPtr, ::Type{S}) where {S<:Dates.CompoundPeriod} = begin
+    # unpack
     days, seconds, microseconds = PyTimeDelta_AsParts(o)
     microseconds == -1 && return -1
-    putresult(S(Period[Day(days), Second(seconds), Microsecond(microseconds)]))
+    # check overflow
+    (cld(typemin(Int), 60*60*24) ≤ days ≤ fld(typemax(Int)-(60*60*24-1), 60*60*24)) || return 0
+    # make result
+    putresult(S(Period[Second(seconds + 60*60*24*days), Millisecond(div(microseconds, 1000)), Microsecond(mod(microseconds, 1000))]))
 end
 
 PyTimeDelta_TryConvertRule_period(o::PyPtr, ::Type{S}) where {S<:Period} = begin
-    # TODO: check for overflow
+    # unpack
     days, seconds, microseconds = PyTimeDelta_AsParts(o)
     microseconds == -1 && return -1
-    if Day <: S && seconds == 0 && microseconds == 0
-        putresult(Day(days))
-    elseif Week <: S && seconds == 0 && microseconds == 0 && mod(days, 7) == 0
-        putresult(Week(div(days, 7)))
-    elseif Second <: S && microseconds == 0
-        putresult(Second(seconds + 60*60*24*days))
-    elseif Millisecond <: S && mod(microseconds, 1000) == 0
-        putresult(Millisecond(div(microseconds, 1000) + 1000*seconds + 1000*60*60*24*days))
-    elseif Microsecond <: S
+    # checks for overflow
+    overflowcheck(x,B) = cld(typemin(Int), B) ≤ x ≤ fld(typemax(Int)-(B-1), B)
+    # make result
+    if Microsecond <: S && overflowcheck(days, 1000_000*60*60*24)
         putresult(Microsecond(microseconds + 1000_000*seconds + 1000_000*60*60*24*days))
-    elseif Nanosecond <: S
+    elseif Nanosecond <: S && overflowcheck(days, 1000_000_000*60*60*24)
         putresult(Nanosecond(1000*microseconds + 1000_000_000*seconds + 1000_000_000*60*60*24*days))
+    elseif Millisecond <: S && mod(microseconds, 1000) == 0 && overflowcheck(days, 1000*60*60*24)
+        putresult(Millisecond(div(microseconds, 1000) + 1000*seconds + 1000*60*60*24*days))
+    elseif Second <: S && microseconds == 0 && overflowcheck(days, 60*60*24)
+        putresult(Second(seconds + 60*60*24*days))
     else
         0
     end

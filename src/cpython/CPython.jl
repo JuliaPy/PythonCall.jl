@@ -129,16 +129,16 @@ __init__() = begin
         (UnitRange{T} where {T<:Integer}, PyRange_TryConvertRule_unitrange),
     ])
     PyObject_TryConvert_AddRules("collections.abc.Iterable", [
-        (Vector, PyIterable_ConvertRule_vector),
-        (Set, PyIterable_ConvertRule_set),
+        (Vector, PyIterable_ConvertRule_vecorset),
+        (Set, PyIterable_ConvertRule_vecorset),
         (Tuple, PyIterable_ConvertRule_tuple),
         (Pair, PyIterable_ConvertRule_pair),
     ])
     PyObject_TryConvert_AddRules("collections.abc.Sequence", [
-        (Vector, PyIterable_ConvertRule_vector),
+        (Vector, PyIterable_ConvertRule_vecorset),
     ])
     PyObject_TryConvert_AddRules("collections.abc.Set", [
-        (Set, PyIterable_ConvertRule_set),
+        (Set, PyIterable_ConvertRule_vecorset),
     ])
     PyObject_TryConvert_AddRules("collections.abc.Mapping", [
         (Dict, PyMapping_ConvertRule_dict),
@@ -153,8 +153,8 @@ __init__() = begin
         (DateTime, PyDateTime_TryConvertRule_datetime, 100),
     ])
     PyObject_TryConvert_AddRules("datetime.timedelta", [
-        (Dates.CompoundPeriod, PyTimeDelta_TryConvertRule_compoundperiod, 100),
-        (Dates.Period, PyTimeDelta_TryConvertRule_period),
+        (Dates.Period, PyTimeDelta_TryConvertRule_period, 100),
+        (Dates.CompoundPeriod, PyTimeDelta_TryConvertRule_compoundperiod),
     ])
     PyObject_TryConvert_AddRules("julia.ValueBase", [
         (Any, PyJuliaValue_TryConvert_any, 1000),

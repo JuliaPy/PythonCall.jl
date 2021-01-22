@@ -29,20 +29,21 @@ end
 Base.unsafe_convert(::Type{CPyPtr}, x::PyDict) = checknull(pyptr(x))
 
 Base.iterate(x::PyDict{K,V}, it::PyRef) where {K,V} = begin
-    ptr = C.PyIter_Next(it)
-    if !isnull(ptr)
-        ko = C.PySequence_GetItem(ptr, 0)
-        isnull(ko) && pythrow()
+    ko = C.PyIter_Next(it)
+    if !isnull(ko)
+        # key
         r = C.PyObject_Convert(ko, K)
-        C.Py_DecRef(ko)
-        ism1(r) && pythrow()
+        r == -1 && (C.Py_DecRef(ko); pythrow())
         k = C.takeresult(K)
-        vo = C.PySequence_GetItem(ptr, 1)
+        # value
+        vo = C.PyObject_GetItem(x, ko)
+        C.Py_DecRef(ko)
         isnull(vo) && pythrow()
         r = C.PyObject_Convert(vo, V)
         C.Py_DecRef(vo)
-        ism1(r) && pythrow()
+        r == -1 && pythrow()
         v = C.takeresult(V)
+        # done
         (k => v, it)
     elseif C.PyErr_IsSet()
         pythrow()
@@ -51,13 +52,27 @@ Base.iterate(x::PyDict{K,V}, it::PyRef) where {K,V} = begin
     end
 end
 Base.iterate(x::PyDict) = begin
-    a = C.PyObject_GetAttrString(x, "items")
-    isnull(a) && pythrow()
-    b = C.PyObject_CallNice(a)
-    C.Py_DecRef(a)
-    isnull(b) && pythrow()
-    it = C.PyObject_GetIter(b)
-    C.Py_DecRef(b)
+    it = C.PyObject_GetIter(x)
+    isnull(it) && pythrow()
+    iterate(x, pynewref(it))
+end
+
+Base.iterate(x::Base.KeySet{K,PyDict{K,V}}, it::PyRef) where {K,V} = begin
+    ko = C.PyIter_Next(it)
+    if !isnull(ko)
+        r = C.PyObject_Convert(ko, K)
+        C.Py_DecRef(ko)
+        r == -1 && pythrow()
+        k = C.takeresult(K)
+        (k, it)
+    elseif C.PyErr_IsSet()
+        pythrow()
+    else
+        nothing
+    end
+end
+Base.iterate(x::Base.KeySet{K,PyDict{K,V}}) where {K,V} = begin
+    it = C.PyObject_GetIter(x.dict)
     isnull(it) && pythrow()
     iterate(x, pynewref(it))
 end

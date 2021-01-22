@@ -252,28 +252,12 @@ pyjlset_difference(xo, yo) = pyjlset_binop_named(xo, yo, pyjlset_sub_generic, py
 pyjlset_isdisjoint(x::PyPtr, y::PyPtr) = _pyjlset_isdisjoint(PyJuliaValue_GetValue(x)::AbstractSet, y)
 _pyjlset_isdisjoint(x::AbstractSet, yso::PyPtr) = begin
     isempty(x) && return PyObject_From(true)
-    it = PyObject_GetIter(yso)
-    isnull(it) && return PyPtr()
-    try
-        while true
-            yo = PyIter_Next(it)
-            if !isnull(yo)
-                r = PyObject_TryConvert(yo, eltype(x))
-                Py_DecRef(yo)
-                r == -1 && return PyPtr()
-                r ==  0 && continue
-                y = takeresult(eltype(x))
-                y in x && return PyObject_From(false)
-            elseif PyErr_IsSet()
-                return PyPtr()
-            else
-                return PyObject_From(true)
-            end
-        end
-    catch err
-        PyErr_SetJuliaError(err)
-        return PyPtr()
-    finally
-        Py_DecRef(it)
+    r = PyIterable_Map(yso) do yo
+        r = PyObject_TryConvert(yo, eltype(x))
+        r == -1 && return -1
+        r ==  0 && return  1
+        y == takeresult(eltype(x))
+        y in x ? 0 : 1
     end
+    r == -1 ? PyPtr() : r == 0 ? PyObject_From(false) : PyObject_From(true)
 end

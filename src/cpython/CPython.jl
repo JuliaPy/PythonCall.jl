@@ -67,6 +67,7 @@ include("juliaset.jl")
 include("juliaarray.jl")
 include("juliavector.jl")
 include("juliamodule.jl")
+include("julianumber.jl")
 include("juliaio.jl")
 include("arg.jl")
 

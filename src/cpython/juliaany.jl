@@ -34,6 +34,7 @@ PyJuliaAnyValue_Type() = begin
                 (name="_repr_png_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("image/png"))),
                 (name="_repr_svg_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("image/svg+xml"))),
                 (name="_repr_latex_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("text/latex"))),
+                (name="__jl_raw", flags=Py_METH_NOARGS, meth=pyjlany_toraw),
             ],
             getset = [
                 (name="__name__", get=pyjlany_name),
@@ -366,3 +367,5 @@ catch err
     end
     PyPtr()
 end
+
+pyjlany_toraw(xo::PyPtr, ::PyPtr) = PyJuliaRawValue_New(PyJuliaValue_GetValue(xo))

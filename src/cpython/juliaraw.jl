@@ -20,7 +20,8 @@ PyJuliaRawValue_Type() = begin
             ),
             methods = [
                 (name="__dir__", flags=Py_METH_NOARGS, meth=pyjlraw_dir),
-            ]
+                (name="__jl_any", flags=Py_METH_NOARGS, meth=pyjlraw_toany),
+            ],
         ))
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
@@ -204,3 +205,5 @@ pyjlraw_setitem(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
         end
     end
 end
+
+pyjlraw_toany(xo::PyPtr, ::PyPtr) = PyJuliaValue_From(PyJuliaValue_GetValue(xo))

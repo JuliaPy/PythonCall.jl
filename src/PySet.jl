@@ -7,7 +7,7 @@ If `o` is not given, an empty set is created.
 """
 struct PySet{T} <: AbstractSet{T}
     ref :: PyRef
-    PySet{T}(o) where {T} = new{T}(PyRef(o))
+    PySet{T}(o) where {T} = new{T}(ispyref(o) ? PyRef(o) : pyset(PyRef, o))
     PySet{T}() where {T} = new{T}(PyRef())
 end
 PySet(o) = PySet{PyObject}(o)

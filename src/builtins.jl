@@ -689,7 +689,7 @@ Create a Python `tuple` from the elements of iterable `x`.
 
 If `x` is a Python object, this is equivalent to `tuple(x)` in Python.
 """
-pytuple(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PyTuple_Type(), x) : C.PyTuple_FromIter(x))
+pytuple(::Type{T}, x) where {T} = checknullconvert(T, ispyref(x) ? C.PyObject_CallNice(C.PyTuple_Type(), x) : C.PyTuple_FromIter(x))
 pytuple(::Type{T}) where {T} = checknullconvert(T, C.PyTuple_New(0))
 pytuple(x) = pytuple(PyObject, x)
 pytuple() = pytuple(PyObject)
@@ -702,7 +702,7 @@ Create a Python `list` from the elements of iterable `x`.
 
 If `x` is a Python object, this is equivalent to `list(x)` in Python.
 """
-pylist(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PyList_Type(), x) : C.PyList_FromIter(x))
+pylist(::Type{T}, x) where {T} = checknullconvert(T, ispyref(x) ? C.PyObject_CallNice(C.PyList_Type(), x) : C.PyList_FromIter(x))
 pylist(::Type{T}) where {T} = checknullconvert(T, C.PyList_New(0))
 pylist(x) = pylist(PyObject, x)
 pylist() = pylist(PyObject)
@@ -733,7 +733,7 @@ Create a Python `set` from the elements of iterable `x`.
 
 If `x` is a Python object, this is equivalent to `set(x)` in Python.
 """
-pyset(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PySet_Type(), x) : C.PySet_FromIter(x))
+pyset(::Type{T}, x) where {T} = checknullconvert(T, ispyref(x) ? C.PyObject_CallNice(C.PySet_Type(), x) : C.PySet_FromIter(x))
 pyset(::Type{T}) where {T} = checknullconvert(T, C.PySet_New(C_NULL))
 pyset(x) = pyset(PyObject, x)
 pyset() = pyset(PyObject)
@@ -746,7 +746,7 @@ Create a Python `frozenset` from the elements of iterable `x`.
 
 If `x` is a Python object, this is equivalent to `frozenset(x)` in Python.
 """
-pyfrozenset(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PyFrozenSet_Type(), x) : C.PyFrozenSet_FromIter(x))
+pyfrozenset(::Type{T}, x) where {T} = checknullconvert(T, ispyref(x) ? C.PyObject_CallNice(C.PyFrozenSet_Type(), x) : C.PyFrozenSet_FromIter(x))
 pyfrozenset(::Type{T}) where {T} = checknullconvert(T, C.PyFrozenSet_New(C_NULL))
 pyfrozenset(x) = pyfrozenset(PyObject, x)
 pyfrozenset() = pyfrozenset(PyObject)
@@ -760,7 +760,7 @@ Create a Python `dict` from the given key-value pairs in `x` or keyword argument
 
 If `x` is a Python object, this is equivalent to `dict(x)` in Python.
 """
-pydict(::Type{T}, x) where {T} = checknullconvert(T, ispyreftype(typeof(x)) ? C.PyObject_CallNice(C.PyDict_Type(), x) : C.PyDict_FromPairs(x))
+pydict(::Type{T}, x) where {T} = checknullconvert(T, ispyref(x) ? C.PyObject_CallNice(C.PyDict_Type(), x) : C.PyDict_FromPairs(x))
 pydict(::Type{T}; opts...) where {T} = checknullconvert(T, isempty(opts) ? C.PyDict_New() : C.PyDict_FromStringPairs(opts))
 pydict(x) = pydict(PyObject, x)
 pydict(; opts...) = pydict(PyObject; opts...)

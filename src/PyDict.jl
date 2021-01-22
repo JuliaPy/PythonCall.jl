@@ -8,7 +8,7 @@ If `o` is not given, an empty dict is created.
 mutable struct PyDict{K,V} <: AbstractDict{K,V}
     ref :: PyRef
     hasbuiltins :: Bool
-    PyDict{K,V}(o) where {K,V} = new(PyRef(o), false)
+    PyDict{K,V}(o) where {K,V} = new(ispyref(o) ? PyRef(o) : pydict(PyRef, o), false)
     PyDict{K,V}() where {K,V} = new(PyRef(), false)
 end
 PyDict{K}(args...) where {K} = PyDict{K,PyObject}(args...)

@@ -49,7 +49,7 @@ PyObject_From(x::Date) = PyDate_From(x)
 PyObject_From(x::Time) = PyTime_From(x)
 PyObject_From(x::Union{Second,Millisecond,Microsecond,Nanosecond}) = PyTimeDelta_From(x)
 PyObject_From(x) =
-    if ispyreftype(typeof(x))
+    if ispyref(x)
         GC.@preserve x begin
             ptr = pyptr(x)
             Py_IncRef(ptr)

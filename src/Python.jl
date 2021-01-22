@@ -68,6 +68,13 @@ Such objects must implement:
 ispyreftype(::Type) = false
 
 """
+    ispyref(x)
+
+Equivalent to `ispyreftype(typeof(x))`.
+"""
+ispyref(x) = ispyreftype(typeof(x))
+
+"""
     pyptr(o)
 
 Retrieve the underlying Python object pointer from o.

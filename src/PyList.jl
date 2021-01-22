@@ -7,7 +7,7 @@ If `o` is not given, an empty list is created.
 """
 struct PyList{T} <: AbstractVector{T}
     ref :: PyRef
-    PyList{T}(o) where {T} = new{T}(PyRef(o))
+    PyList{T}(o) where {T} = new{T}(ispyref(o) ? PyRef(o) : pylist(PyRef, o))
     PyList{T}() where {T} = new{T}(PyRef())
 end
 PyList(o) = PyList{PyObject}(o)
@@ -68,7 +68,7 @@ Base.popfirst!(x::PyList) = pop!(x, 1)
 Base.reverse!(x::PyList) = (@py `$x.reverse()`; x)
 
 # TODO: support kwarg `by` (becomes python kwarg `key`)
-Base.sort!(x::PyList; rev::Bool=false) = (@py `$x.sort(reverse=$rev)`; x)
+# Base.sort!(x::PyList; rev::Bool=false) = (@py `$x.sort(reverse=$rev)`; x)
 
 Base.empty!(x::PyList) = (@py `$x.clear()`; x)
 

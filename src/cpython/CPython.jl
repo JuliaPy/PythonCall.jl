@@ -1,7 +1,7 @@
 module CPython
 
 using Libdl, Dates
-import ..Python: CONFIG, isnull, ism1, PYERR, NOTIMPLEMENTED, _typeintersect, tryconvert, ispyreftype, pyptr, putresult, takeresult, CACHE, Python
+import ..Python: CONFIG, isnull, ism1, PYERR, NOTIMPLEMENTED, _typeintersect, tryconvert, ispyreftype, ispyref, pyptr, putresult, takeresult, CACHE, Python
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
 

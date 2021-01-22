@@ -12,7 +12,7 @@ catch
 end
 
 Base.display(d::IPythonDisplay, @nospecialize(x)) = begin
-    if ispyreftype(typeof(x))
+    if ispyref(x)
         @py `sys.modules["IPython"].display.display($x)`
         return
     end

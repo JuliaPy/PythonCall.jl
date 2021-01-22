@@ -1,5 +1,3 @@
-# TODO: __round__()
-
 const PyJuliaNumberValue_Type__ref = Ref(PyPtr())
 PyJuliaNumberValue_Type() = begin
     ptr = PyJuliaNumberValue_Type__ref[]
@@ -101,6 +99,7 @@ PyJuliaRealValue_Type() = begin
                 (name="__trunc__", flags=Py_METH_NOARGS, meth=pyjlreal_trunc),
                 (name="__floor__", flags=Py_METH_NOARGS, meth=pyjlreal_floor),
                 (name="__ceil__", flags=Py_METH_NOARGS, meth=pyjlreal_ceil),
+                (name="__round__", flags=Py_METH_VARARGS, meth=pyjlreal_round),
             ],
         ))
         ptr = PyPtr(pointer(t))
@@ -322,24 +321,41 @@ catch err
 end
 
 pyjlreal_trunc(xo::PyPtr, ::PyPtr) = try
-    PyObject_From(trunc(PyJuliaValue_GetValue(xo)::Real))
+    PyObject_From(trunc(Integer, PyJuliaValue_GetValue(xo)::Real))
 catch err
     PyErr_SetJuliaError(err)
     PyPtr()
 end
 
 pyjlreal_floor(xo::PyPtr, ::PyPtr) = try
-    PyObject_From(floor(PyJuliaValue_GetValue(xo)::Real))
+    PyObject_From(floor(Integer, PyJuliaValue_GetValue(xo)::Real))
 catch err
     PyErr_SetJuliaError(err)
     PyPtr()
 end
 
 pyjlreal_ceil(xo::PyPtr, ::PyPtr) = try
-    PyObject_From(ceil(PyJuliaValue_GetValue(xo)::Real))
+    PyObject_From(ceil(Integer, PyJuliaValue_GetValue(xo)::Real))
 catch err
     PyErr_SetJuliaError(err)
     PyPtr()
+end
+
+pyjlreal_round(xo::PyPtr, args::PyPtr) = begin
+    ism1(PyArg_CheckNumArgsLe("round", args, 1)) && return PyPtr()
+    ism1(PyArg_GetArg(Union{Int,Nothing}, "round", args, 0, nothing)) && return PyPtr()
+    ndigits = takeresult(Union{Int,Nothing})
+    x = PyJuliaValue_GetValue(xo)::Real
+    try
+        if ndigits === nothing
+            PyObject_From(round(Integer, x))
+        else
+            PyObject_From(round(x; digits=ndigits))
+        end
+    catch err
+        PyErr_SetJuliaError(err)
+        PyPtr()
+    end
 end
 
 pyjlrational_numerator(xo::PyPtr, ::Ptr{Cvoid}) = try

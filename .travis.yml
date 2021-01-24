@@ -1,7 +1,5 @@
 language: julia
 
-os: linux
-
 notifications:
   email: false
 
@@ -14,6 +12,11 @@ julia:
 - 1.1
 - 1.0
 
+os:
+- linux
+- osx
+- windows
+
 env:
 - PYTHONJL_EXE=CONDA
 
@@ -22,8 +25,6 @@ codecov: true
 jobs:
   include:
     - stage: "Documentation"
-      julia: 1
-      os: linux
       script:
         - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl

@@ -2,6 +2,7 @@
 ---
 
 [![Build Status](https://travis-ci.org/cjdoris/Python.jl.svg?branch=master)](https://travis-ci.org/cjdoris/Python.jl)
+[![codecov](https://codecov.io/gh/cjdoris/Python.jl/branch/master/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/cjdoris/Python.jl)
 
 Bringing **Python** and **Julia** together for ultimate awesomeness.
 - Simple syntax, just like regular Python.

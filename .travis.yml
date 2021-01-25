@@ -32,8 +32,7 @@ jobs:
     - julia: 1.0
   fast_finish: true
   include:
-    - stage: deploy
-      name: documentation
+    - name: documentation
       script:
         - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl

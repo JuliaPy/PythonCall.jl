@@ -6,8 +6,11 @@ Py_TypeCheck(o, t) = PyType_IsSubtype(Py_Type(o), t) != 0
 Py_TypeCheckExact(o, t) = Py_Type(o) == Base.unsafe_convert(PyPtr, t)
 Py_TypeCheckFast(o, f) = PyType_IsSubtypeFast(Py_Type(o), f)
 
-PyType_Flags(o) = GC.@preserve o UnsafePtr{PyTypeObject}(Base.unsafe_convert(PyPtr, o)).flags[]
-PyType_Name(o) = GC.@preserve o unsafe_string(UnsafePtr{PyTypeObject}(Base.unsafe_convert(PyPtr, o)).name[!])
+PyType_Flags(o) =
+    GC.@preserve o UnsafePtr{PyTypeObject}(Base.unsafe_convert(PyPtr, o)).flags[]
+PyType_Name(o) = GC.@preserve o unsafe_string(
+    UnsafePtr{PyTypeObject}(Base.unsafe_convert(PyPtr, o)).name[!],
+)
 PyType_MRO(o) = GC.@preserve o UnsafePtr{PyTypeObject}(Base.unsafe_convert(PyPtr, o)).mro[!]
 
 PyType_IsSubtypeFast(s, f) = PyType_HasFeature(s, f)
@@ -39,5 +42,5 @@ end
 
 PyType_MROAsVector(o) = begin
     mro = PyType_MRO(o)
-    PyPtr[PyTuple_GetItem(mro, i-1) for i in 1:PyTuple_Size(mro)]
+    PyPtr[PyTuple_GetItem(mro, i - 1) for i = 1:PyTuple_Size(mro)]
 end

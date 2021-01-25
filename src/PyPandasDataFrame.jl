@@ -8,7 +8,11 @@ Construct a "column table" from the `Tables.jl`-compatible table `src`, namely a
 """
 function pycolumntable(::Type{T}, src) where {T}
     cols = Tables.columns(src)
-    pydict(T, pystr(String(n)) => asvector(Tables.getcolumn(cols, n)) for n in Tables.columnnames(cols))
+    pydict(
+        T,
+        pystr(String(n)) => asvector(Tables.getcolumn(cols, n)) for
+        n in Tables.columnnames(cols)
+    )
 end
 pycolumntable(::Type{T}; cols...) where {T} = pycolumntable(T, cols)
 pycolumntable(src) = pycolumntable(PyObject, src)
@@ -24,7 +28,11 @@ function pyrowtable(::Type{T}, src) where {T}
     rows = Tables.rows(src)
     names = Tables.columnnames(rows)
     pynames = [pystr(String(n)) for n in names]
-    pylist(T, pydict(pn => Tables.getcolumn(row, n) for (n,pn) in zip(names, pynames)) for row in rows)
+    pylist(
+        T,
+        pydict(pn => Tables.getcolumn(row, n) for (n, pn) in zip(names, pynames)) for
+        row in rows
+    )
 end
 pyrowtable(::Type{T}; cols...) where {T} = pyrowtable(T, cols)
 pyrowtable(src) = pyrowtable(PyObject, src)
@@ -50,7 +58,7 @@ export pyrowtable
 # end
 # export pypandasdataframe
 
-multidict(src) = Dict(k=>v for (ks,v) in src for k in (ks isa Vector ? ks : [ks]))
+multidict(src) = Dict(k => v for (ks, v) in src for k in (ks isa Vector ? ks : [ks]))
 
 """
     PyPandasDataFrame(o; indexname=:index, columntypes=(), copy=false)
@@ -64,18 +72,20 @@ This object satisfies the `Tables.jl` and `TableTraits.jl` interfaces.
 - `:copy` is true to copy columns on conversion.
 """
 struct PyPandasDataFrame
-    ref :: PyRef
-    indexname :: Union{Symbol, Nothing}
-    columntypes :: Dict{Symbol, Type}
-    copy :: Bool
+    ref::PyRef
+    indexname::Union{Symbol,Nothing}
+    columntypes::Dict{Symbol,Type}
+    copy::Bool
 end
-PyPandasDataFrame(o; indexname=:index, columntypes=(), copy=false) = PyPandasDataFrame(PyRef(o), indexname, multidict(columntypes), copy)
+PyPandasDataFrame(o; indexname = :index, columntypes = (), copy = false) =
+    PyPandasDataFrame(PyRef(o), indexname, multidict(columntypes), copy)
 export PyPandasDataFrame
 
 ispyreftype(::Type{PyPandasDataFrame}) = true
 pyptr(df::PyPandasDataFrame) = df.ref
 Base.unsafe_convert(::Type{CPyPtr}, df::PyPandasDataFrame) = checknull(pyptr(df))
-C.PyObject_TryConvert__initial(o, ::Type{PyPandasDataFrame}) = C.putresult(PyPandasDataFrame(pyborrowedref(o)))
+C.PyObject_TryConvert__initial(o, ::Type{PyPandasDataFrame}) =
+    C.putresult(PyPandasDataFrame(pyborrowedref(o)))
 
 Base.show(io::IO, x::PyPandasDataFrame) = print(io, pystr(String, x))
 Base.show(io::IO, mime::_py_mimetype, o::PyPandasDataFrame) = _py_mime_show(io, mime, o)
@@ -106,6 +116,7 @@ function Tables.columns(x::PyPandasDataFrame)
 end
 
 IteratorInterfaceExtensions.isiterable(x::PyPandasDataFrame) = true
-IteratorInterfaceExtensions.getiterator(x::PyPandasDataFrame) = IteratorInterfaceExtensions.getiterator(Tables.rows(x))
+IteratorInterfaceExtensions.getiterator(x::PyPandasDataFrame) =
+    IteratorInterfaceExtensions.getiterator(Tables.rows(x))
 
 TableTraits.isiterabletable(x::PyPandasDataFrame) = true

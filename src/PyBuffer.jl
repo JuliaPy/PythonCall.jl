@@ -19,8 +19,8 @@ Has the following properties:
 - `eltype`: The element type.
 """
 mutable struct PyBuffer
-    info :: Array{C.Py_buffer, 0}
-    function PyBuffer(o, flags::Integer=C.PyBUF_FULL_RO)
+    info::Array{C.Py_buffer,0}
+    function PyBuffer(o, flags::Integer = C.PyBUF_FULL_RO)
         info = fill(C.Py_buffer())
         check(C.PyObject_GetBuffer(o, pointer(info), flags))
         b = new(info)
@@ -54,13 +54,14 @@ Base.getproperty(b::PyBuffer, k::Symbol) =
         b.info[].ndim
     elseif k == :shape
         p = b.info[].shape
-        p == C_NULL ? (fld(b.len, b.itemsize),) : ntuple(i->unsafe_load(p, i), b.ndim)
+        p == C_NULL ? (fld(b.len, b.itemsize),) : ntuple(i -> unsafe_load(p, i), b.ndim)
     elseif k == :strides
         p = b.info[].strides
-        p == C_NULL ? size_to_cstrides(b.itemsize, b.shape...) : ntuple(i->unsafe_load(p, i), b.ndim)
+        p == C_NULL ? size_to_cstrides(b.itemsize, b.shape...) :
+        ntuple(i -> unsafe_load(p, i), b.ndim)
     elseif k == :suboffsets
         p = b.info[].suboffsets
-        p == C_NULL ? ntuple(i->-1, b.ndim) : ntuple(i->unsafe_load(p, i), b.ndim)
+        p == C_NULL ? ntuple(i -> -1, b.ndim) : ntuple(i -> unsafe_load(p, i), b.ndim)
     elseif k == :isccontiguous
         b.strides == size_to_cstrides(b.itemsize, b.shape...)
     elseif k == :isfcontiguous

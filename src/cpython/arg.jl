@@ -44,7 +44,10 @@ PyArg_CheckNoKwargs(name::String, kwargs::PyPtr) = begin
     else
         argnames = PyIterable_Collect(kwargs, String)
         isempty(argnames) && PyErr_IsSet() && return -1
-        PyErr_SetString(PyExc_TypeError(), "$name() got unexpected keyword arguments: $(join(["'$n'" for n in argnames], ", "))")
+        PyErr_SetString(
+            PyExc_TypeError(),
+            "$name() got unexpected keyword arguments: $(join(["'$n'" for n in argnames], ", "))",
+        )
         return -1
     end
 end
@@ -54,7 +57,9 @@ struct NODEFAULT end
 PyArg_Find(args::PyPtr, kwargs::PyPtr, i::Union{Int,Nothing}, k::Union{String,Nothing}) =
     if i !== nothing && !isnull(args) && 0 ≤ i < PyTuple_Size(args)
         return PyTuple_GetItem(args, i)
-    elseif k !== nothing && !isnull(kwargs) && (ro = PyDict_GetItemString(kwargs, k)) != PyPtr()
+    elseif k !== nothing &&
+           !isnull(kwargs) &&
+           (ro = PyDict_GetItemString(kwargs, k)) != PyPtr()
         return ro
     else
         return PyPtr()
@@ -70,7 +75,15 @@ Attempt to find and convert the specified argument to a `T`. Return 0 on success
 - `kwargs::PyPtr` is a dict of keyword arguments, and `k::String` a key.
 - `default` specifies a default value if the argument is not found. NOTE: It need not be a `T`, so when retrieving the result use `takeresult(Union{T,typeof(default)})`.
 """
-PyArg_GetArg(::Type{T}, name::String, args::PyPtr, i::Union{Int,Nothing}, kwargs::PyPtr, k::Union{String,Nothing}, d=NODEFAULT()) where {T} = begin
+PyArg_GetArg(
+    ::Type{T},
+    name::String,
+    args::PyPtr,
+    i::Union{Int,Nothing},
+    kwargs::PyPtr,
+    k::Union{String,Nothing},
+    d = NODEFAULT(),
+) where {T} = begin
     ro = PyArg_Find(args, kwargs, i, k)
     if isnull(ro)
         if d !== NODEFAULT()
@@ -80,7 +93,10 @@ PyArg_GetArg(::Type{T}, name::String, args::PyPtr, i::Union{Int,Nothing}, kwargs
             PyErr_SetString(PyExc_TypeError(), "$name() did not get required argument '$k'")
             return -1
         elseif i !== nothing && i ≥ 0
-            PyErr_SetString(PyExc_TypeError(), "$name() takes at least $(i+1) arguments (got $(isnull(args) ? 0 : PyTuple_Size(args)))")
+            PyErr_SetString(
+                PyExc_TypeError(),
+                "$name() takes at least $(i+1) arguments (got $(isnull(args) ? 0 : PyTuple_Size(args)))",
+            )
             return -1
         else
             error("impossible to satisfy this argument")
@@ -90,13 +106,16 @@ PyArg_GetArg(::Type{T}, name::String, args::PyPtr, i::Union{Int,Nothing}, kwargs
     if r == -1
         return -1
     elseif r == 0
-        PyErr_SetString(PyExc_TypeError(), "Argument $(k !== nothing ? "'$k'" : i !== nothing ? "$i" : error("impossible")) to $name() must be convertible to a Julia '$T'")
+        PyErr_SetString(
+            PyExc_TypeError(),
+            "Argument $(k !== nothing ? "'$k'" : i !== nothing ? "$i" : error("impossible")) to $name() must be convertible to a Julia '$T'",
+        )
         return -1
     else
         return 0
     end
 end
-PyArg_GetArg(::Type{T}, name::String, args::PyPtr, i::Int, d=NODEFAULT()) where {T} =
+PyArg_GetArg(::Type{T}, name::String, args::PyPtr, i::Int, d = NODEFAULT()) where {T} =
     PyArg_GetArg(T, name, args, i, PyPtr(), nothing, d)
-PyArg_GetArg(::Type{T}, name::String, kwargs::PyPtr, k::String, d=NODEFAULT()) where {T} =
+PyArg_GetArg(::Type{T}, name::String, kwargs::PyPtr, k::String, d = NODEFAULT()) where {T} =
     PyArg_GetArg(T, name, PyPtr(), nothing, kwargs, k, d)

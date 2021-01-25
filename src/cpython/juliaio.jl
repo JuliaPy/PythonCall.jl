@@ -5,35 +5,40 @@ PyJuliaIOValue_Type() = begin
         c = []
         base = PyJuliaAnyValue_Type()
         isnull(base) && return PyPtr()
-        t = fill(PyType_Create(c,
-            name = "julia.IOValue",
-            base = base,
-            iter = pyjlio_iter,
-            iternext = pyjlio_next,
-            methods = [
-                (name="close", flags=Py_METH_NOARGS, meth=pyjlio_close),
-                (name="fileno", flags=Py_METH_NOARGS, meth=pyjlio_fileno),
-                (name="flush", flags=Py_METH_NOARGS, meth=pyjlio_flush),
-                (name="isatty", flags=Py_METH_NOARGS, meth=pyjlio_isatty),
-                (name="readable", flags=Py_METH_NOARGS, meth=pyjlio_readable),
-                (name="writable", flags=Py_METH_NOARGS, meth=pyjlio_writable),
-                (name="tell", flags=Py_METH_NOARGS, meth=pyjlio_tell),
-                (name="seek", flags=Py_METH_VARARGS, meth=pyjlio_seek),
-                (name="writelines", flags=Py_METH_O, meth=pyjlio_writelines),
-                (name="readlines", flags=Py_METH_VARARGS, meth=pyjlio_readlines),
-                (name="truncate", flags=Py_METH_VARARGS, meth=pyjlio_truncate),
-                (name="seekable", flags=Py_METH_NOARGS, meth=pyjlio_seekable),
-                (name="__enter__", flags=Py_METH_NOARGS, meth=pyjlio_enter),
-                (name="__exit__", flags=Py_METH_VARARGS, meth=pyjlio_exit),
-                # extras
-                (name="torawio", flags=Py_METH_NOARGS, meth=pyjlio_torawio),
-                (name="tobufferedio", flags=Py_METH_NOARGS, meth=pyjlio_tobufferedio),
-                (name="totextio", flags=Py_METH_NOARGS, meth=pyjlio_totextio),
-            ],
-            getset = [
-                (name="closed", get=pyjlio_closed),
-            ],
-        ))
+        t = fill(
+            PyType_Create(
+                c,
+                name = "julia.IOValue",
+                base = base,
+                iter = pyjlio_iter,
+                iternext = pyjlio_next,
+                methods = [
+                    (name = "close", flags = Py_METH_NOARGS, meth = pyjlio_close),
+                    (name = "fileno", flags = Py_METH_NOARGS, meth = pyjlio_fileno),
+                    (name = "flush", flags = Py_METH_NOARGS, meth = pyjlio_flush),
+                    (name = "isatty", flags = Py_METH_NOARGS, meth = pyjlio_isatty),
+                    (name = "readable", flags = Py_METH_NOARGS, meth = pyjlio_readable),
+                    (name = "writable", flags = Py_METH_NOARGS, meth = pyjlio_writable),
+                    (name = "tell", flags = Py_METH_NOARGS, meth = pyjlio_tell),
+                    (name = "seek", flags = Py_METH_VARARGS, meth = pyjlio_seek),
+                    (name = "writelines", flags = Py_METH_O, meth = pyjlio_writelines),
+                    (name = "readlines", flags = Py_METH_VARARGS, meth = pyjlio_readlines),
+                    (name = "truncate", flags = Py_METH_VARARGS, meth = pyjlio_truncate),
+                    (name = "seekable", flags = Py_METH_NOARGS, meth = pyjlio_seekable),
+                    (name = "__enter__", flags = Py_METH_NOARGS, meth = pyjlio_enter),
+                    (name = "__exit__", flags = Py_METH_VARARGS, meth = pyjlio_exit),
+                    # extras
+                    (name = "torawio", flags = Py_METH_NOARGS, meth = pyjlio_torawio),
+                    (
+                        name = "tobufferedio",
+                        flags = Py_METH_NOARGS,
+                        meth = pyjlio_tobufferedio,
+                    ),
+                    (name = "totextio", flags = Py_METH_NOARGS, meth = pyjlio_totextio),
+                ],
+                getset = [(name = "closed", get = pyjlio_closed)],
+            ),
+        )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
         ism1(err) && return PyPtr()
@@ -53,19 +58,26 @@ PyJuliaRawIOValue_Type() = begin
         c = []
         base = PyJuliaIOValue_Type()
         isnull(base) && return PyPtr()
-        t = fill(PyType_Create(c,
-            name = "julia.RawIOValue",
-            base = base,
-            methods = [
-                (name="write", flags=Py_METH_O, meth=pyjlio_write_bytes),
-                (name="readall", flags=Py_METH_VARARGS, meth=pyjlio_read_bytes),
-                (name="read", flags=Py_METH_VARARGS, meth=pyjlio_read_bytes),
-                (name="readline", flags=Py_METH_VARARGS, meth=pyjlio_readline_bytes),
-                (name="readinto", flags=Py_METH_O, meth=pyjlio_readinto),
-                # extras
-                (name="torawio", flags=Py_METH_NOARGS, meth=pyjlio_identity),
-            ],
-        ))
+        t = fill(
+            PyType_Create(
+                c,
+                name = "julia.RawIOValue",
+                base = base,
+                methods = [
+                    (name = "write", flags = Py_METH_O, meth = pyjlio_write_bytes),
+                    (name = "readall", flags = Py_METH_VARARGS, meth = pyjlio_read_bytes),
+                    (name = "read", flags = Py_METH_VARARGS, meth = pyjlio_read_bytes),
+                    (
+                        name = "readline",
+                        flags = Py_METH_VARARGS,
+                        meth = pyjlio_readline_bytes,
+                    ),
+                    (name = "readinto", flags = Py_METH_O, meth = pyjlio_readinto),
+                    # extras
+                    (name = "torawio", flags = Py_METH_NOARGS, meth = pyjlio_identity),
+                ],
+            ),
+        )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
         ism1(err) && return PyPtr()
@@ -85,21 +97,28 @@ PyJuliaBufferedIOValue_Type() = begin
         c = []
         base = PyJuliaIOValue_Type()
         isnull(base) && return PyPtr()
-        t = fill(PyType_Create(c,
-            name = "julia.BufferedIOValue",
-            base = base,
-            methods = [
-                (name="detach", flags=Py_METH_NOARGS, meth=pyjlio_detach),
-                (name="write", flags=Py_METH_O, meth=pyjlio_write_bytes),
-                (name="read", flags=Py_METH_VARARGS, meth=pyjlio_read_bytes),
-                (name="read1", flags=Py_METH_VARARGS, meth=pyjlio_read_bytes),
-                (name="readline", flags=Py_METH_VARARGS, meth=pyjlio_readline_bytes),
-                (name="readinto", flags=Py_METH_O, meth=pyjlio_readinto),
-                (name="readinto1", flags=Py_METH_O, meth=pyjlio_readinto),
-                # extras
-                (name="tobufferedio", flags=Py_METH_NOARGS, meth=pyjlio_identity),
-            ],
-        ))
+        t = fill(
+            PyType_Create(
+                c,
+                name = "julia.BufferedIOValue",
+                base = base,
+                methods = [
+                    (name = "detach", flags = Py_METH_NOARGS, meth = pyjlio_detach),
+                    (name = "write", flags = Py_METH_O, meth = pyjlio_write_bytes),
+                    (name = "read", flags = Py_METH_VARARGS, meth = pyjlio_read_bytes),
+                    (name = "read1", flags = Py_METH_VARARGS, meth = pyjlio_read_bytes),
+                    (
+                        name = "readline",
+                        flags = Py_METH_VARARGS,
+                        meth = pyjlio_readline_bytes,
+                    ),
+                    (name = "readinto", flags = Py_METH_O, meth = pyjlio_readinto),
+                    (name = "readinto1", flags = Py_METH_O, meth = pyjlio_readinto),
+                    # extras
+                    (name = "tobufferedio", flags = Py_METH_NOARGS, meth = pyjlio_identity),
+                ],
+            ),
+        )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
         ism1(err) && return PyPtr()
@@ -119,22 +138,29 @@ PyJuliaTextIOValue_Type() = begin
         c = []
         base = PyJuliaIOValue_Type()
         isnull(base) && return PyPtr()
-        t = fill(PyType_Create(c,
-            name = "julia.TextIOValue",
-            base = base,
-            methods = [
-                (name="detach", flags=Py_METH_NOARGS, meth=pyjlio_detach),
-                (name="write", flags=Py_METH_O, meth=pyjlio_write_str),
-                (name="read", flags=Py_METH_VARARGS, meth=pyjlio_read_str),
-                (name="readline", flags=Py_METH_VARARGS, meth=pyjlio_readline_str),
-                # extras
-                (name="totextio", flags=Py_METH_NOARGS, meth=pyjlio_identity),
-            ],
-            getset = [
-                (name="encoding", get=pyjlio_encoding),
-                (name="errors", get=pyjlio_errors),
-            ],
-        ))
+        t = fill(
+            PyType_Create(
+                c,
+                name = "julia.TextIOValue",
+                base = base,
+                methods = [
+                    (name = "detach", flags = Py_METH_NOARGS, meth = pyjlio_detach),
+                    (name = "write", flags = Py_METH_O, meth = pyjlio_write_str),
+                    (name = "read", flags = Py_METH_VARARGS, meth = pyjlio_read_str),
+                    (
+                        name = "readline",
+                        flags = Py_METH_VARARGS,
+                        meth = pyjlio_readline_str,
+                    ),
+                    # extras
+                    (name = "totextio", flags = Py_METH_NOARGS, meth = pyjlio_identity),
+                ],
+                getset = [
+                    (name = "encoding", get = pyjlio_encoding),
+                    (name = "errors", get = pyjlio_errors),
+                ],
+            ),
+        )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
         ism1(err) && return PyPtr()
@@ -154,7 +180,8 @@ PyJuliaTextIOValue_New(x::IO) = PyJuliaValue_New(PyJuliaTextIOValue_Type(), x)
 PyJuliaValue_From(x::IO) = PyJuliaBufferedIOValue_New(x)
 
 pyjlio_torawio(xo::PyPtr, ::PyPtr) = PyJuliaRawIOValue_New(PyJuliaValue_GetValue(xo)::IO)
-pyjlio_tobufferedio(xo::PyPtr, ::PyPtr) = PyJuliaBufferedIOValue_New(PyJuliaValue_GetValue(xo)::IO)
+pyjlio_tobufferedio(xo::PyPtr, ::PyPtr) =
+    PyJuliaBufferedIOValue_New(PyJuliaValue_GetValue(xo)::IO)
 pyjlio_totextio(xo::PyPtr, ::PyPtr) = PyJuliaTextIOValue_New(PyJuliaValue_GetValue(xo)::IO)
 pyjlio_identity(xo::PyPtr, ::PyPtr) = (Py_IncRef(xo); xo)
 
@@ -362,7 +389,8 @@ end
 
 pyjlio_truncate(xo::PyPtr, args::PyPtr) = begin
     ism1(PyArg_CheckNumArgsLe("truncate", args, 1)) && return PyPtr()
-    ism1(PyArg_GetArg(Union{Int,Nothing}, "truncate", args, 0, nothing)) && return PyPtr()
+    ism1(PyArg_GetArg(Union{Int,Nothing}, "truncate", args, 0, nothing)) &&
+        return PyPtr()
     n = takeresult(Union{Int,Nothing})
     x = PyJuliaValue_GetValue(xo)::IO
     try
@@ -386,7 +414,9 @@ end
 
 pyjlio_encoding(::PyPtr, ::Ptr{Cvoid}) = PyUnicode_From("UTF-8")
 pyjlio_errors(::PyPtr, ::Ptr{Cvoid}) = PyUnicode_From("strict")
-pyjlio_detach(o::PyPtr, ::PyPtr) = (PyErr_SetString(PyExc_ValueError(), "cannot detach '$(PyType_Name(Py_Type(o)))'"); PyPtr())
+pyjlio_detach(o::PyPtr, ::PyPtr) = (
+    PyErr_SetString(PyExc_ValueError(), "cannot detach '$(PyType_Name(Py_Type(o)))'"); PyPtr()
+)
 
 pyjlio_write_bytes(xo::PyPtr, bo::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::IO
@@ -431,7 +461,9 @@ pyjlio_write_str(xo::PyPtr, so::PyPtr) = begin
                     r = PyObject_TryConvert(sepo, String)
                     Py_DecRef(sepo)
                     r == -1 && return PyPtr()
-                    r ==  0 && (PyErr_SetString(PyExc_TypeError(), "os.linesep must be a str"); return PyPtr())
+                    r == 0 && (
+                        PyErr_SetString(PyExc_TypeError(), "os.linesep must be a str"); return PyPtr()
+                    )
                     sep = takeresult(String)
                     havesep = true
                 end
@@ -469,7 +501,7 @@ pyjlio_readinto(xo::PyPtr, bo::PyPtr) = begin
     end
 end
 
-readpybytes(io::IO, limit=nothing) = begin
+readpybytes(io::IO, limit = nothing) = begin
     buf = UInt8[]
     len = 0
     while (limit === nothing || len < limit) && !eof(io)
@@ -482,10 +514,10 @@ end
 pyjlio_read_bytes(xo::PyPtr, args::PyPtr) = begin
     ism1(PyArg_CheckNumArgsLe("read", args, 1)) && return PyPtr()
     ism1(PyArg_GetArg(Union{Int,Nothing}, "read", args, 0, nothing)) && return PyPtr()
-    limit = takeresult(Union{Int, Nothing})
+    limit = takeresult(Union{Int,Nothing})
     x = PyJuliaValue_GetValue(xo)::IO
     try
-        PyBytes_From(readpybytes(x, (limit===nothing || limit < 0) ? nothing : limit))
+        PyBytes_From(readpybytes(x, (limit === nothing || limit < 0) ? nothing : limit))
     catch err
         if err isa MethodError && (err.f === eof || err.f === read || err.f === peek)
             PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
@@ -496,7 +528,7 @@ pyjlio_read_bytes(xo::PyPtr, args::PyPtr) = begin
     end
 end
 
-readpystr(io::IO, limit=nothing) = begin
+readpystr(io::IO, limit = nothing) = begin
     buf = IOBuffer()
     len = 0
     while (limit === nothing || len < limit) && !eof(io)
@@ -504,7 +536,7 @@ readpystr(io::IO, limit=nothing) = begin
         if c == '\n'
             write(buf, '\n')
         elseif c == '\r'
-            !eof(io) && peek(io)==0x0A && read(io, UInt8)
+            !eof(io) && peek(io) == 0x0A && read(io, UInt8)
             write(buf, '\n')
         else
             write(buf, c)
@@ -517,10 +549,10 @@ end
 pyjlio_read_str(xo::PyPtr, args::PyPtr) = begin
     ism1(PyArg_CheckNumArgsLe("read", args, 1)) && return PyPtr()
     ism1(PyArg_GetArg(Union{Int,Nothing}, "read", args, 0, nothing)) && return PyPtr()
-    limit = takeresult(Union{Int, Nothing})
+    limit = takeresult(Union{Int,Nothing})
     x = PyJuliaValue_GetValue(xo)::IO
     try
-        PyObject_From(readpystr(x, (limit===nothing || limit < 0) ? nothing : limit))
+        PyObject_From(readpystr(x, (limit === nothing || limit < 0) ? nothing : limit))
     catch err
         if err isa MethodError && (err.f === eof || err.f === read || err.f === peek)
             PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
@@ -531,7 +563,7 @@ pyjlio_read_str(xo::PyPtr, args::PyPtr) = begin
     end
 end
 
-readpybyteline(io::IO, limit=nothing) = begin
+readpybyteline(io::IO, limit = nothing) = begin
     buf = UInt8[]
     len = 0
     while (limit === nothing || len < limit) && !eof(io)
@@ -544,11 +576,12 @@ end
 
 pyjlio_readline_bytes(xo::PyPtr, args::PyPtr) = begin
     ism1(PyArg_CheckNumArgsLe("readline", args, 1)) && return PyPtr()
-    ism1(PyArg_GetArg(Union{Int,Nothing}, "readline", args, 0, nothing)) && return PyPtr()
-    limit = takeresult(Union{Int, Nothing})
+    ism1(PyArg_GetArg(Union{Int,Nothing}, "readline", args, 0, nothing)) &&
+        return PyPtr()
+    limit = takeresult(Union{Int,Nothing})
     x = PyJuliaValue_GetValue(xo)::IO
     try
-        PyBytes_From(readpybyteline(x, (limit===nothing || limit < 0) ? nothing : limit))
+        PyBytes_From(readpybyteline(x, (limit === nothing || limit < 0) ? nothing : limit))
     catch err
         if err isa MethodError && (err.f === eof || err.f === read || err.f === peek)
             PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
@@ -559,7 +592,7 @@ pyjlio_readline_bytes(xo::PyPtr, args::PyPtr) = begin
     end
 end
 
-readpyline(io::IO, limit=nothing) = begin
+readpyline(io::IO, limit = nothing) = begin
     buf = IOBuffer()
     len = 0
     while (limit === nothing || len < limit) && !eof(io)
@@ -568,7 +601,7 @@ readpyline(io::IO, limit=nothing) = begin
             write(buf, '\n')
             break
         elseif c == '\r'
-            !eof(io) && peek(io)==0x0A && read(io, UInt8)
+            !eof(io) && peek(io) == 0x0A && read(io, UInt8)
             write(buf, '\n')
             break
         else
@@ -581,11 +614,12 @@ end
 
 pyjlio_readline_str(xo::PyPtr, args::PyPtr) = begin
     ism1(PyArg_CheckNumArgsLe("readline", args, 1)) && return PyPtr()
-    ism1(PyArg_GetArg(Union{Int,Nothing}, "readline", args, 0, nothing)) && return PyPtr()
-    limit = takeresult(Union{Int, Nothing})
+    ism1(PyArg_GetArg(Union{Int,Nothing}, "readline", args, 0, nothing)) &&
+        return PyPtr()
+    limit = takeresult(Union{Int,Nothing})
     x = PyJuliaValue_GetValue(xo)::IO
     try
-        PyObject_From(readpyline(x, (limit===nothing || limit < 0) ? nothing : limit))
+        PyObject_From(readpyline(x, (limit === nothing || limit < 0) ? nothing : limit))
     catch err
         if err isa MethodError && (err.f === eof || err.f === read || err.f === peek)
             PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)

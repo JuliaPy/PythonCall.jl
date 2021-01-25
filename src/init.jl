@@ -9,20 +9,31 @@ function __init__()
         C.Py_IsInitialized() == 0 && error("Python is not already initialized.")
     else
         # Find Python executable
-        exepath = something(CONFIG.exepath, get(ENV, "PYTHONJL_EXE", nothing), Sys.which("python3"), Sys.which("python"), Some(nothing))
+        exepath = something(
+            CONFIG.exepath,
+            get(ENV, "PYTHONJL_EXE", nothing),
+            Sys.which("python3"),
+            Sys.which("python"),
+            Some(nothing),
+        )
         if exepath === nothing
-            error("""
-                Could not find Python executable.
+            error(
+                """
+              Could not find Python executable.
 
-                Ensure 'python3' or 'python' is in your PATH or set environment variable 'PYTHONJL_EXE'
-                to the path to the Python executable.
-                """)
+              Ensure 'python3' or 'python' is in your PATH or set environment variable 'PYTHONJL_EXE'
+              to the path to the Python executable.
+              """,
+            )
         end
         if exepath == "CONDA" || startswith(exepath, "CONDA:")
             CONFIG.isconda = true
             CONFIG.condaenv = exepath == "CONDA" ? Conda.ROOTENV : exepath[7:end]
             Conda._install_conda(CONFIG.condaenv)
-            exepath = joinpath(Conda.python_dir(CONFIG.condaenv), Sys.iswindows() ? "python.exe" : "python")
+            exepath = joinpath(
+                Conda.python_dir(CONFIG.condaenv),
+                Sys.iswindows() ? "python.exe" : "python",
+            )
         end
         if isfile(exepath)
             CONFIG.exepath = exepath
@@ -45,7 +56,8 @@ function __init__()
         end
 
         # Find Python library
-        libpath = something(CONFIG.libpath, get(ENV, "PYTHONJL_LIB", nothing), Some(nothing))
+        libpath =
+            something(CONFIG.libpath, get(ENV, "PYTHONJL_LIB", nothing), Some(nothing))
         if libpath !== nothing
             libptr = dlopen_e(path, CONFIG.dlopenflags)
             if libptr == C_NULL
@@ -55,7 +67,9 @@ function __init__()
                 CONFIG.libptr = libptr
             end
         else
-            for libpath in readlines(python_cmd([joinpath(@__DIR__, "find_libpython.py"), "--list-all"]))
+            for libpath in readlines(
+                python_cmd([joinpath(@__DIR__, "find_libpython.py"), "--list-all"]),
+            )
                 libptr = dlopen_e(libpath, CONFIG.dlopenflags)
                 if libptr == C_NULL
                     @warn "Python library $(repr(libpath)) could not be opened."
@@ -114,7 +128,11 @@ function __init__()
             # Start the interpreter and register exit hooks
             C.Py_InitializeEx(0)
             CONFIG.isinitialized = true
-            check(C.Py_AtExit(@cfunction(()->(CONFIG.isinitialized = false; nothing), Cvoid, ())))
+            check(
+                C.Py_AtExit(
+                    @cfunction(() -> (CONFIG.isinitialized = false; nothing), Cvoid, ())
+                ),
+            )
             atexit() do
                 CONFIG.isinitialized = false
                 checkm1(C.Py_FinalizeEx())
@@ -122,38 +140,40 @@ function __init__()
         end
     end
 
-    C.PyObject_TryConvert_AddRules("builtins.object", [
-        (PyObject, CTryConvertRule_wrapref, -100),
-        (PyRef, CTryConvertRule_wrapref, -200),
-    ])
-    C.PyObject_TryConvert_AddRules("collections.abc.Sequence", [
-        (PyList, CTryConvertRule_wrapref, 100),
-    ])
-    C.PyObject_TryConvert_AddRules("collections.abc.Set", [
-        (PySet, CTryConvertRule_wrapref, 100),
-    ])
-    C.PyObject_TryConvert_AddRules("collections.abc.Mapping", [
-        (PyDict, CTryConvertRule_wrapref, 100),
-    ])
-    C.PyObject_TryConvert_AddRules("_io._IOBase", [
-        (PyIO, CTryConvertRule_trywrapref, 100),
-    ])
-    C.PyObject_TryConvert_AddRules("io.IOBase", [
-        (PyIO, CTryConvertRule_trywrapref, 100),
-    ])
-    C.PyObject_TryConvert_AddRules("<buffer>", [
-        (PyArray, CTryConvertRule_trywrapref, 200),
-        (PyBuffer, CTryConvertRule_wrapref, -200),
-    ])
-    C.PyObject_TryConvert_AddRules("<arrayinterface>", [
-        (PyArray, CTryConvertRule_trywrapref, 200),
-    ])
-    C.PyObject_TryConvert_AddRules("<arraystruct>", [
-        (PyArray, CTryConvertRule_trywrapref, 200),
-    ])
-    C.PyObject_TryConvert_AddRules("<array>", [
-        (PyArray, CTryConvertRule_trywrapref, 0),
-    ])
+    C.PyObject_TryConvert_AddRules(
+        "builtins.object",
+        [(PyObject, CTryConvertRule_wrapref, -100), (PyRef, CTryConvertRule_wrapref, -200)],
+    )
+    C.PyObject_TryConvert_AddRules(
+        "collections.abc.Sequence",
+        [(PyList, CTryConvertRule_wrapref, 100)],
+    )
+    C.PyObject_TryConvert_AddRules(
+        "collections.abc.Set",
+        [(PySet, CTryConvertRule_wrapref, 100)],
+    )
+    C.PyObject_TryConvert_AddRules(
+        "collections.abc.Mapping",
+        [(PyDict, CTryConvertRule_wrapref, 100)],
+    )
+    C.PyObject_TryConvert_AddRules("_io._IOBase", [(PyIO, CTryConvertRule_trywrapref, 100)])
+    C.PyObject_TryConvert_AddRules("io.IOBase", [(PyIO, CTryConvertRule_trywrapref, 100)])
+    C.PyObject_TryConvert_AddRules(
+        "<buffer>",
+        [
+            (PyArray, CTryConvertRule_trywrapref, 200),
+            (PyBuffer, CTryConvertRule_wrapref, -200),
+        ],
+    )
+    C.PyObject_TryConvert_AddRules(
+        "<arrayinterface>",
+        [(PyArray, CTryConvertRule_trywrapref, 200)],
+    )
+    C.PyObject_TryConvert_AddRules(
+        "<arraystruct>",
+        [(PyArray, CTryConvertRule_trywrapref, 200)],
+    )
+    C.PyObject_TryConvert_AddRules("<array>", [(PyArray, CTryConvertRule_trywrapref, 0)])
 
     with_gil() do
 
@@ -173,9 +193,13 @@ function __init__()
 
         # Is this the same Python as in Conda?
         if !CONFIG.isconda &&
-            haskey(ENV, "CONDA_PREFIX") && isdir(ENV["CONDA_PREFIX"]) &&
-            haskey(ENV, "CONDA_PYTHON_EXE") && isfile(ENV["CONDA_PYTHON_EXE"]) &&
-            realpath(ENV["CONDA_PYTHON_EXE"]) == realpath(CONFIG.exepath===nothing ? @pyv(`sys.executable`::String) : CONFIG.exepath)
+           haskey(ENV, "CONDA_PREFIX") &&
+           isdir(ENV["CONDA_PREFIX"]) &&
+           haskey(ENV, "CONDA_PYTHON_EXE") &&
+           isfile(ENV["CONDA_PYTHON_EXE"]) &&
+           realpath(ENV["CONDA_PYTHON_EXE"]) == realpath(
+               CONFIG.exepath === nothing ? @pyv(`sys.executable`::String) : CONFIG.exepath,
+           )
 
             CONFIG.isconda = true
             CONFIG.condaenv = ENV["CONDA_PREFIX"]
@@ -183,10 +207,13 @@ function __init__()
         end
 
         # Get the python version
-        CONFIG.version = let (a,b,c,d,e) = @pyv(`sys.version_info`::Tuple{Int,Int,Int,String,Int})
-            VersionNumber(a, b, c, (d,), (e,))
-        end
-        v"3" ≤ CONFIG.version < v"4" || error("Only Python 3 is supported, this is Python $(CONFIG.version) at $(CONFIG.exepath===nothing ? "unknown location" : CONFIG.exepath).")
+        CONFIG.version =
+            let (a, b, c, d, e) = @pyv(`sys.version_info`::Tuple{Int,Int,Int,String,Int})
+                VersionNumber(a, b, c, (d,), (e,))
+            end
+        v"3" ≤ CONFIG.version < v"4" || error(
+            "Only Python 3 is supported, this is Python $(CONFIG.version) at $(CONFIG.exepath===nothing ? "unknown location" : CONFIG.exepath).",
+        )
 
         # EXPERIMENTAL: hooks to perform actions when certain modules are loaded
         if !CONFIG.isembedded
@@ -218,7 +245,7 @@ function __init__()
             JULIA_COMPAT_HOOKS.add_hook("PySide2", qtfix_hook)
             ```
 
-            @require IJulia="7073ff75-c697-5162-941a-fcdaad2a7d2a" begin
+            @require IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a" begin
                 IJulia.push_postexecute_hook() do
                     CONFIG.pyplotautoshow && pyplotshow()
                 end
@@ -238,7 +265,7 @@ function __init__()
             end
             if CONFIG.isipython
                 # Set `Base.stdout` to `sys.stdout` and ensure it is flushed after each execution
-                @eval Base stdout=$(@pyv `sys.stdout`::PyIO)
+                @eval Base stdout = $(@pyv `sys.stdout`::PyIO)
                 pushdisplay(TextDisplay(Base.stdout))
                 pushdisplay(IPythonDisplay())
                 @py ```

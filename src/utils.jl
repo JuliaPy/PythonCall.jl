@@ -32,13 +32,15 @@ pybufferformat(::Type{T}) where {T} =
     if isstructtype(T) && isconcretetype(T) && Base.allocatedinline(T)
         n = fieldcount(T)
         flds = []
-        for i in 1:n
+        for i = 1:n
             nm = fieldname(T, i)
             tp = fieldtype(T, i)
             push!(flds, string(pybufferformat(tp), nm isa Symbol ? ":$nm:" : ""))
-            d = (i==n ? sizeof(T) : fieldoffset(T, i+1)) - (fieldoffset(T, i) + sizeof(tp))
-            @assert d≥0
-            d>0 && push!(flds, "$(d)x")
+            d =
+                (i == n ? sizeof(T) : fieldoffset(T, i + 1)) -
+                (fieldoffset(T, i) + sizeof(tp))
+            @assert d ≥ 0
+            d > 0 && push!(flds, "$(d)x")
         end
         string("T{", join(flds, " "), "}")
     else
@@ -63,23 +65,22 @@ pybufferformat_to_type(fmt::AbstractString) =
     fmt == "P" ? Ptr{Cvoid} :
     fmt == "O" ? C.PyObjectRef :
     fmt == "=e" ? Float16 :
-    fmt == "=f" ? Float32 :
-    fmt == "=d" ? Float64 :
-    error("not implemented: $(repr(fmt))")
+    fmt == "=f" ? Float32 : fmt == "=d" ? Float64 : error("not implemented: $(repr(fmt))")
 
-islittleendian() = Base.ENDIAN_BOM == 0x04030201 ? true : Base.ENDIAN_BOM == 0x01020304 ? false : error()
+islittleendian() =
+    Base.ENDIAN_BOM == 0x04030201 ? true : Base.ENDIAN_BOM == 0x01020304 ? false : error()
 
 pytypestrdescr(::Type{T}) where {T} = begin
     c = islittleendian() ? '<' : '>'
-    T ==    Bool ? ("$(c)b$(sizeof(Bool))", nothing) :
-    T ==    Int8 ? ("$(c)i1", nothing) :
-    T ==   UInt8 ? ("$(c)u1", nothing) :
-    T ==   Int16 ? ("$(c)i2", nothing) :
-    T ==  UInt16 ? ("$(c)u2", nothing) :
-    T ==   Int32 ? ("$(c)i4", nothing) :
-    T ==  UInt32 ? ("$(c)u4", nothing) :
-    T ==   Int64 ? ("$(c)i8", nothing) :
-    T ==  UInt64 ? ("$(c)u8", nothing) :
+    T == Bool ? ("$(c)b$(sizeof(Bool))", nothing) :
+    T == Int8 ? ("$(c)i1", nothing) :
+    T == UInt8 ? ("$(c)u1", nothing) :
+    T == Int16 ? ("$(c)i2", nothing) :
+    T == UInt16 ? ("$(c)u2", nothing) :
+    T == Int32 ? ("$(c)i4", nothing) :
+    T == UInt32 ? ("$(c)u4", nothing) :
+    T == Int64 ? ("$(c)i8", nothing) :
+    T == UInt64 ? ("$(c)u8", nothing) :
     T == Float16 ? ("$(c)f2", nothing) :
     T == Float32 ? ("$(c)f4", nothing) :
     T == Float64 ? ("$(c)f8", nothing) :
@@ -90,15 +91,20 @@ pytypestrdescr(::Type{T}) where {T} = begin
     if isstructtype(T) && isconcretetype(T) && Base.allocatedinline(T)
         n = fieldcount(T)
         flds = []
-        for i in 1:n
+        for i = 1:n
             nm = fieldname(T, i)
             tp = fieldtype(T, i)
             ts, ds = pytypestrdescr(tp)
             isempty(ts) && return ("", nothing)
-            push!(flds, (nm isa Integer ? "f$(nm-1)" : string(nm), ds === nothing ? ts : ds))
-            d = (i==n ? sizeof(T) : fieldoffset(T, i+1)) - (fieldoffset(T, i) + sizeof(tp))
-            @assert d≥0
-            d>0 && push!(flds, ("", "|V$(d)"))
+            push!(
+                flds,
+                (nm isa Integer ? "f$(nm-1)" : string(nm), ds === nothing ? ts : ds),
+            )
+            d =
+                (i == n ? sizeof(T) : fieldoffset(T, i + 1)) -
+                (fieldoffset(T, i) + sizeof(tp))
+            @assert d ≥ 0
+            d > 0 && push!(flds, ("", "|V$(d)"))
         end
         ("|$(sizeof(T))V", flds)
     else
@@ -109,7 +115,10 @@ end
 pytypestrdescr_to_type(ts::String, descr) = begin
     # byte swapped?
     bsc = ts[1]
-    bs = bsc=='<' ? !islittleendian() : bsc=='>' ? islittleendian() : bsc=='|' ? false : error("endianness character not supported: $ts")
+    bs =
+        bsc == '<' ? !islittleendian() :
+        bsc == '>' ? islittleendian() :
+        bsc == '|' ? false : error("endianness character not supported: $ts")
     bs && error("byte-swapping not supported: $ts")
     # element type
     etc = ts[2]
@@ -165,7 +174,7 @@ const RESULT = Ref{Any}(nothing)
 putresult(x) = (RESULT[] = x; 1)
 putresult(x::PYERR) = -1
 putresult(x::NOTIMPLEMENTED) = 0
-takeresult(::Type{T}=Any) where {T} = (r = RESULT[]::T; RESULT[] = nothing; r)
+takeresult(::Type{T} = Any) where {T} = (r = RESULT[]::T; RESULT[] = nothing; r)
 
 tryconvert(::Type{T}, x::PYERR) where {T} = PYERR()
 tryconvert(::Type{T}, x::NOTIMPLEMENTED) where {T} = NOTIMPLEMENTED()
@@ -194,7 +203,7 @@ CTryConvertRule_trywrapref(o, ::Type{S}) where {S} =
         push!(vars, S.var)
         S = S.body
     end
-    Tuple{[foldr(UnionAll, vars; init=P) for P in S.parameters]...}
+    Tuple{[foldr(UnionAll, vars; init = P) for P in S.parameters]...}
 end
 
 function pointer_from_obj(o::T) where {T}
@@ -210,7 +219,7 @@ end
 
 isnull(p::Ptr) = Ptr{Cvoid}(p) == C_NULL
 isnull(p::UnsafePtr) = isnull(pointer(p))
-ism1(x::T) where {T<:Number} = x == (zero(T)-one(T))
+ism1(x::T) where {T<:Number} = x == (zero(T) - one(T))
 
 # Put something in here to keep it around forever
 const CACHE = []

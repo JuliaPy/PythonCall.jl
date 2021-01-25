@@ -9,7 +9,7 @@ It owns the reference (if non-NULL) and automatically decrefs it when finalized.
 Building block for more complex wrapper types such as `PyObject` and `PyList`.
 """
 mutable struct PyRef
-    ptr :: CPyPtr
+    ptr::CPyPtr
     PyRef(::Val{:new}, ptr::Ptr, borrowed::Bool) = begin
         x = new(CPyPtr(ptr))
         borrowed && C.Py_IncRef(ptr)
@@ -29,8 +29,10 @@ mutable struct PyRef
 end
 export PyRef
 
-pynewref(x::Ptr, check::Bool=false) = (check && isnull(x)) ? pythrow() : PyRef(Val(:new), x, false)
-pyborrowedref(x::Ptr, check::Bool=false) = (check && isnull(x)) ? pythrow() : PyRef(Val(:new), x, true)
+pynewref(x::Ptr, check::Bool = false) =
+    (check && isnull(x)) ? pythrow() : PyRef(Val(:new), x, false)
+pyborrowedref(x::Ptr, check::Bool = false) =
+    (check && isnull(x)) ? pythrow() : PyRef(Val(:new), x, true)
 
 ispyreftype(::Type{PyRef}) = true
 pyptr(x::PyRef) = x.ptr
@@ -49,8 +51,20 @@ Base.convert(::Type{PyRef}, x::PyRef) = x
 Base.convert(::Type{PyRef}, x) = PyRef(x)
 
 # Cache some common standard modules
-for name in ["os", "io", "sys", "pprint", "collections", "collections.abc", "numbers", "fractions", "datetime", "numpy", "pandas"]
-    f = Symbol("py", replace(name, "."=>""), "module")
+for name in [
+    "os",
+    "io",
+    "sys",
+    "pprint",
+    "collections",
+    "collections.abc",
+    "numbers",
+    "fractions",
+    "datetime",
+    "numpy",
+    "pandas",
+]
+    f = Symbol("py", replace(name, "." => ""), "module")
     rf = Symbol("_", f)
     @eval $rf = PyRef()
     @eval $f(::Type{T}) where {T} = begin

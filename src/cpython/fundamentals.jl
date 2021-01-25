@@ -17,8 +17,8 @@
 @cdef :Py_DecRef Cvoid (PyPtr,)
 Py_RefCnt(o) = GC.@preserve o UnsafePtr(Base.unsafe_convert(PyPtr, o)).refcnt[]
 
-Py_DecRef(f::Function, o::Ptr, dflt=PYERR()) =
-    isnull(o) ? dflt : (r=f(o); Py_DecRef(o); r)
+Py_DecRef(f::Function, o::Ptr, dflt = PYERR()) =
+    isnull(o) ? dflt : (r = f(o); Py_DecRef(o); r)
 
 Py_Is(o1, o2) = Base.unsafe_convert(PyPtr, o1) == Base.unsafe_convert(PyPtr, o2)
 
@@ -62,9 +62,10 @@ end
 
 PyErr_IsSet() = !isnull(PyErr_Occurred())
 
-PyErr_IsSet(t) = (o=PyErr_Occurred(); !isnull(o) && PyErr_GivenExceptionMatches(o,t)!=0)
+PyErr_IsSet(t) =
+    (o = PyErr_Occurred(); !isnull(o) && PyErr_GivenExceptionMatches(o, t) != 0)
 
-function PyErr_FetchTuple(normalize::Bool=false)
+function PyErr_FetchTuple(normalize::Bool = false)
     t = Ref{PyPtr}()
     v = Ref{PyPtr}()
     b = Ref{PyPtr}()
@@ -75,20 +76,72 @@ end
 
 ### EXCEPTIONS
 
-for x in [:BaseException, :Exception, :StopIteration, :GeneratorExit, :ArithmeticError,
-    :LookupError, :AssertionError, :AttributeError, :BufferError, :EOFError,
-    :FloatingPointError, :OSError, :ImportError, :IndexError, :KeyError, :KeyboardInterrupt,
-    :MemoryError, :NameError, :OverflowError, :RuntimeError, :RecursionError,
-    :NotImplementedError, :SyntaxError, :IndentationError, :TabError, :ReferenceError,
-    :SystemError, :SystemExit, :TypeError, :UnboundLocalError, :UnicodeError,
-    :UnicodeEncodeError, :UnicodeDecodeError, :UnicodeTranslateError, :ValueError,
-    :ZeroDivisionError, :BlockingIOError, :BrokenPipeError, :ChildProcessError,
-    :ConnectionError, :ConnectionAbortedError, :ConnectionRefusedError, :FileExistsError,
-    :FileNotFoundError, :InterruptedError, :IsADirectoryError, :NotADirectoryError,
-    :PermissionError, :ProcessLookupError, :TimeoutError, :EnvironmentError, :IOError,
-    :WindowsError, :Warning, :UserWarning, :DeprecationWarning, :PendingDeprecationWarning,
-    :SyntaxWarning, :RuntimeWarning, :FutureWarning, :ImportWarning, :UnicodeWarning,
-    :BytesWarning, :ResourceWarning]
+for x in [
+    :BaseException,
+    :Exception,
+    :StopIteration,
+    :GeneratorExit,
+    :ArithmeticError,
+    :LookupError,
+    :AssertionError,
+    :AttributeError,
+    :BufferError,
+    :EOFError,
+    :FloatingPointError,
+    :OSError,
+    :ImportError,
+    :IndexError,
+    :KeyError,
+    :KeyboardInterrupt,
+    :MemoryError,
+    :NameError,
+    :OverflowError,
+    :RuntimeError,
+    :RecursionError,
+    :NotImplementedError,
+    :SyntaxError,
+    :IndentationError,
+    :TabError,
+    :ReferenceError,
+    :SystemError,
+    :SystemExit,
+    :TypeError,
+    :UnboundLocalError,
+    :UnicodeError,
+    :UnicodeEncodeError,
+    :UnicodeDecodeError,
+    :UnicodeTranslateError,
+    :ValueError,
+    :ZeroDivisionError,
+    :BlockingIOError,
+    :BrokenPipeError,
+    :ChildProcessError,
+    :ConnectionError,
+    :ConnectionAbortedError,
+    :ConnectionRefusedError,
+    :FileExistsError,
+    :FileNotFoundError,
+    :InterruptedError,
+    :IsADirectoryError,
+    :NotADirectoryError,
+    :PermissionError,
+    :ProcessLookupError,
+    :TimeoutError,
+    :EnvironmentError,
+    :IOError,
+    :WindowsError,
+    :Warning,
+    :UserWarning,
+    :DeprecationWarning,
+    :PendingDeprecationWarning,
+    :SyntaxWarning,
+    :RuntimeWarning,
+    :FutureWarning,
+    :ImportWarning,
+    :UnicodeWarning,
+    :BytesWarning,
+    :ResourceWarning,
+]
     f = Symbol(:PyExc_, x)
     r = Symbol(f, :__ref)
     @eval const $r = Ref(PyPtr())

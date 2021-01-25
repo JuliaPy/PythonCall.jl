@@ -18,7 +18,7 @@ PyBytes_AsString(o) = begin
     Base.unsafe_string(ptr[], len[])
 end
 
-PyBytes_AsVector(o, ::Type{T}=UInt8) where {T} = begin
+PyBytes_AsVector(o, ::Type{T} = UInt8) where {T} = begin
     T in (Int8, UInt8) || throw(MethodError(PyBytes_AsVector, (o, T)))
     ptr = Ref{Ptr{Cchar}}()
     len = Ref{Py_ssize_t}()

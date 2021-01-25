@@ -16,7 +16,7 @@ PyDict_FromPairs(kvs) = begin
     r = PyDict_New()
     isnull(r) && return PyPtr()
     try
-        for (k,v) in kvs
+        for (k, v) in kvs
             ko = PyObject_From(k)
             isnull(ko) && (Py_DecRef(r); return PyPtr())
             vo = PyObject_From(v)
@@ -38,7 +38,7 @@ PyDict_FromStringPairs(kvs) = begin
     r = PyDict_New()
     isnull(r) && return PyPtr()
     try
-        for (k,v) in kvs
+        for (k, v) in kvs
             vo = PyObject_From(v)
             isnull(vo) && (Py_DecRef(r); return PyPtr())
             err = PyDict_SetItemString(r, string(k), vo)

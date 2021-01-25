@@ -83,7 +83,8 @@ export pyhasattr
 Equivalent to `x.k` or `getattr(x, k)` in Python.
 """
 pygetattr(::Type{T}, x, k) where {T} = cpyop(T, C.PyObject_GetAttr, x, k)
-pygetattr(::Type{T}, x, k::String) where {T} = cpyop(T, xo->C.PyObject_GetAttrString(xo, k), x)
+pygetattr(::Type{T}, x, k::String) where {T} =
+    cpyop(T, xo -> C.PyObject_GetAttrString(xo, k), x)
 pygetattr(::Type{T}, x, k::Symbol) where {T} = pygetattr(T, x, string(k))
 pygetattr(x, k) = pygetattr(PyObject, x, k)
 export pygetattr
@@ -94,7 +95,8 @@ export pygetattr
 Equivalent to `x.k = v` or `setattr(x, k, v)` in Python, but returns `x`.
 """
 pysetattr(x, k, v) = (checkm1(cpyop(C.PyObject_SetAttr, x, k, v)); x)
-pysetattr(x, k::String, v) = (checkm1(cpyop((xo, vo) -> C.PyObject_SetAttrString(xo, k, vo), x, v)); x)
+pysetattr(x, k::String, v) =
+    (checkm1(cpyop((xo, vo) -> C.PyObject_SetAttrString(xo, k, vo), x, v)); x)
 pysetattr(x, k::Symbol, v) = pysetattr(x, string(k), v)
 export pysetattr
 
@@ -112,7 +114,8 @@ export pydir
 
 Equivalent to `f(*args, **kwargs)` in Python.
 """
-pycall(::Type{T}, f, args...; opts...) where {T} = cpyop(T, fo -> C.PyObject_CallArgs(fo, args, opts), f)
+pycall(::Type{T}, f, args...; opts...) where {T} =
+    cpyop(T, fo -> C.PyObject_CallArgs(fo, args, opts), f)
 pycall(f, args...; opts...) = pycall(PyObject, f, args...; opts...)
 export pycall
 
@@ -131,7 +134,8 @@ export pyrepr
 Equivalent to `str(x)` in Python.
 """
 pystr(::Type{T}, x) where {T} = cpyop(T, C.PyObject_Str, x)
-pystr(::Type{T}, x::Union{String, SubString{String}, Vector{Int8}, Vector{UInt8}}) where {T} = checknullconvert(T, C.PyUnicode_From(x))
+pystr(::Type{T}, x::Union{String,SubString{String},Vector{Int8},Vector{UInt8}}) where {T} =
+    checknullconvert(T, C.PyUnicode_From(x))
 pystr(x) = pystr(PyObject, x)
 export pystr
 
@@ -141,7 +145,10 @@ export pystr
 Equivalent to `str(x)` in Python.
 """
 pybytes(::Type{T}, x) where {T} = cpyop(T, C.PyObject_Bytes, x)
-pybytes(::Type{T}, x::Union{Vector{Int8}, Vector{UInt8}, String, SubString{String}}) where {T} = checknullconvert(T, C.PyBytes_From(x))
+pybytes(
+    ::Type{T},
+    x::Union{Vector{Int8},Vector{UInt8},String,SubString{String}},
+) where {T} = checknullconvert(T, C.PyBytes_From(x))
 pybytes(x) = pybytes(PyObject, x)
 export pybytes
 
@@ -208,7 +215,8 @@ export pynone
 Equivalent to `bool(...)` in Python.
 """
 pybool(::Type{T}, x::Bool) where {T} = checknullconvert(T, C.PyBool_From(x))
-pybool(::Type{T}, args...; kwargs...) where {T} = checknullconvert(T, C.PyObject_CallArgs(C.PyBool_Type(), args, kwargs))
+pybool(::Type{T}, args...; kwargs...) where {T} =
+    checknullconvert(T, C.PyObject_CallArgs(C.PyBool_Type(), args, kwargs))
 pybool(args...; kwargs...) = pybool(PyObject, args...; kwargs...)
 export pybool
 
@@ -217,10 +225,13 @@ export pybool
 
 Equivalent to `int(...)` in Python.
 """
-pyint(::Type{T}, x::Union{Bool,Int8,UInt8,Int16,UInt16,Int32,UInt32,Int64,UInt64,Int128,UInt128,BigInt}) where {T} =
-    checknullconvert(T, C.PyLong_From(x))
+pyint(
+    ::Type{T},
+    x::Union{Bool,Int8,UInt8,Int16,UInt16,Int32,UInt32,Int64,UInt64,Int128,UInt128,BigInt},
+) where {T} = checknullconvert(T, C.PyLong_From(x))
 pyint(::Type{T}, x) where {T} = cpyop(T, C.PyNumber_Long, x)
-pyint(::Type{T}, args...; kwargs...) where {T} = checknullconvert(T, C.PyObject_CallArgs(C.PyLong_Type(), args, kwargs))
+pyint(::Type{T}, args...; kwargs...) where {T} =
+    checknullconvert(T, C.PyObject_CallArgs(C.PyLong_Type(), args, kwargs))
 pyint(args...; kwargs...) = pyint(PyObject, args...; kwargs...)
 export pyint
 
@@ -229,9 +240,11 @@ export pyint
 
 Equivalent to `float(...)` in Python.
 """
-pyfloat(::Type{T}, x::Union{Float16,Float32,Float64}) where {T} = checknullconvert(T, C.PyFloat_From(x))
+pyfloat(::Type{T}, x::Union{Float16,Float32,Float64}) where {T} =
+    checknullconvert(T, C.PyFloat_From(x))
 pyfloat(::Type{T}, x) where {T} = cpyop(T, C.PyNumber_Float, x)
-pyfloat(::Type{T}, args...; kwargs...) where {T} = checknullconvert(T, C.PyObject_CallArgs(C.PyFloat_Type(), args, kwargs))
+pyfloat(::Type{T}, args...; kwargs...) where {T} =
+    checknullconvert(T, C.PyObject_CallArgs(C.PyFloat_Type(), args, kwargs))
 pyfloat(args...; kwargs...) = pyfloat(PyObject, args...; kwargs...)
 export pyfloat
 
@@ -251,9 +264,9 @@ pyimport(::Type{T}, m) where {T} = cpyop(T, C.PyImport_Import, m)
 pyimport(::Type{T}, m::String) where {T} = checknullconvert(T, C.PyImport_ImportModule(m))
 pyimport(::Type{T}, m::Pair) where {T} = begin
     r = pyimport(PyObject, m[1])
-    m[2] isa Tuple ? map(k->pygetattr(T, r, k), m[2]) : pygetattr(T, r, m[2])
+    m[2] isa Tuple ? map(k -> pygetattr(T, r, k), m[2]) : pygetattr(T, r, m[2])
 end
-pyimport(::Type{T}, m1, m2, ms...) where {T} = map(m->pyimport(T, m), (m1, m2, ms...))
+pyimport(::Type{T}, m1, m2, ms...) where {T} = map(m -> pyimport(T, m), (m1, m2, ms...))
 pyimport(m1, ms...) = pyimport(PyObject, m1, ms...)
 export pyimport
 
@@ -296,13 +309,15 @@ Equivalent to `x op y` in Python where `op` is one of: `=`, `≠`, `<`, `≤`, `
 """
 pycompare(::Type{T}, x, ::typeof(==), y) where {T} = _pycompare(T, x, C.Py_EQ, y)
 pycompare(::Type{T}, x, ::typeof(!=), y) where {T} = _pycompare(T, x, C.Py_NE, y)
-pycompare(::Type{T}, x, ::typeof(< ), y) where {T} = _pycompare(T, x, C.Py_LT, y)
+pycompare(::Type{T}, x, ::typeof(<), y) where {T} = _pycompare(T, x, C.Py_LT, y)
 pycompare(::Type{T}, x, ::typeof(<=), y) where {T} = _pycompare(T, x, C.Py_LE, y)
-pycompare(::Type{T}, x, ::typeof(> ), y) where {T} = _pycompare(T, x, C.Py_GT, y)
+pycompare(::Type{T}, x, ::typeof(>), y) where {T} = _pycompare(T, x, C.Py_GT, y)
 pycompare(::Type{T}, x, ::typeof(>=), y) where {T} = _pycompare(T, x, C.Py_GE, y)
 pycompare(x, op, y) = pycompare(PyObject, x, op, y)
-_pycompare(::Type{T}, x, op::Cint, y) where {T} = cpyop(T, (xo,yo)->C.PyObject_RichCompare(xo, yo, op), x, y)
-_pycompare(::Type{Bool}, x, op::Cint, y) = checkm1(cpyop((xo,yo)->C.PyObject_RichCompareBool(xo, yo, op), x, y)) != 0
+_pycompare(::Type{T}, x, op::Cint, y) where {T} =
+    cpyop(T, (xo, yo) -> C.PyObject_RichCompare(xo, yo, op), x, y)
+_pycompare(::Type{Bool}, x, op::Cint, y) =
+    checkm1(cpyop((xo, yo) -> C.PyObject_RichCompareBool(xo, yo, op), x, y)) != 0
 export pycompare
 
 """
@@ -589,7 +604,8 @@ export pyior
 
 Equivalent to `x**y` or `pow(x, y, z)` in Python.
 """
-pypow(::Type{T}, x, y, z=C.PyObjectRef(C.Py_None())) where {T} = cpyop(T, C.PyNumber_Power, x, y, z)
+pypow(::Type{T}, x, y, z = C.PyObjectRef(C.Py_None())) where {T} =
+    cpyop(T, C.PyNumber_Power, x, y, z)
 pypow(x, y, z) = pypow(PyObject, x, y, z)
 pypow(x, y) = pypow(PyObject, x, y)
 export pypow
@@ -599,7 +615,8 @@ export pypow
 
 `x = pyipow(x, y)` is equivalent to `x **= y` in Python.
 """
-pyipow(::Type{T}, x, y, z=C.PyObjectRef(C.Py_None())) where {T} = cpyop(T, C.PyNumber_InPlacePower, x, y, z)
+pyipow(::Type{T}, x, y, z = C.PyObjectRef(C.Py_None())) where {T} =
+    cpyop(T, C.PyNumber_InPlacePower, x, y, z)
 pyipow(x, y, z) = pyipow(typeof(x), x, y, z)
 pyipow(x, y) = pyipow(typeof(x), x, y)
 export pyipow
@@ -657,7 +674,7 @@ Equivalent to `with o as x: f(x)` in Python, where `x` is a `PyObject`.
 On success, the value of `f(x)` is returned.
 If an exception occurs but is suppressed then `d` is returned.
 """
-function pywith(f, _o, d=nothing)
+function pywith(f, _o, d = nothing)
     o = PyObject(_o)
     t = pytype(o)
     exit = t.__exit__
@@ -689,7 +706,10 @@ Create a Python `tuple` from the elements of iterable `x`.
 
 If `x` is a Python object, this is equivalent to `tuple(x)` in Python.
 """
-pytuple(::Type{T}, x) where {T} = checknullconvert(T, ispyref(x) ? C.PyObject_CallNice(C.PyTuple_Type(), x) : C.PyTuple_FromIter(x))
+pytuple(::Type{T}, x) where {T} = checknullconvert(
+    T,
+    ispyref(x) ? C.PyObject_CallNice(C.PyTuple_Type(), x) : C.PyTuple_FromIter(x),
+)
 pytuple(::Type{T}) where {T} = checknullconvert(T, C.PyTuple_New(0))
 pytuple(x) = pytuple(PyObject, x)
 pytuple() = pytuple(PyObject)
@@ -702,7 +722,10 @@ Create a Python `list` from the elements of iterable `x`.
 
 If `x` is a Python object, this is equivalent to `list(x)` in Python.
 """
-pylist(::Type{T}, x) where {T} = checknullconvert(T, ispyref(x) ? C.PyObject_CallNice(C.PyList_Type(), x) : C.PyList_FromIter(x))
+pylist(::Type{T}, x) where {T} = checknullconvert(
+    T,
+    ispyref(x) ? C.PyObject_CallNice(C.PyList_Type(), x) : C.PyList_FromIter(x),
+)
 pylist(::Type{T}) where {T} = checknullconvert(T, C.PyList_New(0))
 pylist(x) = pylist(PyObject, x)
 pylist() = pylist(PyObject)
@@ -713,7 +736,9 @@ export pylist
 
 Create a nested Python `list`-of-`list`s from the elements of `x`. For matrices, this is a list of columns.
 """
-pycollist(::Type{T}, x::AbstractArray) where {T} = ndims(x)==0 ? pyconvert(T, x[]) : pylist(T, pycollist(PyRef, y) for y in eachslice(x; dims=ndims(x)))
+pycollist(::Type{T}, x::AbstractArray) where {T} =
+    ndims(x) == 0 ? pyconvert(T, x[]) :
+    pylist(T, pycollist(PyRef, y) for y in eachslice(x; dims = ndims(x)))
 pycollist(x::AbstractArray) = pycollist(PyObject, x)
 export pycollist
 
@@ -722,7 +747,9 @@ export pycollist
 
 Create a nested Python `list`-of-`list`s from the elements of `x`. For matrices, this is a list of rows.
 """
-pyrowlist(::Type{T}, x::AbstractArray) where {T} = ndims(x)==0 ? pyconvert(T, x[]) : pylist(T, pyrowlist(PyRef, y) for y in eachslice(x; dims=1))
+pyrowlist(::Type{T}, x::AbstractArray) where {T} =
+    ndims(x) == 0 ? pyconvert(T, x[]) :
+    pylist(T, pyrowlist(PyRef, y) for y in eachslice(x; dims = 1))
 pyrowlist(x::AbstractArray) = pyrowlist(PyObject, x)
 export pyrowlist
 
@@ -733,7 +760,10 @@ Create a Python `set` from the elements of iterable `x`.
 
 If `x` is a Python object, this is equivalent to `set(x)` in Python.
 """
-pyset(::Type{T}, x) where {T} = checknullconvert(T, ispyref(x) ? C.PyObject_CallNice(C.PySet_Type(), x) : C.PySet_FromIter(x))
+pyset(::Type{T}, x) where {T} = checknullconvert(
+    T,
+    ispyref(x) ? C.PyObject_CallNice(C.PySet_Type(), x) : C.PySet_FromIter(x),
+)
 pyset(::Type{T}) where {T} = checknullconvert(T, C.PySet_New(C_NULL))
 pyset(x) = pyset(PyObject, x)
 pyset() = pyset(PyObject)
@@ -746,7 +776,10 @@ Create a Python `frozenset` from the elements of iterable `x`.
 
 If `x` is a Python object, this is equivalent to `frozenset(x)` in Python.
 """
-pyfrozenset(::Type{T}, x) where {T} = checknullconvert(T, ispyref(x) ? C.PyObject_CallNice(C.PyFrozenSet_Type(), x) : C.PyFrozenSet_FromIter(x))
+pyfrozenset(::Type{T}, x) where {T} = checknullconvert(
+    T,
+    ispyref(x) ? C.PyObject_CallNice(C.PyFrozenSet_Type(), x) : C.PyFrozenSet_FromIter(x),
+)
 pyfrozenset(::Type{T}) where {T} = checknullconvert(T, C.PyFrozenSet_New(C_NULL))
 pyfrozenset(x) = pyfrozenset(PyObject, x)
 pyfrozenset() = pyfrozenset(PyObject)
@@ -760,8 +793,12 @@ Create a Python `dict` from the given key-value pairs in `x` or keyword argument
 
 If `x` is a Python object, this is equivalent to `dict(x)` in Python.
 """
-pydict(::Type{T}, x) where {T} = checknullconvert(T, ispyref(x) ? C.PyObject_CallNice(C.PyDict_Type(), x) : C.PyDict_FromPairs(x))
-pydict(::Type{T}; opts...) where {T} = checknullconvert(T, isempty(opts) ? C.PyDict_New() : C.PyDict_FromStringPairs(opts))
+pydict(::Type{T}, x) where {T} = checknullconvert(
+    T,
+    ispyref(x) ? C.PyObject_CallNice(C.PyDict_Type(), x) : C.PyDict_FromPairs(x),
+)
+pydict(::Type{T}; opts...) where {T} =
+    checknullconvert(T, isempty(opts) ? C.PyDict_New() : C.PyDict_FromStringPairs(opts))
 pydict(x) = pydict(PyObject, x)
 pydict(; opts...) = pydict(PyObject; opts...)
 export pydict
@@ -771,8 +808,8 @@ export pydict
 
 Equivalent to `slice(start, stop, step)` in Python (or `start:stop:step` while indexing).
 """
-pyslice(::Type{T}, x) where {T} = cpyop(T, x->C.PySlice_New(C_NULL, x, C_NULL), x)
-pyslice(::Type{T}, x, y) where {T} = cpyop(T, (x,y)->C.PySlice_New(x, y, C_NULL), x, y)
+pyslice(::Type{T}, x) where {T} = cpyop(T, x -> C.PySlice_New(C_NULL, x, C_NULL), x)
+pyslice(::Type{T}, x, y) where {T} = cpyop(T, (x, y) -> C.PySlice_New(x, y, C_NULL), x, y)
 pyslice(::Type{T}, x, y, z) where {T} = cpyop(T, C.PySlice_New, x, y, z)
 pyslice(x) = pyslice(PyObject, x)
 pyslice(x, y) = pyslice(PyObject, x, y)
@@ -811,7 +848,7 @@ export pymethod
 
 Equivalent to `type(x)` in Python.
 """
-pytype(::Type{T}, x) where {T} = cpyop(T, o -> (t=C.Py_Type(o); C.Py_IncRef(t); t), x)
+pytype(::Type{T}, x) where {T} = cpyop(T, o -> (t = C.Py_Type(o); C.Py_IncRef(t); t), x)
 pytype(x) = pytype(PyObject, x)
 export pytype
 
@@ -820,18 +857,23 @@ export pytype
 
 Equivalent to `type(name, bases, dict)` in Python.
 """
-pytype(::Type{T}, name, bases, dict) where {T} = @pyv `type($name, $(pytuple(bases)), $(dict isa NamedTuple ? pydict(;dict...) : pydict(dict)))`::T
+pytype(::Type{T}, name, bases, dict) where {T} =
+    @pyv `type($name, $(pytuple(bases)), $(dict isa NamedTuple ? pydict(;dict...) : pydict(dict)))`::T
 pytype(name, bases, dict) = pytype(PyObject, name, bases, dict)
 export pytype
 
 ### MULTIMEDIA DISPLAY
 
 const _py_mimes = [
-    (MIME"text/html", "_repr_html_"), (MIME"text/markdown", "_repr_markdown_"),
-    (MIME"text/json", "_repr_json_"), (MIME"application/javascript", "_repr_javascript_"),
-    (MIME"application/pdf", "_repr_pdf_"), (MIME"image/jpeg", "_repr_jpeg_"),
-    (MIME"image/png", "_repr_png_"), (MIME"image/svg+xml", "_repr_svg_"),
-    (MIME"text/latex", "_repr_latex_")
+    (MIME"text/html", "_repr_html_"),
+    (MIME"text/markdown", "_repr_markdown_"),
+    (MIME"text/json", "_repr_json_"),
+    (MIME"application/javascript", "_repr_javascript_"),
+    (MIME"application/pdf", "_repr_pdf_"),
+    (MIME"image/jpeg", "_repr_jpeg_"),
+    (MIME"image/png", "_repr_png_"),
+    (MIME"image/svg+xml", "_repr_svg_"),
+    (MIME"text/latex", "_repr_latex_"),
 ]
 const _py_mimetype = Union{map(first, _py_mimes)...}
 
@@ -878,7 +920,8 @@ export pytextio
 
 Convert `io` to a Python buffered byte IO stream, specifically a `julia.BufferedIOValue`.
 """
-pybufferedio(::Type{T}, io::IO) where {T} = checknullconvert(T, C.PyJuliaBufferedIOValue_New(io))
+pybufferedio(::Type{T}, io::IO) where {T} =
+    checknullconvert(T, C.PyJuliaBufferedIOValue_New(io))
 pybufferedio(io::IO) = pybufferedio(PyObject, io)
 export pybufferedio
 

@@ -5,24 +5,27 @@ PyJuliaRawValue_Type() = begin
         c = []
         base = PyJuliaBaseValue_Type()
         isnull(base) && return PyPtr()
-        t = fill(PyType_Create(c,
-            name = "julia.RawValue",
-            base = base,
-            repr = pyjlraw_repr,
-            str = pyjlraw_str,
-            getattro = pyjlraw_getattro,
-            setattro = pyjlraw_setattro,
-            call = pyjlraw_call,
-            as_mapping = (
-                length = pyjlraw_length,
-                subscript = pyjlraw_getitem,
-                ass_subscript = pyjlraw_setitem,
+        t = fill(
+            PyType_Create(
+                c,
+                name = "julia.RawValue",
+                base = base,
+                repr = pyjlraw_repr,
+                str = pyjlraw_str,
+                getattro = pyjlraw_getattro,
+                setattro = pyjlraw_setattro,
+                call = pyjlraw_call,
+                as_mapping = (
+                    length = pyjlraw_length,
+                    subscript = pyjlraw_getitem,
+                    ass_subscript = pyjlraw_setitem,
+                ),
+                methods = [
+                    (name = "__dir__", flags = Py_METH_NOARGS, meth = pyjlraw_dir),
+                    (name = "__jl_any", flags = Py_METH_NOARGS, meth = pyjlraw_toany),
+                ],
             ),
-            methods = [
-                (name="__dir__", flags=Py_METH_NOARGS, meth=pyjlraw_dir),
-                (name="__jl_any", flags=Py_METH_NOARGS, meth=pyjlraw_toany),
-            ],
-        ))
+        )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
         ism1(err) && return PyPtr()
@@ -34,25 +37,27 @@ end
 
 PyJuliaRawValue_New(x) = PyJuliaValue_New(PyJuliaRawValue_Type(), x)
 
-pyjlraw_repr(xo::PyPtr) = try
-    x = PyJuliaValue_GetValue(xo)
-    s = "<jl $(repr(x))>"
-    PyUnicode_From(s)
-catch err
-    PyErr_SetJuliaError(err)
-    return PyPtr()
-end
+pyjlraw_repr(xo::PyPtr) =
+    try
+        x = PyJuliaValue_GetValue(xo)
+        s = "<jl $(repr(x))>"
+        PyUnicode_From(s)
+    catch err
+        PyErr_SetJuliaError(err)
+        return PyPtr()
+    end
 
-pyjlraw_str(xo::PyPtr) = try
-    x = PyJuliaValue_GetValue(xo)
-    s = string(x)
-    PyUnicode_From(s)
-catch err
-    PyErr_SetJuliaError(err)
-    return PyPtr()
-end
+pyjlraw_str(xo::PyPtr) =
+    try
+        x = PyJuliaValue_GetValue(xo)
+        s = string(x)
+        PyUnicode_From(s)
+    catch err
+        PyErr_SetJuliaError(err)
+        return PyPtr()
+    end
 
-pyjl_attr_py2jl(k::String) = replace(k, r"_[b]+$" => (x -> "!"^(length(x)-1)))
+pyjl_attr_py2jl(k::String) = replace(k, r"_[b]+$" => (x -> "!"^(length(x) - 1)))
 pyjl_attr_jl2py(k::String) = replace(k, r"!+$" => (x -> "_" * "b"^length(x)))
 
 pyjlraw_getattro(xo::PyPtr, ko::PyPtr) = begin
@@ -134,10 +139,10 @@ pyjlraw_call(fo::PyPtr, argso::PyPtr, kwargso::PyPtr) = begin
         args = takeresult(Vector{Any})
     end
     if isnull(kwargso)
-        kwargs = Dict{Symbol, Any}()
+        kwargs = Dict{Symbol,Any}()
     else
-        ism1(PyObject_Convert(kwargso, Dict{Symbol, Any})) && return PyPtr()
-        kwargs = takeresult(Dict{Symbol, Any})
+        ism1(PyObject_Convert(kwargso, Dict{Symbol,Any})) && return PyPtr()
+        kwargs = takeresult(Dict{Symbol,Any})
     end
     try
         x = f(args...; kwargs...)
@@ -148,13 +153,14 @@ pyjlraw_call(fo::PyPtr, argso::PyPtr, kwargso::PyPtr) = begin
     end
 end
 
-pyjlraw_length(xo::PyPtr) = try
-    x = PyJuliaValue_GetValue(xo)
-    Py_ssize_t(length(x))
-catch err
-    PyErr_SetJuliaError(err)
-    Py_ssize_t(-1)
-end
+pyjlraw_length(xo::PyPtr) =
+    try
+        x = PyJuliaValue_GetValue(xo)
+        Py_ssize_t(length(x))
+    catch err
+        PyErr_SetJuliaError(err)
+        Py_ssize_t(-1)
+    end
 
 pyjlraw_getitem(xo::PyPtr, ko::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)

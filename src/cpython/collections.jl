@@ -8,19 +8,44 @@ PyABC_Register(s, t) = begin
     Cint(0)
 end
 
-for n in [:Container, :Hashable, :Iterable, :Iterator, :Reversible, :Generator, :Sized,
-    :Callable, :Collection, :Sequence, :MutableSequence, :ByteString, :Set, :MutableSet,
-    :Mapping, :MutableMapping, :MappingView, :ItemsView, :KeysView, :ValuesView,
-    :Awaitable, :Coroutine, :AsyncIterable, :AsyncIterator, :AsyncGenerator]
+for n in [
+    :Container,
+    :Hashable,
+    :Iterable,
+    :Iterator,
+    :Reversible,
+    :Generator,
+    :Sized,
+    :Callable,
+    :Collection,
+    :Sequence,
+    :MutableSequence,
+    :ByteString,
+    :Set,
+    :MutableSet,
+    :Mapping,
+    :MutableMapping,
+    :MappingView,
+    :ItemsView,
+    :KeysView,
+    :ValuesView,
+    :Awaitable,
+    :Coroutine,
+    :AsyncIterable,
+    :AsyncIterator,
+    :AsyncGenerator,
+]
     p = Symbol(:Py, n, :ABC)
     t = Symbol(p, :_Type)
     tr = Symbol(p, :__ref)
     c = Symbol(p, :_Check)
     @eval const $tr = Ref(PyPtr())
-    @eval $t(doimport::Bool=true) = begin
+    @eval $t(doimport::Bool = true) = begin
         ptr = $tr[]
         isnull(ptr) || return ptr
-        a = doimport ? PyImport_ImportModule("collections.abc") : PyImport_GetModule("collections.abc")
+        a =
+            doimport ? PyImport_ImportModule("collections.abc") :
+            PyImport_GetModule("collections.abc")
         isnull(a) && return a
         b = PyObject_GetAttrString(a, $(string(n)))
         Py_DecRef(a)
@@ -88,13 +113,13 @@ On error, an empty vector is returned.
 If `skip` then elements which cannot be converted to a `T` are skipped over,
 instead of raising an error. Other errors are still propagated.
 """
-PyIterable_Collect(xso::PyPtr, ::Type{T}, skip::Bool=false) where {T} = begin
+PyIterable_Collect(xso::PyPtr, ::Type{T}, skip::Bool = false) where {T} = begin
     xs = T[]
     r = if skip
         PyIterable_Map(xso) do xo
             r = PyObject_TryConvert(xo, eltype(xs))
             r == -1 && return -1
-            r ==  0 && return  1
+            r == 0 && return 1
             x = takeresult(eltype(xs))
             push!(xs, x)
             return 1
@@ -117,7 +142,7 @@ PyIterable_ConvertRule_vecorset(o, ::Type{S}) where {S<:Union{Vector,Set}} = beg
     r = PyIterable_Map(o) do xo
         r = PyObject_TryConvert(xo, eltype(xs))
         r == -1 && return -1
-        r ==  0 && return  0
+        r == 0 && return 0
         x = takeresult(eltype(xs))
         push!(xs, x)
         return 1
@@ -132,7 +157,10 @@ PyIterable_ConvertRule_vecorset(o, ::Type{Set}) =
 
 PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
     if !(S isa DataType)
-        PyErr_SetString(PyExc_Exception(), "When converting Python 'tuple' to Julia 'Tuple', the destination type must be a 'DataType', i.e. not parametric and not a union. Got '$S'.")
+        PyErr_SetString(
+            PyExc_Exception(),
+            "When converting Python 'tuple' to Julia 'Tuple', the destination type must be a 'DataType', i.e. not parametric and not a union. Got '$S'.",
+        )
         return -1
     end
     ts = S.parameters
@@ -143,7 +171,7 @@ PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
     else
         isvararg = false
     end
-    xs = Union{ts..., isvararg ? vartype : Union{}}[]
+    xs = Union{ts...,isvararg ? vartype : Union{}}[]
     r = PyIterable_Map(o) do xo
         if length(xs) < length(ts)
             t = ts[length(xs)+1]
@@ -154,7 +182,7 @@ PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
         end
         r = PyObject_TryConvert(xo, t)
         r == -1 && return -1
-        r ==  0 && return  0
+        r == 0 && return 0
         x = takeresult(t)
         push!(xs, x)
         return 1
@@ -171,7 +199,7 @@ PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V}}) where {K,V} = begin
             # key
             r = PyObject_TryConvert(xo, eltype(k))
             r == -1 && return -1
-            r ==  0 && return  0
+            r == 0 && return 0
             i[] = 1
             k[] = takeresult(eltype(k))
             return 1
@@ -179,7 +207,7 @@ PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V}}) where {K,V} = begin
             # value
             r == PyObject_TryConvert(xo, eltype(v))
             r == -1 && return -1
-            r ==  0 && return  0
+            r == 0 && return 0
             i[] = 2
             v[] = takeresult(eltype(v))
             return 1
@@ -187,7 +215,7 @@ PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V}}) where {K,V} = begin
             return 0
         end
     end
-    r == -1 ? -1 : r == 0 ? 0 : i[]==2 ? putresult(Pair{K,V}(k[], v[])) : 0
+    r == -1 ? -1 : r == 0 ? 0 : i[] == 2 ? putresult(Pair{K,V}(k[], v[])) : 0
 end
 PyIterable_ConvertRule_pair(o, ::Type{Pair{K}}) where {K} =
     PyIterable_ConvertRule_pair(o, Pair{K,Python.PyObject})
@@ -196,7 +224,10 @@ PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V} where K}) where {V} =
 PyIterable_ConvertRule_pair(o, ::Type{Pair}) =
     PyIterable_ConvertRule_pair(o, Pair{Python.PyObject,Python.PyObject})
 PyIterable_ConvertRule_pair(o, ::Type{S}) where {S<:Pair} = begin
-    PyErr_SetString(PyExc_Exception(), "When converting Python iterable to Julia 'Pair', the destination type cannot be too complicated: the two types must either be fully specified or left unspecified. Got '$S'.")
+    PyErr_SetString(
+        PyExc_Exception(),
+        "When converting Python iterable to Julia 'Pair', the destination type cannot be too complicated: the two types must either be fully specified or left unspecified. Got '$S'.",
+    )
     return -1
 end
 
@@ -206,7 +237,7 @@ PyMapping_ConvertRule_dict(o, ::Type{S}) where {S<:Dict} = begin
         # get the key
         r = PyObject_TryConvert(ko, keytype(xs))
         r == -1 && return -1
-        r ==  0 && return  0
+        r == 0 && return 0
         k = takeresult(keytype(xs))
         # get the value
         vo = PyObject_GetItem(o, ko)
@@ -214,7 +245,7 @@ PyMapping_ConvertRule_dict(o, ::Type{S}) where {S<:Dict} = begin
         r = PyObject_TryConvert(vo, valtype(xs))
         Py_DecRef(vo)
         r == -1 && return -1
-        r ==  0 && return  0
+        r == 0 && return 0
         v = takeresult(keytype(xs))
         # done
         xs[k] = v

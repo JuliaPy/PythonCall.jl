@@ -1,6 +1,15 @@
 module Python
 
-using Dates, UnsafePointers, Libdl, Conda, Tables, TableTraits, IteratorInterfaceExtensions, Markdown, Base64, Requires
+using Dates,
+    UnsafePointers,
+    Libdl,
+    Conda,
+    Tables,
+    TableTraits,
+    IteratorInterfaceExtensions,
+    Markdown,
+    Base64,
+    Requires
 using Base: @kwdef
 
 # things not directly dependent on PyObject or libpython
@@ -10,45 +19,45 @@ include("utils.jl")
 # CONFIG gets populated by __init__
 @kwdef mutable struct Config
     "Flags used to dlopen the Python library."
-    dlopenflags :: UInt32 = RTLD_LAZY | RTLD_DEEPBIND | RTLD_GLOBAL
+    dlopenflags::UInt32 = RTLD_LAZY | RTLD_DEEPBIND | RTLD_GLOBAL
     "Path to the Python executable."
-    exepath :: Union{String,Nothing} = nothing
+    exepath::Union{String,Nothing} = nothing
     "Path to the Python library."
-    libpath :: Union{String,Nothing} = nothing
+    libpath::Union{String,Nothing} = nothing
     "Handle to the open Python library."
-    libptr :: Ptr{Cvoid} = C_NULL
+    libptr::Ptr{Cvoid} = C_NULL
     "Used to set the Python prefix."
-    pyhome :: Union{String,Nothing} = nothing
+    pyhome::Union{String,Nothing} = nothing
     "pyhome as a Cwstring"
-    pyhome_w :: Vector{Cwchar_t} = []
+    pyhome_w::Vector{Cwchar_t} = []
     "Used to set the Python program name."
-    pyprogname :: Union{String,Nothing} = nothing
+    pyprogname::Union{String,Nothing} = nothing
     "pyprogname as a Cwstring"
-    pyprogname_w :: Vector{Cwchar_t} = []
+    pyprogname_w::Vector{Cwchar_t} = []
     "True if this is stackless Python."
-    isstackless :: Bool = false
+    isstackless::Bool = false
     """True if Julia is embedded into Python (indicated by ENV["PYTHONJL_LIBPTR"] being set)."""
-    isembedded :: Bool = false
+    isembedded::Bool = false
     "True if the Python interpreter is currently initialized."
-    isinitialized :: Bool = false
+    isinitialized::Bool = false
     "The running Python version."
-    version :: VersionNumber = VersionNumber(0)
+    version::VersionNumber = VersionNumber(0)
     "True if this is the Python in some Conda environment."
-    isconda :: Bool = false
+    isconda::Bool = false
     "If `isconda` is true, this is the Conda environment path."
-    condaenv :: String = Conda.ROOTENV
+    condaenv::String = Conda.ROOTENV
     "When true, automatically calls `pyplotshow` each time a notebook cell is evaluated."
-    pyplotautoshow :: Bool = true
+    pyplotautoshow::Bool = true
     "When true, automatically calls `fix_qt_plugin_path` when `PyQt5`, `PyQt4`, `PySide` or `PySide2` is loaded."
-    qtfix :: Bool = true
+    qtfix::Bool = true
     "When true, automatically sets `sys.last_traceback` when a Python exception is printed, so that `pdb.pm()` works."
-    sysautolasttraceback :: Bool = true
+    sysautolasttraceback::Bool = true
     "True if the Python input hook is currently running."
-    inputhookrunning :: Bool = false
+    inputhookrunning::Bool = false
     "When true, if being run inside an IPython kernel then integrate IO."
-    ipythonintegration :: Bool = true
+    ipythonintegration::Bool = true
     "When true, this is being run inside an IPython kernal."
-    isipython :: Bool = false
+    isipython::Bool = false
 end
 Base.show(io::IO, ::MIME"text/plain", c::Config) =
     for k in fieldnames(Config)

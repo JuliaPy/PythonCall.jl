@@ -15,7 +15,7 @@ PyList_FromIter(xs) = begin
     r = PyList_New(0)
     isnull(r) && return PyPtr()
     try
-        for (i,x) in enumerate(xs)
+        for (i, x) in enumerate(xs)
             xo = PyObject_From(x)
             isnull(xo) && (Py_DecRef(r); return PyPtr())
             err = PyList_Append(r, xo)

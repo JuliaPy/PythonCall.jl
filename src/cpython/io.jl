@@ -4,7 +4,7 @@ for n in [:IOBase, :RawIOBase, :BufferedIOBase, :TextIOBase]
     tr = Symbol(p, :__ref)
     c = Symbol(p, :_Check)
     @eval const $tr = Ref(PyPtr())
-    @eval $t(doimport::Bool=true) = begin
+    @eval $t(doimport::Bool = true) = begin
         ptr = $tr[]
         isnull(ptr) || return ptr
         a = doimport ? PyImport_ImportModule("io") : PyImport_GetModule("io")

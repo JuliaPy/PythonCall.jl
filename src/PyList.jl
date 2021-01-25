@@ -6,7 +6,7 @@ Wrap the Python list `o` (or anything satisfying the sequence interface) as a Ju
 If `o` is not given, an empty list is created.
 """
 struct PyList{T} <: AbstractVector{T}
-    ref :: PyRef
+    ref::PyRef
     PyList{T}(o) where {T} = new{T}(ispyref(o) ? PyRef(o) : pylist(PyRef, o))
     PyList{T}() where {T} = new{T}(PyRef())
 end
@@ -23,7 +23,8 @@ pyptr(x::PyList) = begin
     ptr
 end
 Base.unsafe_convert(::Type{CPyPtr}, x::PyList) = checknull(pyptr(x))
-C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PyList} = C.putresult(T(pyborrowedref(o)))
+C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PyList} =
+    C.putresult(T(pyborrowedref(o)))
 
 # Base.length(x::PyList) = @pyv `len($x)`::Int
 Base.length(x::PyList) = Int(pylen(x))
@@ -34,7 +35,7 @@ Base.getindex(x::PyList{T}, i::Integer) where {T} = begin
     checkbounds(x, i)
     # The following line implements this function, but is typically 3x slower.
     # @pyv `$x[$(i-1)]`::T
-    p = checknull(C.PySequence_GetItem(x, i-1))
+    p = checknull(C.PySequence_GetItem(x, i - 1))
     r = C.PyObject_Convert(p, T)
     C.Py_DecRef(p)
     checkm1(r)
@@ -47,13 +48,15 @@ Base.setindex!(x::PyList{T}, _v, i::Integer) where {T} = begin
     # The following line implements this function, but is typically 10x slower
     # @py `$x[$(i-1)] = $v`
     vp = checknull(C.PyObject_From(v))
-    err = C.PySequence_SetItem(x, i-1, vp)
+    err = C.PySequence_SetItem(x, i - 1, vp)
     C.Py_DecRef(vp)
     checkm1(err)
     x
 end
 
-Base.insert!(x::PyList{T}, i::Integer, v) where {T} = (i==length(x)+1 || checkbounds(x, i); @py `$x.insert($(i-1), $(convertref(T, v)))`; x)
+Base.insert!(x::PyList{T}, i::Integer, v) where {T} = (
+    i == length(x) + 1 || checkbounds(x, i); @py `$x.insert($(i-1), $(convertref(T, v)))`; x
+)
 
 Base.push!(x::PyList{T}, v) where {T} = (@py `$x.append($(convertref(T, v)))`; x)
 
@@ -61,7 +64,8 @@ Base.pushfirst!(x::PyList, v) = insert!(x, 1, v)
 
 Base.pop!(x::PyList{T}) where {T} = @pyv `$x.pop()`::T
 
-Base.delete!(x::PyList{T}, i::Integer) where {T} = (checkbounds(x, i); @py `$x.pop($(i-1))`; x)
+Base.delete!(x::PyList{T}, i::Integer) where {T} =
+    (checkbounds(x, i); @py `$x.pop($(i-1))`; x)
 
 Base.popfirst!(x::PyList) = pop!(x, 1)
 

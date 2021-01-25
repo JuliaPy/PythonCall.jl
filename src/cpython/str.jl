@@ -19,7 +19,7 @@ PyUnicode_AsString(o) = begin
     r
 end
 
-PyUnicode_AsVector(o, ::Type{T}=UInt8) where {T} = begin
+PyUnicode_AsVector(o, ::Type{T} = UInt8) where {T} = begin
     b = PyUnicode_AsUTF8String(o)
     isnull(b) && return T[]
     r = PyBytes_AsVector(b, T)

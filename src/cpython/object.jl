@@ -36,14 +36,37 @@ PyObject_From(x::PyObjectRef) = (Py_IncRef(x.ptr); x.ptr)
 PyObject_From(x::Nothing) = PyNone_New()
 PyObject_From(x::Missing) = PyNone_New()
 PyObject_From(x::Bool) = PyBool_From(x)
-PyObject_From(x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}) = PyLong_From(x)
-PyObject_From(x::Rational{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = PyFraction_From(x)
+PyObject_From(
+    x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt},
+) = PyLong_From(x)
+PyObject_From(
+    x::Rational{
+        <:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt},
+    },
+) = PyFraction_From(x)
 PyObject_From(x::Union{Float16,Float32,Float64}) = PyFloat_From(x)
 PyObject_From(x::Complex{<:Union{Float16,Float32,Float64}}) = PyComplex_From(x)
 PyObject_From(x::Union{String,SubString{String}}) = PyUnicode_From(x)
 PyObject_From(x::Char) = PyUnicode_From(string(x))
 PyObject_From(x::Tuple) = PyTuple_From(x)
-PyObject_From(x::AbstractRange{<:Union{Bool,Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = PyRange_From(x)
+PyObject_From(
+    x::AbstractRange{
+        <:Union{
+            Bool,
+            Int8,
+            Int16,
+            Int32,
+            Int64,
+            Int128,
+            UInt8,
+            UInt16,
+            UInt32,
+            UInt64,
+            UInt128,
+            BigInt,
+        },
+    },
+) = PyRange_From(x)
 PyObject_From(x::DateTime) = PyDateTime_From(x)
 PyObject_From(x::Date) = PyDate_From(x)
 PyObject_From(x::Time) = PyTime_From(x)
@@ -61,8 +84,17 @@ PyObject_From(x) =
         # PyPtr()
     end
 
-function PyObject_CallArgs(f, args::Tuple, kwargs::Union{Nothing,NamedTuple,Base.Iterators.Pairs{Symbol},Base.Iterators.Pairs{Union{}}}=nothing)
-    if kwargs!==nothing && !isempty(kwargs)
+function PyObject_CallArgs(
+    f,
+    args::Tuple,
+    kwargs::Union{
+        Nothing,
+        NamedTuple,
+        Base.Iterators.Pairs{Symbol},
+        Base.Iterators.Pairs{Union{}},
+    } = nothing,
+)
+    if kwargs !== nothing && !isempty(kwargs)
         argso = PyTuple_From(args)
         isnull(argso) && return PyPtr()
         kwargso = PyDict_From(kwargs)
@@ -87,9 +119,9 @@ PyObject_CallNice(f, args...; kwargs...) = PyObject_CallArgs(f, args, kwargs)
 """
 Mapping of Julia types to mappings of Python types to vectors of compiled functions implementing the conversion.
 """
-const TRYCONVERT_COMPILED_RULES = IdDict{Type, Dict{PyPtr, Vector{Ptr{Cvoid}}}}()
+const TRYCONVERT_COMPILED_RULES = IdDict{Type,Dict{PyPtr,Vector{Ptr{Cvoid}}}}()
 
-const TRYCONVERT_COMPILED_RULES_CACHE = Dict{Any, PyPtr}()
+const TRYCONVERT_COMPILED_RULES_CACHE = Dict{Any,PyPtr}()
 
 """
 Mapping of type names to lists of rules.
@@ -109,7 +141,7 @@ On success it returns `putresult(x)` where `x::T` is the converted value (this s
 If conversion was not possible, returns `0` (indicating we move on to the next rule in the list).
 On error, returns `-1`.
 """
-const TRYCONVERT_RULES = Dict{String, Vector{Tuple{Int, Type, Any}}}()
+const TRYCONVERT_RULES = Dict{String,Vector{Tuple{Int,Type,Any}}}()
 
 """
 List of niladic functions returning a pointer to a type. We always check for subtypes of these types in TryConvert.
@@ -119,18 +151,17 @@ Can also return NULL. Without an error set, this indicates the type is not loade
 const TRYCONVERT_EXTRATYPES = Vector{Any}()
 
 @generated PyObject_TryConvert_CompiledRules(::Type{T}) where {T} =
-    get!(Dict{PyPtr, Vector{Ptr{Cvoid}}}, TRYCONVERT_COMPILED_RULES, T)
+    get!(Dict{PyPtr,Vector{Ptr{Cvoid}}}, TRYCONVERT_COMPILED_RULES, T)
 
 PyObject_TryConvert_Rules(n::String) =
-    get!(Vector{Tuple{Int, Type, Function}}, TRYCONVERT_RULES, n)
-PyObject_TryConvert_AddRule(n::String, T, rule, priority=0) =
+    get!(Vector{Tuple{Int,Type,Function}}, TRYCONVERT_RULES, n)
+PyObject_TryConvert_AddRule(n::String, T, rule, priority = 0) =
     push!(PyObject_TryConvert_Rules(n), (priority, T, rule))
 PyObject_TryConvert_AddRules(n::String, xs) =
     for x in xs
         PyObject_TryConvert_AddRule(n, x...)
     end
-PyObject_TryConvert_AddExtraType(tfunc) =
-    push!(TRYCONVERT_EXTRATYPES, tfunc)
+PyObject_TryConvert_AddExtraType(tfunc) = push!(TRYCONVERT_EXTRATYPES, tfunc)
 PyObject_TryConvert_AddExtraTypes(xs) =
     for x in xs
         PyObject_TryConvert_AddExtraType(x)
@@ -181,7 +212,9 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
                 break
             end
         end
-        ok || error("Fatal inheritence error: could not merge MROs (alltypes=$alltypes, basemros=$basemros)")
+        ok || error(
+            "Fatal inheritence error: could not merge MROs (alltypes=$alltypes, basemros=$basemros)",
+        )
         # add it to the list
         push!(alltypes, b)
         # remove it from consideration
@@ -195,32 +228,32 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
     @assert filter(x -> x in tmro, alltypes) == tmro
     # some special cases
     extranames = Dict()
-    for (i,b) in reverse(collect(enumerate(alltypes)))
+    for (i, b) in reverse(collect(enumerate(alltypes)))
         if PyObject_HasAttrString(b, "__array_struct__") != 0
             push!(get!(Vector, extranames, i), "<arraystruct>")
             break
         end
     end
-    for (i,b) in reverse(collect(enumerate(alltypes)))
+    for (i, b) in reverse(collect(enumerate(alltypes)))
         if PyObject_HasAttrString(b, "__array_interface__") != 0
             push!(get!(Vector, extranames, i), "<arrayinterface>")
             break
         end
     end
-    for (i,b) in reverse(collect(enumerate(alltypes)))
+    for (i, b) in reverse(collect(enumerate(alltypes)))
         if PyObject_HasAttrString(b, "__array__") != 0
             push!(get!(Vector, extranames, i), "<array>")
             break
         end
     end
-    for (i,b) in reverse(collect(enumerate(alltypes)))
+    for (i, b) in reverse(collect(enumerate(alltypes)))
         if PyType_CheckBuffer(b)
             push!(get!(Vector, extranames, i), "<buffer>")
             break
         end
     end
     allnames = String[]
-    for (i,t) in enumerate(alltypes)
+    for (i, t) in enumerate(alltypes)
         n = PyType_FullName(t)
         if n === PYERR()
             # if we cannot get the fully qualified name of the type, just skip it (it was probably dynamically generated)
@@ -236,21 +269,23 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
     # These are the conversion rules of the types found above
 
     # gather rules of the form (priority, order, S, rule) from these types
-    rules = Tuple{Int, Int, Type, Any}[]
+    rules = Tuple{Int,Int,Type,Any}[]
     for n in allnames
         for (p, S, r) in PyObject_TryConvert_Rules(n)
-            push!(rules, (p, length(rules)+1, S, r))
+            push!(rules, (p, length(rules) + 1, S, r))
         end
     end
     # sort by priority
-    sort!(rules, by=x->(-x[1], x[2]))
+    sort!(rules, by = x -> (-x[1], x[2]))
     # intersect S with T
-    rules = [typeintersect(S,T) => r for (p,i,S,r) in rules]
+    rules = [typeintersect(S, T) => r for (p, i, S, r) in rules]
     # discard rules where S is a subtype of the union of all previous S for rules with the same implementation
     # in particular this removes rules with S==Union{} and removes duplicates
-    rules = [S=>rule for (i,(S,rule)) in enumerate(rules) if !(S <: Union{[S′ for (S′,rule′) in rules[1:i-1] if rule==rule′]...})]
+    rules = [S => rule for (i, (S, rule)) in enumerate(rules) if
+     !(S <: Union{[S′ for (S′, rule′) in rules[1:i-1] if rule == rule′]...})]
 
-    @debug "PYTHON CONVERSION FOR '$(PyType_Name(t))' to '$T'" basetypes=map(PyType_Name, basetypes) alltypes=allnames rules=rules
+    @debug "PYTHON CONVERSION FOR '$(PyType_Name(t))' to '$T'" basetypes =
+        map(PyType_Name, basetypes) alltypes = allnames rules = rules
 
     ### STAGE 3: Define and compile functions implementing these rules.
 
@@ -274,7 +309,7 @@ const TRYCONVERT_ERR_ARRAY = Ptr{Cvoid}[]
 PyObject_TryConvert(o::PyPtr, ::Type{T}) where {T} = begin
     # First try based only on the type T
     # Used mainly by wrapper types for immediate conversion.
-    r = PyObject_TryConvert__initial(o, T) :: Int
+    r = PyObject_TryConvert__initial(o, T)::Int
     r == 0 || return r
 
     # Try to find an appropriate conversion based on `T` and the type of `o`.
@@ -294,14 +329,18 @@ PyObject_TryConvert(o::PyPtr, ::Type{T}) where {T} = begin
     # Failed to convert
     return 0
 end
-PyObject_TryConvert(o, ::Type{T}) where {T} = GC.@preserve o PyObject_TryConvert(Base.unsafe_convert(PyPtr, o), T)
+PyObject_TryConvert(o, ::Type{T}) where {T} =
+    GC.@preserve o PyObject_TryConvert(Base.unsafe_convert(PyPtr, o), T)
 
 PyObject_TryConvert__initial(o, ::Type{T}) where {T} = 0
 
 PyObject_Convert(o::PyPtr, ::Type{T}) where {T} = begin
     r = PyObject_TryConvert(o, T)
     if r == 0
-        PyErr_SetString(PyExc_TypeError(), "Cannot convert this '$(PyType_Name(Py_Type(o)))' to a Julia '$T'")
+        PyErr_SetString(
+            PyExc_TypeError(),
+            "Cannot convert this '$(PyType_Name(Py_Type(o)))' to a Julia '$T'",
+        )
         -1
     elseif r == -1
         -1
@@ -309,4 +348,5 @@ PyObject_Convert(o::PyPtr, ::Type{T}) where {T} = begin
         0
     end
 end
-PyObject_Convert(o, ::Type{T}) where {T} = GC.@preserve o PyObject_Convert(Base.unsafe_convert(PyPtr, o), T)
+PyObject_Convert(o, ::Type{T}) where {T} =
+    GC.@preserve o PyObject_Convert(Base.unsafe_convert(PyPtr, o), T)

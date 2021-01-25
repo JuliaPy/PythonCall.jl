@@ -5,14 +5,17 @@ PyJuliaTypeValue_Type() = begin
         c = []
         base = PyJuliaAnyValue_Type()
         isnull(base) && return PyPtr()
-        t = fill(PyType_Create(c,
-            name = "julia.TypeValue",
-            base = base,
-            as_mapping = (
-                subscript = pyjltype_getitem,
-                ass_subscript = pyjltype_setitem,
+        t = fill(
+            PyType_Create(
+                c,
+                name = "julia.TypeValue",
+                base = base,
+                as_mapping = (
+                    subscript = pyjltype_getitem,
+                    ass_subscript = pyjltype_setitem,
+                ),
             ),
-        ))
+        )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
         ism1(err) && return PyPtr()

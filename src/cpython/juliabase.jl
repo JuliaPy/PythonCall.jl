@@ -1,9 +1,9 @@
-const PYJLGCCACHE = Dict{PyPtr, Any}()
+const PYJLGCCACHE = Dict{PyPtr,Any}()
 
 @kwdef struct PyJuliaValueObject
-    ob_base :: PyObject = PyObject()
-    value :: Ptr{Cvoid} = C_NULL
-    weaklist :: PyPtr = C_NULL
+    ob_base::PyObject = PyObject()
+    value::Ptr{Cvoid} = C_NULL
+    weaklist::PyPtr = C_NULL
 end
 
 pyjlbase_new(t::PyPtr, ::PyPtr, ::PyPtr) = begin
@@ -35,17 +35,22 @@ PyJuliaBaseValue_Type() = begin
     ptr = PyJuliaBaseValue_Type__ref[]
     if isnull(ptr)
         c = []
-        t = fill(PyType_Create(c,
-            name = "julia.ValueBase",
-            basicsize = sizeof(PyJuliaValueObject),
-            new = pyglobal(:PyType_GenericNew),
-            init = @cfunction(pyjlbase_init, Cint, (PyPtr, PyPtr, PyPtr)),
-            dealloc = @cfunction(pyjlbase_dealloc, Cvoid, (PyPtr,)),
-            flags = Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_VERSION_TAG | (CONFIG.isstackless ? Py_TPFLAGS_HAVE_STACKLESS_EXTENSION : 0x00),
-            weaklistoffset = fieldoffset(PyJuliaValueObject, 3),
-            getattro = pyglobal(:PyObject_GenericGetAttr),
-            setattro = pyglobal(:PyObject_GenericSetAttr),
-        ))
+        t = fill(
+            PyType_Create(
+                c,
+                name = "julia.ValueBase",
+                basicsize = sizeof(PyJuliaValueObject),
+                new = pyglobal(:PyType_GenericNew),
+                init = @cfunction(pyjlbase_init, Cint, (PyPtr, PyPtr, PyPtr)),
+                dealloc = @cfunction(pyjlbase_dealloc, Cvoid, (PyPtr,)),
+                flags = Py_TPFLAGS_BASETYPE |
+                        Py_TPFLAGS_HAVE_VERSION_TAG |
+                        (CONFIG.isstackless ? Py_TPFLAGS_HAVE_STACKLESS_EXTENSION : 0x00),
+                weaklistoffset = fieldoffset(PyJuliaValueObject, 3),
+                getattro = pyglobal(:PyObject_GenericGetAttr),
+                setattro = pyglobal(:PyObject_GenericSetAttr),
+            ),
+        )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
         ism1(err) && return PyPtr()
@@ -84,7 +89,9 @@ PyJuliaValue_New(t, v) = begin
     end
     bt = PyJuliaBaseValue_Type()
     isnull(bt) && return PyPtr()
-    PyType_IsSubtype(t, bt) != 0 || (PyErr_SetString(PyExc_TypeError(), "Expecting a subtype of 'julia.ValueBase'"); return PyPtr())
+    PyType_IsSubtype(t, bt) != 0 || (
+        PyErr_SetString(PyExc_TypeError(), "Expecting a subtype of 'julia.ValueBase'"); return PyPtr()
+    )
     o = _PyObject_New(t)
     isnull(o) && return PyPtr()
     UnsafePtr{PyJuliaValueObject}(o).weaklist[] = C_NULL

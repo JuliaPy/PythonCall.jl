@@ -14,4 +14,4 @@ Py_Ellipsis() = pyglobal(Py_Ellipsis__ref, :_Py_EllipsisObject)
 
 PyEllipsis_Check(o) = Py_Is(o, Py_Ellipsis())
 
-PyEllipsis_New() = (o=Py_Ellipsis(); Py_IncRef(o); o)
+PyEllipsis_New() = (o = Py_Ellipsis(); Py_IncRef(o); o)

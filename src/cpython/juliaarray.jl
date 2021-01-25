@@ -5,28 +5,31 @@ PyJuliaArrayValue_Type() = begin
         c = []
         base = PyJuliaAnyValue_Type()
         isnull(base) && return PyPtr()
-        t = fill(PyType_Create(c,
-            name = "julia.ArrayValue",
-            base = base,
-            as_mapping = (
-                subscript = pyjlarray_getitem,
-                ass_subscript = pyjlarray_setitem,
+        t = fill(
+            PyType_Create(
+                c,
+                name = "julia.ArrayValue",
+                base = base,
+                as_mapping = (
+                    subscript = pyjlarray_getitem,
+                    ass_subscript = pyjlarray_setitem,
+                ),
+                as_buffer = (
+                    get = pyjlarray_get_buffer,
+                    release = pyjlarray_release_buffer,
+                ),
+                getset = [
+                    (name = "ndim", get = pyjlarray_ndim),
+                    (name = "shape", get = pyjlarray_shape),
+                    (name = "__array_interface__", get = pyjlarray_array_interface),
+                ],
+                methods = [
+                    (name = "copy", flags = Py_METH_NOARGS, meth = pyjlarray_copy),
+                    (name = "reshape", flags = Py_METH_O, meth = pyjlarray_reshape),
+                    (name = "__array__", flags = Py_METH_NOARGS, meth = pyjlarray_array),
+                ],
             ),
-            as_buffer = (
-                get = pyjlarray_get_buffer,
-                release = pyjlarray_release_buffer,
-            ),
-            getset = [
-                (name="ndim", get=pyjlarray_ndim),
-                (name="shape", get=pyjlarray_shape),
-                (name="__array_interface__", get=pyjlarray_array_interface),
-            ],
-            methods = [
-                (name="copy", flags=Py_METH_NOARGS, meth=pyjlarray_copy),
-                (name="reshape", flags=Py_METH_O, meth=pyjlarray_reshape),
-                (name="__array__", flags=Py_METH_NOARGS, meth=pyjlarray_array),
-            ],
-        ))
+        )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
         ism1(err) && return PyPtr()
@@ -44,22 +47,28 @@ PyJuliaValue_From(x::AbstractArray) = PyJuliaArrayValue_New(x)
 
 pyjl_getaxisindex(x::AbstractUnitRange{<:Integer}, ko::PyPtr) = begin
     if PySlice_Check(ko)
-        ao, co, bo = PySimpleObject_GetValue(ko, Tuple{PyPtr, PyPtr, PyPtr})
+        ao, co, bo = PySimpleObject_GetValue(ko, Tuple{PyPtr,PyPtr,PyPtr})
         # start
-        r = PyObject_TryConvert(ao, Union{Int, Nothing})
+        r = PyObject_TryConvert(ao, Union{Int,Nothing})
         r == -1 && return PYERR()
-        r ==  0 && (PyErr_SetString(PyExc_TypeError(), "slice components must be integers"); return PYERR())
-        a = takeresult(Union{Int, Nothing})
+        r == 0 && (
+            PyErr_SetString(PyExc_TypeError(), "slice components must be integers"); return PYERR()
+        )
+        a = takeresult(Union{Int,Nothing})
         # step
-        r = PyObject_TryConvert(bo, Union{Int, Nothing})
+        r = PyObject_TryConvert(bo, Union{Int,Nothing})
         r == -1 && return PYERR()
-        r ==  0 && (PyErr_SetString(PyExc_TypeError(), "slice components must be integers"); return PYERR())
-        b = takeresult(Union{Int, Nothing})
+        r == 0 && (
+            PyErr_SetString(PyExc_TypeError(), "slice components must be integers"); return PYERR()
+        )
+        b = takeresult(Union{Int,Nothing})
         # stop
-        r = PyObject_TryConvert(co, Union{Int, Nothing})
+        r = PyObject_TryConvert(co, Union{Int,Nothing})
         r == -1 && return PYERR()
-        r ==  0 && (PyErr_SetString(PyExc_TypeError(), "slice components must be integers"); return PYERR())
-        c = takeresult(Union{Int, Nothing})
+        r == 0 && (
+            PyErr_SetString(PyExc_TypeError(), "slice components must be integers"); return PYERR()
+        )
+        c = takeresult(Union{Int,Nothing})
         # step defaults to 1
         b′ = b === nothing ? 1 : b
         if a === nothing && c === nothing
@@ -78,9 +87,12 @@ pyjl_getaxisindex(x::AbstractUnitRange{<:Integer}, ko::PyPtr) = begin
         else
             # start defaults
             a′ = Int(a === nothing ? first(x) : a < 0 ? (last(x) + a + 1) : (first(x) + a))
-            c′ = Int(c === nothing ? last(x) : c < 0 ? (last(x) + 1 + c - sign(b′)) : (first(x) + c - sign(b′)))
+            c′ = Int(
+                c === nothing ? last(x) :
+                c < 0 ? (last(x) + 1 + c - sign(b′)) : (first(x) + c - sign(b′)),
+            )
         end
-        r = a′ : b′ : c′
+        r = a′:b′:c′
         if !checkbounds(Bool, x, r)
             PyErr_SetString(PyExc_IndexError(), "array index out of bounds")
             return PYERR()
@@ -89,19 +101,33 @@ pyjl_getaxisindex(x::AbstractUnitRange{<:Integer}, ko::PyPtr) = begin
     else
         r = PyObject_TryConvert(ko, Int)
         ism1(r) && return PYERR()
-        r == 0 && (PyErr_SetString(PyExc_TypeError(), "index must be slice or integer, got $(PyType_Name(Py_Type(ko)))"); return PYERR())
+        r == 0 && (
+            PyErr_SetString(
+                PyExc_TypeError(),
+                "index must be slice or integer, got $(PyType_Name(Py_Type(ko)))",
+            );
+            return PYERR()
+        )
         k = takeresult(Int)
         k′ = k < 0 ? (last(x) + k + 1) : (first(x) + k)
-        checkbounds(Bool, x, k′) || (PyErr_SetString(PyExc_IndexError(), "array index out of bounds"); return PYERR())
+        checkbounds(Bool, x, k′) || (
+            PyErr_SetString(PyExc_IndexError(), "array index out of bounds"); return PYERR()
+        )
         k′
     end
 end
 
 pyjl_getarrayindices(x::AbstractArray, ko::PyPtr) = begin
-    kos = PyTuple_Check(ko) ? [PyTuple_GetItem(ko, i-1) for i in 1:PyTuple_Size(ko)] : [ko]
-    length(kos) == ndims(x) || (PyErr_SetString(PyExc_TypeError(), "expecting exactly $(ndims(x)) indices, got $(length(kos))"); return PYERR())
+    kos = PyTuple_Check(ko) ? [PyTuple_GetItem(ko, i - 1) for i = 1:PyTuple_Size(ko)] : [ko]
+    length(kos) == ndims(x) || (
+        PyErr_SetString(
+            PyExc_TypeError(),
+            "expecting exactly $(ndims(x)) indices, got $(length(kos))",
+        );
+        return PYERR()
+    )
     ks = []
-    for (i,ko) in enumerate(kos)
+    for (i, ko) in enumerate(kos)
         k = pyjl_getaxisindex(axes(x, i), ko)
         k === PYERR() && return PYERR()
         push!(ks, k)
@@ -170,32 +196,52 @@ pyjlarray_shape(xo::PyPtr, ::Ptr) = begin
     PyObject_From(size(x))
 end
 
-pyjlarray_copy(xo::PyPtr, ::PyPtr) = try
-    x = PyJuliaValue_GetValue(xo)::AbstractArray
-    PyObject_From(copy(x))
-catch err
-    PyErr_SetJuliaError(err)
-    PyPtr()
-end
+pyjlarray_copy(xo::PyPtr, ::PyPtr) =
+    try
+        x = PyJuliaValue_GetValue(xo)::AbstractArray
+        PyObject_From(copy(x))
+    catch err
+        PyErr_SetJuliaError(err)
+        PyPtr()
+    end
 
-pyjlarray_reshape(xo::PyPtr, arg::PyPtr) = try
-    x = PyJuliaValue_GetValue(xo)::AbstractArray
-    r = PyObject_TryConvert(arg, Union{Int, Tuple{Vararg{Int}}})
-    r == -1 && return PyPtr()
-    r ==  0 && (PyErr_SetString(PyExc_TypeError(), "shape must be an integer or tuple of integers"); return PyPtr())
-    PyObject_From(reshape(x, takeresult()...))
-catch err
-    PyErr_SetJuliaError(err)
-    PyPtr()
-end
+pyjlarray_reshape(xo::PyPtr, arg::PyPtr) =
+    try
+        x = PyJuliaValue_GetValue(xo)::AbstractArray
+        r = PyObject_TryConvert(arg, Union{Int,Tuple{Vararg{Int}}})
+        r == -1 && return PyPtr()
+        r == 0 && (
+            PyErr_SetString(
+                PyExc_TypeError(),
+                "shape must be an integer or tuple of integers",
+            );
+            return PyPtr()
+        )
+        PyObject_From(reshape(x, takeresult()...))
+    catch err
+        PyErr_SetJuliaError(err)
+        PyPtr()
+    end
 
 ### Buffer Protocol
 
 isflagset(flags, mask) = (flags & mask) == mask
 
-const PYJLBUFCACHE = Dict{Ptr{Cvoid}, Any}()
+const PYJLBUFCACHE = Dict{Ptr{Cvoid},Any}()
 
-pyjl_get_buffer_impl(o::PyPtr, buf::Ptr{Py_buffer}, flags, ptr, elsz, len, ndim, fmt, sz, strds, mutable) = begin
+pyjl_get_buffer_impl(
+    o::PyPtr,
+    buf::Ptr{Py_buffer},
+    flags,
+    ptr,
+    elsz,
+    len,
+    ndim,
+    fmt,
+    sz,
+    strds,
+    mutable,
+) = begin
     b = UnsafePtr(buf)
     c = []
 
@@ -257,7 +303,8 @@ pyjl_get_buffer_impl(o::PyPtr, buf::Ptr{Py_buffer}, flags, ptr, elsz, len, ndim,
         end
     end
     if isflagset(flags, PyBUF_ANY_CONTIGUOUS)
-        if Python.size_to_cstrides(1, sz...) != strds && Python.size_to_fstrides(1, sz...) != strds
+        if Python.size_to_cstrides(1, sz...) != strds &&
+           Python.size_to_fstrides(1, sz...) != strds
             PyErr_SetString(PyExc_BufferError(), "not contiguous")
             return Cint(-1)
         end
@@ -277,23 +324,57 @@ pyjl_get_buffer_impl(o::PyPtr, buf::Ptr{Py_buffer}, flags, ptr, elsz, len, ndim,
     Cint(0)
 end
 
-pyjlarray_isbufferabletype(::Type{T}) where {T} =
-    T in (Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64, Float16, Float32, Float64, Complex{Float16}, Complex{Float32}, Complex{Float64}, Bool, Ptr{Cvoid})
+pyjlarray_isbufferabletype(::Type{T}) where {T} = T in (
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+    Float16,
+    Float32,
+    Float64,
+    Complex{Float16},
+    Complex{Float32},
+    Complex{Float64},
+    Bool,
+    Ptr{Cvoid},
+)
 pyjlarray_isbufferabletype(::Type{T}) where {T<:Tuple} =
-    isconcretetype(T) && Base.allocatedinline(T) && all(pyjlarray_isbufferabletype, fieldtypes(T))
+    isconcretetype(T) &&
+    Base.allocatedinline(T) &&
+    all(pyjlarray_isbufferabletype, fieldtypes(T))
 pyjlarray_isbufferabletype(::Type{NamedTuple{names,T}}) where {names,T} =
     pyjlarray_isbufferabletype(T)
 
-_pyjlarray_get_buffer(xo, buf, flags, x::AbstractArray) = try
-    if pyjlarray_isbufferabletype(eltype(x))
-        pyjl_get_buffer_impl(xo, buf, flags, Base.unsafe_convert(Ptr{eltype(x)}, x), Base.aligned_sizeof(eltype(x)), length(x), ndims(x), Python.pybufferformat(eltype(x)), size(x), strides(x), Python.ismutablearray(x))
-    else
-        error("element type is not bufferable")
+_pyjlarray_get_buffer(xo, buf, flags, x::AbstractArray) =
+    try
+        if pyjlarray_isbufferabletype(eltype(x))
+            pyjl_get_buffer_impl(
+                xo,
+                buf,
+                flags,
+                Base.unsafe_convert(Ptr{eltype(x)}, x),
+                Base.aligned_sizeof(eltype(x)),
+                length(x),
+                ndims(x),
+                Python.pybufferformat(eltype(x)),
+                size(x),
+                strides(x),
+                Python.ismutablearray(x),
+            )
+        else
+            error("element type is not bufferable")
+        end
+    catch err
+        PyErr_SetString(
+            PyExc_BufferError(),
+            "Buffer protocol not supported by Julia '$(typeof(x))' (details: $err)",
+        )
+        Cint(-1)
     end
-catch err
-    PyErr_SetString(PyExc_BufferError(), "Buffer protocol not supported by Julia '$(typeof(x))' (details: $err)")
-    Cint(-1)
-end
 
 pyjlarray_get_buffer(xo::PyPtr, buf::Ptr{Py_buffer}, flags::Cint) =
     _pyjlarray_get_buffer(xo, buf, flags, PyJuliaValue_GetValue(xo)::AbstractArray)
@@ -305,10 +386,27 @@ end
 
 ### Array Interface
 
-pyjlarray_isarrayabletype(::Type{T}) where {T} =
-    T in (UInt8, Int8, UInt16, Int16, UInt32, Int32, UInt64, Int64, Bool, Float16, Float32, Float64, Complex{Float16}, Complex{Float32}, Complex{Float64})
+pyjlarray_isarrayabletype(::Type{T}) where {T} = T in (
+    UInt8,
+    Int8,
+    UInt16,
+    Int16,
+    UInt32,
+    Int32,
+    UInt64,
+    Int64,
+    Bool,
+    Float16,
+    Float32,
+    Float64,
+    Complex{Float16},
+    Complex{Float32},
+    Complex{Float64},
+)
 pyjlarray_isarrayabletype(::Type{T}) where {T<:Tuple} =
-    isconcretetype(T) && Base.allocatedinline(T) && all(pyjlarray_isarrayabletype, T.parameters)
+    isconcretetype(T) &&
+    Base.allocatedinline(T) &&
+    all(pyjlarray_isarrayabletype, T.parameters)
 pyjlarray_isarrayabletype(::Type{NamedTuple{names,types}}) where {names,types} =
     pyjlarray_isarrayabletype(types)
 
@@ -329,38 +427,41 @@ PyDescrObject_From(fields) = begin
     ro
 end
 
-_pyjlarray_array_interface(x::AbstractArray) = try
-    if pyjlarray_isarrayabletype(eltype(x))
-        # gather information
-        shape = size(x)
-        data = (UInt(Base.unsafe_convert(Ptr{eltype(x)}, x)), !Python.ismutablearray(x))
-        strides = Base.strides(x) .* Base.aligned_sizeof(eltype(x))
-        version = 3
-        typestr, descr = Python.pytypestrdescr(eltype(x))
-        isempty(typestr) && error("invalid element type")
-        # make the dictionary
-        d = PyDict_From(Dict(
-            "shape" => shape,
-            "typestr" => typestr,
-            "data" => data,
-            "strides" => strides,
-            "version" => version,
-        ))
-        isnull(d) && return PyPtr()
-        if descr !== nothing
-            descro = PyDescrObject_From(descr)
-            err = PyDict_SetItemString(d, "descr", descro)
-            Py_DecRef(descro)
-            ism1(err) && (Py_DecRef(d); return PyPtr())
+_pyjlarray_array_interface(x::AbstractArray) =
+    try
+        if pyjlarray_isarrayabletype(eltype(x))
+            # gather information
+            shape = size(x)
+            data = (UInt(Base.unsafe_convert(Ptr{eltype(x)}, x)), !Python.ismutablearray(x))
+            strides = Base.strides(x) .* Base.aligned_sizeof(eltype(x))
+            version = 3
+            typestr, descr = Python.pytypestrdescr(eltype(x))
+            isempty(typestr) && error("invalid element type")
+            # make the dictionary
+            d = PyDict_From(
+                Dict(
+                    "shape" => shape,
+                    "typestr" => typestr,
+                    "data" => data,
+                    "strides" => strides,
+                    "version" => version,
+                ),
+            )
+            isnull(d) && return PyPtr()
+            if descr !== nothing
+                descro = PyDescrObject_From(descr)
+                err = PyDict_SetItemString(d, "descr", descro)
+                Py_DecRef(descro)
+                ism1(err) && (Py_DecRef(d); return PyPtr())
+            end
+            d
+        else
+            error("invalid element type")
         end
-        d
-    else
-        error("invalid element type")
+    catch err
+        PyErr_SetString(PyExc_AttributeError(), "__array_interface__")
+        PyPtr()
     end
-catch err
-    PyErr_SetString(PyExc_AttributeError(), "__array_interface__")
-    PyPtr()
-end
 
 pyjlarray_array(xo::PyPtr, ::PyPtr) = begin
     if PyObject_HasAttrString(xo, "__array_interface__") == 0

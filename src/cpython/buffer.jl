@@ -8,7 +8,10 @@ PyObject_CheckBuffer(o) = PyType_CheckBuffer(Py_Type(o))
 PyObject_GetBuffer(o, b, flags) = begin
     p = UnsafePtr{PyTypeObject}(Py_Type(o)).as_buffer[]
     if isnull(p) || isnull(p.get[])
-        PyErr_SetString(unsafe_load(Ptr{PyPtr}(pyglobal(:PyExc_TypeError))), "a bytes-like object is required, not '$(String(UnsafePtr{PyTypeObject}(Py_Type(o)).name[]))'")
+        PyErr_SetString(
+            unsafe_load(Ptr{PyPtr}(pyglobal(:PyExc_TypeError))),
+            "a bytes-like object is required, not '$(String(UnsafePtr{PyTypeObject}(Py_Type(o)).name[]))'",
+        )
         return Cint(-1)
     end
     ccall(p.get[!], Cint, (PyPtr, Ptr{Py_buffer}, Cint), o, b, flags)

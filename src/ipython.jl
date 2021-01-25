@@ -1,15 +1,16 @@
 struct IPythonDisplay <: AbstractDisplay end
 
-Base.display(d::IPythonDisplay, m::MIME, @nospecialize(x)) = try
-    buf = IOBuffer()
-    show(buf, m, x)
-    data = take!(buf)
-    dict = pydict()
-    dict[string(m)] = istextmime(m) ? pystr(data) : pybytes(data)
-    @py `sys.modules["IPython"].display.display($dict, raw=True)`
-catch
-    throw(MethodError(display, (d, m, x)))
-end
+Base.display(d::IPythonDisplay, m::MIME, @nospecialize(x)) =
+    try
+        buf = IOBuffer()
+        show(buf, m, x)
+        data = take!(buf)
+        dict = pydict()
+        dict[string(m)] = istextmime(m) ? pystr(data) : pybytes(data)
+        @py `sys.modules["IPython"].display.display($dict, raw=True)`
+    catch
+        throw(MethodError(display, (d, m, x)))
+    end
 
 Base.display(d::IPythonDisplay, @nospecialize(x)) = begin
     if ispyref(x)
@@ -18,7 +19,7 @@ Base.display(d::IPythonDisplay, @nospecialize(x)) = begin
     end
     buf = IOBuffer()
     dict = pydict()
-    for (m,_) in [_py_mimes; (MIME"text/plain", "")]
+    for (m, _) in [_py_mimes; (MIME"text/plain", "")]
         try
             show(buf, m(), x)
         catch

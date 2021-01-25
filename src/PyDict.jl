@@ -6,8 +6,8 @@ Wrap the Python dictionary `o` (or anything satisfying the mapping interface) as
 If `o` is not given, an empty dict is created.
 """
 mutable struct PyDict{K,V} <: AbstractDict{K,V}
-    ref :: PyRef
-    hasbuiltins :: Bool
+    ref::PyRef
+    hasbuiltins::Bool
     PyDict{K,V}(o) where {K,V} = new(ispyref(o) ? PyRef(o) : pydict(PyRef, o), false)
     PyDict{K,V}() where {K,V} = new(PyRef(), false)
 end
@@ -77,7 +77,8 @@ Base.iterate(x::Base.KeySet{K,PyDict{K,V}}) where {K,V} = begin
     iterate(x, pynewref(it))
 end
 
-Base.setindex!(x::PyDict{K,V}, v, k) where {K,V} = pysetitem(x, convertref(K, k), convertref(V, v))
+Base.setindex!(x::PyDict{K,V}, v, k) where {K,V} =
+    pysetitem(x, convertref(K, k), convertref(V, v))
 
 Base.getindex(x::PyDict{K,V}, k) where {K,V} = pygetitem(V, x, convertref(K, k))
 

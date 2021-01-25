@@ -1,6 +1,6 @@
 mutable struct PyInternedString
-    ref :: PyRef
-    val :: String
+    ref::PyRef
+    val::String
     PyInternedString(x::String) = new(PyRef(), x)
 end
 

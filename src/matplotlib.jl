@@ -7,7 +7,7 @@ If `close` is true, the figure is also closed.
 
 The `format` specifies the file format of the generated image. By default this is `pyplot.rcParams["savefig.format"]`.
 """
-function pyplotshow(fig; close::Bool=true, format::String="")
+function pyplotshow(fig; close::Bool = true, format::String = "")
     @py ```
     import matplotlib.pyplot as plt, io
     fig = $fig

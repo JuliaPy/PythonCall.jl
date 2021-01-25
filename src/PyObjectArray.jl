@@ -6,8 +6,8 @@ An array of `PyObject`s which supports the Python buffer protocol.
 
 Internally, the objects are stored as an array of pointers.
 """
-mutable struct PyObjectArray{N} <: AbstractArray{PyObject, N}
-    ptrs :: Array{CPyPtr, N}
+mutable struct PyObjectArray{N} <: AbstractArray{PyObject,N}
+    ptrs::Array{CPyPtr,N}
     function PyObjectArray{N}(::UndefInitializer, dims::NTuple{N,Integer}) where {N}
         x = new{N}(fill(CPyPtr(C_NULL), dims))
         finalizer(x) do x
@@ -21,10 +21,14 @@ mutable struct PyObjectArray{N} <: AbstractArray{PyObject, N}
         end
     end
 end
-PyObjectArray{N}(::UndefInitializer, dims::Vararg{Integer,N}) where {N} = PyObjectArray(undef, dims)
-PyObjectArray(::UndefInitializer, dims::NTuple{N,Integer}) where {N} = PyObjectArray{N}(undef, dims)
-PyObjectArray(::UndefInitializer, dims::Vararg{Integer,N}) where {N} = PyObjectArray{N}(undef, dims)
-PyObjectArray{N}(x::AbstractArray{T,N}) where {T,N} = copy!(PyObjectArray{N}(undef, size(x)), x)
+PyObjectArray{N}(::UndefInitializer, dims::Vararg{Integer,N}) where {N} =
+    PyObjectArray(undef, dims)
+PyObjectArray(::UndefInitializer, dims::NTuple{N,Integer}) where {N} =
+    PyObjectArray{N}(undef, dims)
+PyObjectArray(::UndefInitializer, dims::Vararg{Integer,N}) where {N} =
+    PyObjectArray{N}(undef, dims)
+PyObjectArray{N}(x::AbstractArray{T,N}) where {T,N} =
+    copy!(PyObjectArray{N}(undef, size(x)), x)
 PyObjectArray(x::AbstractArray{T,N}) where {T,N} = PyObjectArray{N}(x)
 export PyObjectArray
 
@@ -34,7 +38,8 @@ Base.length(x::PyObjectArray) = length(x.ptrs)
 
 Base.size(x::PyObjectArray) = size(x.ptrs)
 
-Base.isassigned(x::PyObjectArray, i::Vararg{Integer}) = checkbounds(Bool, x.ptrs, i...) && x.ptrs[i...] != C_NULL
+Base.isassigned(x::PyObjectArray, i::Vararg{Integer}) =
+    checkbounds(Bool, x.ptrs, i...) && x.ptrs[i...] != C_NULL
 
 function Base.getindex(x::PyObjectArray, i::Integer...)
     ptr = x.ptrs[i...]
@@ -56,14 +61,26 @@ function Base.deleteat!(x::PyObjectArray, i::Integer)
     x
 end
 
-C._pyjlarray_get_buffer(o, buf, flags, x::PyObjectArray) =
-    C.pyjl_get_buffer_impl(o, buf, flags, pointer(x.ptrs), sizeof(CPyPtr), length(x), ndims(x), "O", size(x), strides(x.ptrs), true)
+C._pyjlarray_get_buffer(o, buf, flags, x::PyObjectArray) = C.pyjl_get_buffer_impl(
+    o,
+    buf,
+    flags,
+    pointer(x.ptrs),
+    sizeof(CPyPtr),
+    length(x),
+    ndims(x),
+    "O",
+    size(x),
+    strides(x.ptrs),
+    true,
+)
 
-C._pyjlarray_array_interface(x::PyObjectArray) =
-    C.PyDict_From(Dict(
+C._pyjlarray_array_interface(x::PyObjectArray) = C.PyDict_From(
+    Dict(
         "shape" => size(x),
         "typestr" => "|O",
         "data" => (UInt(pointer(x.ptrs)), false),
         "strides" => strides(x.ptrs) .* sizeof(CPyPtr),
         "version" => 3,
-    ))
+    ),
+)

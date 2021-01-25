@@ -10,22 +10,38 @@ If `text=false` then `o` must be a binary stream and arbitrary binary I/O is pos
 For efficiency, reads and writes are buffered before being sent to `o`. The size of the buffer is `buflen`.
 """
 mutable struct PyIO <: IO
-    ref :: PyRef
+    ref::PyRef
     # true to close the file automatically
-    own :: Bool
+    own::Bool
     # true if `o` is text, false if binary
-    text :: Bool
+    text::Bool
     # true if we are definitely at the end of the file; false if we are not or don't know
-    eof :: Bool
+    eof::Bool
     # input buffer
-    ibuflen :: Int
-    ibuf :: Vector{UInt8}
+    ibuflen::Int
+    ibuf::Vector{UInt8}
     # output buffer
-    obuflen :: Int
-    obuf :: Vector{UInt8}
+    obuflen::Int
+    obuf::Vector{UInt8}
 
-    function PyIO(o; own::Bool=false, text::Union{Missing,Bool}=missing, buflen::Integer=4096, ibuflen=buflen, obuflen=buflen)
-        io = new(PyRef(o), own, text===missing ? pyisinstance(o, pyiomodule().TextIOBase) : text, false, ibuflen, UInt8[], obuflen, UInt8[])
+    function PyIO(
+        o;
+        own::Bool = false,
+        text::Union{Missing,Bool} = missing,
+        buflen::Integer = 4096,
+        ibuflen = buflen,
+        obuflen = buflen,
+    )
+        io = new(
+            PyRef(o),
+            own,
+            text === missing ? pyisinstance(o, pyiomodule().TextIOBase) : text,
+            false,
+            ibuflen,
+            UInt8[],
+            obuflen,
+            UInt8[],
+        )
         finalizer(io) do io
             io.own ? close(io) : flush(io)
         end
@@ -199,7 +215,9 @@ function Base.position(io::PyIO)
         if isempty(io.ibuf)
             @pyv `$io.position()`::Int
         else
-            error("`position(io)` text PyIO streams only implemented for empty input buffer (e.g. do `read(io, length(io.ibuf))` first)")
+            error(
+                "`position(io)` text PyIO streams only implemented for empty input buffer (e.g. do `read(io, length(io.ibuf))` first)",
+            )
         end
     else
         (@py `$io.position()`::Int) - length(io.ibuf)

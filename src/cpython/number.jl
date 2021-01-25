@@ -39,7 +39,7 @@ for n in [:Number, :Complex, :Real, :Rational, :Integral]
     tr = Symbol(p, :__ref)
     c = Symbol(p, :_Check)
     @eval const $tr = Ref(PyPtr())
-    @eval $t(doimport::Bool=true) = begin
+    @eval $t(doimport::Bool = true) = begin
         ptr = $tr[]
         isnull(ptr) || return ptr
         a = doimport ? PyImport_ImportModule("numbers") : PyImport_GetModule("numbers")

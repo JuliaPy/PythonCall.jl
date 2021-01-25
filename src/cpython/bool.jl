@@ -17,6 +17,9 @@ PyBool_TryConvertRule_bool(o, ::Type{Bool}) =
     elseif Py_Is(o, Py_False())
         putresult(false)
     else
-        PyErr_SetString(PyExc_TypeError(), "Expecting a 'bool' but got a '$(PyType_Name(Py_Type(o)))'")
+        PyErr_SetString(
+            PyExc_TypeError(),
+            "Expecting a 'bool' but got a '$(PyType_Name(Py_Type(o)))'",
+        )
         -1
     end

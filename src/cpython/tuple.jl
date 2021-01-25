@@ -15,10 +15,10 @@ PyTuple_From(x::Union{Tuple,AbstractVector}) = PyTuple_FromIter(x)
 PyTuple_FromIter(xs::Tuple) = begin
     t = PyTuple_New(length(xs))
     isnull(t) && return PyPtr()
-    for (i,x) in enumerate(xs)
+    for (i, x) in enumerate(xs)
         xo = PyObject_From(x)
         isnull(xo) && (Py_DecRef(t); return PyPtr())
-        err = PyTuple_SetItem(t, i-1, xo) # steals xo
+        err = PyTuple_SetItem(t, i - 1, xo) # steals xo
         ism1(err) && (Py_DecRef(t); return PyPtr())
     end
     return t

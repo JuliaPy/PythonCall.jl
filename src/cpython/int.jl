@@ -11,7 +11,9 @@ PyLong_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_LONG_SUBCLASS)
 
 PyLong_CheckExact(o) = Py_TypeCheckExact(o, PyLong_Type())
 
-PyLong_From(x::Union{Bool,Int8,UInt8,Int16,UInt16,Int32,UInt32,Int64,UInt64,Int128,UInt128,BigInt}) =
+PyLong_From(
+    x::Union{Bool,Int8,UInt8,Int16,UInt16,Int32,UInt32,Int64,UInt64,Int128,UInt128,BigInt},
+) =
     if x isa Signed && typemin(Clonglong) ≤ x ≤ typemax(Clonglong)
         PyLong_FromLongLong(x)
     elseif typemin(Culonglong) ≤ x ≤ typemax(Culonglong)
@@ -23,7 +25,13 @@ PyLong_From(x::Union{Bool,Int8,UInt8,Int16,UInt16,Int32,UInt32,Int64,UInt64,Int1
 PyLong_From(x::Integer) = begin
     y = tryconvert(BigInt, x)
     y === PYERR() && return PyPtr()
-    y === NOTIMPLEMENTED() && (PyErr_SetString(PyExc_NotImplementedError(), "Cannot convert this Julia '$(typeof(x))' to a Python 'int'"); return PyPtr())
+    y === NOTIMPLEMENTED() && (
+        PyErr_SetString(
+            PyExc_NotImplementedError(),
+            "Cannot convert this Julia '$(typeof(x))' to a Python 'int'",
+        );
+        return PyPtr()
+    )
     PyLong_From(y::BigInt)
 end
 
@@ -37,7 +45,21 @@ PyLongable_TryConvertRule_integer(o, ::Type{S}) where {S<:Integer} = begin
     elseif PyErr_IsSet(PyExc_OverflowError())
         # overflows Clonglong or Culonglong
         PyErr_Clear()
-        if S in (Bool,Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128) && typemin(typeof(x)) ≤ typemin(S) && typemax(S) ≤ typemax(typeof(x))
+        if S in (
+               Bool,
+               Int8,
+               Int16,
+               Int32,
+               Int64,
+               Int128,
+               UInt8,
+               UInt16,
+               UInt32,
+               UInt64,
+               UInt128,
+           ) &&
+           typemin(typeof(x)) ≤ typemin(S) &&
+           typemax(S) ≤ typemax(typeof(x))
             # definitely overflows S, give up now
             return 0
         else
@@ -48,7 +70,13 @@ PyLongable_TryConvertRule_integer(o, ::Type{S}) where {S<:Integer} = begin
             Py_DecRef(so)
             isempty(s) && PyErr_IsSet() && return -1
             y = tryparse(BigInt, s)
-            y === nothing && (PyErr_SetString(PyExc_ValueError(), "Cannot convert this '$(PyType_Name(Py_Type(o)))' to a Julia 'BigInt' because its string representation cannot be parsed as an integer"); return -1)
+            y === nothing && (
+                PyErr_SetString(
+                    PyExc_ValueError(),
+                    "Cannot convert this '$(PyType_Name(Py_Type(o)))' to a Julia 'BigInt' because its string representation cannot be parsed as an integer",
+                );
+                return -1
+            )
             return putresult(tryconvert(S, y))
         end
     else

@@ -5,43 +5,78 @@ PyJuliaAnyValue_Type() = begin
         c = []
         base = PyJuliaBaseValue_Type()
         isnull(base) && return PyPtr()
-        t = fill(PyType_Create(c,
-            name = "julia.AnyValue",
-            base = base,
-            repr = pyjlany_repr,
-            str = pyjlany_str,
-            getattro = pyjlany_getattro,
-            setattro = pyjlany_setattro,
-            call = pyjlany_call,
-            iter = pyjlany_iter,
-            richcompare = pyjlany_richcompare,
-            as_mapping = (
-                length = pyjlany_length,
-                subscript = pyjlany_getitem,
-                ass_subscript = pyjlany_setitem,
+        t = fill(
+            PyType_Create(
+                c,
+                name = "julia.AnyValue",
+                base = base,
+                repr = pyjlany_repr,
+                str = pyjlany_str,
+                getattro = pyjlany_getattro,
+                setattro = pyjlany_setattro,
+                call = pyjlany_call,
+                iter = pyjlany_iter,
+                richcompare = pyjlany_richcompare,
+                as_mapping = (
+                    length = pyjlany_length,
+                    subscript = pyjlany_getitem,
+                    ass_subscript = pyjlany_setitem,
+                ),
+                as_sequence = (contains = pyjlany_contains,),
+                methods = [
+                    (name = "__dir__", flags = Py_METH_NOARGS, meth = pyjlany_dir),
+                    (
+                        name = "_repr_html_",
+                        flags = Py_METH_NOARGS,
+                        meth = pyjlany_repr_mime(MIME("text/html")),
+                    ),
+                    (
+                        name = "_repr_markdown_",
+                        flags = Py_METH_NOARGS,
+                        meth = pyjlany_repr_mime(MIME("text/markdown")),
+                    ),
+                    (
+                        name = "_repr_json_",
+                        flags = Py_METH_NOARGS,
+                        meth = pyjlany_repr_mime(MIME("text/json")),
+                    ),
+                    (
+                        name = "_repr_javascript_",
+                        flags = Py_METH_NOARGS,
+                        meth = pyjlany_repr_mime(MIME("application/javascript")),
+                    ),
+                    (
+                        name = "_repr_pdf_",
+                        flags = Py_METH_NOARGS,
+                        meth = pyjlany_repr_mime(MIME("application/pdf")),
+                    ),
+                    (
+                        name = "_repr_jpeg_",
+                        flags = Py_METH_NOARGS,
+                        meth = pyjlany_repr_mime(MIME("image/jpeg")),
+                    ),
+                    (
+                        name = "_repr_png_",
+                        flags = Py_METH_NOARGS,
+                        meth = pyjlany_repr_mime(MIME("image/png")),
+                    ),
+                    (
+                        name = "_repr_svg_",
+                        flags = Py_METH_NOARGS,
+                        meth = pyjlany_repr_mime(MIME("image/svg+xml")),
+                    ),
+                    (
+                        name = "_repr_latex_",
+                        flags = Py_METH_NOARGS,
+                        meth = pyjlany_repr_mime(MIME("text/latex")),
+                    ),
+                    (name = "__jl_raw", flags = Py_METH_NOARGS, meth = pyjlany_toraw),
+                    (name = "__jl_show", flags = Py_METH_NOARGS, meth = pyjlany_show),
+                    (name = "__jl_help", flags = Py_METH_NOARGS, meth = pyjlany_help),
+                ],
+                getset = [(name = "__name__", get = pyjlany_name)],
             ),
-            as_sequence = (
-                contains = pyjlany_contains,
-            ),
-            methods = [
-                (name="__dir__", flags=Py_METH_NOARGS, meth=pyjlany_dir),
-                (name="_repr_html_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("text/html"))),
-                (name="_repr_markdown_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("text/markdown"))),
-                (name="_repr_json_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("text/json"))),
-                (name="_repr_javascript_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("application/javascript"))),
-                (name="_repr_pdf_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("application/pdf"))),
-                (name="_repr_jpeg_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("image/jpeg"))),
-                (name="_repr_png_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("image/png"))),
-                (name="_repr_svg_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("image/svg+xml"))),
-                (name="_repr_latex_", flags=Py_METH_NOARGS, meth=pyjlany_repr_mime(MIME("text/latex"))),
-                (name="__jl_raw", flags=Py_METH_NOARGS, meth=pyjlany_toraw),
-                (name="__jl_show", flags=Py_METH_NOARGS, meth=pyjlany_show),
-                (name="__jl_help", flags=Py_METH_NOARGS, meth=pyjlany_help),
-            ],
-            getset = [
-                (name="__name__", get=pyjlany_name),
-            ]
-        ))
+        )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
         ism1(err) && return PyPtr()
@@ -54,24 +89,26 @@ end
 PyJuliaAnyValue_New(x) = PyJuliaValue_New(PyJuliaAnyValue_Type(), x)
 PyJuliaValue_From(x) = PyJuliaAnyValue_New(x)
 
-pyjlany_repr(xo::PyPtr) = try
-    x = PyJuliaValue_GetValue(xo)
-    s = repr(x)
-    s = string("jl:", '\n' in s ? '\n' : ' ', s)
-    PyUnicode_From(s)
-catch err
-    PyErr_SetJuliaError(err)
-    PyPtr()
-end
+pyjlany_repr(xo::PyPtr) =
+    try
+        x = PyJuliaValue_GetValue(xo)
+        s = repr(x)
+        s = string("jl:", '\n' in s ? '\n' : ' ', s)
+        PyUnicode_From(s)
+    catch err
+        PyErr_SetJuliaError(err)
+        PyPtr()
+    end
 
-pyjlany_str(xo::PyPtr) = try
-    x = PyJuliaValue_GetValue(xo)
-    s = string(x)
-    PyUnicode_From(s)
-catch err
-    PyErr_SetJuliaError(err)
-    return PyPtr()
-end
+pyjlany_str(xo::PyPtr) =
+    try
+        x = PyJuliaValue_GetValue(xo)
+        s = string(x)
+        PyUnicode_From(s)
+    catch err
+        PyErr_SetJuliaError(err)
+        return PyPtr()
+    end
 
 pyjlany_getattro(xo::PyPtr, ko::PyPtr) = begin
     # Try generic lookup first
@@ -90,7 +127,9 @@ pyjlany_getattro(xo::PyPtr, ko::PyPtr) = begin
         v = getproperty(x, Symbol(k))
         PyObject_From(v)
     catch err
-        if !hasproperty(x, Symbol(k)) || (err isa UndefVarError && err.var === Symbol(k)) || (err isa ErrorException && occursin("has no field", err.msg))
+        if !hasproperty(x, Symbol(k)) ||
+           (err isa UndefVarError && err.var === Symbol(k)) ||
+           (err isa ErrorException && occursin("has no field", err.msg))
             PyErr_SetStringFromJuliaError(PyExc_AttributeError(), err)
         else
             PyErr_SetJuliaError(err)
@@ -128,7 +167,9 @@ pyjlany_setattro(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
         setproperty!(x, Symbol(k), v)
         Cint(0)
     catch err
-        if !hasproperty(x, Symbol(k)) || (err isa UndefVarError && err.var === Symbol(k)) || (err isa ErrorException && occursin("has no field", err.msg))
+        if !hasproperty(x, Symbol(k)) ||
+           (err isa UndefVarError && err.var === Symbol(k)) ||
+           (err isa ErrorException && occursin("has no field", err.msg))
             PyErr_SetStringFromJuliaError(PyExc_AttributeError(), err)
         else
             PyErr_SetJuliaError(err)
@@ -140,7 +181,7 @@ end
 pyjl_dir(x) = propertynames(x)
 pyjl_dir(x::Module) = begin
     r = Symbol[]
-    append!(r, names(x, all=true, imported=true))
+    append!(r, names(x, all = true, imported = true))
     for m in ccall(:jl_module_usings, Any, (Any,), x)::Vector
         append!(r, names(m))
     end
@@ -180,10 +221,10 @@ pyjlany_call(fo::PyPtr, argso::PyPtr, kwargso::PyPtr) = begin
         args = takeresult(Vector{Any})
     end
     if isnull(kwargso)
-        kwargs = Dict{Symbol, Any}()
+        kwargs = Dict{Symbol,Any}()
     else
-        ism1(PyObject_Convert(kwargso, Dict{Symbol, Any})) && return PyPtr()
-        kwargs = takeresult(Dict{Symbol, Any})
+        ism1(PyObject_Convert(kwargso, Dict{Symbol,Any})) && return PyPtr()
+        kwargs = takeresult(Dict{Symbol,Any})
     end
     try
         x = f(args...; kwargs...)
@@ -198,19 +239,25 @@ pyjlany_call(fo::PyPtr, argso::PyPtr, kwargso::PyPtr) = begin
     end
 end
 
-pyjlany_length(xo::PyPtr) = try
-    x = PyJuliaValue_GetValue(xo)
-    Py_ssize_t(length(x))
-catch err
-    if err isa MethodError && err.f === length
-        PyErr_SetStringFromJuliaError(PyExc_TypeError(), err)
-    else
-        PyErr_SetJuliaError(err)
+pyjlany_length(xo::PyPtr) =
+    try
+        x = PyJuliaValue_GetValue(xo)
+        Py_ssize_t(length(x))
+    catch err
+        if err isa MethodError && err.f === length
+            PyErr_SetStringFromJuliaError(PyExc_TypeError(), err)
+        else
+            PyErr_SetJuliaError(err)
+        end
+        Py_ssize_t(-1)
     end
-    Py_ssize_t(-1)
-end
 
-@generated pyjl_keytype(::Type{T}) where {T} = try; keytype(T); catch; nothing; end;
+@generated pyjl_keytype(::Type{T}) where {T} =
+    try
+        keytype(T)
+    catch
+        nothing
+    end;
 pyjl_hasvarindices(::Type) = true
 pyjl_hasvarindices(::Type{<:AbstractDict}) = false
 
@@ -241,7 +288,16 @@ pyjlany_getitem(xo::PyPtr, ko::PyPtr) = begin
     end
 end
 
-@generated pyjl_valtype(::Type{T}) where {T} = try; valtype(T); catch; try eltype(T); catch; nothing; end; end;
+@generated pyjl_valtype(::Type{T}) where {T} =
+    try
+        valtype(T)
+    catch
+        try
+            eltype(T)
+        catch
+            nothing
+        end
+    end;
 
 pyjl_getvalue(x, vo) =
     if (V = pyjl_valtype(typeof(x))) !== nothing
@@ -284,7 +340,7 @@ pyjlany_contains(xo::PyPtr, vo::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)
     r = PyObject_TryConvert(vo, eltype(x))
     r == -1 && return Cint(-1)
-    r ==  0 && return Cint(0)
+    r == 0 && return Cint(0)
     v = takeresult(eltype(x))
     try
         Cint(v in x)
@@ -302,7 +358,7 @@ pyjlany_richcompare(xo::PyPtr, yo::PyPtr, op::Cint) = begin
     x = PyJuliaValue_GetValue(xo)
     r = PyObject_TryConvert(yo, Any)
     r == -1 && return PyPtr()
-    r ==  0 && return PyNotImplemented_New()
+    r == 0 && return PyNotImplemented_New()
     y = takeresult()
     try
         if op == Py_EQ
@@ -332,7 +388,7 @@ pyjlany_richcompare(xo::PyPtr, yo::PyPtr, op::Cint) = begin
 end
 
 struct pyjlany_repr_mime{M<:MIME}
-    mime :: M
+    mime::M
 end
 (f::pyjlany_repr_mime{M})(xo::PyPtr, ::PyPtr) where {M} = begin
     x = PyJuliaValue_GetValue(xo)
@@ -355,39 +411,52 @@ end
     end
 end
 
-pyjlany_name(xo::PyPtr, ::Ptr{Cvoid}) = try
-    PyObject_From(string(nameof(PyJuliaValue_GetValue(xo))))
-catch err
-    if err isa MethodError && err.f === nameof
-        PyErr_SetString(PyExc_AttributeError(), "__name__")
-    else
-        PyErr_SetJuliaError(err)
+pyjlany_name(xo::PyPtr, ::Ptr{Cvoid}) =
+    try
+        PyObject_From(string(nameof(PyJuliaValue_GetValue(xo))))
+    catch err
+        if err isa MethodError && err.f === nameof
+            PyErr_SetString(PyExc_AttributeError(), "__name__")
+        else
+            PyErr_SetJuliaError(err)
+        end
+        PyPtr()
     end
-    PyPtr()
-end
 
 pyjlany_toraw(xo::PyPtr, ::PyPtr) = PyJuliaRawValue_New(PyJuliaValue_GetValue(xo))
 
-pyjlany_show(xo::PyPtr, ::PyPtr) = try
-    x = PyJuliaValue_GetValue(xo)
-    io = stdout
-    io = IOContext(io, :limit=>get(io,:limit,true), :compact=>get(io,:limit,true), :color=>get(io,:color,true))
-    show(io, MIME("text/plain"), x)
-    println(io)
-    PyNone_New()
-catch err
-    PyErr_SetJuliaError(err)
-    PyPtr()
-end
+pyjlany_show(xo::PyPtr, ::PyPtr) =
+    try
+        x = PyJuliaValue_GetValue(xo)
+        io = stdout
+        io = IOContext(
+            io,
+            :limit => get(io, :limit, true),
+            :compact => get(io, :limit, true),
+            :color => get(io, :color, true),
+        )
+        show(io, MIME("text/plain"), x)
+        println(io)
+        PyNone_New()
+    catch err
+        PyErr_SetJuliaError(err)
+        PyPtr()
+    end
 
-pyjlany_help(xo::PyPtr, ::PyPtr) = try
-    x = Docs.doc(PyJuliaValue_GetValue(xo))
-    io = stdout
-    io = IOContext(io, :limit=>get(io,:limit,true), :compact=>get(io,:limit,true), :color=>get(io,:color,true))
-    show(io, MIME("text/plain"), x)
-    println(io)
-    PyNone_New()
-catch err
-    PyErr_SetJuliaError(err)
-    PyPtr()
-end
+pyjlany_help(xo::PyPtr, ::PyPtr) =
+    try
+        x = Docs.doc(PyJuliaValue_GetValue(xo))
+        io = stdout
+        io = IOContext(
+            io,
+            :limit => get(io, :limit, true),
+            :compact => get(io, :limit, true),
+            :color => get(io, :color, true),
+        )
+        show(io, MIME("text/plain"), x)
+        println(io)
+        PyNone_New()
+    catch err
+        PyErr_SetJuliaError(err)
+        PyPtr()
+    end

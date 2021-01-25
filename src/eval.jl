@@ -1,4 +1,5 @@
-pyeval_filename(src) = isfile(string(src.file)) ? "$(src.file):$(src.line)" : "julia:$(src.file):$(src.line)"
+pyeval_filename(src) =
+    isfile(string(src.file)) ? "$(src.file):$(src.line)" : "julia:$(src.file):$(src.line)"
 
 pyeval_macro(filename, mode, codearg, args...) = begin
     # unwrap rettype
@@ -13,7 +14,7 @@ pyeval_macro(filename, mode, codearg, args...) = begin
     # parse the remaining arguments - the first one is optionally the locals, the rest are var=value pairs to include in the locals
     kvs = []
     locals = nothing
-    for (i,arg) in enumerate(args)
+    for (i, arg) in enumerate(args)
         if arg isa Expr && arg.head == :(=) && arg.args[1] isa Symbol
             push!(kvs, arg.args[1] => arg.args[2])
         elseif i == 1
@@ -32,13 +33,13 @@ pyeval_macro(filename, mode, codearg, args...) = begin
         if j === nothing
             push!(codechunks, chunk * code[i:end])
             break
-        elseif checkbounds(Bool, code, j+1) && code[j+1] == '$'
+        elseif checkbounds(Bool, code, j + 1) && code[j+1] == '$'
             chunk *= code[i:j]
-            i = j+2
+            i = j + 2
         else
             push!(codechunks, chunk * code[i:j-1])
             chunk = ""
-            ex, i = Meta.parse(code, j+1, greedy=false)
+            ex, i = Meta.parse(code, j + 1, greedy = false)
             push!(interps, ex)
         end
     end
@@ -46,28 +47,43 @@ pyeval_macro(filename, mode, codearg, args...) = begin
     # currently only the pattern "^ $(...) =" is recognized as a LHS
     # TODO: multiple assignment
     # TODO: mutating assignment
-    islhs = [((match(r"[\n;=]\s*$", codechunks[i])!==nothing) || (i==1 && match(r"^\s*$", codechunks[i])!==nothing)) && match(r"^\s*=($|[^=])", codechunks[i+1])!==nothing for (i,ex) in enumerate(interps)]
+    islhs = [
+        (
+            (match(r"[\n;=]\s*$", codechunks[i]) !== nothing) ||
+            (i == 1 && match(r"^\s*$", codechunks[i]) !== nothing)
+        ) && match(r"^\s*=($|[^=])", codechunks[i+1]) !== nothing for
+        (i, ex) in enumerate(interps)
+    ]
     # do the interpolation
-    intvars = ["_jl_interp_$(i)_" for i in 1:length(interps)]
-    for (k,v,lhs) in zip(intvars, interps, islhs)
+    intvars = ["_jl_interp_$(i)_" for i = 1:length(interps)]
+    for (k, v, lhs) in zip(intvars, interps, islhs)
         lhs || push!(kvs, Symbol(k) => v)
     end
-    newcode = join([c * (checkbounds(Bool, intvars, i) ? islhs[i] ? intvars[i] : "($(intvars[i]))" : "") for (i,c) in enumerate(codechunks)])
+    newcode = join([
+        c * (
+            checkbounds(Bool, intvars, i) ? islhs[i] ? intvars[i] : "($(intvars[i]))" : ""
+        ) for (i, c) in enumerate(codechunks)
+    ])
     # for LHS interpolation, extract out type annotations
     if any(islhs)
         mode == :exec || error("interpolation on LHS only allowed in exec mode")
     end
     if mode == :exec
-        outkvts = [(ex isa Expr && ex.head == :(::)) ? (esc(ex.args[1]), v, esc(ex.args[2])) : (esc(ex), v, PyObject) for (ex,v,lhs) in zip(interps,intvars,islhs) if lhs]
+        outkvts = [
+            (ex isa Expr && ex.head == :(::)) ?
+            (esc(ex.args[1]), v, esc(ex.args[2])) : (esc(ex), v, PyObject) for
+            (ex, v, lhs) in zip(interps, intvars, islhs) if lhs
+        ]
     end
     # make the code object
     co = PyCode(newcode, filename, mode)
     # go
-    freelocals = locals === nothing ? :(C.Py_DecRef(lptr)) : :(GC.@preserve locals nothing)
+    freelocals =
+        locals === nothing ? :(C.Py_DecRef(lptr)) : :(GC.@preserve locals nothing)
     ret = quote
         let
             # evaluate the inputs (so any errors are thrown before we have object references)
-            $([:($(Symbol(:input,i)) = $(esc(v))) for (i,(k,v)) in enumerate(kvs)]...)
+            $([:($(Symbol(:input, i)) = $(esc(v))) for (i, (k, v)) in enumerate(kvs)]...)
             # get the code pointer
             cptr = checknull(pyptr($co))
             # get the globals pointer
@@ -76,15 +92,38 @@ pyeval_macro(filename, mode, codearg, args...) = begin
             # ensure globals includes builtins
             if !globals.hasbuiltins
                 if C.PyMapping_HasKeyString(gptr, "__builtins__") == 0
-                    err = C.PyMapping_SetItemString(gptr, "__builtins__", C.PyEval_GetBuiltins())
+                    err = C.PyMapping_SetItemString(
+                        gptr,
+                        "__builtins__",
+                        C.PyEval_GetBuiltins(),
+                    )
                     ism1(err) && pythrow()
                 end
                 globals.hasbuiltins = true
             end
             # get locals (ALLOCATES lptr if locals===nothing)
-            $(locals === nothing ? :(lptr = checknull(C.PyDict_New())) : :(locals = $(esc(locals)); lptr = checknull(pyptr(locals))))
+            $(
+                locals === nothing ? :(lptr = checknull(C.PyDict_New())) :
+                :(locals = $(esc(locals)); lptr = checknull(pyptr(locals)))
+            )
             # insert extra locals
-            $([:(let; vo=C.PyObject_From($(Symbol(:input,i))); isnull(vo) && ($freelocals; pythrow()); err=C.PyObject_SetItem(lptr, $(PyInternedString(string(k))), vo); C.Py_DecRef(vo); ism1(err) && ($freelocals; pythrow()); end) for (i,(k,v)) in enumerate(kvs)]...)
+            $(
+                [
+                    :(
+                        let
+                            vo = C.PyObject_From($(Symbol(:input, i)))
+                            isnull(vo) && ($freelocals; pythrow())
+                            err = C.PyObject_SetItem(
+                                lptr,
+                                $(PyInternedString(string(k))),
+                                vo,
+                            )
+                            C.Py_DecRef(vo)
+                            ism1(err) && ($freelocals; pythrow())
+                        end
+                    ) for (i, (k, v)) in enumerate(kvs)
+                ]...
+            )
             # Call eval (ALLOCATES rptr)
             rptr = GC.@preserve globals C.PyEval_EvalCode(cptr, gptr, lptr)
             isnull(rptr) && ($freelocals; pythrow())
@@ -101,18 +140,26 @@ pyeval_macro(filename, mode, codearg, args...) = begin
                 elseif mode == :exec
                     quote
                         C.Py_DecRef(rptr)
-                        $((quote
-                            $(Symbol(:output,i)) = let
-                                xo = C.PyObject_GetItem(lptr, $(PyInternedString(v)))
-                                isnull(xo) && ($freelocals; pythrow())
-                                res = C.PyObject_Convert(xo, $t)
-                                C.Py_DecRef(xo)
-                                ism1(res) && ($freelocals; pythrow())
-                                C.takeresult($t)
-                            end
-                        end for (i,(_,v,t)) in enumerate(outkvts))...)
+                        $(
+                            (
+                                quote
+                                    $(Symbol(:output, i)) =
+                                        let
+                                            xo = C.PyObject_GetItem(
+                                                lptr,
+                                                $(PyInternedString(v)),
+                                            )
+                                            isnull(xo) && ($freelocals; pythrow())
+                                            res = C.PyObject_Convert(xo, $t)
+                                            C.Py_DecRef(xo)
+                                            ism1(res) && ($freelocals; pythrow())
+                                            C.takeresult($t)
+                                        end
+                                end for (i, (_, v, t)) in enumerate(outkvts)
+                            )...
+                        )
                         $freelocals
-                        ($((Symbol(:output,i) for i in 1:length(outkvts))...),)
+                        ($((Symbol(:output, i) for i = 1:length(outkvts))...),)
                     end
                 else
                     error()
@@ -122,7 +169,7 @@ pyeval_macro(filename, mode, codearg, args...) = begin
     end
     if mode == :exec
         ret = quote
-            ($((k for (k,_,_) in outkvts)...),) = $ret
+            ($((k for (k, _, _) in outkvts)...),) = $ret
             nothing
         end
     end

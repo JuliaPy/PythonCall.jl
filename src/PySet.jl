@@ -6,7 +6,7 @@ Wrap the Python set `o` (or anything satisfying the set interface) as a Julia se
 If `o` is not given, an empty set is created.
 """
 struct PySet{T} <: AbstractSet{T}
-    ref :: PyRef
+    ref::PyRef
     PySet{T}(o) where {T} = new{T}(ispyref(o) ? PyRef(o) : pyset(PyRef, o))
     PySet{T}() where {T} = new{T}(PyRef())
 end
@@ -23,7 +23,8 @@ pyptr(x::PySet) = begin
     ptr
 end
 Base.unsafe_convert(::Type{CPyPtr}, x::PySet) = checknull(pyptr(x))
-C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PySet} = C.putresult(T(pyborrowedref(o)))
+C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PySet} =
+    C.putresult(T(pyborrowedref(o)))
 
 Base.iterate(x::PySet{T}, it::PyRef) where {T} = begin
     ptr = C.PyIter_Next(it)

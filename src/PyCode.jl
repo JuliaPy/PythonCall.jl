@@ -1,8 +1,8 @@
 mutable struct PyCode
-    ref :: PyRef
-    code :: String
-    filename :: String
-    mode :: Symbol
+    ref::PyRef
+    code::String
+    filename::String
+    mode::Symbol
     PyCode(code::String, filename::String, mode::Symbol) = begin
         mode in (:exec, :eval) || error("invalid mode $(repr(mode))")
         new(PyRef(), code, filename, mode)
@@ -14,7 +14,13 @@ ispyreftype(::Type{PyCode}) = true
 pyptr(co::PyCode) = begin
     ptr = co.ref.ptr
     if isnull(ptr)
-        ptr = co.ref.ptr = C.Py_CompileString(co.code, co.filename, co.mode == :exec ? C.Py_file_input : co.mode == :eval ? C.Py_eval_input : error("invalid mode $(repr(co.mode))"))
+        ptr =
+            co.ref.ptr = C.Py_CompileString(
+                co.code,
+                co.filename,
+                co.mode == :exec ? C.Py_file_input :
+                co.mode == :eval ? C.Py_eval_input : error("invalid mode $(repr(co.mode))"),
+            )
     end
     ptr
 end

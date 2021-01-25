@@ -1,6 +1,6 @@
 mutable struct PyObject
-    ref :: PyRef
-    make :: Any
+    ref::PyRef
+    make::Any
     PyObject(::Val{:nocopy}, o::PyRef) = new(o)
     PyObject(o) = new(PyRef(o))
     PyObject(::Val{:lazy}, mk) = new(PyRef(), mk)
@@ -23,8 +23,10 @@ pyptr(o::PyObject) = begin
     ptr
 end
 Base.unsafe_convert(::Type{CPyPtr}, o::PyObject) = checknull(pyptr(o))
-pynewobject(p::Ptr, check::Bool=false) = (check && isnull(p)) ? pythrow() : PyObject(Val(:nocopy), pynewref(p))
-pyborrowedobject(p::Ptr, check::Bool=false) = (check && isnull(p)) ? pythrow() : PyObject(Val(:nocopy), pyborrowedref(p))
+pynewobject(p::Ptr, check::Bool = false) =
+    (check && isnull(p)) ? pythrow() : PyObject(Val(:nocopy), pynewref(p))
+pyborrowedobject(p::Ptr, check::Bool = false) =
+    (check && isnull(p)) ? pythrow() : PyObject(Val(:nocopy), pyborrowedref(p))
 pylazyobject(mk) = PyObject(Val(:lazy), mk)
 
 C.PyObject_TryConvert__initial(o, ::Type{PyObject}) = C.putresult(pyborrowedobject(o))
@@ -65,7 +67,7 @@ function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
     h, w = displaysize(io)
     h -= 3
     x = try
-        pystr(String, pypprintmodule().pformat(o, width=w))
+        pystr(String, pypprintmodule().pformat(o, width = w))
     catch
         pyrepr(String, o)
     end
@@ -78,13 +80,13 @@ function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
                 h -= 1
             end
             xs = split(x, '\n')
-            printlines(xs, nl=true) =
-                for (i,x) in enumerate(xs)
-                    (nl || i>1) && print(io, '\n')
+            printlines(xs, nl = true) =
+                for (i, x) in enumerate(xs)
+                    (nl || i > 1) && print(io, '\n')
                     if length(x) ≤ w
                         print(io, x)
                     else
-                        print(io, x[1:nextind(x, 0, w-1)], '…')
+                        print(io, x[1:nextind(x, 0, w - 1)], '…')
                     end
                 end
             if length(xs) ≤ h
@@ -94,19 +96,19 @@ function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
                 # too many lines, skip the middle ones
                 h -= 1
                 h2 = cld(h, 2)
-                h3 = (length(xs)+1)-(h-h2)
+                h3 = (length(xs) + 1) - (h - h2)
                 printlines(xs[1:h2], prefix)
                 linelen = min(
                     checkbounds(Bool, xs, h2) ? length(xs[h2]) : 0,
                     checkbounds(Bool, xs, h3) ? length(xs[h3]) : 0,
-                    w
+                    w,
                 )
                 msg = "... [skipping $(h3-h2-1) lines] ..."
                 pad = fld(linelen - length(msg), 2)
                 print(io, "\n", pad > 0 ? " "^pad : "", msg)
                 printlines(xs[h3:end])
             end
-        elseif length(x) ≤ (prefix ? w-4 : w)
+        elseif length(x) ≤ (prefix ? w - 4 : w)
             # one short line
             print(io, prefix ? "py: " : "", x)
             return
@@ -125,9 +127,12 @@ function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
                 h -= 1
                 h2 = cld(h, 2)
                 i2 = nextind(x, 0, h2 * w)
-                i3 = prevind(x, ncodeunits(x)+1, (h-h2)*w)
+                i3 = prevind(x, ncodeunits(x) + 1, (h - h2) * w)
                 println(io, x[1:i2])
-                println(io, " ... [skipping $(length(x[nextind(x,i2):prevind(x,i3)])) characters] ...")
+                println(
+                    io,
+                    " ... [skipping $(length(x[nextind(x,i2):prevind(x,i3)])) characters] ...",
+                )
                 print(io, x[i3:end])
             end
         end
@@ -157,13 +162,13 @@ Base.getproperty(o::PyObject, k::Symbol) =
     elseif k == :jl!c
         pyconvert(Complex{Cdouble}, o)
     elseif k == :jl!iter
-        ((::Type{T}=PyObject) where {T}) -> PyIterable{T}(o)
+        ((::Type{T} = PyObject) where {T}) -> PyIterable{T}(o)
     elseif k == :jl!list
-        ((::Type{T}=PyObject) where {T}) -> PyList{T}(o)
+        ((::Type{T} = PyObject) where {T}) -> PyList{T}(o)
     elseif k == :jl!set
-        ((::Type{T}=PyObject) where {T}) -> PySet{T}(o)
+        ((::Type{T} = PyObject) where {T}) -> PySet{T}(o)
     elseif k == :jl!dict
-        ((::Type{K}=PyObject, ::Type{V}=PyObject) where {K,V}) -> PyDict{K,V}(o)
+        ((::Type{K} = PyObject, ::Type{V} = PyObject) where {K,V}) -> PyDict{K,V}(o)
     elseif k == :jl!io
         (; opts...) -> PyIO(o; opts...)
     elseif k == :jl!pandasdf
@@ -176,7 +181,8 @@ Base.getproperty(o::PyObject, k::Symbol) =
         f_arr(::Type{T}, N::Integer) where {T} = PyArray{T,N}(o)
         f_arr(::Type{T}, N::Integer, ::Type{R}) where {T,R} = PyArray{T,N,R}(o)
         f_arr(::Type{T}, N::Integer, ::Type{R}, M::Bool) where {T,R} = PyArray{T,N,R,M}(o)
-        f_arr(::Type{T}, N::Integer, ::Type{R}, M::Bool, L::Bool) where {T,R} = PyArray{T,N,R,M,L}(o)
+        f_arr(::Type{T}, N::Integer, ::Type{R}, M::Bool, L::Bool) where {T,R} =
+            PyArray{T,N,R,M,L}(o)
         f_arr
     elseif k == :jl!vector
         f_vec() = PyVector(o)
@@ -239,7 +245,7 @@ Base.delete!(o::PyObject, k...) = pydelitem(o, k)
 
 Base.length(o::PyObject) = Int(pylen(o))
 
-Base.iterate(o::PyObject, it::PyRef=pyiter(PyRef,o)) = begin
+Base.iterate(o::PyObject, it::PyRef = pyiter(PyRef, o)) = begin
     vo = C.PyIter_Next(it)
     if !isnull(vo)
         (pynewobject(vo), it)
@@ -258,9 +264,9 @@ Base.hash(o::PyObject) = trunc(UInt, pyhash(o))
 Base.:(==)(x::PyObject, y::PyObject) = pyeq(PyObject, x, y)
 Base.:(!=)(x::PyObject, y::PyObject) = pynq(PyObject, x, y)
 Base.:(<=)(x::PyObject, y::PyObject) = pyle(PyObject, x, y)
-Base.:(< )(x::PyObject, y::PyObject) = pylt(PyObject, x, y)
+Base.:(<)(x::PyObject, y::PyObject) = pylt(PyObject, x, y)
 Base.:(>=)(x::PyObject, y::PyObject) = pyge(PyObject, x, y)
-Base.:(> )(x::PyObject, y::PyObject) = pygt(PyObject, x, y)
+Base.:(>)(x::PyObject, y::PyObject) = pygt(PyObject, x, y)
 Base.isequal(x::PyObject, y::PyObject) = pyeq(Bool, x, y)
 Base.isless(x::PyObject, y::PyObject) = pylt(Bool, x, y)
 
@@ -316,7 +322,8 @@ Base.:xor(o1::Number, o2::PyObject) = pyxor(PyObject, o1, o2)
 Base.:(|)(o1::Number, o2::PyObject) = pyor(PyObject, o1, o2)
 
 # ternary
-Base.powermod(o1::PyObject, o2::Union{PyObject,Number}, o3::Union{PyObject,Number}) = pypow(PyObject, o1, o2, o3)
+Base.powermod(o1::PyObject, o2::Union{PyObject,Number}, o3::Union{PyObject,Number}) =
+    pypow(PyObject, o1, o2, o3)
 
 ### DOCUMENTATION
 

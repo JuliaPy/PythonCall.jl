@@ -19,7 +19,7 @@ function fix_qt_plugin_path()
         m = match(r"^\s*prefix\s*=(.*)$"i, line)
         if m !== nothing
             path = strip(m.captures[1])
-            path[1]==path[end]=='"' && (path = path[2:end-1])
+            path[1] == path[end] == '"' && (path = path[2:end-1])
             path = joinpath(path, "plugins")
             if isdir(path)
                 e["QT_PLUGIN_PATH"] = realpath(path)
@@ -42,7 +42,7 @@ The asynchronous task waits for `sleep` seconds before calling the hook function
 This gives time for the next prompt to be printed and waiting for input.
 As a result, there will be a small delay before the GUI becomes interactive.
 """
-pyinteract(; force::Bool=false, sleep::Real=0.1) =
+pyinteract(; force::Bool = false, sleep::Real = 0.1) =
     if !CONFIG.inputhookrunning || force
         CONFIG.inputhookrunning = true
         @async begin
@@ -54,7 +54,7 @@ pyinteract(; force::Bool=false, sleep::Real=0.1) =
     end
 export pyinteract
 
-const EVENT_LOOPS = Dict{Symbol, Base.Timer}()
+const EVENT_LOOPS = Dict{Symbol,Base.Timer}()
 
 function event_loop_off(g::Symbol)
     if haskey(EVENT_LOOPS, g)
@@ -63,7 +63,7 @@ function event_loop_off(g::Symbol)
     return
 end
 
-function event_loop_on(g::Symbol; interval::Real=40e-3, fix::Bool=false)
+function event_loop_on(g::Symbol; interval::Real = 40e-3, fix::Bool = false)
     fix && g in (:pyqt4, :pyqt5, :pyside, :pyside2) && fix_qt_plugin_path()
     @py ```
     def make_event_loop(g, interval):
@@ -131,6 +131,6 @@ function event_loop_on(g::Symbol; interval::Real=40e-3, fix::Bool=false)
         return event_loop
     $event_loop = make_event_loop($(string(g)), $interval)
     ```
-    t = EVENT_LOOPS[g] = Timer(t -> event_loop(), 0; interval=interval)
+    t = EVENT_LOOPS[g] = Timer(t -> event_loop(), 0; interval = interval)
     g => t
 end

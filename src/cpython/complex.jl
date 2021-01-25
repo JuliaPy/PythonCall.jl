@@ -16,7 +16,8 @@ PyComplex_AsComplex(o) = begin
 end
 
 PyComplex_From(x::Union{Float16,Float32,Float64}) = PyComplex_FromDoubles(x, 0)
-PyComplex_From(x::Complex{<:Union{Float16,Float32,Float64}}) = PyComplex_FromDoubles(real(x), imag(x))
+PyComplex_From(x::Complex{<:Union{Float16,Float32,Float64}}) =
+    PyComplex_FromDoubles(real(x), imag(x))
 
 # "Complexable" means a 'complex' or anything with a '__complex__' method
 PyComplexable_TryConvertRule_convert(o, ::Type{S}) where {S} = begin

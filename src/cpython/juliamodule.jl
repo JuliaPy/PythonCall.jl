@@ -5,13 +5,16 @@ PyJuliaModuleValue_Type() = begin
         c = []
         base = PyJuliaAnyValue_Type()
         isnull(base) && return PyPtr()
-        t = fill(PyType_Create(c,
-            name = "julia.ModuleValue",
-            base = base,
-            methods = [
-                (name="seval", flags=Py_METH_VARARGS, meth=pyjlmodule_seval),
-            ],
-        ))
+        t = fill(
+            PyType_Create(
+                c,
+                name = "julia.ModuleValue",
+                base = base,
+                methods = [
+                    (name = "seval", flags = Py_METH_VARARGS, meth = pyjlmodule_seval),
+                ],
+            ),
+        )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
         ism1(err) && return PyPtr()

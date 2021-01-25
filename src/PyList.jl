@@ -61,7 +61,7 @@ Base.pushfirst!(x::PyList, v) = insert!(x, 1, v)
 
 Base.pop!(x::PyList{T}) where {T} = @pyv `$x.pop()`::T
 
-Base.popat!(x::PyList{T}, i::Integer) where {T} = (checkbounds(x, i); @pyv `$x.pop($(i-1))`::T)
+Base.delete!(x::PyList{T}, i::Integer) where {T} = (checkbounds(x, i); @py `$x.pop($(i-1))`; x)
 
 Base.popfirst!(x::PyList) = pop!(x, 1)
 

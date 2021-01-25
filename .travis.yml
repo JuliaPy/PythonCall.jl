@@ -5,6 +5,7 @@ notifications:
 
 julia:
 - 1
+- nightly
 - 1.5
 - 1.4
 - 1.3
@@ -23,6 +24,12 @@ env:
 codecov: true
 
 jobs:
+  allow_failures:
+    - julia: nightly
+    - julia: 1.2
+    - julia: 1.1
+    - julia: 1.0
+  fast_finish: true
   include:
     - stage: "Documentation"
       script:

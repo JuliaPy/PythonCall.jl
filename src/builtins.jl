@@ -173,7 +173,7 @@ export pycontains
 Equivalent to `v in x` in Python.
 """
 pyin(v, x) = pycontains(x, v)
-export pyin
+export pylen
 
 """
     pygetitem([T=PyObject,] x, k) :: T

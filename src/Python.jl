@@ -8,7 +8,6 @@ using Dates,
     TableTraits,
     IteratorInterfaceExtensions,
     Markdown,
-    Base64,
     Requires
 using Base: @kwdef
 

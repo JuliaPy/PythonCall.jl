@@ -10,7 +10,6 @@ for n in [:DateTime, :Date, :Time, :TimeDelta, :TZInfo, :TimeZone]
         m = Py_DateTimeModule(doimport)
         isnull(m) && return PyPtr()
         o = PyObject_GetAttrString(m, $p)
-        Py_DecRef(m)
         isnull(o) && return PyPtr()
         $r[] = o
     end
@@ -270,7 +269,7 @@ PyTimeDelta_From(x::Millisecond) = PyTimeDelta_FromParts(milliseconds = Dates.va
 PyTimeDelta_From(x::Microsecond) = PyTimeDelta_FromParts(microseconds = Dates.value(x))
 PyTimeDelta_From(x::Nanosecond) =
     if mod(Dates.value(x), 1000) == 0
-        PyTimeDelta_FromParts(div(Dates.value(x), 1000))
+        PyTimeDelta_FromParts(microseconds = div(Dates.value(x), 1000))
     else
         PyErr_SetString(
             PyExc_ValueError(),

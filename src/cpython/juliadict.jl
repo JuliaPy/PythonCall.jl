@@ -84,7 +84,7 @@ pyjldict_get(xo::PyPtr, args::PyPtr) = begin
         end
     catch err
         PyErr_SetJuliaError(err)
-        Cint(-1)
+        PyPtr()
     end
 end
 
@@ -109,7 +109,7 @@ pyjldict_setdefault(xo::PyPtr, args::PyPtr) = begin
         end
     catch err
         PyErr_SetJuliaError(err)
-        Cint(-1)
+        PyPtr()
     end
 end
 

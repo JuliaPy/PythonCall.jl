@@ -1,7 +1,7 @@
 @cdef :PyType_IsSubtype Cint (PyPtr, PyPtr)
 @cdef :PyType_Ready Cint (PyPtr,)
 
-Py_Type(o) = GC.@preserve o UnsafePtr(Base.unsafe_convert(PyPtr, o)).type[!]
+Py_Type(o) = GC.@preserve o Ptr{PyObject}(UnsafePtr(Base.unsafe_convert(PyPtr, o)).type[!])
 Py_TypeCheck(o, t) = PyType_IsSubtype(Py_Type(o), t) != 0
 Py_TypeCheckExact(o, t) = Py_Type(o) == Base.unsafe_convert(PyPtr, t)
 Py_TypeCheckFast(o, f) = PyType_IsSubtypeFast(Py_Type(o), f)

@@ -18,7 +18,7 @@ end
 pyjlbase_init(o::PyPtr, args::PyPtr, kwargs::PyPtr) = begin
     ism1(PyArg_CheckNumArgsEq("__init__", args, 1)) && return Cint(-1)
     ism1(PyArg_CheckNoKwargs("__init__", kwargs)) && return Cint(-1)
-    ism1(PyArg_GetArg(Any, "__init__", args, kwargs, 0)) && return Cint(-1)
+    ism1(PyArg_GetArg(Any, "__init__", args, 0)) && return Cint(-1)
     PyJuliaValue_SetValue(o, takeresult(Any))
     Cint(0)
 end

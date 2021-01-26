@@ -121,7 +121,7 @@ end
 @kwdef struct PyObject
     # assumes _PyObject_HEAD_EXTRA is empty
     refcnt::Py_ssize_t = 0
-    type::Ptr{PyObject} = C_NULL
+    type::Ptr{Cvoid} = C_NULL # really is Ptr{PyObject} or Ptr{PyTypeObject} but Julia 1.3 and below get the layout incorrect when circular types are involved
 end
 
 const PyPtr = Ptr{PyObject}

@@ -20,16 +20,20 @@ using Base: @kwdef
 using UnsafePointers: UnsafePtr
 
 pyglobal(name) = dlsym(CONFIG.libptr, name)
-pyglobal(r::Ref{Ptr{T}}, name) where {T} = (p = r[];
-if isnull(p)
-    p = r[] = Ptr{T}(pyglobal(name))
-end;
-p)
-pyloadglobal(r::Ref{Ptr{T}}, name) where {T} = (p = r[];
-if isnull(p)
-    p = r[] = unsafe_load(Ptr{Ptr{T}}(pyglobal(name)))
-end;
-p)
+pyglobal(r::Ref{Ptr{T}}, name) where {T} = begin
+    p = r[]
+    if isnull(p)
+        p = r[] = Ptr{T}(pyglobal(name))
+    end
+    p
+end
+pyloadglobal(r::Ref{Ptr{T}}, name) where {T} = begin
+    p = r[]
+    if isnull(p)
+        p = r[] = unsafe_load(Ptr{Ptr{T}}(pyglobal(name)))
+    end
+    p
+end
 
 macro cdef(name, rettype, argtypes)
     name isa QuoteNode && name.value isa Symbol || error("name must be a symbol, got $name")

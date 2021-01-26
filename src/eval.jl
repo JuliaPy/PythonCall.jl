@@ -29,7 +29,7 @@ pyeval_macro(filename, mode, codearg, args...) = begin
     interps = []
     chunk = ""
     while true
-        j = findnext('$', code, i)
+        j = findnext(==('$'), code, i)
         if j === nothing
             push!(codechunks, chunk * code[i:end])
             break

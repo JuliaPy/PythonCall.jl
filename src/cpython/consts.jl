@@ -310,7 +310,7 @@ end
 const PyTypePtr = Ptr{PyTypeObject}
 
 struct PySimpleObject{T}
-    ob_base::PyObject = PyObject()
+    ob_base::PyObject
     value::T
 end
 

@@ -26,7 +26,6 @@ codecov: true
 jobs:
   allow_failures:
     - julia: nightly
-    - julia: 1.1
     - julia: 1.0
   fast_finish: true
   include:

@@ -3,7 +3,7 @@ for n in [:IOBase, :RawIOBase, :BufferedIOBase, :TextIOBase]
     t = Symbol(p, :_Type)
     tr = Symbol(p, :__ref)
     c = Symbol(p, :_Check)
-    @eval const $tr = Ref(PyPtr())
+    @eval const $tr = Ref(PyNULL)
     @eval $t(doimport::Bool = true) = begin
         ptr = $tr[]
         isnull(ptr) || return ptr

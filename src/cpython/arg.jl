@@ -59,10 +59,10 @@ PyArg_Find(args::PyPtr, kwargs::PyPtr, i::Union{Int,Nothing}, k::Union{String,No
         return PyTuple_GetItem(args, i)
     elseif k !== nothing &&
            !isnull(kwargs) &&
-           (ro = PyDict_GetItemString(kwargs, k)) != PyPtr()
+           (ro = PyDict_GetItemString(kwargs, k)) != PyNULL
         return ro
     else
-        return PyPtr()
+        return PyNULL
     end
 
 """
@@ -116,6 +116,6 @@ PyArg_GetArg(
     end
 end
 PyArg_GetArg(::Type{T}, name::String, args::PyPtr, i::Int, d = NODEFAULT()) where {T} =
-    PyArg_GetArg(T, name, args, i, PyPtr(), nothing, d)
+    PyArg_GetArg(T, name, args, i, PyNULL, nothing, d)
 PyArg_GetArg(::Type{T}, name::String, kwargs::PyPtr, k::String, d = NODEFAULT()) where {T} =
-    PyArg_GetArg(T, name, PyPtr(), nothing, kwargs, k, d)
+    PyArg_GetArg(T, name, PyNULL, nothing, kwargs, k, d)

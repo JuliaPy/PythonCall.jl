@@ -1,7 +1,7 @@
 @cdef :PyBytes_FromStringAndSize PyPtr (Ptr{Cchar}, Py_ssize_t)
 @cdef :PyBytes_AsStringAndSize Cint (PyPtr, Ptr{Ptr{Cchar}}, Ptr{Py_ssize_t})
 
-const PyBytes_Type__ref = Ref(PyPtr())
+const PyBytes_Type__ref = Ref(PyNULL)
 PyBytes_Type() = pyglobal(PyBytes_Type__ref, :PyBytes_Type)
 
 PyBytes_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_BYTES_SUBCLASS)

@@ -1,10 +1,10 @@
-const PyJuliaRawValue_Type__ref = Ref(PyPtr())
+const PyJuliaRawValue_Type__ref = Ref(PyNULL)
 PyJuliaRawValue_Type() = begin
     ptr = PyJuliaRawValue_Type__ref[]
     if isnull(ptr)
         c = []
         base = PyJuliaBaseValue_Type()
-        isnull(base) && return PyPtr()
+        isnull(base) && return PyNULL
         t = fill(
             PyType_Create(
                 c,
@@ -28,7 +28,7 @@ PyJuliaRawValue_Type() = begin
         )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
-        ism1(err) && return PyPtr()
+        ism1(err) && return PyNULL
         PYJLGCCACHE[ptr] = push!(c, t)
         PyJuliaRawValue_Type__ref[] = ptr
     end
@@ -44,7 +44,7 @@ pyjlraw_repr(xo::PyPtr) =
         PyUnicode_From(s)
     catch err
         PyErr_SetJuliaError(err)
-        return PyPtr()
+        return PyNULL
     end
 
 pyjlraw_str(xo::PyPtr) =
@@ -54,7 +54,7 @@ pyjlraw_str(xo::PyPtr) =
         PyUnicode_From(s)
     catch err
         PyErr_SetJuliaError(err)
-        return PyPtr()
+        return PyNULL
     end
 
 pyjl_attr_py2jl(k::String) = replace(k, r"_[b]+$" => (x -> "!"^(length(x) - 1)))
@@ -71,14 +71,14 @@ pyjlraw_getattro(xo::PyPtr, ko::PyPtr) = begin
     # Now try to get the corresponding property
     x = PyJuliaValue_GetValue(xo)
     k = PyUnicode_AsString(ko)
-    isempty(k) && PyErr_IsSet() && return PyPtr()
+    isempty(k) && PyErr_IsSet() && return PyNULL
     k = pyjl_attr_py2jl(k)
     try
         v = getproperty(x, Symbol(k))
         PyJuliaRawValue_New(v)
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 end
 
@@ -108,24 +108,24 @@ end
 
 pyjlraw_dir(xo::PyPtr, _::PyPtr) = begin
     fo = PyObject_GetAttrString(PyJuliaBaseValue_Type(), "__dir__")
-    isnull(fo) && return PyPtr()
+    isnull(fo) && return PyNULL
     ro = PyObject_CallNice(fo, PyObjectRef(xo))
     Py_DecRef(fo)
-    isnull(ro) && return PyPtr()
+    isnull(ro) && return PyNULL
     x = PyJuliaValue_GetValue(xo)
     ks = try
         collect(map(string, propertynames(x)))
     catch err
         Py_DecRef(ro)
         PyErr_SetJuliaError(err)
-        return PyPtr()
+        return PyNULL
     end
     for k in ks
         ko = PyUnicode_From(pyjl_attr_jl2py(k))
-        isnull(ko) && (Py_DecRef(ro); return PyPtr())
+        isnull(ko) && (Py_DecRef(ro); return PyNULL)
         err = PyList_Append(ro, ko)
         Py_DecRef(ko)
-        ism1(err) && (Py_DecRef(ro); return PyPtr())
+        ism1(err) && (Py_DecRef(ro); return PyNULL)
     end
     return ro
 end
@@ -135,13 +135,13 @@ pyjlraw_call(fo::PyPtr, argso::PyPtr, kwargso::PyPtr) = begin
     if isnull(argso)
         args = Vector{Any}()
     else
-        ism1(PyObject_Convert(argso, Vector{Any})) && return PyPtr()
+        ism1(PyObject_Convert(argso, Vector{Any})) && return PyNULL
         args = takeresult(Vector{Any})
     end
     if isnull(kwargso)
         kwargs = Dict{Symbol,Any}()
     else
-        ism1(PyObject_Convert(kwargso, Dict{Symbol,Any})) && return PyPtr()
+        ism1(PyObject_Convert(kwargso, Dict{Symbol,Any})) && return PyNULL
         kwargs = takeresult(Dict{Symbol,Any})
     end
     try
@@ -149,7 +149,7 @@ pyjlraw_call(fo::PyPtr, argso::PyPtr, kwargso::PyPtr) = begin
         PyJuliaRawValue_New(x)
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 end
 
@@ -165,32 +165,32 @@ pyjlraw_length(xo::PyPtr) =
 pyjlraw_getitem(xo::PyPtr, ko::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)
     if PyTuple_Check(ko)
-        ism1(PyObject_Convert(ko, Tuple)) && return PyPtr()
+        ism1(PyObject_Convert(ko, Tuple)) && return PyNULL
         k = takeresult(Tuple)
         try
             PyJuliaRawValue_New(x[k...])
         catch err
             PyErr_SetJuliaError(err)
-            PyPtr()
+            PyNULL
         end
     else
-        ism1(PyObject_Convert(ko, Any)) && return PyPtr()
+        ism1(PyObject_Convert(ko, Any)) && return PyNULL
         k = takeresult(Any)
         try
             PyJuliaRawValue_New(x[k])
         catch err
             PyErr_SetJuliaError(err)
-            PyPtr()
+            PyNULL
         end
     end
 end
 
 pyjlraw_setitem(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)
-    ism1(PyObject_Convert(vo, Any)) && return PyPtr()
+    ism1(PyObject_Convert(vo, Any)) && return PyNULL
     v = takeresult(Any)
     if PyTuple_Check(ko)
-        ism1(PyObject_Convert(ko, Tuple)) && return PyPtr()
+        ism1(PyObject_Convert(ko, Tuple)) && return PyNULL
         k = takeresult(Tuple)
         try
             x[k...] = v
@@ -200,7 +200,7 @@ pyjlraw_setitem(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
             Cint(-1)
         end
     else
-        ism1(PyObject_Convert(ko, Any)) && return PyPtr()
+        ism1(PyObject_Convert(ko, Any)) && return PyNULL
         k = takeresult(Any)
         try
             x[k] = v

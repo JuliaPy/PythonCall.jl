@@ -204,7 +204,9 @@ Base.getproperty(o::PyObject, k::Symbol) =
 
 Base.setproperty!(o::PyObject, k::Symbol, v) = pysetattr(o, k, v)
 
-Base.hasproperty(o::PyObject, k::Symbol) = pyhasattr(o, k)
+if hasproperty(Base, :hasproperty)
+    Base.hasproperty(o::PyObject, k::Symbol) = pyhasattr(o, k)
+end
 
 function Base.propertynames(o::PyObject)
     # this follows the logic of rlcompleter.py

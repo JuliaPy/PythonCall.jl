@@ -1,10 +1,10 @@
-const PyJuliaNumberValue_Type__ref = Ref(PyPtr())
+const PyJuliaNumberValue_Type__ref = Ref(PyNULL)
 PyJuliaNumberValue_Type() = begin
     ptr = PyJuliaNumberValue_Type__ref[]
     if isnull(ptr)
         c = []
         base = PyJuliaAnyValue_Type()
-        isnull(base) && return PyPtr()
+        isnull(base) && return PyNULL
         t = fill(
             PyType_Create(
                 c,
@@ -32,10 +32,10 @@ PyJuliaNumberValue_Type() = begin
         )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
-        ism1(err) && return PyPtr()
+        ism1(err) && return PyNULL
         abc = PyNumberABC_Type()
-        isnull(abc) && return PyPtr()
-        ism1(PyABC_Register(ptr, abc)) && return PyPtr()
+        isnull(abc) && return PyNULL
+        ism1(PyABC_Register(ptr, abc)) && return PyNULL
         PYJLGCCACHE[ptr] = push!(c, t)
         PyJuliaNumberValue_Type__ref[] = ptr
     end
@@ -45,13 +45,13 @@ end
 PyJuliaNumberValue_New(x::Number) = PyJuliaValue_New(PyJuliaNumberValue_Type(), x)
 PyJuliaValue_From(x::Number) = PyJuliaNumberValue_New(x)
 
-const PyJuliaComplexValue_Type__ref = Ref(PyPtr())
+const PyJuliaComplexValue_Type__ref = Ref(PyNULL)
 PyJuliaComplexValue_Type() = begin
     ptr = PyJuliaComplexValue_Type__ref[]
     if isnull(ptr)
         c = []
         base = PyJuliaNumberValue_Type()
-        isnull(base) && return PyPtr()
+        isnull(base) && return PyNULL
         t = fill(
             PyType_Create(
                 c,
@@ -77,10 +77,10 @@ PyJuliaComplexValue_Type() = begin
         )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
-        ism1(err) && return PyPtr()
+        ism1(err) && return PyNULL
         abc = PyComplexABC_Type()
-        isnull(abc) && return PyPtr()
-        ism1(PyABC_Register(ptr, abc)) && return PyPtr()
+        isnull(abc) && return PyNULL
+        ism1(PyABC_Register(ptr, abc)) && return PyNULL
         PYJLGCCACHE[ptr] = push!(c, t)
         PyJuliaComplexValue_Type__ref[] = ptr
     end
@@ -90,13 +90,13 @@ end
 PyJuliaComplexValue_New(x::Complex) = PyJuliaValue_New(PyJuliaComplexValue_Type(), x)
 PyJuliaValue_From(x::Complex) = PyJuliaComplexValue_New(x)
 
-const PyJuliaRealValue_Type__ref = Ref(PyPtr())
+const PyJuliaRealValue_Type__ref = Ref(PyNULL)
 PyJuliaRealValue_Type() = begin
     ptr = PyJuliaRealValue_Type__ref[]
     if isnull(ptr)
         c = []
         base = PyJuliaNumberValue_Type()
-        isnull(base) && return PyPtr()
+        isnull(base) && return PyNULL
         t = fill(
             PyType_Create(
                 c,
@@ -119,10 +119,10 @@ PyJuliaRealValue_Type() = begin
         )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
-        ism1(err) && return PyPtr()
+        ism1(err) && return PyNULL
         abc = PyRealABC_Type()
-        isnull(abc) && return PyPtr()
-        ism1(PyABC_Register(ptr, abc)) && return PyPtr()
+        isnull(abc) && return PyNULL
+        ism1(PyABC_Register(ptr, abc)) && return PyNULL
         PYJLGCCACHE[ptr] = push!(c, t)
         PyJuliaRealValue_Type__ref[] = ptr
     end
@@ -132,13 +132,13 @@ end
 PyJuliaRealValue_New(x::Real) = PyJuliaValue_New(PyJuliaRealValue_Type(), x)
 PyJuliaValue_From(x::Real) = PyJuliaRealValue_New(x)
 
-const PyJuliaRationalValue_Type__ref = Ref(PyPtr())
+const PyJuliaRationalValue_Type__ref = Ref(PyNULL)
 PyJuliaRationalValue_Type() = begin
     ptr = PyJuliaRationalValue_Type__ref[]
     if isnull(ptr)
         c = []
         base = PyJuliaRealValue_Type()
-        isnull(base) && return PyPtr()
+        isnull(base) && return PyNULL
         t = fill(
             PyType_Create(
                 c,
@@ -152,10 +152,10 @@ PyJuliaRationalValue_Type() = begin
         )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
-        ism1(err) && return PyPtr()
+        ism1(err) && return PyNULL
         abc = PyRationalABC_Type()
-        isnull(abc) && return PyPtr()
-        ism1(PyABC_Register(ptr, abc)) && return PyPtr()
+        isnull(abc) && return PyNULL
+        ism1(PyABC_Register(ptr, abc)) && return PyNULL
         PYJLGCCACHE[ptr] = push!(c, t)
         PyJuliaRationalValue_Type__ref[] = ptr
     end
@@ -165,13 +165,13 @@ end
 PyJuliaRationalValue_New(x::Rational) = PyJuliaValue_New(PyJuliaRationalValue_Type(), x)
 PyJuliaValue_From(x::Rational) = PyJuliaRationalValue_New(x)
 
-const PyJuliaIntegerValue_Type__ref = Ref(PyPtr())
+const PyJuliaIntegerValue_Type__ref = Ref(PyNULL)
 PyJuliaIntegerValue_Type() = begin
     ptr = PyJuliaIntegerValue_Type__ref[]
     if isnull(ptr)
         c = []
         base = PyJuliaRealValue_Type()
-        isnull(base) && return PyPtr()
+        isnull(base) && return PyNULL
         t = fill(
             PyType_Create(
                 c,
@@ -190,10 +190,10 @@ PyJuliaIntegerValue_Type() = begin
         )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
-        ism1(err) && return PyPtr()
+        ism1(err) && return PyNULL
         abc = PyIntegralABC_Type()
-        isnull(abc) && return PyPtr()
-        ism1(PyABC_Register(ptr, abc)) && return PyPtr()
+        isnull(abc) && return PyNULL
+        ism1(PyABC_Register(ptr, abc)) && return PyNULL
         PYJLGCCACHE[ptr] = push!(c, t)
         PyJuliaIntegerValue_Type__ref[] = ptr
     end
@@ -216,7 +216,7 @@ pyjlnumber_positive(xo::PyPtr) =
         PyObject_From(+(PyJuliaValue_GetValue(xo)::Number))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlnumber_negative(xo::PyPtr) =
@@ -224,7 +224,7 @@ pyjlnumber_negative(xo::PyPtr) =
         PyObject_From(-(PyJuliaValue_GetValue(xo)::Number))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlnumber_absolute(xo::PyPtr) =
@@ -232,7 +232,7 @@ pyjlnumber_absolute(xo::PyPtr) =
         PyObject_From(abs(PyJuliaValue_GetValue(xo)::Number))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 struct pyjlnumber_binop{F}
@@ -240,11 +240,11 @@ struct pyjlnumber_binop{F}
 end
 (f::pyjlnumber_binop)(xo::PyPtr, yo::PyPtr) = begin
     r = PyObject_TryConvert(xo, Number)
-    r == -1 && return PyPtr()
+    r == -1 && return PyNULL
     r == 0 && return PyNotImplemented_New()
     x = takeresult(Number)
     r = PyObject_TryConvert(yo, Number)
-    r == -1 && return PyPtr()
+    r == -1 && return PyNULL
     r == 0 && return PyNotImplemented_New()
     y = takeresult(Number)
     try
@@ -254,18 +254,18 @@ end
             PyNotImplemented_New()
         else
             PyErr_SetJuliaError(err)
-            PyPtr()
+            PyNULL
         end
     end
 end
 
 pyjlnumber_power(xo::PyPtr, yo::PyPtr, zo::PyPtr) = begin
     r = PyObject_TryConvert(xo, Number)
-    r == -1 && return PyPtr()
+    r == -1 && return PyNULL
     r == 0 && return PyNotImplemented_New()
     x = takeresult(Number)
     r = PyObject_TryConvert(yo, Number)
-    r == -1 && return PyPtr()
+    r == -1 && return PyNULL
     r == 0 && return PyNotImplemented_New()
     y = takeresult(Number)
     if PyNone_Check(zo)
@@ -276,12 +276,12 @@ pyjlnumber_power(xo::PyPtr, yo::PyPtr, zo::PyPtr) = begin
                 PyNotImplemented_New()
             else
                 PyErr_SetJuliaError(err)
-                PyPtr()
+                PyNULL
             end
         end
     else
         r = PyObject_TryConvert(zo, Number)
-        r == -1 && return PyPtr()
+        r == -1 && return PyNULL
         r == 0 && return PyNotImplemented_New()
         z = takeresult(Number)
         try
@@ -291,7 +291,7 @@ pyjlnumber_power(xo::PyPtr, yo::PyPtr, zo::PyPtr) = begin
                 PyNotImplemented_New()
             else
                 PyErr_SetJuliaError(err)
-                PyPtr()
+                PyNULL
             end
         end
     end
@@ -302,7 +302,7 @@ pyjlcomplex_real(xo::PyPtr, ::Ptr{Cvoid}) =
         PyObject_From(real(PyJuliaValue_GetValue(xo)::Complex))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlcomplex_imag(xo::PyPtr, ::Ptr{Cvoid}) =
@@ -310,7 +310,7 @@ pyjlcomplex_imag(xo::PyPtr, ::Ptr{Cvoid}) =
         PyObject_From(imag(PyJuliaValue_GetValue(xo)::Complex))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlcomplex_conjugate(xo::PyPtr, ::PyPtr) =
@@ -318,7 +318,7 @@ pyjlcomplex_conjugate(xo::PyPtr, ::PyPtr) =
         PyObject_From(conj(PyJuliaValue_GetValue(xo)::Complex))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlcomplex_complex(xo::PyPtr, ::PyPtr) =
@@ -326,7 +326,7 @@ pyjlcomplex_complex(xo::PyPtr, ::PyPtr) =
         PyComplex_From(convert(Complex{Float64}, PyJuliaValue_GetValue(xo)::Complex))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlreal_real(xo::PyPtr, ::Ptr{Cvoid}) = (Py_IncRef(xo); xo)
@@ -340,7 +340,7 @@ pyjlreal_complex(xo::PyPtr, ::PyPtr) =
         PyComplex_From(convert(Float64, PyJuliaValue_GetValue(xo)::Real))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlreal_float(xo::PyPtr) =
@@ -348,7 +348,7 @@ pyjlreal_float(xo::PyPtr) =
         PyFloat_From(convert(Float64, PyJuliaValue_GetValue(xo)::Real))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlreal_trunc(xo::PyPtr, ::PyPtr) =
@@ -356,7 +356,7 @@ pyjlreal_trunc(xo::PyPtr, ::PyPtr) =
         PyObject_From(trunc(Integer, PyJuliaValue_GetValue(xo)::Real))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlreal_floor(xo::PyPtr, ::PyPtr) =
@@ -364,7 +364,7 @@ pyjlreal_floor(xo::PyPtr, ::PyPtr) =
         PyObject_From(floor(Integer, PyJuliaValue_GetValue(xo)::Real))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlreal_ceil(xo::PyPtr, ::PyPtr) =
@@ -372,12 +372,12 @@ pyjlreal_ceil(xo::PyPtr, ::PyPtr) =
         PyObject_From(ceil(Integer, PyJuliaValue_GetValue(xo)::Real))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlreal_round(xo::PyPtr, args::PyPtr) = begin
-    ism1(PyArg_CheckNumArgsLe("round", args, 1)) && return PyPtr()
-    ism1(PyArg_GetArg(Union{Int,Nothing}, "round", args, 0, nothing)) && return PyPtr()
+    ism1(PyArg_CheckNumArgsLe("round", args, 1)) && return PyNULL
+    ism1(PyArg_GetArg(Union{Int,Nothing}, "round", args, 0, nothing)) && return PyNULL
     ndigits = takeresult(Union{Int,Nothing})
     x = PyJuliaValue_GetValue(xo)::Real
     try
@@ -388,7 +388,7 @@ pyjlreal_round(xo::PyPtr, args::PyPtr) = begin
         end
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 end
 
@@ -397,7 +397,7 @@ pyjlrational_numerator(xo::PyPtr, ::Ptr{Cvoid}) =
         PyObject_From(numerator(PyJuliaValue_GetValue(xo)::Rational))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlrational_denominator(xo::PyPtr, ::Ptr{Cvoid}) =
@@ -405,7 +405,7 @@ pyjlrational_denominator(xo::PyPtr, ::Ptr{Cvoid}) =
         PyObject_From(denominator(PyJuliaValue_GetValue(xo)::Rational))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlinteger_numerator(xo::PyPtr, ::Ptr{Cvoid}) = (Py_IncRef(xo); xo)
@@ -421,5 +421,5 @@ pyjlinteger_invert(xo::PyPtr) =
         PyObject_From(~(PyJuliaValue_GetValue(xo)::Integer))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end

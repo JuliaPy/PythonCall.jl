@@ -4,7 +4,7 @@
 @cdef :PyLong_AsLongLong Clonglong (PyPtr,)
 @cdef :PyLong_AsUnsignedLongLong Culonglong (PyPtr,)
 
-const PyLong_Type__ref = Ref(PyPtr())
+const PyLong_Type__ref = Ref(PyNULL)
 PyLong_Type() = pyglobal(PyLong_Type__ref, :PyLong_Type)
 
 PyLong_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_LONG_SUBCLASS)
@@ -24,13 +24,13 @@ PyLong_From(
 
 PyLong_From(x::Integer) = begin
     y = tryconvert(BigInt, x)
-    y === PYERR() && return PyPtr()
+    y === PYERR() && return PyNULL
     y === NOTIMPLEMENTED() && (
         PyErr_SetString(
             PyExc_NotImplementedError(),
             "Cannot convert this Julia '$(typeof(x))' to a Python 'int'",
         );
-        return PyPtr()
+        return PyNULL
     )
     PyLong_From(y::BigInt)
 end

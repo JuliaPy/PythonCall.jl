@@ -20,7 +20,7 @@ mutable struct PyRef
                     with_gil(false) do
                         C.Py_DecRef(ptr)
                     end
-                    x.ptr = CPyPtr()
+                    x.ptr = C_NULL
                 end
             end
         end
@@ -45,7 +45,7 @@ PyRef(x) = begin
     isnull(ptr) && pythrow()
     pynewref(ptr)
 end
-PyRef() = pynewref(CPyPtr())
+PyRef() = pynewref(C_NULL)
 
 Base.convert(::Type{PyRef}, x::PyRef) = x
 Base.convert(::Type{PyRef}, x) = PyRef(x)

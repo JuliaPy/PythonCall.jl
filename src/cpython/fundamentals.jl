@@ -44,8 +44,8 @@ Py_Is(o1, o2) = Base.unsafe_convert(PyPtr, o1) == Base.unsafe_convert(PyPtr, o2)
 PyImport_GetModule(name) = begin
     ms = PyImport_GetModuleDict()
     ok = PyMapping_HasKeyString(ms, name)
-    ism1(ok) && return PyPtr()
-    ok != 0 ? PyMapping_GetItemString(ms, name) : PyPtr()
+    ism1(ok) && return PyNULL
+    ok != 0 ? PyMapping_GetItemString(ms, name) : PyNULL
 end
 
 ### ERRORS
@@ -144,7 +144,7 @@ for x in [
 ]
     f = Symbol(:PyExc_, x)
     r = Symbol(f, :__ref)
-    @eval const $r = Ref(PyPtr())
+    @eval const $r = Ref(PyNULL)
     @eval $f() = pyloadglobal($r, $(QuoteNode(f)))
 end
 

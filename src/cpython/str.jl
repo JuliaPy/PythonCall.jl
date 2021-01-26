@@ -2,7 +2,7 @@
 @cdef :PyUnicode_AsUTF8String PyPtr (PyPtr,)
 @cdef :PyUnicode_InternInPlace Cvoid (Ptr{PyPtr},)
 
-const PyUnicode_Type__ref = Ref(PyPtr())
+const PyUnicode_Type__ref = Ref(PyNULL)
 PyUnicode_Type() = pyglobal(PyUnicode_Type__ref, :PyUnicode_Type)
 
 PyUnicode_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_UNICODE_SUBCLASS)

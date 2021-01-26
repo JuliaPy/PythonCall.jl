@@ -1,4 +1,4 @@
-const PyRange_Type__ref = Ref(PyPtr())
+const PyRange_Type__ref = Ref(PyNULL)
 PyRange_Type() = begin
     ptr = PyRange_Type__ref[]
     isnull(ptr) || return ptr

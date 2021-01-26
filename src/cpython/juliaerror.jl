@@ -1,4 +1,4 @@
-const PyExc_JuliaError__ref = Ref(PyPtr())
+const PyExc_JuliaError__ref = Ref(PyNULL)
 PyExc_JuliaError() = begin
     ptr = PyExc_JuliaError__ref[]
     if isnull(ptr)
@@ -13,7 +13,7 @@ PyExc_JuliaError() = begin
         )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
-        ism1(err) && return PyPtr()
+        ism1(err) && return PyNULL
         PYJLGCCACHE[ptr] = push!(c, t)
         PyExc_JuliaError__ref[] = ptr
     end
@@ -52,9 +52,9 @@ end
 
 pyjlerr_str(xo::PyPtr) = begin
     args = PyObject_GetAttrString(xo, "args")
-    isnull(args) && return PyPtr()
+    isnull(args) && return PyNULL
     r = PyObject_TryConvert(args, Tuple{Union{String,Tuple}})
-    r == -1 && (Py_DecRef(args); return PyPtr())
+    r == -1 && (Py_DecRef(args); return PyNULL)
     r == 0 && @goto fallback
     (x,) = takeresult(Tuple{Union{String,Tuple}})
     if x isa String

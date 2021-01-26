@@ -16,7 +16,7 @@ PyType_MRO(o) = GC.@preserve o UnsafePtr{PyTypeObject}(Base.unsafe_convert(PyPtr
 PyType_IsSubtypeFast(s, f) = PyType_HasFeature(s, f)
 PyType_HasFeature(s, f) = !iszero(PyType_Flags(s) & f)
 
-const PyType_Type__ref = Ref(PyPtr())
+const PyType_Type__ref = Ref(PyNULL)
 PyType_Type() = pyglobal(PyType_Type__ref, :PyType_Type)
 
 PyType_Check(o) = Py_TypeCheck(o, Py_TPFLAGS_TYPE_SUBCLASS)

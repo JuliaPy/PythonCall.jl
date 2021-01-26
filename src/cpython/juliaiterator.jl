@@ -5,13 +5,13 @@ end
 Iterator(x) = Iterator(x, nothing)
 Base.length(x::Iterator) = length(x.val)
 
-const PyJuliaIteratorValue_Type__ref = Ref(PyPtr())
+const PyJuliaIteratorValue_Type__ref = Ref(PyNULL)
 PyJuliaIteratorValue_Type() = begin
     ptr = PyJuliaIteratorValue_Type__ref[]
     if isnull(ptr)
         c = []
         base = PyJuliaAnyValue_Type()
-        isnull(base) && return PyPtr()
+        isnull(base) && return PyNULL
         t = fill(
             PyType_Create(
                 c,
@@ -23,7 +23,7 @@ PyJuliaIteratorValue_Type() = begin
         )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
-        ism1(err) && return PyPtr()
+        ism1(err) && return PyNULL
         PYJLGCCACHE[ptr] = push!(c, t)
         PyJuliaIteratorValue_Type__ref[] = ptr
     end
@@ -46,7 +46,7 @@ pyjliter_iternext(xo::PyPtr) =
             z = iterate(val, something(st))
         end
         if z === nothing
-            PyPtr()
+            PyNULL
         else
             r, newst = z
             x.st = Some(newst)
@@ -58,5 +58,5 @@ pyjliter_iternext(xo::PyPtr) =
         else
             PyErr_SetJuliaError(err)
         end
-        PyPtr()
+        PyNULL
     end

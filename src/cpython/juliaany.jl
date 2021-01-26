@@ -1,10 +1,10 @@
-const PyJuliaAnyValue_Type__ref = Ref(PyPtr())
+const PyJuliaAnyValue_Type__ref = Ref(PyNULL)
 PyJuliaAnyValue_Type() = begin
     ptr = PyJuliaAnyValue_Type__ref[]
     if isnull(ptr)
         c = []
         base = PyJuliaBaseValue_Type()
-        isnull(base) && return PyPtr()
+        isnull(base) && return PyNULL
         t = fill(
             PyType_Create(
                 c,
@@ -79,7 +79,7 @@ PyJuliaAnyValue_Type() = begin
         )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
-        ism1(err) && return PyPtr()
+        ism1(err) && return PyNULL
         PYJLGCCACHE[ptr] = push!(c, t)
         PyJuliaAnyValue_Type__ref[] = ptr
     end
@@ -97,7 +97,7 @@ pyjlany_repr(xo::PyPtr) =
         PyUnicode_From(s)
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlany_str(xo::PyPtr) =
@@ -107,7 +107,7 @@ pyjlany_str(xo::PyPtr) =
         PyUnicode_From(s)
     catch err
         PyErr_SetJuliaError(err)
-        return PyPtr()
+        return PyNULL
     end
 
 pyjlany_getattro(xo::PyPtr, ko::PyPtr) = begin
@@ -121,7 +121,7 @@ pyjlany_getattro(xo::PyPtr, ko::PyPtr) = begin
     # Now try to get the corresponding property
     x = PyJuliaValue_GetValue(xo)
     k = PyUnicode_AsString(ko)
-    isempty(k) && PyErr_IsSet() && return PyPtr()
+    isempty(k) && PyErr_IsSet() && return PyNULL
     k = pyjl_attr_py2jl(k)
     try
         v = getproperty(x, Symbol(k))
@@ -134,7 +134,7 @@ pyjlany_getattro(xo::PyPtr, ko::PyPtr) = begin
         else
             PyErr_SetJuliaError(err)
         end
-        PyPtr()
+        PyNULL
     end
 end
 
@@ -190,24 +190,24 @@ end
 
 pyjlany_dir(xo::PyPtr, _::PyPtr) = begin
     fo = PyObject_GetAttrString(PyJuliaBaseValue_Type(), "__dir__")
-    isnull(fo) && return PyPtr()
+    isnull(fo) && return PyNULL
     ro = PyObject_CallNice(fo, PyObjectRef(xo))
     Py_DecRef(fo)
-    isnull(ro) && return PyPtr()
+    isnull(ro) && return PyNULL
     x = PyJuliaValue_GetValue(xo)
     ks = try
         collect(map(string, pyjl_dir(x)))
     catch err
         Py_DecRef(ro)
         PyErr_SetJuliaError(err)
-        return PyPtr()
+        return PyNULL
     end
     for k in ks
         ko = PyUnicode_From(pyjl_attr_jl2py(k))
-        isnull(ko) && (Py_DecRef(ro); return PyPtr())
+        isnull(ko) && (Py_DecRef(ro); return PyNULL)
         err = PyList_Append(ro, ko)
         Py_DecRef(ko)
-        ism1(err) && (Py_DecRef(ro); return PyPtr())
+        ism1(err) && (Py_DecRef(ro); return PyNULL)
     end
     return ro
 end
@@ -217,13 +217,13 @@ pyjlany_call(fo::PyPtr, argso::PyPtr, kwargso::PyPtr) = begin
     if isnull(argso)
         args = Vector{Any}()
     else
-        ism1(PyObject_Convert(argso, Vector{Any})) && return PyPtr()
+        ism1(PyObject_Convert(argso, Vector{Any})) && return PyNULL
         args = takeresult(Vector{Any})
     end
     if isnull(kwargso)
         kwargs = Dict{Symbol,Any}()
     else
-        ism1(PyObject_Convert(kwargso, Dict{Symbol,Any})) && return PyPtr()
+        ism1(PyObject_Convert(kwargso, Dict{Symbol,Any})) && return PyNULL
         kwargs = takeresult(Dict{Symbol,Any})
     end
     try
@@ -235,7 +235,7 @@ pyjlany_call(fo::PyPtr, argso::PyPtr, kwargso::PyPtr) = begin
         else
             PyErr_SetJuliaError(err)
         end
-        PyPtr()
+        PyNULL
     end
 end
 
@@ -273,7 +273,7 @@ pyjl_getindices(x, ko) =
 pyjlany_getitem(xo::PyPtr, ko::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)
     k = pyjl_getindices(x, ko)
-    k === PYERR() && return PyPtr()
+    k === PYERR() && return PyNULL
     try
         PyObject_From(x[k...])
     catch err
@@ -284,7 +284,7 @@ pyjlany_getitem(xo::PyPtr, ko::PyPtr) = begin
         else
             PyErr_SetJuliaError(err)
         end
-        PyPtr()
+        PyNULL
     end
 end
 
@@ -357,7 +357,7 @@ end
 pyjlany_richcompare(xo::PyPtr, yo::PyPtr, op::Cint) = begin
     x = PyJuliaValue_GetValue(xo)
     r = PyObject_TryConvert(yo, Any)
-    r == -1 && return PyPtr()
+    r == -1 && return PyNULL
     r == 0 && return PyNotImplemented_New()
     y = takeresult()
     try
@@ -375,14 +375,14 @@ pyjlany_richcompare(xo::PyPtr, yo::PyPtr, op::Cint) = begin
             PyObject_From(x > y)
         else
             PyErr_SetString(PyExc_ValueError(), "bad op given to richcompare: $op")
-            PyPtr()
+            PyNULL
         end
     catch err
         if err isa MethodError && err.f in (==, !=, <=, <, >=, >)
             PyNotImplemented_New()
         else
             PyErr_SetJuliaError(err)
-            PyPtr()
+            PyNULL
         end
     end
 end
@@ -400,7 +400,7 @@ end
             return PyNone_New()
         else
             PyErr_SetJuliaError(err)
-            return PyPtr()
+            return PyNULL
         end
     end
     data = take!(io)
@@ -420,7 +420,7 @@ pyjlany_name(xo::PyPtr, ::Ptr{Cvoid}) =
         else
             PyErr_SetJuliaError(err)
         end
-        PyPtr()
+        PyNULL
     end
 
 pyjlany_toraw(xo::PyPtr, ::PyPtr) = PyJuliaRawValue_New(PyJuliaValue_GetValue(xo))
@@ -440,7 +440,7 @@ pyjlany_show(xo::PyPtr, ::PyPtr) =
         PyNone_New()
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlany_help(xo::PyPtr, ::PyPtr) =
@@ -458,5 +458,5 @@ pyjlany_help(xo::PyPtr, ::PyPtr) =
         PyNone_New()
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end

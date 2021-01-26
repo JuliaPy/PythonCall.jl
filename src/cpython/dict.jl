@@ -5,7 +5,7 @@
 @cdef :PyDict_SetItemString Cint (PyPtr, Cstring, PyPtr)
 @cdef :PyDict_DelItemString Cint (PyPtr, Cstring)
 
-const PyDict_Type__ref = Ref(PyPtr())
+const PyDict_Type__ref = Ref(PyNULL)
 PyDict_Type() = pyglobal(PyDict_Type__ref, :PyDict_Type)
 
 PyDict_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_DICT_SUBCLASS)
@@ -14,42 +14,42 @@ PyDict_CheckExact(o) = Py_TypeCheckExact(o, PyDict_Type())
 
 PyDict_FromPairs(kvs) = begin
     r = PyDict_New()
-    isnull(r) && return PyPtr()
+    isnull(r) && return PyNULL
     try
         for (k, v) in kvs
             ko = PyObject_From(k)
-            isnull(ko) && (Py_DecRef(r); return PyPtr())
+            isnull(ko) && (Py_DecRef(r); return PyNULL)
             vo = PyObject_From(v)
-            isnull(vo) && (Py_DecRef(r); Py_DecRef(ko); return PyPtr())
+            isnull(vo) && (Py_DecRef(r); Py_DecRef(ko); return PyNULL)
             err = PyDict_SetItem(r, ko, vo)
             Py_DecRef(ko)
             Py_DecRef(vo)
-            ism1(err) && (Py_DecRef(r); return PyPtr())
+            ism1(err) && (Py_DecRef(r); return PyNULL)
         end
         return r
     catch err
         Py_DecRef(r)
         PyErr_SetString(PyExc_Exception(), "Julia error: $err")
-        return PyPtr()
+        return PyNULL
     end
 end
 
 PyDict_FromStringPairs(kvs) = begin
     r = PyDict_New()
-    isnull(r) && return PyPtr()
+    isnull(r) && return PyNULL
     try
         for (k, v) in kvs
             vo = PyObject_From(v)
-            isnull(vo) && (Py_DecRef(r); return PyPtr())
+            isnull(vo) && (Py_DecRef(r); return PyNULL)
             err = PyDict_SetItemString(r, string(k), vo)
             Py_DecRef(vo)
-            ism1(err) && (Py_DecRef(r); return PyPtr())
+            ism1(err) && (Py_DecRef(r); return PyNULL)
         end
         return r
     catch err
         Py_DecRef(r)
         PyErr_SetString(PyExc_Exception(), "Julia error: $err")
-        return PyPtr()
+        return PyNULL
     end
 end
 

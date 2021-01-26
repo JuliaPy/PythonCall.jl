@@ -3,7 +3,7 @@
 @cdef :PyComplex_ImagAsDouble Cdouble (PyPtr,)
 @cdef :PyComplex_AsCComplex Py_complex (PyPtr,)
 
-const PyComplex_Type__ref = Ref(PyPtr())
+const PyComplex_Type__ref = Ref(PyNULL)
 PyComplex_Type() = pyglobal(PyComplex_Type__ref, :PyComplex_Type)
 
 PyComplex_Check(o) = Py_TypeCheck(o, PyComplex_Type())

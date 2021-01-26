@@ -1,10 +1,10 @@
-const PyJuliaArrayValue_Type__ref = Ref(PyPtr())
+const PyJuliaArrayValue_Type__ref = Ref(PyNULL)
 PyJuliaArrayValue_Type() = begin
     ptr = PyJuliaArrayValue_Type__ref[]
     if isnull(ptr)
         c = []
         base = PyJuliaAnyValue_Type()
-        isnull(base) && return PyPtr()
+        isnull(base) && return PyNULL
         t = fill(
             PyType_Create(
                 c,
@@ -32,10 +32,10 @@ PyJuliaArrayValue_Type() = begin
         )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
-        ism1(err) && return PyPtr()
+        ism1(err) && return PyNULL
         abc = PyCollectionABC_Type()
-        isnull(abc) && return PyPtr()
-        ism1(PyABC_Register(ptr, abc)) && return PyPtr()
+        isnull(abc) && return PyNULL
+        ism1(PyABC_Register(ptr, abc)) && return PyNULL
         PYJLGCCACHE[ptr] = push!(c, t)
         PyJuliaArrayValue_Type__ref[] = ptr
     end
@@ -138,7 +138,7 @@ end
 pyjlarray_getitem(xo::PyPtr, ko::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractArray
     k = pyjl_getarrayindices(x, ko)
-    k === PYERR() && return PyPtr()
+    k === PYERR() && return PyNULL
     try
         if all(x -> x isa Int, k)
             PyObject_From(x[k...])
@@ -151,7 +151,7 @@ pyjlarray_getitem(xo::PyPtr, ko::PyPtr) = begin
         else
             PyErr_SetJuliaError(err)
         end
-        PyPtr()
+        PyNULL
     end
 end
 
@@ -202,25 +202,25 @@ pyjlarray_copy(xo::PyPtr, ::PyPtr) =
         PyObject_From(copy(x))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 pyjlarray_reshape(xo::PyPtr, arg::PyPtr) =
     try
         x = PyJuliaValue_GetValue(xo)::AbstractArray
         r = PyObject_TryConvert(arg, Union{Int,Tuple{Vararg{Int}}})
-        r == -1 && return PyPtr()
+        r == -1 && return PyNULL
         r == 0 && (
             PyErr_SetString(
                 PyExc_TypeError(),
                 "shape must be an integer or tuple of integers",
             );
-            return PyPtr()
+            return PyNULL
         )
         PyObject_From(reshape(x, takeresult()...))
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 
 ### Buffer Protocol
@@ -417,12 +417,12 @@ PyDescrObject_From(fields) = begin
     ro = PyList_New(0)
     for (name, descr) in fields
         descro = descr isa String ? PyUnicode_From(descr) : PyDescrObject_From(descr)
-        isnull(descro) && (Py_DecRef(ro); return PyPtr())
+        isnull(descro) && (Py_DecRef(ro); return PyNULL)
         fieldo = PyTuple_From((name, PyObjectRef(descro)))
         Py_DecRef(descro)
-        isnull(fieldo) && (Py_DecRef(ro); return PyPtr())
+        isnull(fieldo) && (Py_DecRef(ro); return PyNULL)
         err = PyList_Append(ro, fieldo)
-        ism1(err) && (Py_DecRef(ro); return PyPtr())
+        ism1(err) && (Py_DecRef(ro); return PyNULL)
     end
     ro
 end
@@ -447,12 +447,12 @@ _pyjlarray_array_interface(x::AbstractArray) =
                     "version" => version,
                 ),
             )
-            isnull(d) && return PyPtr()
+            isnull(d) && return PyNULL
             if descr !== nothing
                 descro = PyDescrObject_From(descr)
                 err = PyDict_SetItemString(d, "descr", descro)
                 Py_DecRef(descro)
-                ism1(err) && (Py_DecRef(d); return PyPtr())
+                ism1(err) && (Py_DecRef(d); return PyNULL)
             end
             d
         else
@@ -460,7 +460,7 @@ _pyjlarray_array_interface(x::AbstractArray) =
         end
     catch err
         PyErr_SetString(PyExc_AttributeError(), "__array_interface__")
-        PyPtr()
+        PyNULL
     end
 
 pyjlarray_array(xo::PyPtr, ::PyPtr) = begin
@@ -471,20 +471,20 @@ pyjlarray_array(xo::PyPtr, ::PyPtr) = begin
             Python.PyObjectArray(x)
         catch err
             PyErr_SetJuliaError(err)
-            return PyPtr()
+            return PyNULL
         end
         yo = PyJuliaArrayValue_New(y)
-        isnull(yo) && return PyPtr()
+        isnull(yo) && return PyNULL
     else
         # already supports the array interface
         Py_IncRef(xo)
         yo = xo
     end
     npo = PyImport_ImportModule("numpy")
-    isnull(npo) && (Py_DecRef(yo); return PyPtr())
+    isnull(npo) && (Py_DecRef(yo); return PyNULL)
     aao = PyObject_GetAttrString(npo, "array")
     Py_DecRef(npo)
-    isnull(aao) && (Py_DecRef(yo); return PyPtr())
+    isnull(aao) && (Py_DecRef(yo); return PyNULL)
     ao = PyObject_CallNice(aao, PyObjectRef(yo))
     Py_DecRef(aao)
     Py_DecRef(yo)

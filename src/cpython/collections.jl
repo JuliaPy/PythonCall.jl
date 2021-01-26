@@ -39,7 +39,7 @@ for n in [
     t = Symbol(p, :_Type)
     tr = Symbol(p, :__ref)
     c = Symbol(p, :_Check)
-    @eval const $tr = Ref(PyPtr())
+    @eval const $tr = Ref(PyNULL)
     @eval $t(doimport::Bool = true) = begin
         ptr = $tr[]
         isnull(ptr) || return ptr
@@ -75,15 +75,15 @@ Return -1 on error, 0 if iteration was stopped, 1 if it reached the end.
 """
 PyIterable_Map(f, xso::PyPtr) = begin
     it = PyObject_GetIter(xso)
-    isnull(it) && return PyPtr()
-    xo = PyPtr()
+    isnull(it) && return PyNULL
+    xo = PyNULL
     try
         while true
             xo = PyIter_Next(it)
             if !isnull(xo)
                 r = f(xo)
                 Py_DecRef(xo)
-                xo = PyPtr()
+                xo = PyNULL
                 if r == -1
                     return -1
                 elseif r == 0

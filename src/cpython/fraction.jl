@@ -1,4 +1,4 @@
-const PyFraction_Type__ref = Ref(PyPtr())
+const PyFraction_Type__ref = Ref(PyNULL)
 PyFraction_Type() = begin
     ptr = PyFraction_Type__ref[]
     if isnull(ptr)
@@ -14,17 +14,17 @@ end
 
 PyFraction_From(x::Union{Rational,Integer}) = begin
     t = PyFraction_Type()
-    isnull(t) && return PyPtr()
+    isnull(t) && return PyNULL
     a = PyTuple_New(2)
-    isnull(a) && return PyPtr()
+    isnull(a) && return PyNULL
     b = PyLong_From(numerator(x))
-    isnull(b) && (Py_DecRef(a); return PyPtr())
+    isnull(b) && (Py_DecRef(a); return PyNULL)
     err = PyTuple_SetItem(a, 0, b)
-    ism1(err) && (Py_DecRef(a); return PyPtr())
+    ism1(err) && (Py_DecRef(a); return PyNULL)
     b = PyLong_From(denominator(x))
-    isnull(b) && (Py_DecRef(a); return PyPtr())
+    isnull(b) && (Py_DecRef(a); return PyNULL)
     err = PyTuple_SetItem(a, 1, b)
-    ism1(err) && (Py_DecRef(a); return PyPtr())
+    ism1(err) && (Py_DecRef(a); return PyNULL)
     r = PyObject_CallObject(t, a)
     Py_DecRef(a)
     return r

@@ -1,10 +1,10 @@
-const PyJuliaDictValue_Type__ref = Ref(PyPtr())
+const PyJuliaDictValue_Type__ref = Ref(PyNULL)
 PyJuliaDictValue_Type() = begin
     ptr = PyJuliaDictValue_Type__ref[]
     if isnull(ptr)
         c = []
         base = PyJuliaAnyValue_Type()
-        isnull(base) && return PyPtr()
+        isnull(base) && return PyNULL
         t = fill(
             PyType_Create(
                 c,
@@ -31,10 +31,10 @@ PyJuliaDictValue_Type() = begin
         )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
-        ism1(err) && return PyPtr()
+        ism1(err) && return PyNULL
         abc = PyMutableMappingABC_Type()
-        isnull(abc) && return PyPtr()
-        ism1(PyABC_Register(ptr, abc)) && return PyPtr()
+        isnull(abc) && return PyNULL
+        ism1(PyABC_Register(ptr, abc)) && return PyNULL
         PYJLGCCACHE[ptr] = push!(c, t)
         PyJuliaDictValue_Type__ref[] = ptr
     end
@@ -68,11 +68,11 @@ end
 
 pyjldict_get(xo::PyPtr, args::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractDict
-    ism1(PyArg_CheckNumArgsBetween("get", args, 1, 2)) && return PyPtr()
+    ism1(PyArg_CheckNumArgsBetween("get", args, 1, 2)) && return PyNULL
     ko = PyTuple_GetItem(args, 0)
     vo = PyTuple_Size(args) < 2 ? Py_None() : PyTuple_GetItem(args, 1)
     r = PyObject_TryConvert(ko, keytype(x))
-    r == -1 && return PyPtr()
+    r == -1 && return PyNULL
     r == 0 && (Py_IncRef(vo); return vo)
     k = takeresult(keytype(x))
     try
@@ -84,17 +84,17 @@ pyjldict_get(xo::PyPtr, args::PyPtr) = begin
         end
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 end
 
 pyjldict_setdefault(xo::PyPtr, args::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractDict
-    ism1(PyArg_CheckNumArgsBetween("get", args, 1, 2)) && return PyPtr()
+    ism1(PyArg_CheckNumArgsBetween("get", args, 1, 2)) && return PyNULL
     ko = PyTuple_GetItem(args, 0)
     vo = PyTuple_Size(args) < 2 ? Py_None() : PyTuple_GetItem(args, 1)
     r = PyObject_TryConvert(ko, keytype(x))
-    r == -1 && return PyPtr()
+    r == -1 && return PyNULL
     r == 0 && (Py_IncRef(vo); return vo)
     k = takeresult(keytype(x))
     try
@@ -102,14 +102,14 @@ pyjldict_setdefault(xo::PyPtr, args::PyPtr) = begin
             PyObject_From(x[k])
         else
             r = PyObject_Convert(vo, valtype(x))
-            r == -1 && return PyPtr()
+            r == -1 && return PyNULL
             x[k] = takeresult(valtype(x))
             Py_IncRef(vo)
             vo
         end
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 end
 
@@ -120,7 +120,7 @@ pyjldict_clear(xo::PyPtr, ::PyPtr) = begin
         PyNone_New()
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 end
 
@@ -129,24 +129,24 @@ pyjldict_popitem(xo::PyPtr, ::PyPtr) = begin
     try
         if isempty(x)
             PyErr_SetString(PyExc_KeyError(), "pop empty dictionary")
-            PyPtr()
+            PyNULL
         else
             k, v = pop!(x)
             PyTuple_From((k, v))
         end
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 end
 
 pyjldict_pop(xo::PyPtr, args::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractDict
-    ism1(PyArg_CheckNumArgsBetween("pop", args, 1, 2)) && return PyPtr()
+    ism1(PyArg_CheckNumArgsBetween("pop", args, 1, 2)) && return PyNULL
     ko = PyTuple_GetItem(args, 0)
-    vo = PyTuple_Size(args) == 2 ? PyTuple_GetItem(args, 1) : PyPtr()
+    vo = PyTuple_Size(args) == 2 ? PyTuple_GetItem(args, 1) : PyNULL
     r = PyObject_TryConvert(PyTuple_GetItem(args, 0), keytype(x))
-    r == -1 && return PyPtr()
+    r == -1 && return PyNULL
     r == 0 &&
         (isnull(vo) ? (PyErr_SetObject(PyExc_KeyError(), ko)) : (Py_IncRef(vo); vo))
     k = takeresult(keytype(x))
@@ -155,14 +155,14 @@ pyjldict_pop(xo::PyPtr, args::PyPtr) = begin
             PyObject_From(pop!(x, k))
         elseif isnull(vo)
             PyErr_SetObject(PyExc_KeyError(), ko)
-            PyPtr()
+            PyNULL
         else
             Py_IncRef(vo)
             vo
         end
     catch err
         PyErr_SetJuliaError(err)
-        PyPtr()
+        PyNULL
     end
 end
 

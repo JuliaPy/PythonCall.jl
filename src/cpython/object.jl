@@ -29,7 +29,7 @@
 @cdef :PyObject_Call PyPtr (PyPtr, PyPtr, PyPtr)
 @cdef :PyObject_CallObject PyPtr (PyPtr, PyPtr)
 
-const PyObject_Type__ref = Ref(PyPtr())
+const PyObject_Type__ref = Ref(PyNULL)
 PyObject_Type() = pyglobal(PyObject_Type__ref, :PyBaseObject_Type)
 
 PyObject_From(x::PyObjectRef) = (Py_IncRef(x.ptr); x.ptr)
@@ -81,7 +81,7 @@ PyObject_From(x) =
     else
         PyJuliaValue_From(x)
         # PyErr_SetString(PyExc_TypeError(), "Cannot convert this Julia '$(typeof(x))' to a Python object.")
-        # PyPtr()
+        # PyNULL
     end
 
 function PyObject_CallArgs(
@@ -96,16 +96,16 @@ function PyObject_CallArgs(
 )
     if kwargs !== nothing && !isempty(kwargs)
         argso = PyTuple_From(args)
-        isnull(argso) && return PyPtr()
+        isnull(argso) && return PyNULL
         kwargso = PyDict_From(kwargs)
-        isnull(kwargso) && (Py_DecRef(argso); return PyPtr())
+        isnull(kwargso) && (Py_DecRef(argso); return PyNULL)
         r = PyObject_Call(f, argso, kwargso)
         Py_DecRef(argso)
         Py_DecRef(kwargso)
         r
     elseif !isempty(args)
         argso = PyTuple_From(Tuple(args))
-        isnull(argso) && return PyPtr()
+        isnull(argso) && return PyNULL
         r = PyObject_CallObject(f, argso)
         Py_DecRef(argso)
         return r
@@ -182,13 +182,13 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
     for xtf in TRYCONVERT_EXTRATYPES
         xt = xtf()
         isnull(xt) && (PyErr_IsSet() ? (return PYERR()) : continue)
-        xb = PyPtr()
+        xb = PyNULL
         for b in tmro
             r = PyObject_IsSubclass(b, xt)
             ism1(r) && return PYERR()
             r != 0 && (xb = b)
         end
-        if xb != PyPtr()
+        if xb != PyNULL
             push!(basetypes, xt)
             xmro = PyType_MROAsVector(xt)
             push!(basemros, xb in xmro ? xmro : [xb; xmro])
@@ -204,7 +204,7 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
     while !isempty(basemros)
         # find the first head not contained in any tail
         ok = false
-        b = PyPtr()
+        b = PyNULL
         for bmro in basemros
             b = bmro[1]
             if all(bmro -> b ∉ bmro[2:end], basemros)

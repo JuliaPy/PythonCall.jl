@@ -30,7 +30,7 @@ pyjlbase_dealloc(o::PyPtr) = begin
     nothing
 end
 
-const PyJuliaBaseValue_Type__ref = Ref(PyPtr())
+const PyJuliaBaseValue_Type__ref = Ref(PyNULL)
 PyJuliaBaseValue_Type() = begin
     ptr = PyJuliaBaseValue_Type__ref[]
     if isnull(ptr)
@@ -53,7 +53,7 @@ PyJuliaBaseValue_Type() = begin
         )
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
-        ism1(err) && return PyPtr()
+        ism1(err) && return PyNULL
         PYJLGCCACHE[ptr] = push!(c, t)
         PyJuliaBaseValue_Type__ref[] = ptr
     end
@@ -85,15 +85,15 @@ PyJuliaValue_New(t, v) = begin
         if !PyErr_IsSet()
             PyErr_SetString(PyExc_Exception(), "Got NULL type with no error set")
         end
-        return PyPtr()
+        return PyNULL
     end
     bt = PyJuliaBaseValue_Type()
-    isnull(bt) && return PyPtr()
+    isnull(bt) && return PyNULL
     PyType_IsSubtype(t, bt) != 0 || (
-        PyErr_SetString(PyExc_TypeError(), "Expecting a subtype of 'julia.ValueBase'"); return PyPtr()
+        PyErr_SetString(PyExc_TypeError(), "Expecting a subtype of 'julia.ValueBase'"); return PyNULL
     )
     o = _PyObject_New(t)
-    isnull(o) && return PyPtr()
+    isnull(o) && return PyNULL
     UnsafePtr{PyJuliaValueObject}(o).weaklist[] = C_NULL
     PyJuliaValue_SetValue(o, v)
     o
@@ -101,7 +101,7 @@ end
 
 PyJuliaBaseValue_New(v) = begin
     t = PyJuliaBaseValue_Type()
-    isnull(t) && return PyPtr()
+    isnull(t) && return PyNULL
     PyJuliaValue_New(t, v)
 end
 

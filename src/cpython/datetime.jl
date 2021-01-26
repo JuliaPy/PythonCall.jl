@@ -3,14 +3,14 @@ for n in [:DateTime, :Date, :Time, :TimeDelta, :TZInfo, :TimeZone]
     t = Symbol(:Py, n, :_Type)
     r = Symbol(t, :__ref)
     c = Symbol(:Py, n, :_Check)
-    @eval $r = Ref(PyPtr())
+    @eval $r = Ref(PyNULL)
     @eval $t(doimport::Bool = true) = begin
         ptr = $r[]
         isnull(ptr) || return ptr
         m = Py_DateTimeModule(doimport)
-        isnull(m) && return PyPtr()
+        isnull(m) && return PyNULL
         o = PyObject_GetAttrString(m, $p)
-        isnull(o) && return PyPtr()
+        isnull(o) && return PyNULL
         $r[] = o
     end
     @eval $c(o) = begin
@@ -32,7 +32,7 @@ PyDateTime_FromParts(
     fold::Integer = 0,
 ) = begin
     t = PyDateTime_Type()
-    isnull(t) && return PyPtr()
+    isnull(t) && return PyNULL
     PyObject_CallNice(
         t,
         year,
@@ -136,7 +136,7 @@ end
 
 PyDate_FromParts(year::Integer = 1, month::Integer = 1, day::Integer = 1) = begin
     t = PyDate_Type()
-    isnull(t) && return PyPtr()
+    isnull(t) && return PyNULL
     PyObject_CallNice(t, year, month, day)
 end
 
@@ -177,7 +177,7 @@ PyTime_FromParts(
     fold::Integer = 0,
 ) = begin
     t = PyTime_Type()
-    isnull(t) && return PyPtr()
+    isnull(t) && return PyNULL
     PyObject_CallNice(t, hour, minute, second, microsecond, tzinfo, fold = fold)
 end
 
@@ -194,7 +194,7 @@ PyTime_From(x::Time) =
             PyExc_ValueError(),
             "cannot create 'datetime.time' with resolution less than microseconds",
         )
-        PyPtr()
+        PyNULL
     end
 
 PyTime_IsAware(o::PyPtr) = begin
@@ -260,7 +260,7 @@ PyTimeDelta_FromParts(;
     weeks = 0,
 ) = begin
     t = PyTimeDelta_Type()
-    isnull(t) && return PyPtr()
+    isnull(t) && return PyNULL
     PyObject_CallNice(t, days, seconds, microseconds, milliseconds, minutes, hours, weeks)
 end
 
@@ -275,32 +275,32 @@ PyTimeDelta_From(x::Nanosecond) =
             PyExc_ValueError(),
             "cannot create 'datetime.timedelta' with resolution less than microseconds",
         )
-        PyPtr()
+        PyNULL
     end
 PyTimeDelta_From(x::Union{Minute,Hour,Day,Week,Month,Year}) = begin
     PyErr_SetString(
         PyExc_ValueError(),
         "cannot create 'datetime.timedelta' from a Julia '$(typeof(x))' because the latter does not specify a fixed period of time",
     )
-    PyPtr()
+    PyNULL
 end
 PyTimeDelta_From(x::Period) = begin
     PyErr_SetString(
         PyExc_ValueError(),
         "cannot create 'datetime.timedelta' from a Julia '$(typeof(x))'",
     )
-    PyPtr()
+    PyNULL
 end
 PyTimeDelta_From(x::Dates.CompoundPeriod) = begin
     r = PyTimeDelta_FromParts()
-    isnull(r) && return PyPtr()
+    isnull(r) && return PyNULL
     for p in x.periods
         po = PyTimeDelta_From(p)
-        isnull(po) && (Py_DecRef(r); return PyPtr())
+        isnull(po) && (Py_DecRef(r); return PyNULL)
         r2 = PyNumber_Add(r, po)
         Py_DecRef(po)
         Py_DecRef(r)
-        isnull(r2) && return PyPtr()
+        isnull(r2) && return PyNULL
         r = r2
     end
     r

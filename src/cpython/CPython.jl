@@ -1,6 +1,6 @@
 module CPython
 
-using Libdl, Dates
+using Libdl, Dates, Compat
 import ..Python:
     CONFIG,
     isnull,

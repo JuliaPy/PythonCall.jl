@@ -125,6 +125,7 @@ end
 end
 
 const PyPtr = Ptr{PyObject}
+const PyNULL = PyPtr(0)
 
 struct PyObjectRef
     ptr::PyPtr
@@ -308,7 +309,7 @@ end
 
 const PyTypePtr = Ptr{PyTypeObject}
 
-@kwdef struct PySimpleObject{T}
+struct PySimpleObject{T}
     ob_base::PyObject = PyObject()
     value::T
 end

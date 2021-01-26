@@ -1,7 +1,7 @@
 @cdef :PyFloat_FromDouble PyPtr (Cdouble,)
 @cdef :PyFloat_AsDouble Cdouble (PyPtr,)
 
-const PyFloat_Type__ref = Ref(PyPtr())
+const PyFloat_Type__ref = Ref(PyNULL)
 PyFloat_Type() = pyglobal(PyFloat_Type__ref, :PyFloat_Type)
 
 PyFloat_Check(o) = Py_TypeCheck(o, PyFloat_Type())

@@ -8,7 +8,8 @@ using Dates,
     TableTraits,
     IteratorInterfaceExtensions,
     Markdown,
-    Requires
+    Requires,
+    Compat
 using Base: @kwdef
 
 # things not directly dependent on PyObject or libpython

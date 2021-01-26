@@ -5,7 +5,7 @@
 @cdef :PyNumber_FloorDivide PyPtr (PyPtr, PyPtr)
 @cdef :PyNumber_TrueDivide PyPtr (PyPtr, PyPtr)
 @cdef :PyNumber_Remainder PyPtr (PyPtr, PyPtr)
-@cdef :PyNumber_DivMod PyPtr (PyPtr, PyPtr)
+@cdef :PyNumber_Divmod PyPtr (PyPtr, PyPtr)
 @cdef :PyNumber_Power PyPtr (PyPtr, PyPtr, PyPtr)
 @cdef :PyNumber_Negative PyPtr (PyPtr,)
 @cdef :PyNumber_Positive PyPtr (PyPtr,)

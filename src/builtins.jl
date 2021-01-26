@@ -158,6 +158,7 @@ export pybytes
 Equivalent to `len(x)` in Python.
 """
 pylen(x) = checkm1(cpyop(C.PyObject_Length, x))
+export pylen
 
 """
     pycontains(x, v) :: Bool
@@ -173,7 +174,7 @@ export pycontains
 Equivalent to `v in x` in Python.
 """
 pyin(v, x) = pycontains(x, v)
-export pylen
+export pyin
 
 """
     pygetitem([T=PyObject,] x, k) :: T
@@ -505,7 +506,7 @@ export pyirem
 
 Equivalent to `divmod(x, y)` in Python.
 """
-pydivmod(::Type{T}, x, y) where {T} = cpyop(T, C.PyNumber_DivMod, x, y)
+pydivmod(::Type{T}, x, y) where {T} = cpyop(T, C.PyNumber_Divmod, x, y)
 pydivmod(x, y) = pydivmod(PyObject, x, y)
 export pydivmod
 

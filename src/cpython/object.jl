@@ -119,7 +119,7 @@ PyObject_CallNice(f, args...; kwargs...) = PyObject_CallArgs(f, args, kwargs)
 """
 Mapping of Julia types to mappings of Python types to vectors of compiled functions implementing the conversion.
 """
-const TRYCONVERT_COMPILED_RULES = IdDict{Type,Dict{PyPtr,Vector{Ptr{Cvoid}}}}()
+const TRYCONVERT_COMPILED_RULES = Dict{Type,Dict{PyPtr,Vector{Ptr{Cvoid}}}}()
 
 const TRYCONVERT_COMPILED_RULES_CACHE = Dict{Any,PyPtr}()
 

@@ -206,6 +206,8 @@ Base.setproperty!(o::PyObject, k::Symbol, v) = pysetattr(o, k, v)
 
 if hasproperty(Base, :hasproperty)
     Base.hasproperty(o::PyObject, k::Symbol) = pyhasattr(o, k)
+else
+    Compat.hasproperty(o::PyObject, k::Symbol) = pyhasattr(o, k)
 end
 
 function Base.propertynames(o::PyObject)
@@ -264,7 +266,7 @@ Base.hash(o::PyObject) = trunc(UInt, pyhash(o))
 ### COMPARISON
 
 Base.:(==)(x::PyObject, y::PyObject) = pyeq(PyObject, x, y)
-Base.:(!=)(x::PyObject, y::PyObject) = pynq(PyObject, x, y)
+Base.:(!=)(x::PyObject, y::PyObject) = pyne(PyObject, x, y)
 Base.:(<=)(x::PyObject, y::PyObject) = pyle(PyObject, x, y)
 Base.:(<)(x::PyObject, y::PyObject) = pylt(PyObject, x, y)
 Base.:(>=)(x::PyObject, y::PyObject) = pyge(PyObject, x, y)

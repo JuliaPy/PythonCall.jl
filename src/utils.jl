@@ -1,3 +1,26 @@
+# Compatability for Julia below 1.3.
+if VERSION < v"1.3"
+    allocatedinline(::Type{T}) where {T} = (Base.@_pure_meta; ccall(:jl_array_store_unboxed, Cint, (Any,), T) != Cint(0))
+    function aligned_sizeof(T)
+        Base.@_pure_meta
+        if Base.isbitsunion(T)
+            sz = Ref{Csize_t}(0)
+            algn = Ref{Csize_t}(0)
+            ccall(:jl_islayout_inline, Cint, (Any, Ptr{Csize_t}, Ptr{Csize_t}), T, sz, algn)
+            al = algn[]
+            return (sz[] + al - 1) & -al
+        elseif allocatedinline(T)
+            al = Base.datatype_alignment(T)
+            return (Core.sizeof(T) + al - 1) & -al
+        else
+            return Core.sizeof(Ptr{Cvoid})
+        end
+    end
+else
+    const allocatedinline = Base.allocatedinline
+    const aligned_sizeof = Base.aligned_sizeof
+end
+
 size_to_fstrides(elsz::Integer, sz::Integer...) =
     isempty(sz) ? () : (elsz, size_to_fstrides(elsz * sz[1], sz[2:end]...)...)
 
@@ -29,7 +52,7 @@ pybufferformat(::Type{T}) where {T} =
     T == Bool ? "?" :
     T == Ptr{Cvoid} ? "P" :
     T == C.PyObjectRef ? "O" :
-    if isstructtype(T) && isconcretetype(T) && Base.allocatedinline(T)
+    if isstructtype(T) && isconcretetype(T) && allocatedinline(T)
         n = fieldcount(T)
         flds = []
         for i = 1:n
@@ -44,7 +67,7 @@ pybufferformat(::Type{T}) where {T} =
         end
         string("T{", join(flds, " "), "}")
     else
-        "$(Base.aligned_sizeof(T))x"
+        "$(sizeof(T))x"
     end
 
 pybufferformat_to_type(fmt::AbstractString) =
@@ -88,7 +111,7 @@ pytypestrdescr(::Type{T}) where {T} = begin
     T == Complex{Float32} ? ("$(c)c8", nothing) :
     T == Complex{Float64} ? ("$(c)c16", nothing) :
     T == C.PyObjectRef ? ("|O", nothing) :
-    if isstructtype(T) && isconcretetype(T) && Base.allocatedinline(T)
+    if isstructtype(T) && isconcretetype(T) && allocatedinline(T)
         n = fieldcount(T)
         flds = []
         for i = 1:n

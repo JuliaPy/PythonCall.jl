@@ -43,7 +43,9 @@ mutable struct PyIO <: IO
             UInt8[],
         )
         finalizer(io) do io
-            io.own ? close(io) : flush(io)
+            if CONFIG.isinitialized
+                io.own ? close(io) : flush(io)
+            end
         end
         io
     end
@@ -213,13 +215,13 @@ function Base.position(io::PyIO)
     putobuf(io)
     if io.text
         if isempty(io.ibuf)
-            @pyv `$io.position()`::Int
+            @pyv `$io.tell()`::Int
         else
             error(
                 "`position(io)` text PyIO streams only implemented for empty input buffer (e.g. do `read(io, length(io.ibuf))` first)",
             )
         end
     else
-        (@py `$io.position()`::Int) - length(io.ibuf)
+        (@pyv `$io.tell()`::Int) - length(io.ibuf)
     end
 end

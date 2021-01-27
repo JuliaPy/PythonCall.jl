@@ -280,9 +280,9 @@ pyjl_get_buffer_impl(
 
     # strides
     if isflagset(flags, PyBUF_STRIDES)
-        b.strides[] = cacheptr!(c, Py_ssize_t[(strds .* elsz)...])
+        b.strides[] = cacheptr!(c, Py_ssize_t[strds...])
     else
-        if Python.size_to_cstrides(1, sz...) != strds
+        if Python.size_to_cstrides(elsz, sz...) != strds
             PyErr_SetString(PyExc_BufferError(), "not C contiguous and strides not requested")
             return Cint(-1)
         end
@@ -291,20 +291,20 @@ pyjl_get_buffer_impl(
 
     # check contiguity
     if isflagset(flags, PyBUF_C_CONTIGUOUS)
-        if Python.size_to_cstrides(1, sz...) != strds
+        if Python.size_to_cstrides(elsz, sz...) != strds
             PyErr_SetString(PyExc_BufferError(), "not C contiguous")
             return Cint(-1)
         end
     end
     if isflagset(flags, PyBUF_F_CONTIGUOUS)
-        if Python.size_to_fstrides(1, sz...) != strds
+        if Python.size_to_fstrides(elsz, sz...) != strds
             PyErr_SetString(PyExc_BufferError(), "not Fortran contiguous")
             return Cint(-1)
         end
     end
     if isflagset(flags, PyBUF_ANY_CONTIGUOUS)
-        if Python.size_to_cstrides(1, sz...) != strds &&
-           Python.size_to_fstrides(1, sz...) != strds
+        if Python.size_to_cstrides(elsz, sz...) != strds &&
+           Python.size_to_fstrides(elsz, sz...) != strds
             PyErr_SetString(PyExc_BufferError(), "not contiguous")
             return Cint(-1)
         end
@@ -344,7 +344,7 @@ pyjlarray_isbufferabletype(::Type{T}) where {T} = T in (
 )
 pyjlarray_isbufferabletype(::Type{T}) where {T<:Tuple} =
     isconcretetype(T) &&
-    Base.allocatedinline(T) &&
+    Python.allocatedinline(T) &&
     all(pyjlarray_isbufferabletype, fieldtypes(T))
 pyjlarray_isbufferabletype(::Type{NamedTuple{names,T}}) where {names,T} =
     pyjlarray_isbufferabletype(T)
@@ -357,12 +357,12 @@ _pyjlarray_get_buffer(xo, buf, flags, x::AbstractArray) =
                 buf,
                 flags,
                 Base.unsafe_convert(Ptr{eltype(x)}, x),
-                Base.aligned_sizeof(eltype(x)),
+                sizeof(eltype(x)),
                 length(x),
                 ndims(x),
                 Python.pybufferformat(eltype(x)),
                 size(x),
-                strides(x),
+                strides(x) .* Python.aligned_sizeof(eltype(x)),
                 Python.ismutablearray(x),
             )
         else
@@ -405,7 +405,7 @@ pyjlarray_isarrayabletype(::Type{T}) where {T} = T in (
 )
 pyjlarray_isarrayabletype(::Type{T}) where {T<:Tuple} =
     isconcretetype(T) &&
-    Base.allocatedinline(T) &&
+    Python.allocatedinline(T) &&
     all(pyjlarray_isarrayabletype, T.parameters)
 pyjlarray_isarrayabletype(::Type{NamedTuple{names,types}}) where {names,types} =
     pyjlarray_isarrayabletype(types)
@@ -433,7 +433,7 @@ _pyjlarray_array_interface(x::AbstractArray) =
             # gather information
             shape = size(x)
             data = (UInt(Base.unsafe_convert(Ptr{eltype(x)}, x)), !Python.ismutablearray(x))
-            strides = Base.strides(x) .* Base.aligned_sizeof(eltype(x))
+            strides = Base.strides(x) .* Python.aligned_sizeof(eltype(x))
             version = 3
             typestr, descr = Python.pytypestrdescr(eltype(x))
             isempty(typestr) && error("invalid element type")

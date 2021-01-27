@@ -484,22 +484,22 @@ pyitruediv(x, y) = pyitruediv(typeof(x), x, y)
 export pyitruediv
 
 """
-    pyrem([T=PyObject,] x, y) :: T
+    pymod([T=PyObject,] x, y) :: T
 
 Equivalent to `x % y` in Python.
 """
-pyrem(::Type{T}, x, y) where {T} = cpyop(T, C.PyNumber_Remainder, x, y)
-pyrem(x, y) = pyrem(PyObject, x, y)
-export pyrem
+pymod(::Type{T}, x, y) where {T} = cpyop(T, C.PyNumber_Remainder, x, y)
+pymod(x, y) = pymod(PyObject, x, y)
+export pymod
 
 """
-    pyirem([T=typeof(x),] x, y) :: T
+    pyimod([T=typeof(x),] x, y) :: T
 
-`x = pyirem(x, y)` is equivalent to `x %= y` in Python.
+`x = pyimod(x, y)` is equivalent to `x %= y` in Python.
 """
-pyirem(::Type{T}, x, y) where {T} = cpyop(T, C.PyNumber_InPlaceRemainder, x, y)
-pyirem(x, y) = pyirem(typeof(x), x, y)
-export pyirem
+pyimod(::Type{T}, x, y) where {T} = cpyop(T, C.PyNumber_InPlaceRemainder, x, y)
+pyimod(x, y) = pyimod(typeof(x), x, y)
+export pyimod
 
 """
     pydivmod([T=PyObject,] x, y) :: T

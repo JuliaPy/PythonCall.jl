@@ -7,7 +7,7 @@ pyeval_macro(filename, mode, codearg, args...) = begin
         rettypearg = codearg.args[end]
         codearg = codearg.args[1]
     else
-        rettypearg = mode == :eval ? PyObject : Nothing
+        rettypearg = mode == :exec ? Nothing : PyObject
     end
     # extract the code
     code = codearg.args[end]
@@ -75,8 +75,13 @@ pyeval_macro(filename, mode, codearg, args...) = begin
             (ex, v, lhs) in zip(interps, intvars, islhs) if lhs
         ]
     end
+    # make the code be a function body
+    if mode == :execr
+        newcode = "def _jl_tmp_ans_func_($(join(intvars, ", "))):\n" * join(map(line->"    "*line, split(newcode, "\n")), "\n") * "\n\nans = _jl_tmp_ans_func_($(join(intvars, ", ")))"
+        @show newcode
+    end
     # make the code object
-    co = PyCode(newcode, filename, mode)
+    co = PyCode(newcode, filename, mode == :eval ? :eval : :exec)
     # go
     freelocals =
         locals === nothing ? :(C.Py_DecRef(lptr)) : :(GC.@preserve locals nothing)
@@ -134,6 +139,17 @@ pyeval_macro(filename, mode, codearg, args...) = begin
                         $freelocals
                         res = C.PyObject_Convert(rptr, $(esc(rettypearg)))
                         C.Py_DecRef(rptr)
+                        ism1(res) && pythrow()
+                        C.takeresult($(esc(rettypearg)))
+                    end
+                elseif mode in (:execa, :execr)
+                    quote
+                        C.Py_DecRef(rptr)
+                        xo = C.PyObject_GetItem(lptr, $(PyInternedString("ans")))
+                        isnull(xo) && ($freelocals; pythrow())
+                        res = C.PyObject_Convert(xo, $(esc(rettypearg)))
+                        C.Py_DecRef(xo)
+                        $freelocals
                         ism1(res) && pythrow()
                         C.takeresult($(esc(rettypearg)))
                     end
@@ -224,6 +240,30 @@ macro pyv(args...)
     pyeval_macro(pyeval_filename(__source__), :eval, args...)
 end
 export @pyv
+
+"""
+    @pya `...`[::rettype] [locals] [var=val, ...]
+
+Execute the given Python code and return `ans`.
+
+This is the same as `@py ...` except that the variable `ans` is extracted from the scope and returned.
+"""
+macro pya(args...)
+    pyeval_macro(pyeval_filename(__source__), :execa, args...)
+end
+export @pya
+
+"""
+    @pyr `...`[::rettype] [locals] [var=val, ...]
+
+Execute the given Python code in a function and return its return value.
+
+Essentially equivalent to ```@pya `def result(): ...; ans = result()` ```.
+"""
+macro pyr(args...)
+    pyeval_macro(pyeval_filename(__source__), :execr, args...)
+end
+export @pyr
 
 """
     py`...` :: PyCode

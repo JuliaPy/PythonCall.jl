@@ -1,4 +1,4 @@
-using Python, Test, Dates
+using Python, Test, Dates, Compat
 
 @testset "Python.jl" begin
 
@@ -7,7 +7,7 @@ using Python, Test, Dates
 
     @testset "eval" begin
         @pyg ```
-        import sys, os, datetime
+        import sys, os, datetime, array, io
         eq = lambda a, b: type(a) is type(b) and a == b
         class Foo:
             def __init__(self, x=None):
@@ -140,6 +140,7 @@ using Python, Test, Dates
             @test @pyv `$(pyfloat(x)) == $x`::Bool
         end
         @test @pyv `eq($(pyfloat("12.3")), 12.3)`::Bool
+        @test @pyv `eq($(pyfloat()), 0.0)`::Bool
         # import
         sysstr = @pyv `"sys"`
         @test @pyv `$(pyimport("sys")) is sys`::Bool
@@ -178,12 +179,14 @@ using Python, Test, Dates
         @test @pyv `eq($(pyisub(1,2)), -1)`::Bool
         @test @pyv `eq($(pymul(1,2)), 2)`::Bool
         @test @pyv `eq($(pyimul(1,2)), 2)`::Bool
+        @test_throws PyException pymatmul(1,2)
+        @test_throws PyException pyimatmul(1,2)
         @test @pyv `eq($(pyfloordiv(1,2)), 0)`::Bool
         @test @pyv `eq($(pyifloordiv(1,2)), 0)`::Bool
         @test @pyv `eq($(pytruediv(1,2)), 0.5)`::Bool
         @test @pyv `eq($(pyitruediv(1.0,2)), 0.5)`::Bool
-        @test @pyv `eq($(pyrem(1,2)), 1)`::Bool
-        @test @pyv `eq($(pyirem(1,2)), 1)`::Bool
+        @test @pyv `eq($(pymod(1,2)), 1)`::Bool
+        @test @pyv `eq($(pyimod(1,2)), 1)`::Bool
         @test @pyv `eq($(pydivmod(1,2)), (0,1))`::Bool
         @test @pyv `eq($(pylshift(1,2)), 4)`::Bool
         @test @pyv `eq($(pyilshift(1,2)), 4)`::Bool
@@ -201,6 +204,7 @@ using Python, Test, Dates
         @test @pyv `eq($(pyipow(2,3,5)), 3)`::Bool
         @test @pyv `eq($(pyneg(2)), -2)`::Bool
         @test @pyv `eq($(pypos(2)), 2)`::Bool
+        @test @pyv `eq($(pyabs(-2)), 2)`::Bool
         @test @pyv `eq($(pyinv(2)), ~2)`::Bool
         # iter
         @test @pyv `eq($(pyiter(list)).__next__(), 1)`::Bool
@@ -251,9 +255,13 @@ using Python, Test, Dates
     @testset "PyObject" begin
         x = PyObject(1)
         y = Python.pylazyobject(()->error("nope"))
+        z = PyObject(2)
         foo = @pyv `Foo()`
         Foo = @pyv `Foo`
         list = @pyv `[1,2,3]`
+        dict = @pyv `{"x":1, "y":2}`
+        arr = @pyv `array.array('f', [1,2,3])`
+        bio = @pyv `io.BytesIO()`
         @test x isa PyObject
         @test y isa PyObject
         @test foo isa PyObject
@@ -262,11 +270,30 @@ using Python, Test, Dates
         @test string(x) == "1"
         @test (io=IOBuffer(); print(io, x); String(take!(io))) == "1"
         @test repr(x) == "<py 1>"
+        @test startswith(repr(foo), "<py Foo")
         @test (io=IOBuffer(); show(io, x); String(take!(io))) == "<py 1>"
+        @test (io=IOBuffer(); ioc=IOContext(io, :typeinfo=>PyObject); show(ioc, x); String(take!(io))) == "1"
         @test (io=IOBuffer(); show(io, MIME("text/plain"), x); String(take!(io))) == "py: 1"
         @test @pyv `$(foo.x) is $foo.x`::Bool
         @test (foo.x = 99) === 99
         @test @pyv `eq($(foo.x), 99)`::Bool
+        @test !hasproperty(x, :invalid)
+        @test hasproperty(x, :__str__)
+        @test issubset([:__str__, :__repr__, :x], propertynames(foo))
+        @test x.jl!(Int8) === Int8(1)
+        @test x.jl!i === Int(1)
+        @test x.jl!b === true
+        @test x.jl!s == "1"
+        @test x.jl!r == "1"
+        @test x.jl!f === Cdouble(1)
+        @test x.jl!c === Complex{Cdouble}(1)
+        @test collect(list.jl!iter(Int)) == [1,2,3]
+        @test list.jl!list(Int) == [1,2,3]
+        @test list.jl!set(Int) == Set([1,2,3])
+        @test dict.jl!dict(String,Int) == Dict("x"=>1, "y"=>2)
+        @test arr.jl!array(Cfloat) == [1,2,3]
+        @test arr.jl!vector(Cfloat) == [1,2,3]
+        @test bio.jl!io() isa PyIO
         @test @pyv `type($(Foo())) is Foo`::Bool
         @test Base.IteratorSize(PyObject) === Base.SizeUnknown()
         @test Base.eltype(list) === PyObject
@@ -282,6 +309,121 @@ using Python, Test, Dates
         @test @pyv `eq($(clist[1]), 2)`::Bool
         @test @pyv `eq($(clist[2]), 3)`::Bool
         @test hash(x) === UInt(1)
+        # comparison
+        @test @pyv `$(x == x) is True`::Bool
+        @test @pyv `$(x == z) is False`::Bool
+        @test @pyv `$(x != x) is False`::Bool
+        @test @pyv `$(x != z) is True`::Bool
+        @test @pyv `$(x <= x) is True`::Bool
+        @test @pyv `$(x <= z) is True`::Bool
+        @test @pyv `$(x < x) is False`::Bool
+        @test @pyv `$(x < z) is True`::Bool
+        @test @pyv `$(x >= x) is True`::Bool
+        @test @pyv `$(x >= z) is False`::Bool
+        @test @pyv `$(x > x) is False`::Bool
+        @test @pyv `$(x > z) is False`::Bool
+        @test isequal(x, x)
+        @test !isequal(x, z)
+        @test !isless(x, x)
+        @test isless(x, z)
+        # arithmetic
+        @test @pyv `eq($(zero(PyObject)), 0)`::Bool
+        @test @pyv `eq($(one(PyObject)), 1)`::Bool
+        @test @pyv `eq($(-x), -1)`::Bool
+        @test @pyv `eq($(+x), 1)`::Bool
+        @test @pyv `eq($(~x), ~1)`::Bool
+        @test @pyv `eq($(abs(x)), 1)`::Bool
+        @test @pyv `eq($(x+z), 3)`::Bool
+        @test @pyv `eq($(x-z), -1)`::Bool
+        @test @pyv `eq($(x*z), 2)`::Bool
+        @test @pyv `eq($(x/z), 0.5)`::Bool
+        @test @pyv `eq($(fld(x,z)), 0)`::Bool
+        @test @pyv `eq($(mod(x,z)), 1)`::Bool
+        @test @pyv `eq($(z^z), 4)`::Bool
+        @test @pyv `eq($(x<<z), 4)`::Bool
+        @test @pyv `eq($(z>>x), 1)`::Bool
+        @test @pyv `eq($(x&z), 0)`::Bool
+        @test @pyv `eq($(x|z), 3)`::Bool
+        @test @pyv `eq($(xor(x,z)), 3)`::Bool
+        @test @pyv `eq($(x+2), 3)`::Bool
+        @test @pyv `eq($(x-2), -1)`::Bool
+        @test @pyv `eq($(x*2), 2)`::Bool
+        @test @pyv `eq($(x/2), 0.5)`::Bool
+        @test @pyv `eq($(fld(x,2)), 0)`::Bool
+        @test @pyv `eq($(mod(x,2)), 1)`::Bool
+        @test @pyv `eq($(z^2), 4)`::Bool
+        @test @pyv `eq($(x<<2), 4)`::Bool
+        @test @pyv `eq($(z>>1), 1)`::Bool
+        @test @pyv `eq($(x&2), 0)`::Bool
+        @test @pyv `eq($(x|2), 3)`::Bool
+        @test @pyv `eq($(xor(x,2)), 3)`::Bool
+        @test @pyv `eq($(1+z), 3)`::Bool
+        @test @pyv `eq($(1-z), -1)`::Bool
+        @test @pyv `eq($(1*z), 2)`::Bool
+        @test @pyv `eq($(1/z), 0.5)`::Bool
+        @test @pyv `eq($(fld(1,z)), 0)`::Bool
+        @test @pyv `eq($(mod(1,z)), 1)`::Bool
+        # @test @pyv `eq($(2^z), 4)`::Bool
+        # @test @pyv `eq($(1<<z), 4)`::Bool
+        # @test @pyv `eq($(2>>x), 1)`::Bool
+        @test @pyv `eq($(1&z), 0)`::Bool
+        @test @pyv `eq($(1|z), 3)`::Bool
+        @test @pyv `eq($(xor(1,z)), 3)`::Bool
+        @test @pyv `eq($(powermod(2,3,5)), 3)`::Bool
+    end
+
+    @testset "PyIO" begin
+        bio = PyIO(@pyv `io.BytesIO()`)
+        sio = PyIO(@pyv `io.StringIO()`)
+        @test bio isa PyIO
+        @test sio isa PyIO
+        @test !bio.text
+        @test sio.text
+        @test flush(bio) === nothing
+        @test flush(sio) === nothing
+        @test eof(bio)
+        @test eof(sio)
+        @test_throws PyException fd(bio)
+        @test_throws PyException fd(sio)
+        @test isreadable(bio)
+        @test isreadable(sio)
+        @test iswritable(bio)
+        @test iswritable(sio)
+        write(bio, "hello")
+        write(sio, "foo")
+        flush(bio)
+        flush(sio)
+        seekstart(bio)
+        seekstart(sio)
+        bpos = position(bio)
+        spos = position(sio)
+        @test bpos isa Int
+        @test spos isa Int
+        @test !eof(bio)
+        @test !eof(sio)
+        seekend(bio)
+        seekend(sio)
+        @test eof(bio)
+        @test eof(sio)
+        seek(bio, bpos)
+        seek(sio, bpos)
+        @test position(bio) == bpos
+        @test position(sio) == spos
+        skip(bio, 1)
+        skip(sio, 1)
+        read(sio, length(sio.ibuf))
+        @test position(bio) > bpos
+        @test position(sio) > spos
+        seekstart(bio)
+        seekstart(sio)
+        @test read(bio, String) == "hello"
+        @test read(sio, String) == "foo"
+        @test isopen(bio)
+        @test isopen(sio)
+        @test close(bio) === nothing
+        @test close(sio) === nothing
+        @test !isopen(bio)
+        @test !isopen(sio)
     end
 
     @testset "julia" begin

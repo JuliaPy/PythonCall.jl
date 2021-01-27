@@ -42,8 +42,8 @@ function PyArray{T,N,R,M,L}(o::PyRef, info) where {T,N,R,M,L}
 
     # R - buffer element type
     R isa Type || error("R must be a type, got R=$R")
-    Base.allocatedinline(R) || error("source elements must be allocated inline, got R=$R")
-    Base.aligned_sizeof(R) == info.elsize ||
+    allocatedinline(R) || error("source elements must be allocated inline, got R=$R")
+    sizeof(R) == info.elsize ||
         error("source elements must have size $(info.elsize), got R=$R")
 
     # M - mutable
@@ -128,7 +128,7 @@ function pyarray_info(ref; buffer = true, array = true, copy = true)
         typestr = pyconvert(String, ai["typestr"])
         descr = pyconvertdescr(ai.get("descr"))
         eltype = pytypestrdescr_to_type(typestr, descr)
-        elsize = Base.aligned_sizeof(eltype)
+        elsize = sizeof(eltype)
         strides = pyconvert(Union{Nothing,Tuple{Vararg{Int}}}, ai.get("strides"))
         strides === nothing && (strides = size_to_cstrides(elsize, size...))
         pyis(ai.get("mask"), pynone()) || error("mask not supported")

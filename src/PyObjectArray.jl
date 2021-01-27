@@ -71,7 +71,7 @@ C._pyjlarray_get_buffer(o, buf, flags, x::PyObjectArray) = C.pyjl_get_buffer_imp
     ndims(x),
     "O",
     size(x),
-    strides(x.ptrs),
+    strides(x.ptrs) .* sizeof(CPyPtr),
     true,
 )
 

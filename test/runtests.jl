@@ -468,6 +468,49 @@ using Python, Test, Dates, Compat
         @test !isopen(sio)
     end
 
+    @testset "PyArray" begin
+        vec = [1, 2, 3]
+        mat = transpose([1.0 2.5; 3.0 4.5]) # transpose => not linearly indexable
+        @test PyArray(vec) isa PyVector{Int, Int, true, true}
+        @test PyVector(vec) isa PyVector{Int, Int, true, true}
+        @test PyArray{Int}(vec) isa PyVector{Int, Int, true, true}
+        @test PyArray{Int,1}(vec) isa PyVector{Int, Int, true, true}
+        @test PyArray{Int,1,Int}(vec) isa PyVector{Int, Int, true, true}
+        @test PyArray{Int,1,Int,true}(vec) isa PyVector{Int, Int, true, true}
+        @test PyArray{Int,1,Int,true,true}(vec) isa PyVector{Int, Int, true, true}
+        @test PyArray{Int,1,Int,false,false}(vec) isa PyVector{Int, Int, false, false}
+        @test PyArray(mat) isa PyMatrix{Float64, Float64, true, false}
+        @test PyMatrix(mat) isa PyMatrix{Float64, Float64, true, false}
+        @test PyArray{Float64}(mat) isa PyMatrix{Float64, Float64, true, false}
+        @test PyArray{Float64,2}(mat) isa PyMatrix{Float64, Float64, true, false}
+        @test PyArray{Float64,2,Float64}(mat) isa PyMatrix{Float64, Float64, true, false}
+        @test PyArray{Float64,2,Float64,true}(mat) isa PyMatrix{Float64, Float64, true, false}
+        @test PyArray{Float64,2,Float64,true,false}(mat) isa PyMatrix{Float64, Float64, true, false}
+        veco = PyArray(vec)
+        mato = PyArray(mat)
+        @test Python.ismutablearray(veco)
+        @test Python.ismutablearray(mato)
+        @test !Python.ismutablearray(PyArray{Int,1,Int,false,true}(vec))
+        @test size(veco) == size(vec)
+        @test size(mato) == size(mat)
+        @test length(veco) == length(vec)
+        @test length(mato) == length(mat)
+        @test veco == vec
+        @test mato == mat
+        @test Base.IndexStyle(typeof(veco)) == Base.IndexLinear()
+        @test Base.IndexStyle(typeof(mato)) == Base.IndexCartesian()
+        vec[1] += 1
+        mat[1] += 1
+        @test veco == vec
+        @test mato == mat
+        veco[1] += 1
+        mato[1] += 1
+        @test veco == vec
+        @test mato == mat
+        mato[2,2] += 1
+        @test mato == mat
+    end
+
     @testset "julia" begin
         for value in Any[nothing, false, true, 0, 1, typemin(Int), 1.0, (), (1,false,()), [], Int[1,2,3], stdin, stdout, IOBuffer()]
             r = pyjlraw(value)

@@ -189,9 +189,9 @@ function pyarray_info(ref; buffer = true, array = true, copy = true)
     error("given object does not support the buffer protocol or array interface")
 end
 
-Base.isimmutable(x::PyArray{T,N,R,M,L}) where {T,N,R,M,L} = !M
 Base.size(x::PyArray) = x.size
 Base.length(x::PyArray) = x.length
+ismutablearray(::PyArray{T,N,R,M,L}) where {T,N,R,M,L} = M
 Base.IndexStyle(::Type{PyArray{T,N,R,M,L}}) where {T,N,R,M,L} =
     L ? Base.IndexLinear() : Base.IndexCartesian()
 

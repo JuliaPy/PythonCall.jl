@@ -9,7 +9,8 @@ using Dates,
     IteratorInterfaceExtensions,
     Markdown,
     Requires,
-    Compat
+    Compat,
+    LinearAlgebra
 using Base: @kwdef
 
 # things not directly dependent on PyObject or libpython

@@ -30,9 +30,12 @@ size_to_cstrides(elsz::Integer, sz::Integer...) =
 isfcontiguous(o::AbstractArray) = strides(o) == size_to_fstrides(1, size(o)...)
 isccontiguous(o::AbstractArray) = strides(o) == size_to_cstrides(1, size(o)...)
 
-# TODO: make this better: e.g. views are immutable structures, but should be considered mutable arrays
-ismutablearray(x::AbstractArray) = !isimmutable(x)
-ismutablearray(x::SubArray) = ismutablearray(parent(x))
+# TODO: what is the best way?
+ismutablearray(x::Array) = true
+ismutablearray(x::AbstractArray) = begin
+    p = parent(x)
+    p === x ? false : ismutablearray(p)
+end
 
 pybufferformat(::Type{T}) where {T} =
     T == Int8 ? "=b" :

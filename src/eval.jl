@@ -78,7 +78,6 @@ pyeval_macro(filename, mode, codearg, args...) = begin
     # make the code be a function body
     if mode == :execr
         newcode = "def _jl_tmp_ans_func_($(join(intvars, ", "))):\n" * join(map(line->"    "*line, split(newcode, "\n")), "\n") * "\n\nans = _jl_tmp_ans_func_($(join(intvars, ", ")))"
-        @show newcode
     end
     # make the code object
     co = PyCode(newcode, filename, mode == :eval ? :eval : :exec)

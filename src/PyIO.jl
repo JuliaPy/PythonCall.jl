@@ -174,7 +174,7 @@ end
 
 function Base.truncate(io::PyIO, pos::Integer)
     seek(io, position(io))
-    io.o.truncate(pos)
+    @py `$io.truncate($pos)`
     io
 end
 

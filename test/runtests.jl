@@ -16,7 +16,13 @@ using Python, Test, Dates, Compat
                 return "Foo()"
             def __str__(self):
                 return "<some Foo>"
+        $(x::Int) = 234
         ```
+        @test x === 234
+        @test (@pyv `x`::Int x=123) == 123
+        @test (@pyv `"$$"`::String) == "\$"
+        @test (@pya `ans=1.0`::Float64) == 1.0
+        @test (@pyr `return 12`::Int) == 12
     end
 
     @testset "convert-to-python" begin
@@ -261,6 +267,7 @@ using Python, Test, Dates, Compat
         list = @pyv `[1,2,3]`
         dict = @pyv `{"x":1, "y":2}`
         arr = @pyv `array.array('f', [1,2,3])`
+        mat = PyObject([1 2; 3 4])
         bio = @pyv `io.BytesIO()`
         @test x isa PyObject
         @test y isa PyObject
@@ -291,8 +298,23 @@ using Python, Test, Dates, Compat
         @test list.jl!list(Int) == [1,2,3]
         @test list.jl!set(Int) == Set([1,2,3])
         @test dict.jl!dict(String,Int) == Dict("x"=>1, "y"=>2)
+        @test arr.jl!buffer() isa PyBuffer
+        @test arr.jl!array() == [1,2,3]
         @test arr.jl!array(Cfloat) == [1,2,3]
+        @test arr.jl!array(Cfloat, 1) == [1,2,3]
+        @test arr.jl!array(Cfloat, 1, Cfloat) == [1,2,3]
+        @test arr.jl!array(Cfloat, 1, Cfloat, true) == [1,2,3]
+        @test arr.jl!array(Cfloat, 1, Cfloat, true, true) == [1,2,3]
+        @test arr.jl!vector() == [1,2,3]
         @test arr.jl!vector(Cfloat) == [1,2,3]
+        @test arr.jl!vector(Cfloat, Cfloat) == [1,2,3]
+        @test arr.jl!vector(Cfloat, Cfloat, true) == [1,2,3]
+        @test arr.jl!vector(Cfloat, Cfloat, true, true) == [1,2,3]
+        @test mat.jl!matrix() == [1 2; 3 4]
+        @test mat.jl!matrix(Int) == [1 2; 3 4]
+        @test mat.jl!matrix(Int, Int) == [1 2; 3 4]
+        @test mat.jl!matrix(Int, Int, true) == [1 2; 3 4]
+        @test mat.jl!matrix(Int, Int, true, false) == [1 2; 3 4]
         @test bio.jl!io() isa PyIO
         @test @pyv `type($(Foo())) is Foo`::Bool
         @test Base.IteratorSize(PyObject) === Base.SizeUnknown()
@@ -369,18 +391,20 @@ using Python, Test, Dates, Compat
         @test @pyv `eq($(1&z), 0)`::Bool
         @test @pyv `eq($(1|z), 3)`::Bool
         @test @pyv `eq($(xor(1,z)), 3)`::Bool
-        @test @pyv `eq($(powermod(2,3,5)), 3)`::Bool
+        @test @pyv `eq($(powermod(z,3,5)), 3)`::Bool
     end
 
     @testset "PyIO" begin
-        bio = PyIO(@pyv `io.BytesIO()`)
-        sio = PyIO(@pyv `io.StringIO()`)
+        bio = PyIO((@pyv `io.BytesIO()`), buflen=1)
+        sio = PyIO((@pyv `io.StringIO()`), buflen=1)
         @test bio isa PyIO
         @test sio isa PyIO
         @test !bio.text
         @test sio.text
         @test flush(bio) === nothing
         @test flush(sio) === nothing
+        @test eof(bio)
+        @test eof(sio)
         @test eof(bio)
         @test eof(sio)
         @test_throws PyException fd(bio)
@@ -409,11 +433,29 @@ using Python, Test, Dates, Compat
         seek(sio, bpos)
         @test position(bio) == bpos
         @test position(sio) == spos
-        skip(bio, 1)
+        skip(bio, 2)
         skip(sio, 1)
+        skip(bio, -1)
+        @test_throws Exception skip(sio, -1)
         read(sio, length(sio.ibuf))
         @test position(bio) > bpos
         @test position(sio) > spos
+        seekstart(bio)
+        seekstart(sio)
+        @test read(bio, String) == "hello"
+        @test read(sio, String) == "foo"
+        @test eof(bio)
+        @test eof(sio)
+        bpos = position(bio)
+        spos = position(sio)
+        @test write(bio, 'x') == 1
+        @test write(sio, 'x') == 1
+        seekstart(bio)
+        seekstart(sio)
+        @test read(bio, String) == "hellox"
+        @test read(sio, String) == "foox"
+        truncate(bio, bpos)
+        truncate(sio, spos)
         seekstart(bio)
         seekstart(sio)
         @test read(bio, String) == "hello"

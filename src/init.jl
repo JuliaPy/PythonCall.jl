@@ -275,4 +275,6 @@ function __init__()
             end
         end
     end
+
+    @debug "Initialized Python.jl" CONFIG.isembedded CONFIG.isinitialized CONFIG.exepath CONFIG.libpath CONFIG.libptr CONFIG.pyprogname CONFIG.pyhome CONFIG.version CONFIG.isconda CONFIG.condaenv
 end

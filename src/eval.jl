@@ -220,7 +220,7 @@ Executes the given Python code in the global scope.
 This is simply shorthand for ```@py `...` pyglobals ``` (see [`@py`](@ref)).
 """
 macro pyg(code, args...)
-    :(@py $code $(esc(:pyglobals)) $(args...))
+    pyeval_macro(pyeval_filename(__source__), :exec, code, :pyglobals, args...)
 end
 export @pyg
 

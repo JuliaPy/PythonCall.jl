@@ -95,7 +95,7 @@ pyeval_macro(filename, mode, codearg, args...) = begin
             globals = $(esc(:pyglobals))
             gptr = checknull(pyptr(globals))
             # ensure globals includes builtins
-            if !globals.hasbuiltins
+            if globals isa PyDict && !globals.hasbuiltins
                 if C.PyMapping_HasKeyString(gptr, "__builtins__") == 0
                     err = C.PyMapping_SetItemString(
                         gptr,

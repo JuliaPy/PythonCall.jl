@@ -27,6 +27,7 @@ Py_Is(o1, o2) = Base.unsafe_convert(PyPtr, o1) == Base.unsafe_convert(PyPtr, o2)
 @cdef :PyEval_EvalCode PyPtr (PyPtr, PyPtr, PyPtr)
 @cdef :Py_CompileString PyPtr (Cstring, Cstring, Cint)
 @cdef :PyEval_GetBuiltins PyPtr ()
+@cdef :PyRun_InteractiveOne Cint (Ptr{Cvoid}, Cstring) # (FILE* file, const char* filename)
 
 ### GIL & THREADS
 
@@ -47,6 +48,10 @@ PyImport_GetModule(name) = begin
     ism1(ok) && return PyNULL
     ok != 0 ? PyMapping_GetItemString(ms, name) : PyNULL
 end
+
+### MODULES
+
+@cdef :PyModule_GetDict PyPtr (PyPtr,)
 
 ### ERRORS
 

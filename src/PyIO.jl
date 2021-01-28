@@ -120,16 +120,17 @@ Base.iswritable(io::PyIO) = @pyv `$io.writable()`::Bool
 Base.isopen(io::PyIO) = @pyv `not $io.closed`::Bool
 
 function Base.unsafe_write(io::PyIO, ptr::Ptr{UInt8}, n::UInt)
+    ntodo = n
     while true
-        m = max(0, io.obuflen - length(io.obuf))
-        if n < m
-            append!(io.obuf, unsafe_wrap(Array, ptr, n))
-            return
+        nroom = max(0, io.obuflen - length(io.obuf))
+        if ntodo < nroom
+            append!(io.obuf, unsafe_wrap(Array, ptr, ntodo))
+            return n
         else
-            append!(io.obuf, unsafe_wrap(Array, ptr, m))
+            append!(io.obuf, unsafe_wrap(Array, ptr, nroom))
             putobuf(io)
-            ptr += m
-            n -= m
+            ptr += nroom
+            ntodo -= nroom
         end
     end
 end
@@ -142,15 +143,16 @@ function Base.write(io::PyIO, c::UInt8)
 end
 
 function Base.unsafe_read(io::PyIO, ptr::Ptr{UInt8}, n::UInt)
+    ntodo = n
     while true
-        m = length(io.ibuf)
-        if n ≤ m
-            unsafe_wrap(Array, ptr, n) .= splice!(io.ibuf, 1:n)
+        navail = length(io.ibuf)
+        if ntodo ≤ navail
+            unsafe_wrap(Array, ptr, ntodo) .= splice!(io.ibuf, 1:ntodo)
             return
         else
-            unsafe_wrap(Array, ptr, m) .= io.ibuf
-            ptr += m
-            n -= m
+            unsafe_wrap(Array, ptr, navail) .= io.ibuf
+            ptr += navail
+            ntodo -= navail
             empty!(io.ibuf)
             eof(io) && throw(EOFError())
         end

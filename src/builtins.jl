@@ -865,45 +865,89 @@ export pytype
 
 ### MULTIMEDIA DISPLAY
 
-const _py_mimes = [
-    (MIME"text/html", "_repr_html_"),
-    (MIME"text/markdown", "_repr_markdown_"),
-    (MIME"text/json", "_repr_json_"),
-    (MIME"application/javascript", "_repr_javascript_"),
-    (MIME"application/pdf", "_repr_pdf_"),
-    (MIME"image/jpeg", "_repr_jpeg_"),
-    (MIME"image/png", "_repr_png_"),
-    (MIME"image/svg+xml", "_repr_svg_"),
-    (MIME"text/latex", "_repr_latex_"),
-]
-const _py_mimetype = Union{map(first, _py_mimes)...}
+_py_mime_reprmethod(::MIME) = nothing
+_py_mime_reprmethod(::MIME"text/plain") = "__repr__"
+_py_mime_reprmethod(::MIME"text/html") = "_repr_html_"
+_py_mime_reprmethod(::MIME"text/markdown") = "_repr_markdown_"
+_py_mime_reprmethod(::MIME"text/json") = "_repr_json_"
+_py_mime_reprmethod(::MIME"text/latex") = "_repr_latex_"
+_py_mime_reprmethod(::MIME"application/javascript") = "_repr_javascript_"
+_py_mime_reprmethod(::MIME"application/pdf") = "_repr_pdf_"
+_py_mime_reprmethod(::MIME"image/jpeg") = "_repr_jpeg_"
+_py_mime_reprmethod(::MIME"image/png") = "_repr_png_"
+_py_mime_reprmethod(::MIME"image/svg+xml") = "_repr_svg_"
 
-for (mime, method) in _py_mimes
-    T = istextmime(mime()) ? String : Vector{UInt8}
-    @eval begin
-        _py_mime_show(io::IO, mime::$mime, o) = begin
-            try
-                x = pycall(PyRef, pygetattr(PyRef, o, $method))
-                pyis(x, pynone(PyRef)) || return write(io, pyconvert($T, x))
-            catch
-            end
-            throw(MethodError(_py_mime_show, (io, mime, o)))
-        end
-        _py_mime_showable(::$mime, o) = begin
-            try
-                x = pycall(PyRef, pygetattr(PyRef, o, $method))
-                if pyis(x, pynone(PyRef))
-                    false
-                else
-                    pyconvert($T, x)
-                    true
-                end
-            catch
-                false
-            end
-        end
-    end
+_py_mime_data(m::MIME, o) = begin
+    @py ```
+    o = $o
+    m = $(string(m))
+    r = $(_py_mime_reprmethod(m))
+    data = None
+    meta = None
+    try:
+        x = o._repr_mimebundle_()
+        if isinstance(mb, tuple):
+            data = x[0][m]
+            meta = x[1].get(m)
+        else:
+            data = mb[m]
+    except:
+        pass
+    if data is None and r is not None:
+        try:
+            x = getattr(o, r)()
+            if isinstance(x, tuple):
+                data = x[0]
+                meta = x[1]
+            else:
+                data = x
+        except:
+            pass
+    $(data::Union{PyRef, Nothing}) = data
+    $(meta::Union{PyRef, Nothing}) = meta
+    ```
+    data, meta
 end
+
+_py_mime_showable(m::MIME, o) = begin
+    data, meta = _py_mime_data(m, o)
+    data !== nothing
+end
+
+_py_mime_show(io::IO, m::MIME, o) = begin
+    data, meta = _py_mime_data(m, o)
+    write(io, istextmime(m) ? pyconvert(String, data) : pyconvert(Vector{UInt8}, data))
+    nothing
+end
+
+# const _py_mimetype = Union{map(first, _py_mimes)...}
+
+# for (mime, method) in _py_mimes
+#     T = istextmime(mime()) ? String : Vector{UInt8}
+#     @eval begin
+#         _py_mime_show(io::IO, mime::$mime, o) = begin
+#             try
+#                 x = pycall(PyRef, pygetattr(PyRef, o, $method))
+#                 pyis(x, pynone(PyRef)) || return write(io, pyconvert($T, x))
+#             catch
+#             end
+#             throw(MethodError(_py_mime_show, (io, mime, o)))
+#         end
+#         _py_mime_showable(::$mime, o) = begin
+#             try
+#                 x = pycall(PyRef, pygetattr(PyRef, o, $method))
+#                 if pyis(x, pynone(PyRef))
+#                     false
+#                 else
+#                     pyconvert($T, x)
+#                     true
+#                 end
+#             catch
+#                 false
+#             end
+#         end
+#     end
+# end
 
 ### IO
 

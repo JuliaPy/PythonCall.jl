@@ -88,8 +88,8 @@ C.PyObject_TryConvert__initial(o, ::Type{PyPandasDataFrame}) =
     C.putresult(PyPandasDataFrame(pyborrowedref(o)))
 
 Base.show(io::IO, x::PyPandasDataFrame) = print(io, pystr(String, x))
-Base.show(io::IO, mime::_py_mimetype, o::PyPandasDataFrame) = _py_mime_show(io, mime, o)
-Base.showable(mime::_py_mimetype, o::PyPandasDataFrame) = _py_mime_showable(mime, o)
+Base.show(io::IO, mime::MIME, o::PyPandasDataFrame) = _py_mime_show(io, mime, o)
+Base.showable(mime::MIME, o::PyPandasDataFrame) = _py_mime_showable(mime, o)
 
 ### Tables.jl / TableTraits.jl integration
 

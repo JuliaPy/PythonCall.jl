@@ -141,8 +141,8 @@ function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
     end
 end
 
-Base.show(io::IO, mime::_py_mimetype, o::PyObject) = _py_mime_show(io, mime, o)
-Base.showable(mime::_py_mimetype, o::PyObject) = _py_mime_showable(mime, o)
+Base.show(io::IO, mime::MIME, o::PyObject) = _py_mime_show(io, mime, o)
+Base.showable(mime::MIME, o::PyObject) = _py_mime_showable(mime, o)
 
 ### PROPERTIES
 

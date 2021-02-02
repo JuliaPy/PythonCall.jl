@@ -33,9 +33,11 @@ PyJuliaArrayValue_Type() = begin
         ptr = PyPtr(pointer(t))
         err = PyType_Ready(ptr)
         ism1(err) && return PyNULL
-        abc = PyCollectionABC_Type()
-        isnull(abc) && return PyNULL
-        ism1(PyABC_Register(ptr, abc)) && return PyNULL
+        for abcf in (CONFIG.version < v"3.6" ? (PyContainerABC_Type, PyIterableABC_Type, PySizedABC_Type) : (PyCollectionABC_Type,))
+            abc = abcf()
+            isnull(abc) && return PyNULL
+            ism1(PyABC_Register(ptr, abc)) && return PyNULL
+        end
         PYJLGCCACHE[ptr] = push!(c, t)
         PyJuliaArrayValue_Type__ref[] = ptr
     end

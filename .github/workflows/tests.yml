@@ -5,7 +5,7 @@ on:
     branches: [master]
   push:
     branches: [master]
-    tags: "*"
+    tags: '*'
 
 jobs:
   test-conda:
@@ -20,6 +20,9 @@ jobs:
         exclude:
           - os: macos-latest
             arch: x86
+          - os: windows-latest
+            arch: x86
+            version: '1.0'
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1

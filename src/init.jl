@@ -135,7 +135,7 @@ function __init__()
             )
             atexit() do
                 CONFIG.isinitialized = false
-                checkm1(C.Py_FinalizeEx())
+                CONFIG.pyversion < v"3.6" ? C.Py_Finalize() : checkm1(C.Py_FinalizeEx())
             end
         end
     end

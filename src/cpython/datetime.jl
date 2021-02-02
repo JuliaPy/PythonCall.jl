@@ -29,7 +29,6 @@ PyDateTime_FromParts(
     second::Integer = 0,
     microsecond::Integer = 0;
     tzinfo = nothing,
-    fold::Integer = 0,
 ) = begin
     t = PyDateTime_Type()
     isnull(t) && return PyNULL
@@ -43,7 +42,6 @@ PyDateTime_FromParts(
         second,
         microsecond,
         tzinfo,
-        fold = fold,
     )
 end
 
@@ -174,11 +172,10 @@ PyTime_FromParts(
     second::Integer = 0,
     microsecond::Integer = 0;
     tzinfo = nothing,
-    fold::Integer = 0,
 ) = begin
     t = PyTime_Type()
     isnull(t) && return PyNULL
-    PyObject_CallNice(t, hour, minute, second, microsecond, tzinfo, fold = fold)
+    PyObject_CallNice(t, hour, minute, second, microsecond, tzinfo)
 end
 
 PyTime_From(x::Time) =

@@ -57,7 +57,7 @@ jobs:
         version: ['1']
         arch: [x64]
         os: [ubuntu-latest]
-        pyversion: ['3.0', '3.1', '3.2', '3.3', '3.x']
+        pyversion: ['3.5', '3.x']
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
@@ -80,8 +80,6 @@ jobs:
             ${{ runner.os }}-
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
-        env:
-          PYTHONJL_EXE: CONDA
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v1
         with:

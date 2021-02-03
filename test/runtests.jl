@@ -489,7 +489,7 @@ using Python, Test, Dates, Compat
         @test PyArray{Float64,2,Float64,true}(mat) isa PyMatrix{Float64, Float64, true, false}
         @test PyArray{Float64,2,Float64,true,false}(mat) isa PyMatrix{Float64, Float64, true, false}
         @test PyArray(arr) isa PyArray{PyObject, 3, Python.CPython.PyObjectRef, true, true}
-        @test PyArray(["foo", "bar"]) isa PyVector{PyObject, Python.CPython.PyObjectRef, true, true}
+        # @test PyArray(["foo", "bar"]) isa PyVector{PyObject, Python.CPython.PyObjectRef, true, true} # uses __array__ which requires numpy
         veco = PyArray(vec)
         mato = PyArray(mat)
         arro = PyArray(arr)

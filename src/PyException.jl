@@ -69,36 +69,23 @@ checknullconvert(::Type{T}, x::Ptr, ambig::Bool = false) where {T} = begin
 end
 
 function Base.showerror(io::IO, e::PyException)
+    print(io, "Python: ")
+
     if isnull(e.tref)
-        print(io, "Python: mysterious error (no error was actually set)")
+        print(io, "mysterious error (no error was actually set)")
         return
     end
 
     if CONFIG.sysautolasttraceback
-        err = C.Py_DecRef(C.PyImport_ImportModule("sys"), PYERR()) do sys
-            err = C.PyObject_SetAttrString(
-                sys,
-                "last_type",
-                isnull(e.tref) ? C.Py_None() : e.tref.ptr,
-            )
-            ism1(err) && return PYERR()
-            err = C.PyObject_SetAttrString(
-                sys,
-                "last_value",
-                isnull(e.vref) ? C.Py_None() : e.vref.ptr,
-            )
-            ism1(err) && return PYERR()
-            err = C.PyObject_SetAttrString(
-                sys,
-                "last_traceback",
-                isnull(e.bref) ? C.Py_None() : e.bref.ptr,
-            )
-            ism1(err) && return PYERR()
-            nothing
-        end
-        if err == PYERR()
-            C.PyErr_Clear()
-            print(io, "<error while setting 'sys.last_traceback'>")
+        try
+            @py ```
+            import sys
+            sys.last_type = $(isnull(e.tref) ? nothing : e.tref)
+            sys.last_value = $(isnull(e.vref) ? nothing : e.vref)
+            sys.last_traceback = $(isnull(e.bref) ? nothing : e.bref)
+            ```
+        catch err
+            print(io, "<error while setting 'sys.last_traceback': $err")
         end
     end
 
@@ -113,7 +100,7 @@ function Base.showerror(io::IO, e::PyException)
                 je = vo
                 jb = nothing
             end
-            print(io, "Python: Julia: ")
+            print(io, "Julia: ")
             # Show exception
             if je isa Exception
                 showerror(io, je)
@@ -123,11 +110,11 @@ function Base.showerror(io::IO, e::PyException)
             # Show backtrace
             if jb === nothing
                 println(io)
-                print(io, "Stacktrace: none")
+                printstyled(io, "Stacktrace: none")
             else
                 io2 = IOBuffer()
                 Base.show_backtrace(
-                    IOContext(io2, :color => true, :displaysize => displaysize(io)),
+                    IOContext(io2, io),
                     jb,
                 )
                 printstyled(io, String(take!(io2)))
@@ -141,19 +128,16 @@ function Base.showerror(io::IO, e::PyException)
                 @goto pystacktrace
             end
         catch err
-            println("<error while printing Julia exception inside Python exception>")
+            println("<error while printing Julia exception inside Python exception: $err>")
         end
     end
-
-    # otherwise, print the Python exception
-    print(io, "Python: ")
 
     # print the type name
     try
         tname = @pyv `$(e.tref).__name__`::String
         print(io, tname)
-    catch
-        print(io, "<error while printing type>")
+    catch err
+        print(io, "<error while printing type: $err>")
     end
 
     # print the error message
@@ -162,8 +146,8 @@ function Base.showerror(io::IO, e::PyException)
         try
             vstr = @pyv `str($(e.vref))`::String
             print(io, vstr)
-        catch
-            print(io, "<error while printing value>")
+        catch err
+            print(io, "<error while printing value: $err>")
         end
     end
 
@@ -177,7 +161,7 @@ function Base.showerror(io::IO, e::PyException)
             import traceback
             $(fs :: Vector{Tuple{String, String, Int}}) = [(x.name, x.filename, x.lineno) for x in traceback.extract_tb($(e.bref))]
             ```
-            for (i, (name, fname, lineno)) in enumerate(fs)
+            for (i, (name, fname, lineno)) in enumerate(reverse(fs))
                 println(io)
                 printstyled(io, " [", i, "] ")
                 printstyled(io, name, bold = true)

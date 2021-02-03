@@ -196,28 +196,44 @@ Base.IndexStyle(::Type{PyArray{T,N,R,M,L}}) where {T,N,R,M,L} =
     L ? Base.IndexLinear() : Base.IndexCartesian()
 
 Base.@propagate_inbounds Base.getindex(
-    x::PyArray{T,N,R,M,L},
-    i::Vararg{Int,N2},
-) where {T,N,R,M,L,N2} =
-    if (N2 == N) || (L && N2 == 1)
-        @boundscheck checkbounds(x, i...)
-        pyarray_load(T, x.ptr + pyarray_offset(x, i...))
-    else
-        invoke(getindex, Tuple{AbstractArray{T,N},Vararg{Int,N2}}, x, i...)
-    end
+    x::PyArray{T,N,R,true,L},
+    i::Vararg{Int,N},
+) where {T,N,R,L} = pyarray_getindex(x, i...)
+Base.@propagate_inbounds Base.getindex(
+    x::PyArray{T,N,R,true,true},
+    i::Int
+) where {T,N,R} = pyarray_getindex(x, i)
+Base.@propagate_inbounds Base.getindex(
+    x::PyArray{T,1,R,true,true},
+    i::Int
+) where {T,R} = pyarray_getindex(x, i)
+
+Base.@propagate_inbounds pyarray_getindex(x::PyArray{T}, i...) where {T} = begin
+    @boundscheck checkbounds(x, i...)
+    pyarray_load(T, x.ptr + pyarray_offset(x, i...))
+end
 
 Base.@propagate_inbounds Base.setindex!(
     x::PyArray{T,N,R,true,L},
     v,
-    i::Vararg{Int,N2},
-) where {T,N,R,L,N2} =
-    if (N2 == N) || (L && N2 == 1)
-        @boundscheck checkbounds(x, i...)
-        pyarray_store!(x.ptr + pyarray_offset(x, i...), convert(T, v))
-        x
-    else
-        invoke(setindex!, Tuple{AbstractArray{T,N},typeof(v),Vararg{Int,N2}}, x, v, i...)
-    end
+    i::Vararg{Int,N},
+) where {T,N,R,L} = pyarray_setindex!(x, v, i...)
+Base.@propagate_inbounds Base.setindex!(
+    x::PyArray{T,N,R,true,true},
+    v,
+    i::Int
+) where {T,N,R} = pyarray_setindex!(x, v, i)
+Base.@propagate_inbounds Base.setindex!(
+    x::PyArray{T,1,R,true,true},
+    v,
+    i::Int
+) where {T,R} = pyarray_setindex!(x, v, i)
+
+Base.@propagate_inbounds pyarray_setindex!(x::PyArray{T}, v, i...) where {T} = begin
+    @boundscheck checkbounds(x, i...)
+    pyarray_store!(x.ptr + pyarray_offset(x, i...), convert(T, v))
+    x
+end
 
 pyarray_default_T(::Type{R}) where {R} = R
 pyarray_default_T(::Type{C.PyObjectRef}) = PyObject

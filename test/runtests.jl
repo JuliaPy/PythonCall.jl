@@ -471,6 +471,8 @@ using Python, Test, Dates, Compat
     @testset "PyArray" begin
         vec = [1, 2, 3]
         mat = transpose([1.0 2.5; 3.0 4.5]) # transpose => not linearly indexable
+        arr = PyObjectArray(reshape(1:8, 2, 2, 2))
+        @test_throws Exception PyArray(pylist())
         @test PyArray(vec) isa PyVector{Int, Int, true, true}
         @test PyVector(vec) isa PyVector{Int, Int, true, true}
         @test PyArray{Int}(vec) isa PyVector{Int, Int, true, true}
@@ -486,29 +488,43 @@ using Python, Test, Dates, Compat
         @test PyArray{Float64,2,Float64}(mat) isa PyMatrix{Float64, Float64, true, false}
         @test PyArray{Float64,2,Float64,true}(mat) isa PyMatrix{Float64, Float64, true, false}
         @test PyArray{Float64,2,Float64,true,false}(mat) isa PyMatrix{Float64, Float64, true, false}
+        @test PyArray(arr) isa PyArray{PyObject, 3, Python.CPython.PyObjectRef, true, true}
+        @test PyArray(["foo", "bar"]) isa PyVector{PyObject, Python.CPython.PyObjectRef, true, true}
         veco = PyArray(vec)
         mato = PyArray(mat)
+        arro = PyArray(arr)
         @test Python.ismutablearray(veco)
         @test Python.ismutablearray(mato)
+        @test Python.ismutablearray(arro)
         @test !Python.ismutablearray(PyArray{Int,1,Int,false,true}(vec))
         @test size(veco) == size(vec)
         @test size(mato) == size(mat)
+        @test size(arro) == size(arr)
         @test length(veco) == length(vec)
         @test length(mato) == length(mat)
-        @test veco == vec
-        @test mato == mat
+        @test length(arro) == length(arr)
+        @test isequal(veco, vec)
+        @test isequal(mato, mat)
+        @test isequal(arro, arr)
         @test Base.IndexStyle(typeof(veco)) == Base.IndexLinear()
         @test Base.IndexStyle(typeof(mato)) == Base.IndexCartesian()
+        @test Base.IndexStyle(typeof(arro)) == Base.IndexLinear()
         vec[1] += 1
         mat[1] += 1
-        @test veco == vec
-        @test mato == mat
+        arr[1] += 1
+        @test isequal(veco, vec)
+        @test isequal(mato, mat)
+        @test isequal(arro, arr)
         veco[1] += 1
         mato[1] += 1
-        @test veco == vec
-        @test mato == mat
+        arro[1] += 1
+        @test isequal(veco, vec)
+        @test isequal(mato, mat)
+        @test isequal(arro, arr)
         mato[2,2] += 1
-        @test mato == mat
+        @test isequal(mato, mat)
+        arro[2,2,2] += 1
+        @test isequal(arro, arr)
     end
 
     @testset "julia" begin

@@ -8,57 +8,27 @@ on:
     tags: '*'
 
 jobs:
-  test-conda:
-    name: Test (Julia ${{ matrix.version }}, ${{ matrix.os }}-${{ matrix.arch }}, Conda Python)
+  test:
+    name: Test (${{ matrix.os }}-${{ matrix.arch }}, jl-${{ matrix.jlversion }}, py-${{ matrix.pyversion }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        version: ['1.0', '1']
         arch: [x64, x86]
         os: [ubuntu-latest, windows-latest, macos-latest]
+        jlversion: ['1', '1.0']
+        pyversion: ['3.x']
         exclude:
-          - os: macos-latest
-            arch: x86
-          - os: windows-latest
-            arch: x86
-            version: '1.0'
-    steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
-        with:
-          version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
-      - uses: actions/cache@v1
-        env:
-          cache-name: cache-artifacts
-        with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-testconda-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-testconda-${{ env.cache-name }}-
-            ${{ runner.os }}-testconda-
-            ${{ runner.os }}-
-      - uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-runtest@v1
-        env:
-          JULIA_DEBUG: Python
-          PYTHONJL_EXE: CONDA
-      - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v1
-        with:
-          file: lcov.info
-
-  test-system:
-    name: Test (Julia ${{ matrix.version }}, ${{ matrix.os }}-${{ matrix.arch }}, Python ${{ matrix.pyversion }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ['1']
-        arch: [x64]
-        os: [ubuntu-latest]
-        pyversion: ['3.5', '3.x']
+        - os: macos-latest
+          arch: x86
+        - os: windows-latest
+          arch: x86
+          jlversion: '1.0'
+        include:
+        - arch: x64
+          os: ubuntu-latest
+          jlversion: '1'
+          pyversion: '3.5'
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -67,17 +37,17 @@ jobs:
           architecture: ${{ matrix.arch }}
       - uses: julia-actions/setup-julia@v1
         with:
-          version: ${{ matrix.version }}
+          version: ${{ matrix.jlversion }}
           arch: ${{ matrix.arch }}
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
         with:
           path: ~/.julia/artifacts
-          key: ${{ runner.os }}-testsys-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
           restore-keys: |
-            ${{ runner.os }}-testsys-${{ env.cache-name }}-
-            ${{ runner.os }}-testsys-
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
             ${{ runner.os }}-
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1

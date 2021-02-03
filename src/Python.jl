@@ -46,7 +46,7 @@ include("utils.jl")
     "True if this is the Python in some Conda environment."
     isconda::Bool = false
     "If `isconda` is true, this is the Conda environment path."
-    condaenv::String = Conda.ROOTENV
+    condaenv::String = ""
     "When true, automatically calls `pyplotshow` each time a notebook cell is evaluated."
     pyplotautoshow::Bool = true
     "When true, automatically calls `fix_qt_plugin_path` when `PyQt5`, `PyQt4`, `PySide` or `PySide2` is loaded."

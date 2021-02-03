@@ -7,7 +7,7 @@ using Python, Test, Dates, Compat
 
     @testset "eval" begin
         @pyg ```
-        import sys, os, datetime, array, io
+        import sys, os, datetime, array, io, fractions
         eq = lambda a, b: type(a) is type(b) and a == b
         class Foo:
             def __init__(self, x=None):
@@ -33,6 +33,8 @@ using Python, Test, Dates, Compat
         @test @pyv `eq($false, False)`::Bool
         for T in [Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt]
             @test @pyv `eq($(zero(T)), 0)`::Bool
+            @test @pyv `eq($(Rational{T}(2,3)), fractions.Fraction(2,3))`::Bool
+            @test @pyv `eq($(T(0):T(9)), range(10))`::Bool
         end
         for T in [Float16,Float32,Float64]
             @test @pyv `eq($(zero(T)), 0.0)`::Bool

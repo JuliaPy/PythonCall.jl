@@ -215,6 +215,26 @@ function __init__()
             "Only Python 3 is supported, this is Python $(CONFIG.version) at $(CONFIG.exepath===nothing ? "unknown location" : CONFIG.exepath).",
         )
 
+        # set up the 'julia' module
+        @py ```
+        import sys
+        if $(CONFIG.isembedded):
+            jl = sys.modules["julia"]
+        elif "julia" in sys.modules:
+            raise ImportError("'julia' module already exists")
+        else:
+            jl = sys.modules["julia"] = type(sys)("julia")
+            jl.CONFIG = dict()
+        jl.Main = $(pyjl(Main))
+        jl.Base = $(pyjl(Base))
+        jl.Core = $(pyjl(Core))
+        code = """
+        def newmodule(name):
+            return Base.Module(Base.Symbol(name))
+        """
+        exec(code, jl.__dict__)
+        ```
+
         # EXPERIMENTAL: hooks to perform actions when certain modules are loaded
         if !CONFIG.isembedded
             @py ```

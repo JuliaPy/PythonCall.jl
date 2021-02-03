@@ -8,7 +8,7 @@ def init():
         if exepath is None:
             exepath = shutil.which('julia')
             if exepath is None:
-                raise Exception('Cannot find Julia. Ensure it is in your PATH, or set JULIAPY_EXE to its path.')
+                raise Exception('Cannot find Julia. Ensure it is in your PATH, set JULIAPY_EXE to its path, or set JULIAPY_LIB to the path to libjulia.')
         else:
             if not os.path.isfile(exepath):
                 raise Exception('JULIAPY_EXE=%s does not exist' % repr(exepath))
@@ -36,9 +36,6 @@ def init():
         try
             ENV["PYTHONJL_LIBPTR"] = "{}"
             import Python
-            Python.with_gil() do
-                Python.pyimport("sys").modules["julia"].Main = Python.pyjl(Main)
-            end
         catch err
             @error "Error loading Python.jl" err=err
             rethrow()
@@ -49,10 +46,3 @@ def init():
 
 init()
 del init
-
-Core = Main.Core
-Base = Main.Base
-Python = Main.Python
-
-def newmodule(name):
-    return Base.Module(Base.Symbol(name))

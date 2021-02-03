@@ -1,5 +1,10 @@
 using Python, Test, Dates, Compat
 
+mutable struct Struct1
+    x :: String
+    y :: Int
+end
+
 @testset "Python.jl" begin
 
     @testset "cpython" begin
@@ -597,6 +602,39 @@ using Python, Test, Dates, Compat
             for value in Any[nothing, missing, (), identity, push!]
                 @test @pyv `type($(pyjl(value))).__name__ == "AnyValue"`::Bool
             end
+            @test @pyv `repr($(pyjl(missing))) == "jl: missing"`::Bool
+            @test @pyv `str($(pyjl(missing))) == "missing"`::Bool
+            x = Struct1("foo", 2)
+            @test @pyv `$(pyjl(x)).x == "foo"`::Bool
+            @test @pyv `$(pyjl(x)).y == 2`::Bool
+            @py `$(pyjl(x)).y = 0`
+            @test x.y == 0
+            @test @pyv `"x" in dir($(pyjl(x)))`::Bool
+            @test @pyv `$(Int)(1.0) == 1`::Bool
+            @test @pyv `len($(pyjl((1,2,3)))) == 3`::Bool
+            @test_throws PyException @pyv `len($(pyjl(x)))`::Bool
+            x = Dict(1=>2)
+            @test @pyv `$(pyjl(x))[1] == 2`::Bool
+            @py `$(pyjl(x))[1] = 0`
+            @test x[1] == 0
+            @py `del $(pyjl(x))[1]`
+            @test isempty(x)
+            @test @pyv `1 in $(pyjl((1,2,3)))`::Bool
+            @test @pyv `0 not in $(pyjl((1,2,3)))`::Bool
+            @test @pyv `1.5 not in $(pyjl((1,2,3)))`::Bool
+            @test @pyv `$(pyjl(3)) == 3`::Bool
+            @test @pyv `not ($(pyjl(3)) == 5)`::Bool
+            @test @pyv `not ($(pyjl(3)) != 3)`::Bool
+            @test @pyv `$(pyjl(3)) != 5`::Bool
+            @test @pyv `$(pyjl(3)) <= 3`::Bool
+            @test @pyv `not ($(pyjl(3)) <= 2)`::Bool
+            @test @pyv `not ($(pyjl(3)) < 3)`::Bool
+            @test @pyv `$(pyjl(3)) < 5`::Bool
+            @test @pyv `$(pyjl(3)) >= 3`::Bool
+            @test @pyv `not ($(pyjl(3)) >= 5)`::Bool
+            @test @pyv `not ($(pyjl(3)) > 3)`::Bool
+            @test @pyv `$(pyjl(3)) > 2`::Bool
+            @test @pyv `$(pyjl(identity)).__name__ == "identity"`::Bool
         end
 
         @testset "juliaio" begin

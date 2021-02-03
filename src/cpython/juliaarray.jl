@@ -466,6 +466,7 @@ _pyjlarray_array_interface(x::AbstractArray) =
     end
 
 pyjlarray_array(xo::PyPtr, ::PyPtr) = begin
+    # get an array-like version of x
     if PyObject_HasAttrString(xo, "__array_interface__") == 0
         # convert to a PyObjectArray
         x = PyJuliaValue_GetValue(xo)::AbstractArray
@@ -483,12 +484,23 @@ pyjlarray_array(xo::PyPtr, ::PyPtr) = begin
         yo = xo
     end
     npo = PyImport_ImportModule("numpy")
-    isnull(npo) && (Py_DecRef(yo); return PyNULL)
-    aao = PyObject_GetAttrString(npo, "array")
-    Py_DecRef(npo)
-    isnull(aao) && (Py_DecRef(yo); return PyNULL)
-    ao = PyObject_CallNice(aao, PyObjectRef(yo))
-    Py_DecRef(aao)
-    Py_DecRef(yo)
-    ao
+    if isnull(npo)
+        if PyErr_IsSet(PyExc_ImportError())
+            # numpy not installed, return an array-like object
+            PyErr_Clear()
+            yo
+        else
+            Py_DecRef(yo)
+            PyNULL
+        end
+    else
+        # numpy installed, return a proper numpy array
+        aao = PyObject_GetAttrString(npo, "array")
+        Py_DecRef(npo)
+        isnull(aao) && (Py_DecRef(yo); return PyNULL)
+        ao = PyObject_CallNice(aao, PyObjectRef(yo))
+        Py_DecRef(aao)
+        Py_DecRef(yo)
+        ao
+    end
 end

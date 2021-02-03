@@ -28,7 +28,7 @@ PyObjectArray(::UndefInitializer, dims::NTuple{N,Integer}) where {N} =
 PyObjectArray(::UndefInitializer, dims::Vararg{Integer,N}) where {N} =
     PyObjectArray{N}(undef, dims)
 PyObjectArray{N}(x::AbstractArray{T,N}) where {T,N} =
-    copy!(PyObjectArray{N}(undef, size(x)), x)
+    copyto!(PyObjectArray{N}(undef, size(x)), x)
 PyObjectArray(x::AbstractArray{T,N}) where {T,N} = PyObjectArray{N}(x)
 export PyObjectArray
 

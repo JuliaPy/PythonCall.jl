@@ -42,6 +42,7 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
         env:
+          JULIA_DEBUG: Python
           PYTHONJL_EXE: CONDA
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v1
@@ -58,15 +59,6 @@ jobs:
         arch: [x64]
         os: [ubuntu-latest]
         pyversion: ['3.5', '3.x']
-        include:
-        - version: '1'
-          arch: 'x64'
-          os: ubuntu-18.04
-          pyversion: '3.4'
-        - version: '1'
-          arch: 'x64'
-          os: ubuntu-18.04
-          pyversion: '3.3'
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -89,6 +81,8 @@ jobs:
             ${{ runner.os }}-
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+        env:
+          JULIA_DEBUG: Python
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v1
         with:

@@ -402,6 +402,9 @@ using Python, Test, Dates, Compat
 
     @testset "PyDict" begin
         o = pydict(a=1, b=2)
+        @test PyDict(o) isa PyDict{PyObject, PyObject}
+        @test PyDict{String}(o) isa PyDict{String, PyObject}
+        @test PyDict{String, Int}(o) isa PyDict{String, Int}
         d = PyDict{String, Int}(o)
         d2 = copy(d)
         @test d == Dict("a"=>1, "b"=>2)

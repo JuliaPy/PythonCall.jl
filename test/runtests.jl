@@ -297,9 +297,13 @@ using Python, Test, Dates, Compat
         @test x.jl!f === Cdouble(1)
         @test x.jl!c === Complex{Cdouble}(1)
         @test collect(list.jl!iter(Int)) == [1,2,3]
+        @test list.jl!list() isa PyList{PyObject}
         @test list.jl!list(Int) == [1,2,3]
+        @test list.jl!set() isa PySet{PyObject}
         @test list.jl!set(Int) == Set([1,2,3])
-        @test dict.jl!dict(String,Int) == Dict("x"=>1, "y"=>2)
+        @test dict.jl!dict() isa PyDict{PyObject, PyObject}
+        @test dict.jl!dict(String) isa PyDict{String, PyObject}
+        @test dict.jl!dict(String, Int) == Dict("x"=>1, "y"=>2)
         @test arr.jl!buffer() isa PyBuffer
         @test arr.jl!array() == [1,2,3]
         @test arr.jl!array(Cfloat) == [1,2,3]
@@ -394,6 +398,51 @@ using Python, Test, Dates, Compat
         @test @pyv `eq($(1|z), 3)`::Bool
         @test @pyv `eq($(xor(1,z)), 3)`::Bool
         @test @pyv `eq($(powermod(z,3,5)), 3)`::Bool
+    end
+
+    @testset "PyDict" begin
+        o = pydict(a=1, b=2)
+        d = PyDict{String, Int}(o)
+        d2 = copy(d)
+        @test d == Dict("a"=>1, "b"=>2)
+        @test Set(keys(d)) == Set(["a", "b"])
+        @test Set(values(d)) == Set([1, 2])
+        @test length(d) == 2
+        @test d["a"] == 1
+        @test d["b"] == 2
+        @test d2 == d
+        d["c"] = 3
+        @test d["c"] == 3
+        @test length(d) == 3
+        @test haskey(d, "c")
+        @test d2 != d
+        @test !haskey(d2, "c")
+        delete!(d, "c")
+        @test length(d) == 2
+        @test !haskey(d, "c")
+        empty!(d2)
+        @test length(d2) == 0
+        @test !haskey(d2, "a")
+        @test !haskey(d2, "b")
+        @test get(d, "a", 0) == 1
+        @test get(d, "x", 0) == 0
+        @test !haskey(d, "x")
+        @test get(()->0, d, "a") == 1
+        @test get(()->0, d, "x") == 0
+        @test !haskey(d, "x")
+        @test get!(d, "a", 0) == 1
+        @test length(d) == 2
+        @test get!(d, "x", 0) == 0
+        @test length(d) == 3
+        @test d["x"] == 0
+        delete!(d, "x")
+        @test length(d) == 2
+        @test !haskey(d, "x")
+        @test get!(()->0, d, "a") == 1
+        @test length(d) == 2
+        @test get!(()->0, d, "x") == 0
+        @test length(d) == 3
+        @test d["x"] == 0
     end
 
     @testset "PyIO" begin

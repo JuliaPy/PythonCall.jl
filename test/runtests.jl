@@ -12,7 +12,7 @@ end
 
     @testset "eval" begin
         @pyg ```
-        import sys, os, datetime, array, io, fractions
+        import sys, os, datetime, array, io, fractions, array, ctypes
         eq = lambda a, b: type(a) is type(b) and a == b
         class Foo:
             def __init__(self, x=None):
@@ -64,6 +64,232 @@ end
     end
 
     @testset "convert-to-julia" begin
+        # PRIORITY=1000: wrapped julia values are just unwrapped
+        for x in [nothing, missing, 2, 2.1, [], Int[1,2,3], (1,2,3), "foo", (x=1, y="two")]
+            @test pyconvert(Any, pyjl(x)) === x
+            @test pyconvert(typeof(x), pyjl(x)) === x
+            @test pyconvert(Union{typeof(x), Nothing}, pyjl(x)) === x
+        end
+
+        # PRIORITY=200: buffer/array -> PyArray
+        x = @pyv `b"foo"`::Any
+        @test x isa PyVector{UInt8,UInt8,false,true}
+        @test x == Vector{UInt8}("foo")
+        x = @pyv `bytearray(b"foo")`::Any
+        @test x isa PyVector{UInt8,UInt8,true,true}
+        @test x == Vector{UInt8}("foo")
+        x = @pyv `array.array("f", range(10))`::Any
+        @test x isa PyVector{Float32,Float32,true,true}
+        @test x == 0:9
+        x = pyconvert(PyArray, [1 2; 3 4])
+        @test x isa PyMatrix{Int,Int,true,true}
+        @test x == [1 2; 3 4]
+
+        # PRIORITY=100: other canonical conversions
+        # None -> nothing
+        x = @pyv `None`::Any
+        @test x === nothing
+        # bool -> Bool
+        x = @pyv `True`::Any
+        @test x === true
+        # float -> Float64
+        x = @pyv `1.5`::Any
+        @test x === 1.5
+        # complex -> Complex{Float64}
+        x = @pyv `complex(1, 2.5)`::Any
+        @test x === Complex(1, 2.5)
+        # range -> StepRange
+        x = @pyv `range(10)`::Any
+        @test x === 0:1:9
+        x = @pyv `range(2**1000)`::Any
+        @test x isa StepRange{BigInt,Int}
+        @test x == 0:1:(big"2"^1000-1)
+        x = @pyv `range(2**500, 2**1000, 2**400)`::Any
+        @test x isa StepRange{BigInt,BigInt}
+        @test x == (big"2"^500):(big"2"^400):(big"2"^1000-1)
+        # str -> String
+        x = @pyv `"hello there"`::Any
+        @test x === "hello there"
+        # tuple -> Tuple
+        x = @pyv `(1,None,"foo")`::Any
+        @test x === (1, nothing, "foo")
+        x = @pyv `("foo",1,2,3)`::Tuple{String,Vararg{Int}}
+        @test x === ("foo",1,2,3)
+        x = @pyv `(None, 1)`::Tuple{Nothing,Int}
+        @test x === (nothing, 1)
+        # Mapping -> PyDict{PyObject, PyObject}
+        x = @pyv `dict(x=1, y=2)`::Any
+        @test x isa PyDict{PyObject, PyObject}
+        # Sequence -> PyList{PyObject}
+        x = @pyv `[1,2,3]`::Any
+        @test x isa PyList{PyObject}
+        # Set -> PySet{PyObject}
+        x = @pyv `{1,2,3}`::Any
+        @test x isa PySet{PyObject}
+        x = @pyv `frozenset([1,2,3])`::Any
+        @test x isa PySet{PyObject}
+        # date -> Date
+        x = @pyv `datetime.date(2001, 2, 3)`::Any
+        @test x === Date(2001, 2, 3)
+        # time -> Time
+        x = @pyv `datetime.time(1, 2, 3, 4)`::Any
+        @test x === Time(1, 2, 3, 0, 4)
+        # datetime -> DateTime
+        x = @pyv `datetime.datetime(2001, 2, 3, 4, 5, 6, 7000)`::Any
+        @test x === DateTime(2001, 2, 3, 4, 5, 6, 7)
+        # timedelta -> Period (Microsecond, unless overflow then Millisecond or Second)
+        x = @pyv `datetime.timedelta(microseconds=12)`::Any
+        @test x === Microsecond(12)
+        x = @pyv `datetime.timedelta(milliseconds=$(cld(typemax(Int),1000)+10))`::Any
+        @test x === Millisecond(cld(typemax(Int), 1000) + 10)
+        # In fact, you can't make a timedelta big enough to overflow into seconds.
+        # x = @pyv `datetime.timedelta(seconds=$(cld(typemax(Int),1000)+10))`::Any
+        # @test x === Second(cld(typemax(Int), 1000) + 10)
+        # Integral -> Integer (Int, unless overflow then BigInt)
+        x = @pyv `123`::Any
+        @test x === 123
+        x = @pyv `2**123`::Any
+        @test x isa BigInt
+        @test x == big"2"^123
+        # TODO: numpy (e.g. numpy.float32 -> Float32)
+
+        # PRIORITY=0: other reasonable conversions
+        # None -> missing
+        x = @pyv `None`::Missing
+        @test x === missing
+        x = @pyv `None`::Union{PyObject,Missing}
+        @test x === missing
+        # bytes -> Vector{UInt8}, Vector{Int8}, String
+        x = @pyv `b"abc"`::Vector
+        @test x isa Vector{UInt8}
+        @test x == Vector{UInt8}("abc")
+        x = @pyv `b"abc"`::Vector{Int8}
+        @test x isa Vector{Int8}
+        x = @pyv `b"abc"`::AbstractString
+        @test x isa String
+        @test x == "abc"
+        # str -> Symbol, Char, Vector{UInt8}, Vector{Int8}
+        x = @pyv `"foo"`::Symbol
+        @test x === :foo
+        x = @pyv `"x"`::AbstractChar
+        @test x == 'x'
+        x = @pyv `"abc"`::Vector{UInt8}
+        @test x isa Vector{UInt8}
+        @test x == Vector{UInt8}("abc")
+        x = @pyv `"abc"`::Vector{Int8}
+        @test x isa Vector{Int8}
+        # range -> UnitRange
+        x = @pyv `range(123)`::UnitRange
+        @test x === 0:122
+        # Iterable -> Vector, Set, Tuple, Pair
+        x = @pyv `(1,2,3)`::Vector{Int}
+        @test x isa Vector{Int}
+        @test x == [1,2,3]
+        x = @pyv `(1,2,3)`::Set{Int}
+        @test x isa Set{Int}
+        @test x == Set([1,2,3])
+        x = @pyv `[1,2,3]`::Tuple{Int,Int,Int}
+        @test x isa Tuple{Int,Int,Int}
+        @test x === (1,2,3)
+        x = @pyv `[4,5]`::Pair{Int,Int}
+        @test x isa Pair{Int,Int}
+        @test x === (4 => 5)
+        # Mapping -> Dict
+        x = @pyv `dict(x=1, y=2)`::Dict{String,Int}
+        @test x isa Dict{String,Int}
+        @test x == Dict("x"=>1, "y"=>2)
+        # timedelta -> CompoundPeriod
+        x = @pyv `datetime.timedelta(microseconds=123)`::Dates.CompoundPeriod
+        @test x isa Dates.CompoundPeriod
+        @test x == Dates.CompoundPeriod([Microsecond(123)])
+        # Integral -> Rational, Real, Number, Any
+        x = @pyv `123`::Rational
+        @test x === 123//1
+        x = @pyv `123`::AbstractFloat
+        @test x === 123.0
+        x = @pyv `123`::Complex
+        @test x === Complex(123)
+        # Real -> AbstractFloat, Number
+        x = @pyv `1234.5`::AbstractFloat
+        @test x === 1234.5
+        x = @pyv `1234.5`::BigFloat
+        @test x isa BigFloat
+        @test x == big"1234.5"
+        x = @pyv `1234.5`::Complex
+        @test x === Complex(1234.5)
+        x = @pyv `123.0`::Integer
+        @test x === 123
+        x = @pyv `1234.5`::Rational
+        @test x === 2469//2
+        # Complex -> Complex, Number, Any
+        x = @pyv `complex(1,2)`::Complex
+        @test x === Complex(1.0, 2.0)
+        x = @pyv `complex(1,2)`::Complex{Int}
+        @test x === Complex(1,2)
+        x = @pyv `complex(1234.5, 0)`::AbstractFloat
+        @test x === 1234.5
+        x = @pyv `complex(123, 0)`::Integer
+        @test x === 123
+        # ctypes
+        x = @pyv `ctypes.c_float(12)`::Number
+        @test x === Cfloat(12)
+        x = @pyv `ctypes.c_double(12)`::Number
+        @test x === Cdouble(12)
+        x = @pyv `ctypes.c_byte(12)`::Number
+        @test x == Cchar(12)
+        x = @pyv `ctypes.c_short(12)`::Number
+        @test x === Cshort(12)
+        x = @pyv `ctypes.c_int(12)`::Number
+        @test x === Cint(12)
+        x = @pyv `ctypes.c_long(12)`::Number
+        @test x === Clong(12)
+        x = @pyv `ctypes.c_longlong(12)`::Number
+        @test x === Clonglong(12)
+        x = @pyv `ctypes.c_ubyte(12)`::Number
+        @test x == Cuchar(12)
+        x = @pyv `ctypes.c_ushort(12)`::Number
+        @test x === Cushort(12)
+        x = @pyv `ctypes.c_uint(12)`::Number
+        @test x === Cuint(12)
+        x = @pyv `ctypes.c_ulong(12)`::Number
+        @test x === Culong(12)
+        x = @pyv `ctypes.c_ulonglong(12)`::Number
+        @test x === Culonglong(12)
+        x = @pyv `ctypes.c_char(12)`::Number
+        @test x === Cchar(12)
+        x = @pyv `ctypes.c_wchar('x')`::Number
+        @test x === Cwchar_t('x')
+        x = @pyv `ctypes.c_size_t(12)`::Number
+        @test x === Csize_t(12)
+        x = @pyv `ctypes.c_ssize_t(12)`::Number
+        @test x === Cssize_t(12)
+        x = @pyv `ctypes.c_void_p()`::Ptr
+        @test x === C_NULL
+        x = @pyv `ctypes.c_char_p()`::Ptr
+        @test x === Ptr{Cchar}(0)
+        x = @pyv `ctypes.c_char_p()`::Cstring
+        @test x == Cstring(C_NULL)
+        x = @pyv `ctypes.c_wchar_p()`::Ptr
+        @test x === Ptr{Cwchar_t}(0)
+        x = @pyv `ctypes.c_wchar_p()`::Cwstring
+        @test x === Cwstring(C_NULL)
+        # TODO: numpy
+
+        # PRIORITY=-100: fallback to object -> PyObject
+        x = @pyv `Foo()`::Any
+        @test x isa PyObject
+        x = @pyv `123`::PyObject
+        @test x isa PyObject
+        x = @pyv `123`::Union{Nothing,PyObject}
+        @test x isa PyObject
+
+        # PRIORITY=-200: conversions that must be specifically requested by excluding PyObject
+        # object -> PyRef
+        x = @pyv `123`::Union{Nothing,PyRef}
+        @test x isa PyRef
+        # buffer -> PyBuffer
+        x = @pyv `b"abc"`::Union{Nothing,PyBuffer}
+        @test x isa PyBuffer
     end
 
     @testset "builtins" begin

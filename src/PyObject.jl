@@ -261,7 +261,7 @@ Base.iterate(o::PyObject, it::PyRef = pyiter(PyRef, o)) = begin
 end
 
 Base.in(x, o::PyObject) = pycontains(o, x)
-Base.hash(o::PyObject) = trunc(UInt, pyhash(o))
+Base.hash(o::PyObject) = reinterpret(UInt, Int(pyhash(o)))
 
 ### COMPARISON
 

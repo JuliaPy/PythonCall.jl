@@ -196,17 +196,17 @@ Base.IndexStyle(::Type{PyArray{T,N,R,M,L}}) where {T,N,R,M,L} =
     L ? Base.IndexLinear() : Base.IndexCartesian()
 
 Base.@propagate_inbounds Base.getindex(
-    x::PyArray{T,N,R,true,L},
+    x::PyArray{T,N,R,M,L},
     i::Vararg{Int,N},
-) where {T,N,R,L} = pyarray_getindex(x, i...)
+) where {T,N,R,M,L} = pyarray_getindex(x, i...)
 Base.@propagate_inbounds Base.getindex(
-    x::PyArray{T,N,R,true,true},
+    x::PyArray{T,N,R,M,true},
     i::Int
-) where {T,N,R} = pyarray_getindex(x, i)
+) where {T,N,R,M} = pyarray_getindex(x, i)
 Base.@propagate_inbounds Base.getindex(
-    x::PyArray{T,1,R,true,true},
+    x::PyArray{T,1,R,M,true},
     i::Int
-) where {T,R} = pyarray_getindex(x, i)
+) where {T,R,M} = pyarray_getindex(x, i)
 
 Base.@propagate_inbounds pyarray_getindex(x::PyArray{T}, i...) where {T} = begin
     @boundscheck checkbounds(x, i...)

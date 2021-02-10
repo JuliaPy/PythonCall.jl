@@ -14,7 +14,7 @@ Bringing **Python** and **Julia** together in seamless harmony:
 - Beautiful stack-traces.
 - Works anywhere: tested on Windows, MacOS and Linux, 32- and 64-bit, Julia 1.0 upwards and Python 3.5 upwards.
 
-⭐ If you like this, please give me a GitHub star. ⭐
+⭐ If you like this, a GitHub star would be lovely thank you. ⭐
 
 ## Examples
 

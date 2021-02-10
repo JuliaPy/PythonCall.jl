@@ -100,9 +100,9 @@ end
         @test x === Complex(1, 2.5)
         # range -> StepRange
         x = @pyv `range(10)`::Any
-        @test x === 0:1:9
+        @test x === Clonglong(0):Clonglong(1):Clonglong(9)
         x = @pyv `range(2**1000)`::Any
-        @test x isa StepRange{BigInt,Int}
+        @test x isa StepRange{BigInt,Clonglong}
         @test x == 0:1:(big"2"^1000-1)
         x = @pyv `range(2**500, 2**1000, 2**400)`::Any
         @test x isa StepRange{BigInt,BigInt}
@@ -112,7 +112,7 @@ end
         @test x === "hello there"
         # tuple -> Tuple
         x = @pyv `(1,None,"foo")`::Any
-        @test x === (1, nothing, "foo")
+        @test x === (Clonglong(1), nothing, "foo")
         x = @pyv `("foo",1,2,3)`::Tuple{String,Vararg{Int}}
         @test x === ("foo",1,2,3)
         x = @pyv `(None, 1)`::Tuple{Nothing,Int}
@@ -140,14 +140,14 @@ end
         # timedelta -> Period (Microsecond, unless overflow then Millisecond or Second)
         x = @pyv `datetime.timedelta(microseconds=12)`::Any
         @test x === Microsecond(12)
-        x = @pyv `datetime.timedelta(milliseconds=$(cld(typemax(Int),1000)+10))`::Any
-        @test x === Millisecond(cld(typemax(Int), 1000) + 10)
+        # x = @pyv `datetime.timedelta(milliseconds=$(cld(typemax(Int),1000)+10))`::Any
+        # @test x === Millisecond(cld(typemax(Int), 1000) + 10)
         # In fact, you can't make a timedelta big enough to overflow into seconds.
         # x = @pyv `datetime.timedelta(seconds=$(cld(typemax(Int),1000)+10))`::Any
         # @test x === Second(cld(typemax(Int), 1000) + 10)
-        # Integral -> Integer (Int, unless overflow then BigInt)
+        # Integral -> Integer (Clonglong, unless overflow then BigInt)
         x = @pyv `123`::Any
-        @test x === 123
+        @test x === Clonglong(123)
         x = @pyv `2**123`::Any
         @test x isa BigInt
         @test x == big"2"^123
@@ -179,7 +179,7 @@ end
         x = @pyv `"abc"`::Vector{Int8}
         @test x isa Vector{Int8}
         # range -> UnitRange
-        x = @pyv `range(123)`::UnitRange
+        x = @pyv `range(123)`::UnitRange{Int}
         @test x === 0:122
         # Iterable -> Vector, Set, Tuple, Pair
         x = @pyv `(1,2,3)`::Vector{Int}
@@ -203,11 +203,11 @@ end
         @test x isa Dates.CompoundPeriod
         @test x == Dates.CompoundPeriod([Microsecond(123)])
         # Integral -> Rational, Real, Number, Any
-        x = @pyv `123`::Rational
+        x = @pyv `123`::Rational{Int}
         @test x === 123//1
         x = @pyv `123`::AbstractFloat
         @test x === 123.0
-        x = @pyv `123`::Complex
+        x = @pyv `123`::Complex{Int}
         @test x === Complex(123)
         # Real -> AbstractFloat, Number
         x = @pyv `1234.5`::AbstractFloat
@@ -219,7 +219,7 @@ end
         @test x === Complex(1234.5)
         x = @pyv `123.0`::Integer
         @test x === 123
-        x = @pyv `1234.5`::Rational
+        x = @pyv `1234.5`::Rational{Int}
         @test x === 2469//2
         # Complex -> Complex, Number, Any
         x = @pyv `complex(1,2)`::Complex

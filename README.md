@@ -5,12 +5,16 @@
 [![Test Status](https://github.com/cjdoris/Python.jl/workflows/Tests/badge.svg)](https://github.com/cjdoris/Python.jl/actions?query=workflow%3ATests)
 [![Codecov](https://codecov.io/gh/cjdoris/Python.jl/branch/master/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/cjdoris/Python.jl)
 
-Bringing **Python** and **Julia** together for ultimate awesomeness.
-- Simple syntax, just like regular Python.
+Bringing **Python** and **Julia** together in seamless harmony:
+- Call Python code from Julia and Julia code from Python via a symmetric interface.
+- Simple syntax, so the Python code looks like Python and the Julia code looks like Julia.
 - Intuitive and flexible conversions between Julia and Python: anything can be converted, you are in control.
-- Fast non-copying conversion of numeric arrays in either direction: modify numpy arrays from Julia or Julia arrays from Python.
-- Helpful wrappers: interpret Python sequences, dictionaries, arrays, dataframes and IO streams as their Julia couterparts.
+- Fast non-copying conversion of numeric arrays in either direction: modify Python arrays (e.g. `bytes`, `array.array`, `numpy.ndarray`) from Julia or Julia arrays from Python.
+- Helpful wrappers: interpret Python sequences, dictionaries, arrays, dataframes and IO streams as their Julia couterparts, and vice versa.
 - Beautiful stack-traces.
+- Works anywhere: tested on Windows, MacOS and Linux, 32- and 64-bit, Julia 1.0 upwards and Python 3.5 upwards.
+
+⭐ If you like this, please give me a GitHub star. ⭐
 
 ## Examples
 

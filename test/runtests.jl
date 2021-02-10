@@ -610,15 +610,24 @@ end
             @py `$(pyjl(x)).y = 0`
             @test x.y == 0
             @test @pyv `"x" in dir($(pyjl(x)))`::Bool
+            @test @pyv `"Int" in dir($(pyjl(Base)))`::Bool
+            @test @pyv `"push_b" in dir($(pyjl(Base)))`::Bool
             @test @pyv `$(Int)(1.0) == 1`::Bool
+            @test (@pyv `$(pyjl(Vector))()`::Any) == Vector()
+            @test (@pyv `$(pyjl(sort))($(pyjl([1,2,3])), rev=True)`::Any) == [3,2,1]
+            @test_throws PyException @pyv `$(pyjl(nothing))("not", "callable")`::Union{}
             @test @pyv `len($(pyjl((1,2,3)))) == 3`::Bool
             @test_throws PyException @pyv `len($(pyjl(x)))`::Bool
             x = Dict(1=>2)
             @test @pyv `$(pyjl(x))[1] == 2`::Bool
+            @test_throws PyException @pyv `$(pyjl((1, 2)))[0]`::Union{}
+            @test_throws PyException @pyv `$(pyjl(Dict("x"=>1, "y"=>2)))["z"]`::Union{}
             @py `$(pyjl(x))[1] = 0`
             @test x[1] == 0
             @py `del $(pyjl(x))[1]`
             @test isempty(x)
+            @test_throws PyException @py `$(pyjl((1, 2)))[1] = 0`::Union{}
+            @test_throws PyException @py `$(pyjl(Dict("x"=>1, "y"=>2)))[nothing] = 0`::Union{}
             @test @pyv `1 in $(pyjl((1,2,3)))`::Bool
             @test @pyv `0 not in $(pyjl((1,2,3)))`::Bool
             @test @pyv `1.5 not in $(pyjl((1,2,3)))`::Bool
@@ -644,6 +653,79 @@ end
                 @test @pyv `type($(pybufferedio(value))).__name__ == "BufferedIOValue"`::Bool
                 @test @pyv `type($(pytextio(value))).__name__ == "TextIOValue"`::Bool
             end
+            io = IOBuffer()
+            @test @pyv `"BufferedIOValue" in $io.__class__.__name__`::Bool
+            @test @pyv `"BufferedIOValue" in $(pybufferedio(io)).__class__.__name__`::Bool
+            @test @pyv `"BufferedIOValue" in $io.tobufferedio().__class__.__name__`::Bool
+            @test @pyv `"RawIOValue" in $io.torawio().__class__.__name__`::Bool
+            @test @pyv `"TextIOValue" in $io.totextio().__class__.__name__`::Bool
+            @test @pyv `"TextIOValue" in $(pytextio(io)).__class__.__name__`::Bool
+            @test @pyv `"TextIOValue" in $(pytextio(io)).totextio().__class__.__name__`::Bool
+            @test @pyv `"BufferedIOValue" in $(pytextio(io)).tobufferedio().__class__.__name__`::Bool
+            @test @pyv `"RawIOValue" in $(pytextio(io)).torawio().__class__.__name__`::Bool
+            @test @pyv `"RawIOValue" in $(pyrawio(io)).__class__.__name__`::Bool
+            @test @pyv `"RawIOValue" in $(pyrawio(io)).torawio().__class__.__name__`::Bool
+            @test @pyv `"BufferedIOValue" in $(pyrawio(io)).tobufferedio().__class__.__name__`::Bool
+            @test @pyv `"TextIOValue" in $(pyrawio(io)).totextio().__class__.__name__`::Bool
+            println(io, "foo")
+            println(io, "bar")
+            seekstart(io)
+            @test @pyv `eq(list($io), [b"foo\n", b"bar\n"])`::Bool
+            @test @pyv `not $io.closed`::Bool
+            @test_throws PyException @pyv `$io.fileno()`::Int
+            @test @pyv `$io.flush() is None`::Bool
+            @test @pyv `not $io.isatty()`::Bool
+            @test @pyv `$io.readable()`::Bool
+            @test @pyv `$io.writable()`::Bool
+            @test @pyv `$io.close() is None`::Bool
+            @test @pyv `$io.closed`::Bool
+            io = IOBuffer()
+            @test @pyv `$io.tell() == 0`::Bool
+            print(io, "foo")
+            @test @pyv `$io.tell() == 3`::Bool
+            @test @pyv `$io.seek(2) == 2`::Bool
+            @test @pyv `$io.seek(1, 0) == 1`::Bool
+            @test @pyv `$io.seek(1, 1) == 2`::Bool
+            @test @pyv `$io.seek(-2, 2) == 1`::Bool
+            @test_throws PyException @pyv `$io.seek(0, 3)`::Union{}
+            @test @pyv `$io.seek(2) == 2`::Bool
+            @test @pyv `$io.truncate() == 2`::Bool
+            @test @pyv `$io.truncate(1) == 1`::Bool
+            @test @pyv `$io.tell() == 1`::Bool
+            @test @pyv `$io.seekable()`::Bool
+            io = IOBuffer()
+            @test @pyv `$io.writelines([b"f", b"oo"]) is None`::Bool
+            @test String(take!(io)) == "foo"
+            println(io, "foo")
+            println(io, "bar")
+            seekstart(io)
+            @test @pyv `$io.readlines() == [b"foo\n", b"bar\n"]`::Bool
+            @test @pyv `eq($(pytextio(io)).encoding, "UTF-8")`::Bool
+            @test @pyv `eq($(pytextio(io)).errors, "strict")`::Bool
+            @test_throws PyException @pyv `$(pytextio(io)).detach()`::Union{}
+            io = IOBuffer()
+            @test @pyv `$io.write(b"fooo") == 4`::Bool
+            @test String(take!(io)) == "fooo"
+            @test @pyv `$io.totextio().write("a\nb\nc") == 5`::Bool
+            linesep = @pyv `os.linesep`::String
+            @test String(take!(io)) == "a$(linesep)b$(linesep)c"
+            x = zeros(UInt8, 10)
+            io = IOBuffer()
+            write(io, "foo")
+            seekstart(io)
+            @test @pyv `$io.readinto($x) == 3`::Bool
+            @test String(take!(io)) == "foo"
+            write(io, "bar")
+            seekstart(io)
+            @test @pyv `eq($io.read(), b"bar")`::Bool
+            seekstart(io)
+            @test @pyv `eq($io.totextio().read(), "bar")`::Bool
+            io = IOBuffer()
+            println(io, "foo")
+            println(io, "bar")
+            seekstart(io)
+            @test @pyv `eq($io.readline(), b"foo\n")`::Bool
+            @test @pyv `eq($io.totextio().readline(), "bar\n")`::Bool
         end
     end
 

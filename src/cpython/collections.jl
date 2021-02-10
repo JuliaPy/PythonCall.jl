@@ -246,7 +246,7 @@ PyMapping_ConvertRule_dict(o, ::Type{S}) where {S<:Dict} = begin
         Py_DecRef(vo)
         r == -1 && return -1
         r == 0 && return 0
-        v = takeresult(keytype(xs))
+        v = takeresult(valtype(xs))
         # done
         xs[k] = v
     end

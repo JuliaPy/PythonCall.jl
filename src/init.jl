@@ -1,4 +1,4 @@
-function __init__()
+@init begin
     # Check if libpython is already loaded (i.e. if the Julia interpreter was started from a Python process)
     CONFIG.isembedded = haskey(ENV, "PYTHONJL_LIBPTR")
 

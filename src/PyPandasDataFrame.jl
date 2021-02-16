@@ -39,24 +39,35 @@ pyrowtable(src) = pyrowtable(PyObject, src)
 pyrowtable(; opts...) = pyrowtable(PyObject, opts)
 export pyrowtable
 
-# """
-#     pypandasdataframe([T=PyObject,] [src]; ...) :: T
+aspandasvector(x) = asvector(x)
 
-# Construct a pandas dataframe from `src`.
+@init @require CategoricalArrays="324d7699-5711-5eae-9e2f-1d82baa6b597" @eval begin
+    aspandasvector(x::CategoricalArrays.CategoricalArray) = begin
+        codes = map(x -> x===missing ? -1 : Int(CategoricalArrays.levelcode(x))-1, x)
+        cats = CategoricalArrays.levels(x)
+        ordered = x.pool.ordered
+        pypandasmodule().Categorical.from_codes(codes, cats, ordered=ordered)
+    end
+end
 
-# Usually equivalent to `pyimport("pandas").DataFrame(src, ...)`, but `src` may also be `Tables.jl`-compatible table.
-# """
-# pypandasdataframe(t::PyObject; opts...) = pypandasdataframetype(t; opts...)
-# pypandasdataframe(; opts...) = pypandasdataframetype(; opts...)
-# function pypandasdataframe(t; opts...)
-#     if Tables.istable(t)
-#         cs = Tables.columns(t)
-#         pypandasdataframetype(pydict_fromstringiter(string(c) => asvector(Tables.getcolumn(cs, c)) for c in Tables.columnnames(cs)); opts...)
-#     else
-#         pypandasdataframetype(t; opts...)
-#     end
-# end
-# export pypandasdataframe
+"""
+    pypandasdataframe([T=PyObject,] [src]; ...) :: T
+
+Construct a pandas dataframe from `src`.
+
+Usually equivalent to `pyimport("pandas").DataFrame(src, ...)`, but `src` may also be `Tables.jl`-compatible table.
+"""
+pypandasdataframe(::Type{T}; opts...) where {T} = pycall(T, pypandasmodule().DataFrame; opts...)
+pypandasdataframe(::Type{T}, t; opts...) where {T} = begin
+    if Tables.istable(t)
+        cs = Tables.columns(t)
+        pycall(T, pypandasmodule().DataFrame, pydict(pystr(String(n)) => aspandasvector(Tables.getcolumn(cs, n)) for n in Tables.columnnames(cs)); opts...)
+    else
+        pycall(T, pypandasmodule().DataFrame, t; opts...)
+    end
+end
+pypandasdataframe(args...; opts...) = pypandasdataframe(PyObject, args...; opts...)
+export pypandasdataframe
 
 multidict(src) = Dict(k => v for (ks, v) in src for k in (ks isa Vector ? ks : [ks]))
 

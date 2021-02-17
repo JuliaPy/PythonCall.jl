@@ -125,4 +125,6 @@ include("ipython.jl")
 
 include("init.jl")
 
+const juliapypath = joinpath(dirname(@__DIR__), "juliapy")
+
 end # module

@@ -1,3 +1,10 @@
+"""
+    PyObject(x)
+
+Convert `x` to a Python object.
+
+This is the default type returned by most API functions.
+"""
 mutable struct PyObject
     ref::PyRef
     make::Any

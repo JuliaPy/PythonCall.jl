@@ -8,6 +8,7 @@ makedocs(
         "getting-started.md",
         "pythonjl.md",
         "juliapy.md",
+        "conversion.md",
     ]
 )
 

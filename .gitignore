@@ -1,3 +1,4 @@
 Manifest.toml
 deps/deps.jl
 deps/build.log
+.ipynb_checkpoints

@@ -4,7 +4,18 @@
 
 ## PyObjects
 
-## Other wrapper types
+## Wrapper types
+
+```@docs
+PyList
+PySet
+PyDict
+PyIterable
+PyArray
+PyBuffer
+PyIO
+PyPandasDataFrame
+```
 
 ## Conversion to Python
 

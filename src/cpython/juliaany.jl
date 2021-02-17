@@ -71,7 +71,7 @@ PyJuliaAnyValue_Type() = begin
                         meth = pyjlany_repr_mime(MIME("text/latex")),
                     ),
                     (name = "__jl_raw", flags = Py_METH_NOARGS, meth = pyjlany_toraw),
-                    (name = "__jl_show", flags = Py_METH_NOARGS, meth = pyjlany_show),
+                    (name = "__jl_display", flags = Py_METH_NOARGS, meth = pyjlany_display),
                     (name = "__jl_help", flags = Py_METH_NOARGS, meth = pyjlany_help),
                 ],
                 getset = [(name = "__name__", get = pyjlany_name)],
@@ -425,36 +425,26 @@ pyjlany_name(xo::PyPtr, ::Ptr{Cvoid}) =
 
 pyjlany_toraw(xo::PyPtr, ::PyPtr) = PyJuliaRawValue_New(PyJuliaValue_GetValue(xo))
 
-pyjlany_show(xo::PyPtr, ::PyPtr) =
-    try
-        x = PyJuliaValue_GetValue(xo)
-        io = stdout
-        io = IOContext(
-            io,
-            :limit => get(io, :limit, true),
-            :compact => get(io, :limit, true),
-            :color => get(io, :color, true),
-        )
-        show(io, MIME("text/plain"), x)
-        println(io)
-        PyNone_New()
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+struct ExtraNewline{T}
+    value :: T
+end
+Base.show(io::IO, m::MIME, x::ExtraNewline) = show(io, m, x.value)
+Base.show(io::IO, m::MIME"text/plain", x::ExtraNewline) = (show(io, m, x.value); println(io))
+Base.showable(m, x::ExtraNewline) = showable(m, x.value)
+
+pyjlany_display(xo::PyPtr, ::PyPtr) = try
+    x = PyJuliaValue_GetValue(xo)
+    display(ExtraNewline(x))
+    PyNone_New()
+catch err
+    PyErr_SetJuliaError(err)
+    PyNULL
+end
 
 pyjlany_help(xo::PyPtr, ::PyPtr) =
     try
         x = Docs.doc(PyJuliaValue_GetValue(xo))
-        io = stdout
-        io = IOContext(
-            io,
-            :limit => get(io, :limit, true),
-            :compact => get(io, :limit, true),
-            :color => get(io, :color, true),
-        )
-        show(io, MIME("text/plain"), x)
-        println(io)
+        display(ExtraNewline(x))
         PyNone_New()
     catch err
         PyErr_SetJuliaError(err)

@@ -133,7 +133,7 @@ There is also a [`julia.RawValue`](#julia.RawValue) object, which gives a strict
         <span class="docstring-category">Python Class</span>
     </header>
     <section>
-        <p>This wraps any Julia <code>IO</code> value. It is a subclass of <code>io.IOBase</code>.</p>
+        <p>This wraps any Julia <code>IO</code> value. It is a subclass of <code>io.IOBase</code> and behaves like Python files.</p>
         <p>There are also subtypes <code>julia.RawIOValue</code>, <code>julia.BufferedIOValue</code> and <code>julia.TextIOValue</code>, which are subclasses of <code>io.RawIOBase</code> (unbuffered bytes), <code>io.BufferedIOBase</code> (buffered bytes) and <code>io.TextIOBase</code> (text).</p>
         <h6>Members</h6>
         <ul>

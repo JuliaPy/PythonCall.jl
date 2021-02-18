@@ -57,7 +57,7 @@ pytype
 
 ### Wrap Julia values
 
-These functions wrap Julia values into Python objects, documented [here](../julapy/#Wrapper-types).
+These functions wrap Julia values into Python objects, documented [here](../juliapy/#Wrapper-types).
 
 ```@docs
 pyjl

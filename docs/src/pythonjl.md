@@ -1,4 +1,4 @@
-# Python from Julia
+# The Julia module `Python`
 
 To get started, just do `using Python`. There are two main ways to use this module:
 

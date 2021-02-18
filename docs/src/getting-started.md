@@ -9,7 +9,7 @@
 
 ```julia
 using Pkg
-pkg"add https://github.com/cjdoris/Python.jl"
+pkg"add Python"
 ```
 
 ## Install the Python package (optional)
@@ -23,9 +23,14 @@ pip-installed manually. The following should work in most shells (including Powe
 pip install --upgrade $(julia -e "using Python; print(Python.juliapypath)")
 ```
 
-Note that this is a very small "bootstrap" package whose sole job is to locate and load
-Julia; the main functionality is in the main Julia package. Hence it is not necessary to
-upgrage the Python package every time you upgrade the Julia one.
+Note that this is a [very small](https://github.com/cjdoris/Python.jl/blob/master/juliapy/julia/__init__.py)
+"bootstrap" package whose sole job is to locate and load Julia; the main functionality is in
+the main Julia package. Hence it is not necessary to upgrage the Python package every time
+you upgrade the Julia one.
+
+Note also that regardless of installing the `julia` package, a module called `julia` will
+always be loaded into the interpreter by the `Python` package. This means that other Python
+packages can always `import julia`.
 
 ## Environment variables
 

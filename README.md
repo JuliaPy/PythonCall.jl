@@ -16,7 +16,7 @@ Bringing **Python** and **Julia** together in seamless harmony:
 
 ⭐ If you like this, a GitHub star would be lovely thank you. ⭐
 
-To get started, read the [documentation](https://cjdoris.github.io/Python.jl/dev).
+To get started, read the [documentation](https://cjdoris.github.io/Python.jl/stable).
 
 ## Example 1: Calling Python from Julia
 

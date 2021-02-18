@@ -1,4 +1,4 @@
-# Julia from Python
+# The Python module `julia`
 
 For interactive or scripting use, the simplest way to get started is:
 

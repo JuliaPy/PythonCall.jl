@@ -1,5 +1,7 @@
 # Conversion Rules
 
+This page documents the rules used to convert values between Julia and Python.
+
 ## Julia to Python
 
 When a Julia object is converted to a Python one (e.g. by calling `PyObject`, by interpolating it into a `@py` command, or passing it as an argument to a Python function) the following rules are used by default.

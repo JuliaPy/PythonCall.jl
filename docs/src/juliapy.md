@@ -2,14 +2,44 @@
 
 ## Wrapper types
 
-Apart from a few fundamental immutable types (see [here](../conversion/#Julia-to-Python)), all Julia values are by default converted into Python to some `julia.AnyValue` object, which wraps the original value. Some types are converted to a subclass of `julia.AnyValue` which provides additional Python semantics --- e.g. Julia vectors are interpreted as Python sequences.
+Apart from a few fundamental immutable types (see [here](../conversion/#Julia-to-Python)), all Julia values are by default converted into Python to some [`julia.AnyValue`](#julia.AnyValue) object, which wraps the original value. Some types are converted to a subclass of [`julia.AnyValue`](#julia.AnyValue) which provides additional Python semantics --- e.g. Julia vectors are interpreted as Python sequences.
 
-There is also a `julia.RawValue` object, which gives a stricter "Julia-only" interface, documented below. These types all inherit from `julia.ValueBase`.
+There is also a [`julia.RawValue`](#julia.RawValue) object, which gives a stricter "Julia-only" interface, documented below. These types all inherit from `julia.ValueBase`:
 
-### `julia.AnyValue`
+- `julia.ValueBase`
+  - [`julia.RawValue`](#julia.RawValue)
+  - [`julia.AnyValue`](#julia.AnyValue)
+    - [`julia.NumberValue`](#julia.NumberValue)
+      - `julia.ComplexValue`
+      - `julia.RealValue`
+        - `julia.RationalValue`
+        - `julia.IntegerValue`
+    - [`julia.ArrayValue`](#julia.ArrayValue)
+      - `julia.VectorValue`
+    - [`julia.DictValue`](#julia.DictValue)
+    - [`julia.SetValue`](#julia.SetValue)
+    - [`julia.IOValue`](#julia.IOValue)
+      - `julia.RawIOValue`
+      - `julia.BufferedIOValue`
+      - `julia.TextIOValue`
+    - [`julia.ModuleValue`](#julia.ModuleValue)
+    - [`julia.TypeValue`](#julia.TypeValue)
 
-#### Members
-- `__jl_raw()`: Convert to a `julia.RawValue`. (See also [`pyjlraw`](@ref).)
+```@raw html
+<article class="docstring">
+    <header>
+        <a class="docstring-binding" id="julia.AnyValue" href="#julia.AnyValue">julia.AnyValue</a>
+        —
+        <span class="docstring-category">Python Class</span>
+    </header>
+    <section>
+        <h1>Members</h1>
+        <ul>
+            <li><code>__jl_raw()</code>: Convert to a <a href="#julia.RawValue"><code>julia.RawValue</code></a></li>
+        </ul>
+    </section>
+</article>
+```
 
 ```@raw html
 <article class="docstring">
@@ -25,71 +55,122 @@ There is also a `julia.RawValue` object, which gives a stricter "Julia-only" int
 </article>
 ```
 
-### `julia.NumberValue` old
-
-This wraps any Julia `Number` value. It is a subclass of `numbers.Number` and behaves similar to other Python numbers.
-
-There are also subtypes `julia.ComplexValue`, `julia.RealValue`, `julia.RationalValue` and `julia.IntegerValue`, which wrap values of the corresponding Julia types, and are subclasses of the corresponding `numbers` ABC.
-
-### `julia.ArrayValue`
-
-This wraps any Julia `AbstractArray` value. It is a subclass of `collections.abc.Collection`.
-
-It supports zero-up indexing, and can be indexed with integers or slices. Slicing returns a view of the original array.
-
-There is also the subtype `julia.VectorValue` which wraps any `AbstractVector`. It is a subclass of `collections.abc.Sequence` and behaves similar to a Python `list`.
-
-If the array is strided and its eltype is supported (i.e. it is a `Bool`, `IntXX`, `UIntXX`, `FloatXX`, `Complex{FloatXX}`, `Ptr{Cvoid}` or tuple or named tuple of these) then it supports the buffer protocol and the numpy array interface. This means that `numpy.asarray(this)` will yield a view of the original array, so mutations are visible on the original.
-
-Otherwise, the numpy `__array__` method is supported, and this returns an array of Python objects converted from the contents of the array. In this case, `numpy.asarray(this)` is a copy of the original array.
-
-#### Members
-- `ndim`: the number of dimensions.
-- `shape`: tuple of lengths in each dimension.
-- `copy()`: return a copy of the array.
-- `reshape(shape)`: a reshaped view of the array.
-
-### `julia.DictValue`
-
-This wraps any Julia `AbstractDict` value. It is a subclass of `collections.abc.Mapping` and behaves similar to a Python `dict`.
-
-### `julia.SetValue`
-
-This wraps any Julia `AbstractSet` value. It is a subclass of `collections.abc.Set` and behaves similar to a Python `set`.
-
-### `julia.IOValue`
-
-This wraps any Julia `IO` value. It is a subclass of `io.IOBase`.
-
-There are also subtypes `julia.RawIOValue`, `julia.BufferedIOValue` and `julia.TextIOValue`, which are subclasses of `io.RawIOBase` (unbuffered bytes), `io.BufferedIOBase` (buffered bytes) and `io.TextIOBase` (text).
-
-#### Members
-- `torawio()`: Convert to a `julia.RawIOValue`, an un-buffered file-like object. (See also [`pyrawio`](@ref).)
-- `tobufferedio()`: Convert to a `julia.BufferedIOValue`, a byte-based file-like object. Julia `IO` objects are converted to this by default. (See also [`pybufferedio`](@ref).)
-- `totextio()`: Convert to a `julia.TextIOValue`, a text-based file-like object. (See also [`pytextio`](@ref).)
-
-### `julia.ModuleValue`
-
-This wraps any Julia `Module` value.
-
-It is the same as `julia.AnyValue` except for one additional convenience method:
-
-- `seval([module=self], code)`: Evaluates the given code (a string) in the given module.
-
-### `julia.TypeValue`
-
-This wraps any Julia `Type` value.
-
-It is the same as `julia.AnyValue` except that indexing is used to access Julia's "curly" syntax for specifying parametric types:
-
-```python
-from julia import Main as jl
-jl.Vector[jl.Int]() # equivalent to Vector{Int}() in Julia
+```@raw html
+<article class="docstring">
+    <header>
+        <a class="docstring-binding" id="julia.ArrayValue" href="#julia.ArrayValue">julia.ArrayValue</a>
+        —
+        <span class="docstring-category">Python Class</span>
+    </header>
+    <section>
+        <p>This wraps any Julia <code>AbstractArray</code> value. It is a subclass of <code>collections.abc.Collection</code>.</p>
+        <p>It supports zero-up indexing, and can be indexed with integers or slices. Slicing returns a view of the original array.</p>
+        <p>There is also the subtype <code>julia.VectorValue</code> which wraps any <code>AbstractVector</code>. It is a subclass of <code>collections.abc.Sequence</code> and behaves similar to a Python <code>list</code>.</p>
+        <p>If the array is strided and its eltype is supported (i.e. <code>Bool</code>, <code>IntXX</code>, <code>UIntXX</code>, <code>FloatXX</code>, <code>Complex{FloatXX}</code>, <code>Ptr{Cvoid}</code> or <code>Tuple</code> or <code>NamedTuple</code> of these) then it supports the buffer protocol and the numpy array interface. This means that <code>numpy.asarray(this)</code> will yield a view of the original array, so mutations are visible on the original.</p>
+        <p>Otherwise, the numpy <code>__array__</code> method is supported, and this returns an array of Python objects converted from the contents of the array. In this case, <code>numpy.asarray(this)</code> is a copy of the original array.</p>
+        <h1>Members</h1>
+        <ul>
+            <li><code>ndim</code>: The number of dimensions.</li>
+            <li><code>shape</code>: Tuple of lengths in each dimension.</li>
+            <li><code>copy()</code>: A copy of the array.</li>
+            <li><code>reshape(shape)</code>: A reshaped view of the array.</li>
+        </ul>
+    </section>
+</article>
 ```
 
-### `julia.RawValue`
+```@raw html
+<article class="docstring">
+    <header>
+        <a class="docstring-binding" id="julia.DictValue" href="#julia.DictValue">julia.DictValue</a>
+        —
+        <span class="docstring-category">Python Class</span>
+    </header>
+    <section>
+        <p>This wraps any Julia <code>AbstractDict</code> value. It is a subclass of <code>collections.abc.Mapping</code> and behaves similar to a Python <code>dict</code>.</p>
+    </section>
+</article>
+```
 
-This can wrap any Julia value.
+```@raw html
+<article class="docstring">
+    <header>
+        <a class="docstring-binding" id="julia.SetValue" href="#julia.SetValue">julia.SetValue</a>
+        —
+        <span class="docstring-category">Python Class</span>
+    </header>
+    <section>
+        <p>This wraps any Julia <code>AbstractSet</code> value. It is a subclass of <code>collections.abc.Set</code> and behaves similar to a Python <code>set</code>.</p>
+    </section>
+</article>
+```
 
-#### Members
-- `__jl_any()`: Convert to a `julia.AnyValue` (or subclass). (See also [`pyjl`](@ref).)
+```@raw html
+<article class="docstring">
+    <header>
+        <a class="docstring-binding" id="julia.IOValue" href="#julia.IOValue">julia.IOValue</a>
+        —
+        <span class="docstring-category">Python Class</span>
+    </header>
+    <section>
+        <p>This wraps any Julia <code>IO</code> value. It is a subclass of <code>io.IOBase</code>.</p>
+        <p>There are also subtypes <code>julia.RawIOValue</code>, <code>julia.BufferedIOValue</code> and <code>julia.TextIOValue</code>, which are subclasses of <code>io.RawIOBase</code> (unbuffered bytes), <code>io.BufferedIOBase</code> (buffered bytes) and <code>io.TextIOBase</code> (text).</p>
+        <h1>Members</h1>
+        <ul>
+            <li><code>torawio()</code>: Convert to a <code>julia.RawIOValue</code>, an un-buffered bytes file-like object. (See also <a href="../pythonjl/#Python.pyrawio"><code>pyrawio</code></a>.)
+            <li><code>tobufferedio()</code>: Convert to a <code>julia.BufferedIOValue</code>, an buffered bytes file-like object. Julia <code>IO</code> objects are converted to this by default. (See also <a href="../pythonjl/#Python.pybufferedio"><code>pybufferedio</code></a>.)
+            <li><code>totextio()</code>: Convert to a <code>julia.TextIOValue</code>, a text file-like object. (See also <a href="../pythonjl/#Python.pytextio"><code>pytextio</code></a>.)
+        </ul>
+    </section>
+</article>
+```
+
+```@raw html
+<article class="docstring">
+    <header>
+        <a class="docstring-binding" id="julia.ModuleValue" href="#julia.ModuleValue">julia.ModuleValue</a>
+        —
+        <span class="docstring-category">Python Class</span>
+    </header>
+    <section>
+        <p>This wraps any Julia <code>Module</code> value.</p>
+        <p>It is the same as <a href="#julia.AnyValue"><code>julia.AnyValue</code></a> except for one additional convenience method:</p>
+        <ul>
+            <li><code>seval([module=self], code)</code>: Evaluates the given code (a string) in the given module.</li>
+        </ul>
+    </section>
+</article>
+```
+
+```@raw html
+<article class="docstring">
+    <header>
+        <a class="docstring-binding" id="julia.TypeValue" href="#julia.TypeValue">julia.TypeValue</a>
+        —
+        <span class="docstring-category">Python Class</span>
+    </header>
+    <section>
+        <p>This wraps any Julia <code>Type</code> value.</p>
+        <p>It is the same as <a href="#julia.AnyValue"><code>julia.AnyValue</code></a> except that indexing is used to access Julia's "curly" syntax for specifying parametric types:</p>
+        <pre><code class="language-python hljs"><span class="hljs-keyword">from</span> julia <span class="hljs-keyword">import</span> Main <span class="hljs-keyword">as</span> jl
+jl.Vector[jl.Int]() <span class="hljs-comment"># equivalent to Vector{Int}() in Julia</span></code></pre>
+    </section>
+</article>
+```
+
+```@raw html
+<article class="docstring">
+    <header>
+        <a class="docstring-binding" id="julia.RawValue" href="#julia.RawValue">julia.RawValue</a>
+        —
+        <span class="docstring-category">Python Class</span>
+    </header>
+    <section>
+        <p>This can wrap any Julia value.</p>
+        <h1>Members</h1>
+        <ul>
+            <li><code>__jl_any()</code>: Convert to a <a href="#julia.AnyValue"><code>julia.AnyValue</code></a> (or subclass). (See also <a href="../pythonjl/#Python.pyjl">pyjl</a>.)</li>
+        </ul>
+    </section>
+</article>
+```

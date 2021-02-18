@@ -16,7 +16,7 @@ pkg"add https://github.com/cjdoris/Python.jl"
 
 This step is only required if you wish to call Julia from Python.
 
-Currently the Python package is shipped with the source of the Julia package, and must be
+Currently the Python package `julia` is shipped with the source of the Julia package, and must be
 pip-installed manually. The following should work in most shells (including PowerShell):
 
 ```bash

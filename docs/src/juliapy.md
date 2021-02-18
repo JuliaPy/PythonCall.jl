@@ -1,5 +1,23 @@
 # Julia from Python
 
+For interactive or scripting use, the simplest way to get started is:
+
+```python
+from julia import Main as jl
+```
+
+This loads a single variable `jl` which represents the `Main` module in Julia, from which all of Julia's functionality is available.
+
+If you are writing a package which uses Julia, then to avoid polluting the global `Main` namespace you should do:
+
+```python
+import julia; jl = julia.newmodule("SomeName");
+```
+
+Now you can do `jl.rand(jl.Bool, 5, 5)`, which is equivalent to `rand(Bool, 5, 5)` in Julia.
+
+Read [`Wrapper types`](#Wrapper-types) (particularly [`julia.ModuleValue`](#julia.ModuleValue) and [`julia.AnyValue`](#julia.AnyValue)) to see how `jl` behaves.
+
 ## Wrapper types
 
 Apart from a few fundamental immutable types (see [here](../conversion/#Julia-to-Python)), all Julia values are by default converted into Python to some [`julia.AnyValue`](#julia.AnyValue) object, which wraps the original value. Some types are converted to a subclass of [`julia.AnyValue`](#julia.AnyValue) which provides additional Python semantics --- e.g. Julia vectors are interpreted as Python sequences.

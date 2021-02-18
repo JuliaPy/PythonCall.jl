@@ -6,7 +6,7 @@ For interactive or scripting use, the simplest way to get started is:
 from julia import Main as jl
 ```
 
-This loads a single variable `jl` which represents the `Main` module in Julia, from which all of Julia's functionality is available.
+This loads a single variable `jl` (a [`julia.ModuleValue`](#julia.ModuleValue)) which represents the `Main` module in Julia, from which all of Julia's functionality is available.
 
 If you are writing a package which uses Julia, then to avoid polluting the global `Main` namespace you should do:
 
@@ -16,7 +16,9 @@ import julia; jl = julia.newmodule("SomeName");
 
 Now you can do `jl.rand(jl.Bool, 5, 5)`, which is equivalent to `rand(Bool, 5, 5)` in Julia.
 
-Read [`Wrapper types`](#Wrapper-types) (particularly [`julia.ModuleValue`](#julia.ModuleValue) and [`julia.AnyValue`](#julia.AnyValue)) to see how `jl` behaves.
+When a Python value is passed to Julia, then typically it will be converted according to [this table](../conversion/#Python-to-Julia) with `T=Any`. Sometimes a more specific type will be used, such as when assigning to an array whose element type is known.
+
+When a Julia value is returned to Python, it will normally be converted according to [this table](../conversion/#Julia-to-Python).
 
 ## Wrapper types
 

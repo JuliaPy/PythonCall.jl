@@ -43,7 +43,7 @@ pytype
 pyjl
 pyjlraw
 pyisjl
-pygetvalue
+pyjlgetvalue
 pytextio
 pyrawio
 pybufferedio

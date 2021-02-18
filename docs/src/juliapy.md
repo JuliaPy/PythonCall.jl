@@ -11,7 +11,19 @@ There is also a `julia.RawValue` object, which gives a stricter "Julia-only" int
 #### Members
 - `__jl_raw()`: Convert to a `julia.RawValue`. (See also [`pyjlraw`](@ref).)
 
-### `julia.NumberValue`
+<article class="docstring">
+    <header>
+        <a class="docstring-binding" id="julia.NumberValue" href="#julia.NumberValue">julia.NumberValue</a>
+        —
+        <span class="docstring-category">Python Class</span>
+    </header>
+    <section>
+        <p>This wraps any Julia <code>Number</code> value. It is a subclass of <code>numbers.Number</code> and behaves similar to other Python numbers.</p>
+        <p>There are also subtypes <code>julia.ComplexValue</code>, <code>julia.RealValue</code>, <code>julia.RationalValue</code>, <code>julia.IntegerValue</code> which wrap values of the corresponding Julia types, and are subclasses of the corresponding <code>numbers</code> ABC.</p>
+    </section>
+</article>
+
+### `julia.NumberValue` old
 
 This wraps any Julia `Number` value. It is a subclass of `numbers.Number` and behaves similar to other Python numbers.
 

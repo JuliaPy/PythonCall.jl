@@ -173,7 +173,8 @@ There is also a [`julia.RawValue`](#julia.RawValue) object, which gives a strict
         <p>This wraps any Julia <code>Type</code> value.</p>
         <p>It is the same as <a href="#julia.AnyValue"><code>julia.AnyValue</code></a> except that indexing is used to access Julia's "curly" syntax for specifying parametric types:</p>
         <pre><code class="language-python hljs"><span class="hljs-keyword">from</span> julia <span class="hljs-keyword">import</span> Main <span class="hljs-keyword">as</span> jl
-jl.Vector[jl.Int]() <span class="hljs-comment"># equivalent to Vector{Int}() in Julia</span></code></pre>
+<span class="hljs-comment"># equivalent to Vector{Int}() in Julia</span>
+jl.Vector[jl.Int]()</code></pre>
     </section>
 </article>
 ```

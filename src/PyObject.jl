@@ -4,6 +4,34 @@
 Convert `x` to a Python object.
 
 This is the default type returned by most API functions.
+
+It supports attribute access (`x.attr`), indexing (`x[i,j]`, `delete!(x, i, j)`),
+calling `x(a, b, kw=c)`, `length`, iteration (yielding `PyObject`s), comparisons to other
+`PyObject`s (`x == y`), and arithmetic with other `PyObject`s and `Number`s (`x + y`, `x * 3`).
+
+Note that comparisons between `PyObject`s (`==`, `≠`, `≤`, etc.) return `PyObject`,
+except `isequal` and `isless` which return `Bool`. Use [`pyeq`](@ref) and friends to
+return `Bool`.
+
+A number of special properties are also defined for convenience to convert the object to
+another type. To avoid clashes with object attributes, they all have the prefix `jl!`.
+- `x.jl!(T)` is `pyconvert(T, x)`
+- `x.jl!i` is `pyconvert(Int, x)`
+- `x.jl!b` is `pytruth(x)`
+- `x.jl!s` is `pystr(String, x)`.
+- `x.jl!r` is `pyrepr(String, x)`.
+- `x.jl!f` is `pyconvert(Float64, x)`
+- `x.jl!c` is `pyconvert(Complex{Float64}, x)`
+- `x.jl!iter(T=PyObject)` is `PyIterable{T}(x)`
+- `x.jl!list(T=PyObject)` is `PyList{T}(x)`
+- `x.jl!set(T=PyObject)` is `PySet{T}(x)`
+- `x.jl!dict(K=PyObject, V=PyObject)` is `PyDict{K,V}(x)`
+- `x.jl!io(...)` is `PyIO(x; ...)`
+- `x.jl!pandasdf(...)` is `PyPandasDataFrame(x; ...)`
+- `x.jl!buffer(...)` is `PyBuffer(x, ...)`
+- `x.jl!array(...)` is `PyArray{...}(x)`
+- `x.jl!vector(...)` is `PyVector{...}(x)`
+- `x.jl!matrix(...)` is `PyMatrix{...}(x)`
 """
 mutable struct PyObject
     ref::PyRef

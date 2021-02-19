@@ -4,13 +4,19 @@ To get started, just do `using Python`. There are two main ways to use this modu
 
 **Way 1:** There is a [collection of macros](#Execute-Python-code) for directly executing Python code, interpolating Julia values in and extracting Julia values out. For example ```@pyv `$x+1`::Int``` adds `x` to `1` in Python and converts the result to an `Int`.
 
-**Way 2:** There is a [collection of functions](#Python-functions) which typically produce and consume Python objects. The previous example can be implemented as `pyadd(x, 1)` or `PyObject(x)+1`.
+**Way 2:** There is a [collection of functions](#Python-functions) which typically produce and consume Python objects. The previous example can be implemented as `pyadd(Int, x, 1)` or `pyconvert(Int, PyObject(x)+1)`.
 
 In all cases, when a Julia value needs to be passed to Python, it will be converted according to [this table](../conversion/#Julia-to-Python).
 
 When a Python value is returned to Julia, by default it will be as a [`PyObject`](@ref). Most functions provide an optional way to specify the return type, in which case it will be converted according to [this table](../conversion/#Python-to-Julia).
 
 You can also specify one of the [wrapper types](#Wrapper-types) as a return type.
+
+## `PyObject`
+
+```@docs
+PyObject
+```
 
 ## Execute Python code
 
@@ -25,14 +31,6 @@ These macros are used to execute or evaluate Python code. The main differences b
 @pya
 @pyr
 ```
-
-## `PyObject`
-
-```@docs
-PyObject
-```
-
-*TODO*
 
 ## Python functions
 
@@ -79,6 +77,8 @@ pybufferedio
 
 ```@docs
 pyconvert
+pyimport
+pywith
 pyis
 pyrepr
 pyhasattr
@@ -92,13 +92,11 @@ pyin
 pygetitem
 pysetitem
 pydelitem
-pyimport
 pytruth
 pyissubclass
 pyisinstance
 pyhash
 pyiter
-pywith
 ```
 
 ### Numbers

@@ -43,7 +43,11 @@ From Julia, one can convert Python objects to a desired type using `pyconvert(T,
 
 From Python, when a value is passed to Julia, it is typically converted to a corresponding Julia value using `pyconvert(Any, x)`.
 
-Quite general conversions are allowed, and the target type `T` can be as specific as you like. For example ```@pyv `[1, None, 3]`::Tuple{Vararg{Union{AbstractFloat,Missing}}}``` will evaluate to `(1.0, missing, 2.0)`.
+Quite general conversions are allowed, and the target type `T` can be as specific as you like. For example
+```
+@pyv `[1, None, 3]`::Tuple{Vararg{Union{AbstractFloat,Missing}}}
+```
+evaluates to `(1.0, missing, 2.0)`.
 
 The following table specifies the conversion rules in place. If the initial Python type matches the "From" column and the desired type `T` intersects with the "To" column, then that conversion is attempted. Conversions are tried in priority order, then in specificity order.
 

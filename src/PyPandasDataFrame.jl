@@ -78,9 +78,9 @@ Wrap the Pandas dataframe `o` as a Julia table.
 
 This object satisfies the `Tables.jl` and `TableTraits.jl` interfaces.
 
-- `:indexname` is the name of the index column when converting this to a table, and may be `nothing` to exclude the index.
-- `:columntypes` is an iterable of `columnname=>type` or `[columnnames...]=>type` pairs, used when converting to a table.
-- `:copy` is true to copy columns on conversion.
+- `indexname`: The name of the index column when converting this to a table, and may be `nothing` to exclude the index.
+- `columntypes`: An iterable of `columnname=>type` or `[columnnames...]=>type` pairs, used when converting to a table.
+- `copy`: True to copy columns on conversion.
 """
 struct PyPandasDataFrame
     ref::PyRef

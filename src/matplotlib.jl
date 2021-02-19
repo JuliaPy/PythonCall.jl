@@ -1,11 +1,13 @@
 """
     pyplotshow([fig]; close=true, [format])
 
-Show the matplotlib/pyplot/seaborn/etc figure `fig`, or all open figures if not given.
+Show the matplotlib/pyplot/seaborn/etc figure `fig`, or all open figures if not given, using Julia's display mechanism.
 
 If `close` is true, the figure is also closed.
 
-The `format` specifies the file format of the generated image. By default this is `pyplot.rcParams["savefig.format"]`.
+The `format` specifies the file format of the generated image.
+By default this is `pyplot.rcParams["savefig.format"]`.
+It can be one of `"png"`, `"jpg"`, `"jpeg"`, `"tif"`, `"tiff"`, `"svg"` or `"pdf"`.
 """
 function pyplotshow(fig; close::Bool = true, format::String = "")
     @py ```

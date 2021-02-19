@@ -56,6 +56,11 @@ export pyinteract
 
 const EVENT_LOOPS = Dict{Symbol,Base.Timer}()
 
+"""
+    event_loop_off(g::Symbol)
+
+Terminate the event loop `g` if it is running.
+"""
 function event_loop_off(g::Symbol)
     if haskey(EVENT_LOOPS, g)
         Base.close(pop!(EVENT_LOOPS, g))
@@ -63,7 +68,17 @@ function event_loop_off(g::Symbol)
     return
 end
 
+"""
+    event_loop_on(g::Symbol; interval=40e-3, fix=false)
+
+Activate an event loop for the GUI framework `g`, so that the framework can run in the background of a Julia session.
+
+The event loop runs every `interval` seconds. If `fix` is true and `g` is a Qt framework, then [`fix_qt_plugin_path`](@ref) is called.
+
+Supported values of `g` (and the Python module they relate to) are: `:pyqt4` (PyQt4), `:pyqt5` (PyQt5), `:pyside` (PySide), `:pyside2` (PySide2), `:gtk` (gtk), `:gtk3` (gi), `:wx` (wx), `:tkinter` (tkinter).
+"""
 function event_loop_on(g::Symbol; interval::Real = 40e-3, fix::Bool = false)
+    haskey(EVENT_LOOPS, g) && return EVENT_LOOPS[g]
     fix && g in (:pyqt4, :pyqt5, :pyside, :pyside2) && fix_qt_plugin_path()
     @py ```
     def make_event_loop(g, interval):
@@ -131,6 +146,5 @@ function event_loop_on(g::Symbol; interval::Real = 40e-3, fix::Bool = false)
         return event_loop
     $event_loop = make_event_loop($(string(g)), $interval)
     ```
-    t = EVENT_LOOPS[g] = Timer(t -> event_loop(), 0; interval = interval)
-    g => t
+    EVENT_LOOPS[g] = Timer(t -> event_loop(), 0; interval = interval)
 end

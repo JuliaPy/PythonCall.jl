@@ -9,6 +9,7 @@ makedocs(
         "pythonjl.md",
         "juliapy.md",
         "conversion.md",
+        "compat.md",
     ]
 )
 

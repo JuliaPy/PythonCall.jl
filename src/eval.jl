@@ -194,7 +194,7 @@ end
 """
     @py `...` [locals] [var=val, ...]
 
-Executes the given Python code.
+Execute the given Python code.
 
 Julia values can be interpolated using the usual `\$(...)` syntax.
 
@@ -214,7 +214,7 @@ export @py
 """
     @pyg `...` [var=val, ...]
 
-Executes the given Python code in the global scope.
+Execute the given Python code in the global scope.
 
 This is simply shorthand for ```@py `...` pyglobals ``` (see [`@py`](@ref)).
 """
@@ -226,7 +226,7 @@ export @pyg
 """
     @pyv `...`[::rettype] [locals] [var=val, ...]
 
-Evaluate the given Python code.
+Evaluate the given Python expression and return its value.
 
 Julia values can be interpolated using the usual `\$(...)` syntax.
 
@@ -267,9 +267,9 @@ export @pyr
 """
     py`...` :: PyCode
 
-A Python code object in "exec" mode which is compiled only once.
+Literal syntax for a compiled [`PyCode`](@ref) object in "exec" mode.
 
-Suitable for using as the `code` argument to `pyeval`.
+Suitable for passing to Python's `exec` function.
 """
 macro py_cmd(code::String)
     PyCode(code, pyeval_filename(__source__), :exec)
@@ -279,9 +279,9 @@ export @py_cmd
 """
     pyv`...` :: PyCode
 
-A Python code object in "eval" mode which is compiled only once.
+Literal syntax for a compiled [`PyCode`](@ref) object in "eval" mode.
 
-Suitable for using as the `code` argument to `pyexec`.
+Suitable for passing to Python's `eval` function.
 """
 macro pyv_cmd(code::String)
     PyCode(code, pyeval_filename(__source__), :eval)

@@ -1,3 +1,12 @@
+"""
+    PyCode(code::String, filename::String, mode::Symbol)
+
+A Python code object, representing the compiled contents of `code`.
+
+The `filename` is used for exception printing. The mode must be `:exec` or `:eval`.
+
+See also [`@py_cmd`](@ref) and [`@pyv_cmd`](@ref).
+"""
 mutable struct PyCode
     ref::PyRef
     code::String

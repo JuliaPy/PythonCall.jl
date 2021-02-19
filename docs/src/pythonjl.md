@@ -74,6 +74,7 @@ pybufferedio
 ```@docs
 pyconvert
 pyis
+pyrepr
 pyhasattr
 pygetattr
 pysetattr
@@ -98,6 +99,7 @@ pywith
 
 ```@docs
 pyeq
+pyne
 pyle
 pylt
 pyge
@@ -146,4 +148,10 @@ PyArray
 PyBuffer
 PyIO
 PyPandasDataFrame
+PyCode
+@py_cmd
+@pyv_cmd
+PyInternedString
+@pystr_str
+PyException
 ```

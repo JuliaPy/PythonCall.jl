@@ -1,3 +1,10 @@
+"""
+    PyException <: Exception
+
+Represents an exception raised from Python.
+
+It has three fields `tref`, `vref`, `bref` which are all `PyRef`s, and are the type, value and backtrace of the exception.
+"""
 mutable struct PyException <: Exception
     tref::PyRef
     vref::PyRef

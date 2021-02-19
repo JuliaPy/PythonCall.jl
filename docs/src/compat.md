@@ -4,6 +4,10 @@ Some packages require a little extra help to work nicely from `Python.jl`.
 
 Some of these are "fixes" that are silently applied for you, and some are just extra functions to bridge a gap. We aim to keep these as minimal as possible.
 
+## Stdlib
+
+Whenever a Python exception is displayed by Julia, `sys.last_traceback` and friends are set. This allows the post-mortem debugger `pdb.pm()` to work. Disable by setting `Python.CONFIG.sysautolasttraceback = false`.
+
 ## Tabular data & Pandas
 
 A `pandas.DataFrame` can be wrapped in Julia as a [`PyPandasDataFrame`](@ref), providing a `Tables.jl`-compatible interface.

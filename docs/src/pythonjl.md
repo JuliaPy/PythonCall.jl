@@ -8,7 +8,7 @@ To get started, just do `using Python`. There are two main ways to use this modu
 
 In all cases, when a Julia value needs to be passed to Python, it will be converted according to [this table](../conversion/#Julia-to-Python).
 
-When a Python value is returned to Julia, by default it will be as a [`PyObject`](@pyref). Most functions provide an optional way to specify the return type, in which case it will be converted according to [this table](../conversion/#Python-to-Julia).
+When a Python value is returned to Julia, by default it will be as a [`PyObject`](@ref). Most functions provide an optional way to specify the return type, in which case it will be converted according to [this table](../conversion/#Python-to-Julia).
 
 You can also specify one of the [wrapper types](#Wrapper-types) as a return type.
 

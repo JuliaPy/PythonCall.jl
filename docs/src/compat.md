@@ -46,7 +46,7 @@ pyinteract
 ### Qt path fix
 
 ```@docs
-Python.fix_gt_plugin_path
+Python.fix_qt_plugin_path
 ```
 
 ## IPython

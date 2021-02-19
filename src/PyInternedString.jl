@@ -5,7 +5,7 @@ Convert `x` to an interned Python string.
 
 This can provide a performance boost when using strings to index dictionaries or get attributes.
 
-See also [`@pystr_str`].
+See also [`@pystr_str`](@ref).
 """
 mutable struct PyInternedString
     ref::PyRef

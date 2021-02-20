@@ -886,7 +886,7 @@ _py_mime_data(m::MIME, o) = begin
     meta = None
     try:
         x = o._repr_mimebundle_()
-        if isinstance(mb, tuple):
+        if isinstance(x, tuple):
             data = x[0][m]
             meta = x[1].get(m)
         else:
@@ -919,35 +919,6 @@ _py_mime_show(io::IO, m::MIME, o) = begin
     write(io, istextmime(m) ? pyconvert(String, data) : pyconvert(Vector{UInt8}, data))
     nothing
 end
-
-# const _py_mimetype = Union{map(first, _py_mimes)...}
-
-# for (mime, method) in _py_mimes
-#     T = istextmime(mime()) ? String : Vector{UInt8}
-#     @eval begin
-#         _py_mime_show(io::IO, mime::$mime, o) = begin
-#             try
-#                 x = pycall(PyRef, pygetattr(PyRef, o, $method))
-#                 pyis(x, pynone(PyRef)) || return write(io, pyconvert($T, x))
-#             catch
-#             end
-#             throw(MethodError(_py_mime_show, (io, mime, o)))
-#         end
-#         _py_mime_showable(::$mime, o) = begin
-#             try
-#                 x = pycall(PyRef, pygetattr(PyRef, o, $method))
-#                 if pyis(x, pynone(PyRef))
-#                     false
-#                 else
-#                     pyconvert($T, x)
-#                     true
-#                 end
-#             catch
-#                 false
-#             end
-#         end
-#     end
-# end
 
 ### IO
 

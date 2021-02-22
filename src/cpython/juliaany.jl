@@ -25,54 +25,10 @@ PyJuliaAnyValue_Type() = begin
                 as_sequence = (contains = pyjlany_contains,),
                 methods = [
                     (name = "__dir__", flags = Py_METH_NOARGS, meth = pyjlany_dir),
-                    (
-                        name = "_repr_html_",
-                        flags = Py_METH_NOARGS,
-                        meth = pyjlany_repr_mime(MIME("text/html")),
-                    ),
-                    (
-                        name = "_repr_markdown_",
-                        flags = Py_METH_NOARGS,
-                        meth = pyjlany_repr_mime(MIME("text/markdown")),
-                    ),
-                    (
-                        name = "_repr_json_",
-                        flags = Py_METH_NOARGS,
-                        meth = pyjlany_repr_mime(MIME("text/json")),
-                    ),
-                    (
-                        name = "_repr_javascript_",
-                        flags = Py_METH_NOARGS,
-                        meth = pyjlany_repr_mime(MIME("application/javascript")),
-                    ),
-                    (
-                        name = "_repr_pdf_",
-                        flags = Py_METH_NOARGS,
-                        meth = pyjlany_repr_mime(MIME("application/pdf")),
-                    ),
-                    (
-                        name = "_repr_jpeg_",
-                        flags = Py_METH_NOARGS,
-                        meth = pyjlany_repr_mime(MIME("image/jpeg")),
-                    ),
-                    (
-                        name = "_repr_png_",
-                        flags = Py_METH_NOARGS,
-                        meth = pyjlany_repr_mime(MIME("image/png")),
-                    ),
-                    (
-                        name = "_repr_svg_",
-                        flags = Py_METH_NOARGS,
-                        meth = pyjlany_repr_mime(MIME("image/svg+xml")),
-                    ),
-                    (
-                        name = "_repr_latex_",
-                        flags = Py_METH_NOARGS,
-                        meth = pyjlany_repr_mime(MIME("text/latex")),
-                    ),
-                    (name = "__jl_raw", flags = Py_METH_NOARGS, meth = pyjlany_toraw),
-                    (name = "__jl_display", flags = Py_METH_NOARGS, meth = pyjlany_display),
-                    (name = "__jl_help", flags = Py_METH_NOARGS, meth = pyjlany_help),
+                    (name = "_repr_mimebundle_", flags = Py_METH_VARARGS | Py_METH_KEYWORDS, meth = pyjlany_repr_mimebundle),
+                    (name = "_jl_raw", flags = Py_METH_NOARGS, meth = pyjlany_toraw),
+                    (name = "_jl_display", flags = Py_METH_NOARGS, meth = pyjlany_display),
+                    (name = "_jl_help", flags = Py_METH_NOARGS, meth = pyjlany_help),
                 ],
                 getset = [(name = "__name__", get = pyjlany_name)],
             ),
@@ -387,28 +343,68 @@ pyjlany_richcompare(xo::PyPtr, yo::PyPtr, op::Cint) = begin
     end
 end
 
-struct pyjlany_repr_mime{M<:MIME}
-    mime::M
-end
-(f::pyjlany_repr_mime{M})(xo::PyPtr, ::PyPtr) where {M} = begin
+const ALL_MIMES = [
+    "text/plain",
+    "text/html",
+    "text/markdown",
+    "text/json",
+    "text/latex",
+    "text/xml",
+    "text/csv",
+    "application/javascript",
+    "application/pdf",
+    "application/ogg",
+    "image/jpeg",
+    "image/png",
+    "image/svg+xml",
+    "image/gif",
+    "image/webp",
+    "image/tiff",
+    "image/bmp",
+    "audio/aac",
+    "audio/mpeg",
+    "audio/ogg",
+    "audio/opus",
+    "audio/webm",
+    "audio/wav",
+    "audio/midi",
+    "audio/x-midi",
+    "video/mpeg",
+    "video/ogg",
+    "video/webm",
+]
+
+pyjlany_repr_mimebundle(xo::PyPtr, args::PyPtr, kwargs::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)
-    io = IOBuffer()
-    try
-        show(io, f.mime, x)
-    catch err
-        if err isa MethodError && err.f === show && err.args === (io, f.mime, x)
-            return PyNone_New()
-        else
-            PyErr_SetJuliaError(err)
-            return PyNULL
+    ism1(PyArg_CheckNumArgsEq("_repr_mimebundle_", args, 0)) && return PyNULL
+    ism1(PyArg_GetArg(Union{Set{String},Nothing}, "_repr_mimebundle_", kwargs, "include", nothing)) && return PyNULL
+    inc = takeresult(Union{Set{String},Nothing})
+    ism1(PyArg_GetArg(Union{Set{String},Nothing}, "_repr_mimebundle_", kwargs, "exclude", nothing)) && return PyNULL
+    exc = takeresult(Union{Set{String},Nothing})
+    # decide which mimes to include
+    mimes = inc === nothing ? ALL_MIMES : push!(inc, "text/plain")
+    exc === nothing || setdiff!(mimes, exc)
+    # make the bundle
+    bundle = PyDict_New()
+    isnull(bundle) && return PyNULL
+    for m in mimes
+        try
+            io = IOBuffer()
+            show(io, MIME(m), x)
+            v = take!(io)
+            mo = PyUnicode_From(m)
+            isnull(mo) && (Py_DecRef(bundle); return PyNULL)
+            vo = istextmime(m) ? PyUnicode_From(v) : PyBytes_From(v)
+            isnull(vo) && (Py_DecRef(mo); Py_DecRef(bundle); return PyNULL)
+            err = PyDict_SetItem(bundle, mo, vo)
+            Py_DecRef(mo)
+            Py_DecRef(vo)
+            ism1(err) && (Py_DecRef(bundle); return PyNULL)
+        catch err
+            # silently skip anything that didn't work
         end
     end
-    data = take!(io)
-    if istextmime(f.mime)
-        PyUnicode_From(data)
-    else
-        PyBytes_From(data)
-    end
+    bundle
 end
 
 pyjlany_name(xo::PyPtr, ::Ptr{Cvoid}) =

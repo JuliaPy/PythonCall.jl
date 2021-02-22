@@ -885,12 +885,12 @@ _py_mime_data(m::MIME, o) = begin
     data = None
     meta = None
     try:
-        x = o._repr_mimebundle_()
+        x = o._repr_mimebundle_(include=[m])
         if isinstance(x, tuple):
             data = x[0][m]
             meta = x[1].get(m)
         else:
-            data = mb[m]
+            data = x[m]
     except:
         pass
     if data is None and r is not None:

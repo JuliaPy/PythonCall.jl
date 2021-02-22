@@ -22,7 +22,7 @@ PyJuliaRawValue_Type() = begin
                 ),
                 methods = [
                     (name = "__dir__", flags = Py_METH_NOARGS, meth = pyjlraw_dir),
-                    (name = "__jl_any", flags = Py_METH_NOARGS, meth = pyjlraw_toany),
+                    (name = "_jl_any", flags = Py_METH_NOARGS, meth = pyjlraw_toany),
                 ],
             ),
         )

@@ -885,7 +885,7 @@ _py_mime_data(m::MIME, o) = begin
     data = None
     meta = None
     try:
-        x = o._repr_mimebundle_(include=[m])
+        x = type(o)._repr_mimebundle_(o, include=[m])
         if isinstance(x, tuple):
             data = x[0][m]
             meta = x[1].get(m)
@@ -895,7 +895,7 @@ _py_mime_data(m::MIME, o) = begin
         pass
     if data is None and r is not None:
         try:
-            x = getattr(o, r)()
+            x = getattr(type(o), r)(o)
             if isinstance(x, tuple):
                 data = x[0]
                 meta = x[1]

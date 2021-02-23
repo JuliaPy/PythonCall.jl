@@ -773,8 +773,8 @@ end
         @test PyArray{Float64,2,Float64}(mat) isa PyMatrix{Float64, Float64, true, false}
         @test PyArray{Float64,2,Float64,true}(mat) isa PyMatrix{Float64, Float64, true, false}
         @test PyArray{Float64,2,Float64,true,false}(mat) isa PyMatrix{Float64, Float64, true, false}
-        @test PyArray(arr) isa PyArray{PyObject, 3, Python.CPython.PyObjectRef, true, true}
-        @test PyArray(["foo", "bar"]) isa PyVector{PyObject, Python.CPython.PyObjectRef, true, true}
+        @test PyArray(arr) isa PyArray{Python.CPython.PyObjectRef, 3, PyObject, true, true}
+        @test PyArray(["foo", "bar"]) isa PyVector{Python.CPython.PyObjectRef, PyObject, true, true}
         veco = PyArray(vec)
         mato = PyArray(mat)
         arro = PyArray(arr)

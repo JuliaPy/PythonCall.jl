@@ -20,10 +20,8 @@ Has the following properties:
 """
 mutable struct PyBuffer
     info::Array{C.Py_buffer,0}
-    function PyBuffer(o, flags::Integer = C.PyBUF_FULL_RO)
-        info = fill(C.Py_buffer())
-        check(C.PyObject_GetBuffer(o, pointer(info), flags))
-        b = new(info)
+    function PyBuffer()
+        b = new(fill(C.Py_buffer()))
         finalizer(b) do b
             if CONFIG.isinitialized
                 with_gil(false) do
@@ -33,6 +31,11 @@ mutable struct PyBuffer
         end
         b
     end
+end
+PyBuffer(o, flags::Integer = C.PyBUF_FULL_RO) = begin
+    b = PyBuffer()
+    check(C.PyObject_GetBuffer(o, pointer(b.info), flags))
+    b
 end
 export PyBuffer
 

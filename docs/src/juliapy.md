@@ -53,17 +53,10 @@ There is also a [`RawValue`](#julia.RawValue) object, which gives a stricter "Ju
         <span class="docstring-category">Python Class</span>
     </header>
     <section>
-        Wraps any Julia object, giving it some basic Python semantics. Subtypes provide extra semantics.
-
-        Supports `repr(x)`, `str(x)`, attributes (`x.attr`), calling (`x(a,b)`), iteration, comparisons, `len(x)`, `a in x`, `dir(x)`.
-
-        Calling, indexing, attribute access, etc. will convert the result to a Python object according to <a href="../conversion/#Julia-to-Python">this table</a>.
-        This is typically a builtin Python type (for immutables) or a subtype of `AnyValue`.
-
-        Attribute access can be used to access Julia properties as well as normal class members.
-        In the case of a name clash, the class member will take precedence.
-        For convenience with Julia naming conventions, `_b` at the end of an attribute is replaced with `!` and `_bb` is replaced with `!!`.
-
+        <p>Wraps any Julia object, giving it some basic Python semantics. Subtypes provide extra semantics.</p>
+        <p>Supports <code>repr(x)</code>, <code>str(x)</code>, attributes (<code>x.attr</code>), calling (<code>x(a,b)</code>), iteration, comparisons, <code>len(x)</code>, <code>a in x</code>, <code>dir(x)</code>.</p>
+        <p>Calling, indexing, attribute access, etc. will convert the result to a Python object according to <a href="../conversion/#Julia-to-Python">this table</a>. This is typically a builtin Python type (for immutables) or a subtype of <code>AnyValue</code>.</p>
+        <p>Attribute access can be used to access Julia properties as well as normal class members. In the case of a name clash, the class member will take precedence. For convenience with Julia naming conventions, <code>_b</code> at the end of an attribute is replaced with <code>!</code> and <code>_bb</code> is replaced with <code>!!</code>.</p>
         <h6>Members</h6>
         <ul>
             <li><code>_jl_raw()</code>: Convert to a <a href="#julia.RawValue"><code>RawValue</code></a></li>
@@ -185,7 +178,8 @@ jl.Vector[jl.Int]()</code></pre>
     </header>
     <section>
         <p>Wraps any Julia value with a rigid interface suitable for generic programming.</p>
-        <p>This is very similar to <a href="#julia.AnyValue"><code>AnyValue</code></a> except that indexing, calling, etc. will always return a `RawValue`.</p>
+        <p>Supports <code>repr(x)</code>, <code>str(x)</code>, attributes (<code>x.attr</code>), calling (<code>x(a,b)</code>), <code>len(x)</code>, <code>dir(x)</code>.</p>
+        <p>This is very similar to <a href="#julia.AnyValue"><code>AnyValue</code></a> except that indexing, calling, etc. will always return a <code>RawValue</code>.</p>
         <p>Indexing with a tuple corresponds to indexing in Julia with multiple values. To index with a single tuple, it will need to be wrapped in another tuple.</p>
         <h6>Members</h6>
         <ul>

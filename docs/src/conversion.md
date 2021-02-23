@@ -79,7 +79,7 @@ The following table specifies the conversion rules in place. If the initial Pyth
 | `str`                                                                                                        | `String`, `Symbol`, `Char`, `Vector{UInt8}`, `Vector{Int8}` |
 | `range`                                                                                                      | `UnitRange`                                                 |
 | `collections.abc.Mapping`                                                                                    | `Dict`                                                      |
-| `collections.abc.Iterable`                                                                                   | `Vector`, `Set`, `Tuple`, `Pair`                            |
+| `collections.abc.Iterable`                                                                                   | `Vector`, `Set`, `Tuple`, `NamedTuple`, `Pair`              |
 | `datetime.timedelta`                                                                                         | `Dates.CompoundPeriod`                                      |
 | `numbers.Integral`                                                                                           | `Integer`, `Rational`, `Real`, `Number`                     |
 | `numbers.Real`                                                                                               | `AbstractFloat`, `Number`                                   |

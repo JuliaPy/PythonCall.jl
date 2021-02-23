@@ -189,6 +189,7 @@ __init__() = begin
             (Vector, PyIterable_ConvertRule_vecorset),
             (Set, PyIterable_ConvertRule_vecorset),
             (Tuple, PyIterable_ConvertRule_tuple),
+            (NamedTuple, PyIterable_ConvertRule_namedtuple),
             (Pair, PyIterable_ConvertRule_pair),
         ],
     )

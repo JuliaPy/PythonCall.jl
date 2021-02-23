@@ -156,13 +156,7 @@ PyIterable_ConvertRule_vecorset(o, ::Type{Set}) =
     PyIterable_ConvertRule_vecorset(o, Set{Python.PyObject})
 
 PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
-    if !(S isa DataType)
-        PyErr_SetString(
-            PyExc_Exception(),
-            "When converting Python 'tuple' to Julia 'Tuple', the destination type must be a 'DataType', i.e. not parametric and not a union. Got '$S'.",
-        )
-        return -1
-    end
+    S isa DataType || return 0
     ts = S.parameters
     if !isempty(ts) && Base.isvarargtype(ts[end])
         isvararg = true
@@ -189,6 +183,17 @@ PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
     end
     r == -1 ? -1 : r == 0 ? 0 : length(xs) ≥ length(ts) ? putresult(S(xs)) : 0
 end
+
+PyIterable_ConvertRule_namedtuple(o, ::Type{NamedTuple{names, types}}) where {names, types<:Tuple} = begin
+    r = PyIterable_ConvertRule_tuple(o, types)
+    r == 1 ? putresult(NamedTuple{names, types}(takeresult(types))) : r
+end
+PyIterable_ConvertRule_namedtuple(o, ::Type{NamedTuple{names}}) where {names} = begin
+    types = NTuple{length(names), Python.PyObject}
+    r = PyIterable_ConvertRule_tuple(o, types)
+    r == 1 ? putresult(NamedTuple{names}(takeresult(types))) : r
+end
+PyIterable_ConvertRule_namedtuple(o, ::Type{S}) where {S<:NamedTuple} = 0
 
 PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V}}) where {K,V} = begin
     k = Ref{K}()

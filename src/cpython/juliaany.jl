@@ -382,7 +382,19 @@ pyjlany_repr_mimebundle(xo::PyPtr, args::PyPtr, kwargs::PyPtr) = begin
     ism1(PyArg_GetArg(Union{Set{String},Nothing}, "_repr_mimebundle_", kwargs, "exclude", nothing)) && return PyNULL
     exc = takeresult(Union{Set{String},Nothing})
     # decide which mimes to include
-    mimes = inc === nothing ? ALL_MIMES : push!(inc, "text/plain")
+    if inc === nothing
+        # default set of mimes to try
+        mimes = copy(ALL_MIMES)
+        # looks for mimes on show methods for the type
+        for meth in methods(show, Tuple{IO, MIME, typeof(x)}).ms
+            mimetype = meth.sig.parameters[3]
+            mimetype isa DataType || continue
+            mime = string(mimetype.parameters[1])
+            push!(mimes, mime)
+        end
+    else
+        mimes = push!(inc, "text/plain")
+    end
     exc === nothing || setdiff!(mimes, exc)
     # make the bundle
     bundle = PyDict_New()

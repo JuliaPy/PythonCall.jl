@@ -10,6 +10,7 @@ makedocs(
         "juliapy.md",
         "conversion.md",
         "compat.md",
+        "pycall.md",
     ]
 )
 

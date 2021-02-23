@@ -18,6 +18,12 @@ UnsafePointers = "e17b2a0c-0bdf-430a-bd0c-3a23cae4ff39"
 
 [compat]
 Compat = "2.0.0, 3"
+Conda = "1"
+IteratorInterfaceExtensions = "1"
+Requires = "1"
+TableTraits = "1"
+Tables = "1"
+UnsafePointers = "0.3"
 julia = "1"
 
 [extras]

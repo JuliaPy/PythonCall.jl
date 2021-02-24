@@ -41,6 +41,8 @@ include("utils.jl")
     isembedded::Bool = false
     "True if the Python interpreter is currently initialized."
     isinitialized::Bool = false
+    "True if the Python interpreter was already initialized."
+    preinitialized::Bool = false
     "The running Python version."
     version::VersionNumber = VersionNumber(0)
     "True if this is the Python in some Conda environment."

@@ -7,6 +7,7 @@
         CONFIG.libptr = Ptr{Cvoid}(parse(UInt, ENV["PYTHONJL_LIBPTR"]))
         # Check Python is initialized
         C.Py_IsInitialized() == 0 && error("Python is not already initialized.")
+        CONFIG.isinitialized = CONFIG.preinitialized = true
     else
         # Find Python executable
         exepath = something(
@@ -86,57 +87,58 @@
                 """)
         end
 
-        # Check we are not already initialized
-        C.Py_IsInitialized() == 0 || error("Python is already initialized.")
-
         # Initialize
         with_gil() do
-            # Find ProgramName and PythonHome
-            script = if Sys.iswindows()
-                """
-                import sys
-                print(sys.executable)
-                if hasattr(sys, "base_exec_prefix"):
-                    sys.stdout.write(sys.base_exec_prefix)
-                else:
-                    sys.stdout.write(sys.exec_prefix)
-                """
+            if C.Py_IsInitialized() != 0
+                # Already initialized (maybe you're using PyCall as well)
             else
-                """
-                import sys
-                print(sys.executable)
-                if hasattr(sys, "base_exec_prefix"):
-                    sys.stdout.write(sys.base_prefix)
-                    sys.stdout.write(":")
-                    sys.stdout.write(sys.base_exec_prefix)
-                else:
-                    sys.stdout.write(sys.prefix)
-                    sys.stdout.write(":")
-                    sys.stdout.write(sys.exec_prefix)
-                """
+                # Find ProgramName and PythonHome
+                script = if Sys.iswindows()
+                    """
+                    import sys
+                    print(sys.executable)
+                    if hasattr(sys, "base_exec_prefix"):
+                        sys.stdout.write(sys.base_exec_prefix)
+                    else:
+                        sys.stdout.write(sys.exec_prefix)
+                    """
+                else
+                    """
+                    import sys
+                    print(sys.executable)
+                    if hasattr(sys, "base_exec_prefix"):
+                        sys.stdout.write(sys.base_prefix)
+                        sys.stdout.write(":")
+                        sys.stdout.write(sys.base_exec_prefix)
+                    else:
+                        sys.stdout.write(sys.prefix)
+                        sys.stdout.write(":")
+                        sys.stdout.write(sys.exec_prefix)
+                    """
+                end
+                CONFIG.pyprogname, CONFIG.pyhome = readlines(python_cmd(["-c", script]))
+
+                # Set PythonHome
+                CONFIG.pyhome_w = Base.cconvert(Cwstring, CONFIG.pyhome)
+                C.Py_SetPythonHome(pointer(CONFIG.pyhome_w))
+
+                # Set ProgramName
+                CONFIG.pyprogname_w = Base.cconvert(Cwstring, CONFIG.pyprogname)
+                C.Py_SetProgramName(pointer(CONFIG.pyprogname_w))
+
+                # Start the interpreter and register exit hooks
+                C.Py_InitializeEx(0)
+                atexit() do
+                    CONFIG.isinitialized = false
+                    CONFIG.version < v"3.6" ? C.Py_Finalize() : checkm1(C.Py_FinalizeEx())
+                end
             end
-            CONFIG.pyprogname, CONFIG.pyhome = readlines(python_cmd(["-c", script]))
-
-            # Set PythonHome
-            CONFIG.pyhome_w = Base.cconvert(Cwstring, CONFIG.pyhome)
-            C.Py_SetPythonHome(pointer(CONFIG.pyhome_w))
-
-            # Set ProgramName
-            CONFIG.pyprogname_w = Base.cconvert(Cwstring, CONFIG.pyprogname)
-            C.Py_SetProgramName(pointer(CONFIG.pyprogname_w))
-
-            # Start the interpreter and register exit hooks
-            C.Py_InitializeEx(0)
             CONFIG.isinitialized = true
             check(
                 C.Py_AtExit(
                     @cfunction(() -> (CONFIG.isinitialized = false; nothing), Cvoid, ())
                 ),
             )
-            atexit() do
-                CONFIG.isinitialized = false
-                CONFIG.version < v"3.6" ? C.Py_Finalize() : checkm1(C.Py_FinalizeEx())
-            end
         end
     end
 

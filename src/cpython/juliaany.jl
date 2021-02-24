@@ -23,6 +23,24 @@ PyJuliaAnyValue_Type() = begin
                     ass_subscript = pyjlany_setitem,
                 ),
                 as_sequence = (contains = pyjlany_contains,),
+                as_number = (
+                    positive = pyjlany_positive,
+                    negative = pyjlany_negative,
+                    absolute = pyjlany_absolute,
+                    power = pyjlany_power,
+                    add = pyjlany_binop(+),
+                    subtract = pyjlany_binop(-),
+                    multiply = pyjlany_binop(*),
+                    truedivide = pyjlany_binop(/),
+                    divmod = pyjlany_binop((x, y) -> (fld(x, y), mod(x, y))),
+                    floordivide = pyjlany_binop(fld),
+                    remainder = pyjlany_binop(mod),
+                    lshift = pyjlany_binop(<<),
+                    rshift = pyjlany_binop(>>),
+                    and = pyjlany_binop(&),
+                    xor = pyjlany_binop(xor),
+                    or = pyjlany_binop(|),
+                ),
                 methods = [
                     (name = "__dir__", flags = Py_METH_NOARGS, meth = pyjlany_dir),
                     (name = "_repr_mimebundle_", flags = Py_METH_VARARGS | Py_METH_KEYWORDS, meth = pyjlany_repr_mimebundle),
@@ -458,3 +476,79 @@ pyjlany_help(xo::PyPtr, ::PyPtr) =
         PyErr_SetJuliaError(err)
         PyNULL
     end
+
+pyjlany_positive(xo::PyPtr) =
+    try
+        PyObject_From(+(PyJuliaValue_GetValue(xo)))
+    catch err
+        PyErr_SetJuliaError(err)
+        PyNULL
+    end
+
+pyjlany_negative(xo::PyPtr) =
+    try
+        PyObject_From(-(PyJuliaValue_GetValue(xo)))
+    catch err
+        PyErr_SetJuliaError(err)
+        PyNULL
+    end
+
+pyjlany_absolute(xo::PyPtr) =
+    try
+        PyObject_From(abs(PyJuliaValue_GetValue(xo)))
+    catch err
+        PyErr_SetJuliaError(err)
+        PyNULL
+    end
+
+struct pyjlany_binop{F}
+    f::F
+end
+(f::pyjlany_binop)(xo::PyPtr, yo::PyPtr) = begin
+    PyJuliaValue_Check(xo) || return PyNotImplemented_New()
+    PyJuliaValue_Check(yo) || return PyNotImplemented_New()
+    x = PyJuliaValue_GetValue(xo)
+    y = PyJuliaValue_GetValue(yo)
+    try
+        PyObject_From(f.f(x, y))
+    catch err
+        if err isa MethodError && err.f === f.f
+            PyNotImplemented_New()
+        else
+            PyErr_SetJuliaError(err)
+            PyNULL
+        end
+    end
+end
+
+pyjlany_power(xo::PyPtr, yo::PyPtr, zo::PyPtr) = begin
+    PyJuliaValue_Check(xo) || return PyNotImplemented_New()
+    PyJuliaValue_Check(yo) || return PyNotImplemented_New()
+    x = PyJuliaValue_GetValue(xo)
+    y = PyJuliaValue_GetValue(yo)
+    if PyNone_Check(zo)
+        try
+            PyObject_From(x^y)
+        catch err
+            if err isa MethodError && err.f === ^
+                PyNotImplemented_New()
+            else
+                PyErr_SetJuliaError(err)
+                PyNULL
+            end
+        end
+    else
+        PyJuliaValue_Check(zo) || return PyNotImplemented_New()
+        z = PyJuliaValue_GetValue(zo)
+        try
+            PyObject_From(powermod(x, y, z))
+        catch err
+            if err isa MethodError && err.f === powermod
+                PyNotImplemented_New()
+            else
+                PyErr_SetJuliaError(err)
+                PyNULL
+            end
+        end
+    end
+end

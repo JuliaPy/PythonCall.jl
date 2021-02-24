@@ -15,6 +15,7 @@ PyJuliaNumberValue_Type() = begin
                     positive = pyjlnumber_positive,
                     negative = pyjlnumber_negative,
                     absolute = pyjlnumber_absolute,
+                    power = pyjlnumber_power,
                     add = pyjlnumber_binop(+),
                     subtract = pyjlnumber_binop(-),
                     multiply = pyjlnumber_binop(*),
@@ -250,7 +251,7 @@ end
     try
         PyObject_From(f.f(x, y))
     catch err
-        if err isa MethodError && err.f == f.f
+        if err isa MethodError && err.f === f.f
             PyNotImplemented_New()
         else
             PyErr_SetJuliaError(err)
@@ -272,7 +273,7 @@ pyjlnumber_power(xo::PyPtr, yo::PyPtr, zo::PyPtr) = begin
         try
             PyObject_From(x^y)
         catch err
-            if err isa MethodError && err.f == ^
+            if err isa MethodError && err.f === ^
                 PyNotImplemented_New()
             else
                 PyErr_SetJuliaError(err)
@@ -287,7 +288,7 @@ pyjlnumber_power(xo::PyPtr, yo::PyPtr, zo::PyPtr) = begin
         try
             PyObject_From(powermod(x, y, z))
         catch err
-            if err isa MethodError && err.f == powermod
+            if err isa MethodError && err.f === powermod
                 PyNotImplemented_New()
             else
                 PyErr_SetJuliaError(err)

@@ -181,6 +181,9 @@
 
         @pyg `import sys, os`
 
+        pywordsize = (@pyv `sys.maxsize > 2**32`::Bool) ? 64 : 32
+        pywordsize == Sys.WORD_SIZE || error("Julia is $(Sys.WORD_SIZE)-bit but Python is $(pywordsize)-bit (at $(CONFIG.exepath ? "unknown location" : CONFIG.exepath))")
+
         if !CONFIG.isembedded
             @py ```
             # Some modules expect sys.argv to be set

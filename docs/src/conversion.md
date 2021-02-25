@@ -10,30 +10,30 @@ When a Julia object is converted to a Python one (e.g. by calling `PyObject`, by
 
 The user can always explicitly choose a different conversion (e.g. by calling `pylist` or `pydict`).
 
-| From                                                                | To                                              |
-| :------------------------------------------------------------------ | :---------------------------------------------- |
-| Any Python object type (`PyObject`, `PyList`, etc.)                 | itself                                          |
-| `Nothing`, `Missing`                                                | `None`                                          |
-| `Bool`                                                              | `bool`                                          |
-| Standard integer (`IntXX`, `UIntXX`, `BigInt`)                      | `int`                                           |
-| Standard rational (`Rational{T}`, `T` a standard integer)           | `fractions.Fraction`                            |
-| Standard float (`FloatXX`)                                          | `float`                                         |
-| Standard complex (`Complex{T}`, `T` a standard float)               | `complex`                                       |
-| Standard string/char (`String` and `SubString{String}`, `Char`)     | `str`                                           |
-| `Tuple`                                                             | `tuple`                                         |
-| Standard integer range (`AbstractRange{T}`, `T` a standard integer) | `range`                                         |
-| `Date`, `Time`, `DateTime` (from `Dates`)                           | `date`, `time`, `datetime` (from `datetime`)    |
-| `Second`, `Millisecond`, `Microsecond`, `Nanosecond` (from `Dates`) | `timedelta` (from `datetime`)                   |
-| `Number`                                                            | `julia.NumberValue`, `julia.ComplexValue`, etc. |
-| `AbstractArray`                                                     | `julia.ArrayValue`, `julia.VectorValue`         |
-| `AbstractDict`                                                      | `julia.DictValue`                               |
-| `AbstractSet`                                                       | `julia.SetValue`                                |
-| `IO`                                                                | `julia.BufferedIOValue`                         |
-| `Module`                                                            | `julia.ModuleValue`                             |
-| `Type`                                                              | `julia.TypeValue`                               |
-| Anything else                                                       | `julia.AnyValue`                                |
+| From                                                                | To                                                  |
+| :------------------------------------------------------------------ | :-------------------------------------------------- |
+| Any Python object type (`PyObject`, `PyList`, etc.)                 | itself                                              |
+| `Nothing`, `Missing`                                                | `None`                                              |
+| `Bool`                                                              | `bool`                                              |
+| Standard integer (`IntXX`, `UIntXX`, `BigInt`)                      | `int`                                               |
+| Standard rational (`Rational{T}`, `T` a standard integer)           | `fractions.Fraction`                                |
+| Standard float (`FloatXX`)                                          | `float`                                             |
+| Standard complex (`Complex{T}`, `T` a standard float)               | `complex`                                           |
+| Standard string/char (`String` and `SubString{String}`, `Char`)     | `str`                                               |
+| `Tuple`                                                             | `tuple`                                             |
+| Standard integer range (`AbstractRange{T}`, `T` a standard integer) | `range`                                             |
+| `Date`, `Time`, `DateTime` (from `Dates`)                           | `date`, `time`, `datetime` (from `datetime`)        |
+| `Second`, `Millisecond`, `Microsecond`, `Nanosecond` (from `Dates`) | `timedelta` (from `datetime`)                       |
+| `Number`                                                            | `juliaaa.NumberValue`, `juliaaa.ComplexValue`, etc. |
+| `AbstractArray`                                                     | `juliaaa.ArrayValue`, `juliaaa.VectorValue`         |
+| `AbstractDict`                                                      | `juliaaa.DictValue`                                 |
+| `AbstractSet`                                                       | `juliaaa.SetValue`                                  |
+| `IO`                                                                | `juliaaa.BufferedIOValue`                           |
+| `Module`                                                            | `juliaaa.ModuleValue`                               |
+| `Type`                                                              | `juliaaa.TypeValue`                                 |
+| Anything else                                                       | `juliaaa.AnyValue`                                  |
 
-The `julia.*Value` types are all subtypes of `julia.AnyValue`. They wrap a Julia value, providing access to Julia semantics: it can be called, indexed, and so on. Subtypes add additional Pythonic semantics. Read more [here](../juliapy/#Wrapper-types).
+The `juliaaa.*Value` types are all subtypes of `juliaaa.AnyValue`. They wrap a Julia value, providing access to Julia semantics: it can be called, indexed, and so on. Subtypes add additional Pythonic semantics. Read more [here](../juliapy/#Wrapper-types).
 
 This conversion policy is defined/implemented by `Python.C.PyObject_From` and `Python.C.PyJuliaValue_From`. Package authors can (carefully) overload these with additional rules for custom types.
 
@@ -54,7 +54,7 @@ The following table specifies the conversion rules in place. If the initial Pyth
 | From                                                                                                         | To                                                          |
 | :----------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------- |
 | **Top priority (wrapped values).**                                                                           |                                                             |
-| `julia.AnyValue`                                                                                             | `Any`                                                       |
+| `juliaaa.AnyValue`                                                                                           | `Any`                                                       |
 | **Very high priority (arrays).**                                                                             |                                                             |
 | Objects satisfying the buffer or array interface (inc. `bytes`, `bytearray`, `array.array`, `numpy.ndarray`) | `PyArray`                                                   |
 | **High priority (canonical conversions).**                                                                   |                                                             |

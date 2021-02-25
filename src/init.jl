@@ -220,22 +220,29 @@
             "Only Python 3 is supported, this is Python $(CONFIG.version) at $(CONFIG.exepath===nothing ? "unknown location" : CONFIG.exepath).",
         )
 
-        # set up the 'julia' module
+        # set up the 'juliaaa' module
         @py ```
         import sys
         if $(CONFIG.isembedded):
-            jl = sys.modules["julia"]
-        elif "julia" in sys.modules:
-            raise ImportError("'julia' module already exists")
+            jl = sys.modules["juliaaa"]
+        elif "juliaaa" in sys.modules:
+            raise ImportError("'juliaaa' module already exists")
         else:
-            jl = sys.modules["julia"] = type(sys)("julia")
+            jl = sys.modules["juliaaa"] = type(sys)("juliaaa")
             jl.CONFIG = dict()
         jl.Main = $(pyjl(Main))
         jl.Base = $(pyjl(Base))
         jl.Core = $(pyjl(Core))
         code = """
         def newmodule(name):
+            "A new module with the given name."
             return Base.Module(Base.Symbol(name))
+        class As:
+            "Interpret 'value' as type 'type' when converting to Julia."
+            __slots__ = ("value", "type")
+            def __init__(self, value, type):
+                self.value = value
+                self.type = type
         """
         exec(code, jl.__dict__)
         ```

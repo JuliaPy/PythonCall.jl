@@ -8,7 +8,7 @@ PyJuliaArrayValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "julia.ArrayValue",
+                name = "juliaaa.ArrayValue",
                 base = base,
                 as_mapping = (
                     subscript = pyjlarray_getitem,

@@ -9,4 +9,4 @@ Bringing **Python** and **Julia** together in seamless harmony:
 - Beautiful stack-traces.
 - Works anywhere: tested on Windows, MacOS and Linux, 32- and 64-bit, Julia 1.0 upwards and Python 3.5 upwards.
 
-This is actually two modules working in harmony: a Julia one called `Python` and a [tiny](https://github.com/cjdoris/Python.jl/blob/master/juliapy/julia/__init__.py) Python one called `julia`.
+This is actually two modules working in harmony: a Julia one called `Python` and a [tiny](https://github.com/cjdoris/Python.jl/blob/master/juliaaa/__init__.py) Python one called `juliaaa`.

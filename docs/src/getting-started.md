@@ -16,21 +16,23 @@ pkg"add Python"
 
 This step is only required if you wish to call Julia from Python.
 
-Currently the Python package `julia` is shipped with the source of the Julia package, and must be
+Currently the Python package `juliaaa` is shipped with the source of the Julia package, and must be
 pip-installed manually. The following should work in most shells (including PowerShell):
 
 ```bash
-pip install --upgrade $(julia -e "using Python; print(Python.juliapypath)")
+pip install --upgrade $(julia -e "using Python; print(dirname(dirname(pathof(Python))))")
 ```
 
-Note that this is a [very small](https://github.com/cjdoris/Python.jl/blob/master/juliapy/julia/__init__.py)
-"bootstrap" package whose sole job is to locate and load Julia; the main functionality is in
-the main Julia package. Hence it is not necessary to upgrage the Python package every time
-you upgrade the Julia one.
+The package has no dependencies, so you can also just copy it to somewhere in your PYTHONPATH.
 
-Note also that regardless of installing the `julia` package, a module called `julia` will
-always be loaded into the interpreter by the `Python` package. This means that other Python
-packages can always `import julia`.
+Note that this is a [very small](https://github.com/cjdoris/Python.jl/blob/master/juliaaa/__init__.py)
+"bootstrap" package whose sole job is to locate and load Julia; the main functionality is in
+the main Julia package. Hence it is not necessary to upgrage `juliaaa` every time
+you upgrade `Python`.
+
+Note also that regardless of installing `juliaaa`, a module called `juliaaa` will
+always be loaded into the interpreter by `Python`. This means that other Python
+packages can always `import juliaaa`.
 
 ## Environment variables
 

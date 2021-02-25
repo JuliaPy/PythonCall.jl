@@ -1,7 +1,7 @@
 import setuptools
 
 setuptools.setup(
-    name="julia",
+    name="juliaaa",
     version="0.1.0",
     author="Christopher Rowley",
     # author_email="author@example.com",
@@ -9,7 +9,7 @@ setuptools.setup(
     # long_description=long_description,
     # long_description_content_type="text/markdown",
     # url="https://github.com/pypa/sampleproject",
-    packages=["julia"],
+    packages=["juliaaa"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

@@ -8,7 +8,7 @@ PyJuliaAnyValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "julia.AnyValue",
+                name = "juliaaa.AnyValue",
                 base = base,
                 repr = pyjlany_repr,
                 str = pyjlany_str,

@@ -8,7 +8,7 @@ PyJuliaVectorValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "julia.VectorValue",
+                name = "juliaaa.VectorValue",
                 base = base,
                 methods = [
                     (name = "resize", flags = Py_METH_O, meth = pyjlvector_resize),

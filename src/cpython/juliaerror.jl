@@ -6,7 +6,7 @@ PyExc_JuliaError() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "julia.Error",
+                name = "juliaaa.Error",
                 base = PyExc_BaseException(),
                 str = pyjlerr_str,
             ),

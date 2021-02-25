@@ -925,7 +925,7 @@ end
 """
     pytextio([T=PyObject], io::IO) :: T
 
-Convert `io` to a Python text IO stream, specifically a `julia.TextIOValue`.
+Convert `io` to a Python text IO stream, specifically a `juliaaa.TextIOValue`.
 """
 pytextio(::Type{T}, io::IO) where {T} = checknullconvert(T, C.PyJuliaTextIOValue_New(io))
 pytextio(io::IO) = pytextio(PyObject, io)
@@ -934,7 +934,7 @@ export pytextio
 """
     pybufferedio([T=PyObject], io::IO) :: T
 
-Convert `io` to a Python buffered byte IO stream, specifically a `julia.BufferedIOValue`.
+Convert `io` to a Python buffered byte IO stream, specifically a `juliaaa.BufferedIOValue`.
 """
 pybufferedio(::Type{T}, io::IO) where {T} =
     checknullconvert(T, C.PyJuliaBufferedIOValue_New(io))
@@ -944,7 +944,7 @@ export pybufferedio
 """
     pyrawio([T=PyObject], io::IO) :: T
 
-Convert `io` to a Python raw (unbuffered byte) IO stream, specifically a `julia.RawIOValue`.
+Convert `io` to a Python raw (unbuffered byte) IO stream, specifically a `juliaaa.RawIOValue`.
 """
 pyrawio(::Type{T}, io::IO) where {T} = checknullconvert(T, C.PyJuliaRawIOValue_New(io))
 pyrawio(io::IO) = pyrawio(PyObject, io)

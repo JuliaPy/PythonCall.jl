@@ -1,17 +1,17 @@
-# The Python module `julia`
+# The Python module `juliaaa`
 
 For interactive or scripting use, the simplest way to get started is:
 
 ```python
-from julia import Main as jl
+from juliaaa import Main as jl
 ```
 
-This loads a single variable `jl` (a [`ModuleValue`](#julia.ModuleValue)) which represents the `Main` module in Julia, from which all of Julia's functionality is available.
+This loads a single variable `jl` (a [`ModuleValue`](#juliaaa.ModuleValue)) which represents the `Main` module in Julia, from which all of Julia's functionality is available.
 
 If you are writing a package which uses Julia, then to avoid polluting the global `Main` namespace you should do:
 
 ```python
-import julia; jl = julia.newmodule("SomeName");
+import juliaaa; jl = juliaaa.newmodule("SomeName");
 ```
 
 Now you can do `jl.rand(jl.Bool, 5, 5)`, which is equivalent to `rand(Bool, 5, 5)` in Julia.
@@ -22,35 +22,35 @@ When a Julia value is returned to Python, it will normally be converted accordin
 
 ## Wrapper types
 
-Apart from a few fundamental immutable types (see [here](../conversion/#Julia-to-Python)), all Julia values are by default converted into Python to some [`AnyValue`](#julia.AnyValue) object, which wraps the original value. Some types are converted to a subclass of [`AnyValue`](#julia.AnyValue) which provides additional Python semantics --- e.g. Julia vectors are interpreted as Python sequences.
+Apart from a few fundamental immutable types (see [here](../conversion/#Julia-to-Python)), all Julia values are by default converted into Python to some [`AnyValue`](#juliaaa.AnyValue) object, which wraps the original value. Some types are converted to a subclass of [`AnyValue`](#juliaaa.AnyValue) which provides additional Python semantics --- e.g. Julia vectors are interpreted as Python sequences.
 
-There is also a [`RawValue`](#julia.RawValue) object, which gives a stricter "Julia-only" interface, documented below. These types all inherit from `ValueBase`:
+There is also a [`RawValue`](#juliaaa.RawValue) object, which gives a stricter "Julia-only" interface, documented below. These types all inherit from `ValueBase`:
 
 - `ValueBase`
-  - [`RawValue`](#julia.RawValue)
-  - [`AnyValue`](#julia.AnyValue)
-    - [`NumberValue`](#julia.NumberValue)
+  - [`RawValue`](#juliaaa.RawValue)
+  - [`AnyValue`](#juliaaa.AnyValue)
+    - [`NumberValue`](#juliaaa.NumberValue)
       - `ComplexValue`
       - `RealValue`
         - `RationalValue`
         - `IntegerValue`
-    - [`ArrayValue`](#julia.ArrayValue)
+    - [`ArrayValue`](#juliaaa.ArrayValue)
       - `VectorValue`
-    - [`DictValue`](#julia.DictValue)
-    - [`SetValue`](#julia.SetValue)
-    - [`IOValue`](#julia.IOValue)
+    - [`DictValue`](#juliaaa.DictValue)
+    - [`SetValue`](#juliaaa.SetValue)
+    - [`IOValue`](#juliaaa.IOValue)
       - `RawIOValue`
       - `BufferedIOValue`
       - `TextIOValue`
-    - [`ModuleValue`](#julia.ModuleValue)
-    - [`TypeValue`](#julia.TypeValue)
+    - [`ModuleValue`](#juliaaa.ModuleValue)
+    - [`TypeValue`](#juliaaa.TypeValue)
 
 ```@raw html
 <article class="docstring">
     <header>
-        <a class="docstring-binding" id="julia.AnyValue" href="#julia.AnyValue">julia.AnyValue</a>
+        <a class="docstring-binding" id="juliaaa.AnyValue" href="#juliaaa.AnyValue">juliaaa.AnyValue</a>
         —
-        <span class="docstring-category">Python Class</span>
+        <span class="docstring-category">Class</span>
     </header>
     <section>
         <p>Wraps any Julia object, giving it some basic Python semantics. Subtypes provide extra semantics.</p>
@@ -59,7 +59,7 @@ There is also a [`RawValue`](#julia.RawValue) object, which gives a stricter "Ju
         <p>Attribute access can be used to access Julia properties as well as normal class members. In the case of a name clash, the class member will take precedence. For convenience with Julia naming conventions, <code>_b</code> at the end of an attribute is replaced with <code>!</code> and <code>_bb</code> is replaced with <code>!!</code>.</p>
         <h6>Members</h6>
         <ul>
-            <li><code>_jl_raw()</code>: Convert to a <a href="#julia.RawValue"><code>RawValue</code></a></li>
+            <li><code>_jl_raw()</code>: Convert to a <a href="#juliaaa.RawValue"><code>RawValue</code></a></li>
             <li><code>_jl_display()</code>: Display the object using Julia's display mechanism.</li>
             <li><code>_jl_help()</code>: Display help for the object.</li>
         </ul>
@@ -68,9 +68,9 @@ There is also a [`RawValue`](#julia.RawValue) object, which gives a stricter "Ju
 
 <article class="docstring">
     <header>
-        <a class="docstring-binding" id="julia.NumberValue" href="#julia.NumberValue">julia.NumberValue</a>
+        <a class="docstring-binding" id="juliaaa.NumberValue" href="#juliaaa.NumberValue">juliaaa.NumberValue</a>
         —
-        <span class="docstring-category">Python Class</span>
+        <span class="docstring-category">Class</span>
     </header>
     <section>
         <p>This wraps any Julia <code>Number</code> value. It is a subclass of <code>numbers.Number</code> and behaves similar to other Python numbers.</p>
@@ -80,9 +80,9 @@ There is also a [`RawValue`](#julia.RawValue) object, which gives a stricter "Ju
 
 <article class="docstring">
     <header>
-        <a class="docstring-binding" id="julia.ArrayValue" href="#julia.ArrayValue">julia.ArrayValue</a>
+        <a class="docstring-binding" id="juliaaa.ArrayValue" href="#juliaaa.ArrayValue">juliaaa.ArrayValue</a>
         —
-        <span class="docstring-category">Python Class</span>
+        <span class="docstring-category">Class</span>
     </header>
     <section>
         <p>This wraps any Julia <code>AbstractArray</code> value. It is a subclass of <code>collections.abc.Collection</code>.</p>
@@ -102,9 +102,9 @@ There is also a [`RawValue`](#julia.RawValue) object, which gives a stricter "Ju
 
 <article class="docstring">
     <header>
-        <a class="docstring-binding" id="julia.DictValue" href="#julia.DictValue">julia.DictValue</a>
+        <a class="docstring-binding" id="juliaaa.DictValue" href="#juliaaa.DictValue">juliaaa.DictValue</a>
         —
-        <span class="docstring-category">Python Class</span>
+        <span class="docstring-category">Class</span>
     </header>
     <section>
         <p>This wraps any Julia <code>AbstractDict</code> value. It is a subclass of <code>collections.abc.Mapping</code> and behaves similar to a Python <code>dict</code>.</p>
@@ -113,9 +113,9 @@ There is also a [`RawValue`](#julia.RawValue) object, which gives a stricter "Ju
 
 <article class="docstring">
     <header>
-        <a class="docstring-binding" id="julia.SetValue" href="#julia.SetValue">julia.SetValue</a>
+        <a class="docstring-binding" id="juliaaa.SetValue" href="#juliaaa.SetValue">juliaaa.SetValue</a>
         —
-        <span class="docstring-category">Python Class</span>
+        <span class="docstring-category">Class</span>
     </header>
     <section>
         <p>This wraps any Julia <code>AbstractSet</code> value. It is a subclass of <code>collections.abc.Set</code> and behaves similar to a Python <code>set</code>.</p>
@@ -124,9 +124,9 @@ There is also a [`RawValue`](#julia.RawValue) object, which gives a stricter "Ju
 
 <article class="docstring">
     <header>
-        <a class="docstring-binding" id="julia.IOValue" href="#julia.IOValue">julia.IOValue</a>
+        <a class="docstring-binding" id="juliaaa.IOValue" href="#juliaaa.IOValue">juliaaa.IOValue</a>
         —
-        <span class="docstring-category">Python Class</span>
+        <span class="docstring-category">Class</span>
     </header>
     <section>
         <p>This wraps any Julia <code>IO</code> value. It is a subclass of <code>io.IOBase</code> and behaves like Python files.</p>
@@ -142,13 +142,13 @@ There is also a [`RawValue`](#julia.RawValue) object, which gives a stricter "Ju
 
 <article class="docstring">
     <header>
-        <a class="docstring-binding" id="julia.ModuleValue" href="#julia.ModuleValue">julia.ModuleValue</a>
+        <a class="docstring-binding" id="juliaaa.ModuleValue" href="#juliaaa.ModuleValue">juliaaa.ModuleValue</a>
         —
-        <span class="docstring-category">Python Class</span>
+        <span class="docstring-category">Class</span>
     </header>
     <section>
         <p>This wraps any Julia <code>Module</code> value.</p>
-        <p>It is the same as <a href="#julia.AnyValue"><code>AnyValue</code></a> except for one additional convenience method:</p>
+        <p>It is the same as <a href="#juliaaa.AnyValue"><code>AnyValue</code></a> except for one additional convenience method:</p>
         <ul>
             <li><code>seval([module=self], code)</code>: Evaluates the given code (a string) in the given module.</li>
         </ul>
@@ -157,14 +157,14 @@ There is also a [`RawValue`](#julia.RawValue) object, which gives a stricter "Ju
 
 <article class="docstring">
     <header>
-        <a class="docstring-binding" id="julia.TypeValue" href="#julia.TypeValue">julia.TypeValue</a>
+        <a class="docstring-binding" id="juliaaa.TypeValue" href="#juliaaa.TypeValue">juliaaa.TypeValue</a>
         —
-        <span class="docstring-category">Python Class</span>
+        <span class="docstring-category">Class</span>
     </header>
     <section>
         <p>This wraps any Julia <code>Type</code> value.</p>
-        <p>It is the same as <a href="#julia.AnyValue"><code>AnyValue</code></a> except that indexing is used to access Julia's "curly" syntax for specifying parametric types:</p>
-        <pre><code class="language-python hljs"><span class="hljs-keyword">from</span> julia <span class="hljs-keyword">import</span> Main <span class="hljs-keyword">as</span> jl
+        <p>It is the same as <a href="#juliaaa.AnyValue"><code>AnyValue</code></a> except that indexing is used to access Julia's "curly" syntax for specifying parametric types:</p>
+        <pre><code class="language-python hljs"><span class="hljs-keyword">from</span> juliaaa <span class="hljs-keyword">import</span> Main <span class="hljs-keyword">as</span> jl
 <span class="hljs-comment"># equivalent to Vector{Int}() in Julia</span>
 jl.Vector[jl.Int]()</code></pre>
     </section>
@@ -172,19 +172,47 @@ jl.Vector[jl.Int]()</code></pre>
 
 <article class="docstring">
     <header>
-        <a class="docstring-binding" id="julia.RawValue" href="#julia.RawValue">julia.RawValue</a>
+        <a class="docstring-binding" id="juliaaa.RawValue" href="#juliaaa.RawValue">juliaaa.RawValue</a>
         —
-        <span class="docstring-category">Python Class</span>
+        <span class="docstring-category">Class</span>
     </header>
     <section>
         <p>Wraps any Julia value with a rigid interface suitable for generic programming.</p>
         <p>Supports <code>repr(x)</code>, <code>str(x)</code>, attributes (<code>x.attr</code>), calling (<code>x(a,b)</code>), <code>len(x)</code>, <code>dir(x)</code>.</p>
-        <p>This is very similar to <a href="#julia.AnyValue"><code>AnyValue</code></a> except that indexing, calling, etc. will always return a <code>RawValue</code>.</p>
+        <p>This is very similar to <a href="#juliaaa.AnyValue"><code>AnyValue</code></a> except that indexing, calling, etc. will always return a <code>RawValue</code>.</p>
         <p>Indexing with a tuple corresponds to indexing in Julia with multiple values. To index with a single tuple, it will need to be wrapped in another tuple.</p>
         <h6>Members</h6>
         <ul>
-            <li><code>_jl_any()</code>: Convert to a <a href="#julia.AnyValue"><code>AnyValue</code></a> (or subclass). (See also <a href="../pythonjl/#Python.pyjl">pyjl</a>.)</li>
+            <li><code>_jl_any()</code>: Convert to a <a href="#juliaaa.AnyValue"><code>AnyValue</code></a> (or subclass). (See also <a href="../pythonjl/#Python.pyjl">pyjl</a>.)</li>
         </ul>
+    </section>
+</article>
+```
+
+## Utilities
+
+```@raw html
+<article class="docstring">
+    <header>
+        <a class="docstring-binding" id="juliaaa.newmodule" href="#juliaaa.newmodule">juliaaa.newmodule</a>
+        —
+        <span class="docstring-category">Function</span>
+    </header>
+    <section>
+        <pre><code class="language-python hljs">newmodule(name)</code></pre>
+        <p>A new module with the given name.</p>
+    </section>
+</article>
+
+<article class="docstring">
+    <header>
+        <a class="docstring-binding" id="juliaaa.As" href="#juliaaa.As">juliaaa.As</a>
+        —
+        <span class="docstring-category">Class</span>
+    </header>
+    <section>
+        <pre><code class="language-python hljs">As(x, T)</code></pre>
+        <p>When passed as an argument to a Julia function, is interpreted as <code>x</code> converted to Julia type <code>T</code>.</p>
     </section>
 </article>
 ```

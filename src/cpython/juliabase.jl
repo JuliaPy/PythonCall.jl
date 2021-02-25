@@ -38,7 +38,7 @@ PyJuliaBaseValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "julia.ValueBase",
+                name = "juliaaa.ValueBase",
                 basicsize = sizeof(PyJuliaValueObject),
                 new = pyglobal(:PyType_GenericNew),
                 init = @cfunction(pyjlbase_init, Cint, (PyPtr, PyPtr, PyPtr)),
@@ -90,7 +90,7 @@ PyJuliaValue_New(t, v) = begin
     bt = PyJuliaBaseValue_Type()
     isnull(bt) && return PyNULL
     PyType_IsSubtype(t, bt) != 0 || (
-        PyErr_SetString(PyExc_TypeError(), "Expecting a subtype of 'julia.ValueBase'"); return PyNULL
+        PyErr_SetString(PyExc_TypeError(), "Expecting a subtype of 'juliaaa.ValueBase'"); return PyNULL
     )
     o = _PyObject_New(t)
     isnull(o) && return PyNULL

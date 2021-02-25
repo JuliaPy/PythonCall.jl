@@ -29,7 +29,7 @@ In this example, we use `Python.jl` from an IJulia notebook to inspect the Iris 
 
 ## Example 2: Calling Julia from Python
 
-In this example we use the Python module `julia` from an IPython notebook to train a simple neural network:
+In this example we use the Python module `juliaaa` from an IPython notebook to train a simple neural network:
 - We generate some random training data using Python's `numpy`.
 - We construct and train a neural network model using Julia' `Flux`.
 - We plot some sample output from the model using Python's `matplotlib.pyplot`.

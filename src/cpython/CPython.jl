@@ -97,9 +97,10 @@ include("juliavector.jl")
 include("juliamodule.jl")
 include("julianumber.jl")
 include("juliaio.jl")
+include("as.jl")
 include("arg.jl")
 
-__init__() = begin
+@init begin
     PyObject_TryConvert_AddRules(
         "builtins.NoneType",
         [
@@ -219,7 +220,7 @@ __init__() = begin
         ],
     )
     PyObject_TryConvert_AddRules(
-        "julia.ValueBase",
+        "juliaaa.ValueBase",
         [(Any, PyJuliaValue_TryConvert_any, 1000)],
     )
     PyObject_TryConvert_AddExtraTypes([

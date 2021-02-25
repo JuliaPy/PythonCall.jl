@@ -8,7 +8,7 @@ def init():
         if exepath is None:
             exepath = shutil.which('julia')
             if exepath is None:
-                raise Exception('Cannot find Julia. Ensure it is in your PATH, set JULIAPY_EXE to its path, or set JULIAPY_LIB to the path to libjulia.')
+                raise Exception('Cannot find Julia. Ensure it is in your PATH, set JULIAPY_EXE to its path, or set JULIAPY_LIB to the path to libjuliaaa.')
         else:
             if not os.path.isfile(exepath):
                 raise Exception('JULIAPY_EXE=%s does not exist' % repr(exepath))

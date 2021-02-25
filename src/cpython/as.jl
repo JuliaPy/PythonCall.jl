@@ -13,9 +13,9 @@ PyAs_ConvertRule_tryconvert(o, ::Type{S}) where {S} = begin
     # get the value
     vo = PyObject_GetAttrString(o, "value")
     isnull(vo) && return -1
-    err = PyObject_TryConvert(vo, t)
+    err = PyObject_Convert(vo, t)
     Py_DecRef(vo)
-    err == 1 || return err
+    ism1(err) && return -1
     v = takeresult(t)
     # convert
     putresult(tryconvert(S, v))

@@ -243,6 +243,8 @@
             def __init__(self, value, type):
                 self.value = value
                 self.type = type
+            def __repr__(self):
+                return "juliaaa.As({!r}, {!r})".format(self.value, self.type)
         """
         exec(code, jl.__dict__)
         ```

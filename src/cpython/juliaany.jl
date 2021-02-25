@@ -66,8 +66,7 @@ PyJuliaValue_From(x) = PyJuliaAnyValue_New(x)
 pyjlany_repr(xo::PyPtr) =
     try
         x = PyJuliaValue_GetValue(xo)
-        s = repr(x)
-        s = string("jl:", '\n' in s ? '\n' : ' ', s)
+        s = "<jl $(repr(x))>"
         PyUnicode_From(s)
     catch err
         PyErr_SetJuliaError(err)

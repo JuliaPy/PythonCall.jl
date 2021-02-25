@@ -2,3 +2,4 @@ Manifest.toml
 deps/deps.jl
 deps/build.log
 .ipynb_checkpoints
+__pycache__

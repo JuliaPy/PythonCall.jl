@@ -5,7 +5,7 @@
 [![Test Status](https://github.com/cjdoris/Python.jl/workflows/Tests/badge.svg)](https://github.com/cjdoris/Python.jl/actions?query=workflow%3ATests)
 [![Codecov](https://codecov.io/gh/cjdoris/Python.jl/branch/master/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/cjdoris/Python.jl)
 
-Bringing **Python** and **Julia** together in seamless harmony:
+Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://julialang.org/) together in seamless harmony:
 - Call Python code from Julia and Julia code from Python via a symmetric interface.
 - Simple syntax, so the Python code looks like Python and the Julia code looks like Julia.
 - Intuitive and flexible conversions between Julia and Python: anything can be converted, you are in control.

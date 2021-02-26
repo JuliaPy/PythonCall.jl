@@ -6,11 +6,11 @@ To get started, just do `using Python`. There are two main ways to use this modu
 
 **Way 2:** There is a [collection of functions](#Python-functions) which typically produce and consume Python objects. The previous example can be implemented as `pyadd(Int, x, 1)` or `pyconvert(Int, PyObject(x)+1)`.
 
-In all cases, when a Julia value needs to be passed to Python, it will be converted according to [this table](../conversion/#Julia-to-Python).
+In all cases, when a Julia value needs to be passed to Python, it will be converted according to [this table](@ref jl2py).
 
-When a Python value is returned to Julia, by default it will be as a [`PyObject`](@ref). Most functions provide an optional way to specify the return type, in which case it will be converted according to [this table](../conversion/#Python-to-Julia).
+When a Python value is returned to Julia, by default it will be as a [`PyObject`](@ref). Most functions provide an optional way to specify the return type, in which case it will be converted according to [this table](@ref py2jl).
 
-You can also specify one of the [wrapper types](#Wrapper-types) as a return type.
+You can also specify one of the [wrapper types](@ref python-wrappers) as a return type.
 
 ## `PyObject`
 
@@ -61,7 +61,7 @@ pytype
 
 ### Wrap Julia values
 
-These functions wrap Julia values into Python objects, documented [here](../juliapy/#Wrapper-types).
+These functions wrap Julia values into Python objects, documented [here](@ref julia-wrappers).
 
 ```@docs
 pyjl
@@ -141,7 +141,7 @@ pyabs
 pyinv
 ```
 
-## Wrapper types
+## [Wrapper types](@id python-wrappers)
 
 ```@docs
 PyList

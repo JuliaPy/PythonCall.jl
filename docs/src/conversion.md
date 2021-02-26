@@ -4,7 +4,7 @@ This page documents the rules used to convert values between Julia and Python.
 
 In both directions, the default behaviour is to allow conversion between immutable values. Mutable values will be "wrapped" so that mutations on the wrapper affect the original object.
 
-## Julia to Python
+## [Julia to Python](@id jl2py)
 
 When a Julia object is converted to a Python one (e.g. by calling `PyObject`, by interpolating it into a `@py` command, or passing it as an argument to a Python function) the following rules are used by default.
 
@@ -33,11 +33,11 @@ The user can always explicitly choose a different conversion (e.g. by calling `p
 | `Type`                                                              | `juliaaa.TypeValue`                                 |
 | Anything else                                                       | `juliaaa.AnyValue`                                  |
 
-The `juliaaa.*Value` types are all subtypes of `juliaaa.AnyValue`. They wrap a Julia value, providing access to Julia semantics: it can be called, indexed, and so on. Subtypes add additional Pythonic semantics. Read more [here](../juliapy/#Wrapper-types).
+The `juliaaa.*Value` types are all subtypes of `juliaaa.AnyValue`. They wrap a Julia value, providing access to Julia semantics: it can be called, indexed, and so on. Subtypes add additional Pythonic semantics. Read more [here](@ref julia-wrappers).
 
 This conversion policy is defined/implemented by `Python.C.PyObject_From` and `Python.C.PyJuliaValue_From`. Package authors can (carefully) overload these with additional rules for custom types.
 
-## Python to Julia
+## [Python to Julia](@id py2jl)
 
 From Julia, one can convert Python objects to a desired type using `pyconvert(T, x)` for example, or ```@pyv `...`::T```.
 

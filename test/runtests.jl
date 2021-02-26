@@ -828,7 +828,7 @@ end
             for value in Any[nothing, missing, (), identity, push!]
                 @test @pyv `type($(pyjl(value))).__name__ == "AnyValue"`::Bool
             end
-            @test @pyv `repr($(pyjl(missing))) == "jl: missing"`::Bool
+            @test @pyv `repr($(pyjl(missing))) == "<jl missing>"`::Bool
             @test @pyv `str($(pyjl(missing))) == "missing"`::Bool
             x = Struct1("foo", 2)
             @test @pyv `$(pyjl(x)).x == "foo"`::Bool

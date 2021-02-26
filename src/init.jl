@@ -1,3 +1,11 @@
+check_libpath(PyCall) = begin
+    if realpath(PyCall.libpython) == realpath(CONFIG.libpath)
+        # @info "libpython path agrees between Python and PyCall" Python.CONFIG.libpath PyCall.libpython
+    else
+        @warn "Python and PyCall are using different versions of libpython. This will probably go badly." Python.CONFIG.libpath PyCall.libpython
+    end
+end
+
 @init begin
     # Check if libpython is already loaded (i.e. if the Julia interpreter was started from a Python process)
     CONFIG.isembedded = haskey(ENV, "PYTHONJL_LIBPTR")
@@ -85,6 +93,14 @@
 
                 If you know where the library is, set environment variable 'PYTHONJL_LIB' to its path.
                 """)
+        end
+
+        # Compare libpath with PyCall
+        PyCall = get(Base.loaded_modules, Base.PkgId(Base.UUID("438e738f-606a-5dbb-bf0a-cddfbfd45ab0"), "PyCall"), nothing)
+        if PyCall === nothing
+            @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" check_libpath(PyCall)
+        else
+            check_libpath(PyCall)
         end
 
         # Initialize

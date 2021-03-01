@@ -1,5 +1,18 @@
 using Documenter, PythonCall, Markdown
 
+# This is a bit of a hack to let us insert documentation blocks with custom content.
+# It means we can document Python things directly in the documentation source, and they
+# are searchable.
+#
+# It's a hack because of the `doccat` overload, requiring a special kind of "signature"
+# to embed the information we want.
+#
+# The first line is of the form "name - category", the rest is Markdown documentation.
+# For example:
+# ```@customdoc
+# foo - Function
+# Documentation for `foo`.
+# ```
 struct CustomCat{cat} end
 Documenter.Utilities.doccat(::Base.Docs.Binding, ::Type{CustomCat{cat}}) where {cat} = string(cat)
 struct CustomDocBlocks <: Documenter.Expanders.ExpanderPipeline end

@@ -23,8 +23,8 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "getting-started.md",
-        "pythonjl.md",
-        "juliapy.md",
+        "pythoncall.md",
+        "juliacall.md",
         "conversion.md",
         "compat.md",
         "pycall.md",

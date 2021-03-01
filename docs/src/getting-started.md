@@ -5,25 +5,25 @@
 * Julia 1.0 or higher.
 * Python 3.5 or higher.
 
-## Install the Julia package
+## Install the Julia package `PythonCall`
 
 ```julia
 using Pkg
 pkg"add PythonCall"
 ```
 
-## Install the Python package (optional)
+## Install the Python package `juliacall` (optional)
 
 This step is only required if you wish to call Julia from Python.
 
-Currently the Python package `juliacall` is shipped with the source of the Julia package, and must be
+Currently `juliacall` is shipped with the source of the Julia package, and must be
 pip-installed manually. The following should work in most shells (including PowerShell):
 
 ```bash
-pip install --upgrade $(julia -e "using PythonCall; print(dirname(dirname(pathof(PythonCall))))")
+pip install $(julia -e "using PythonCall; print(PythonCall.juliacall_pipdir)")
 ```
 
-The package has no dependencies, so you can also just copy it to somewhere in your PYTHONPATH.
+Alternatively you can just copy the package (at `PythonCall.juliacall_dir`) to somewhere in your PYTHONPATH.
 
 Note that this is a [very small](https://github.com/cjdoris/PythonCall.jl/blob/master/juliacall/__init__.py)
 "bootstrap" package whose sole job is to locate and load Julia; the main functionality is in

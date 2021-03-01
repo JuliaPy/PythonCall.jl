@@ -127,4 +127,7 @@ include("ipython.jl")
 
 include("init.jl")
 
+const juliacall_pipdir = dirname(@__DIR__)
+const juliacall_dir = joinpath(juliacall_pipdir, "juliacall")
+
 end # module

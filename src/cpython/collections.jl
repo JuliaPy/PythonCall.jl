@@ -151,9 +151,9 @@ PyIterable_ConvertRule_vecorset(o, ::Type{S}) where {S<:Union{Vector,Set}} = beg
     r
 end
 PyIterable_ConvertRule_vecorset(o, ::Type{Vector}) =
-    PyIterable_ConvertRule_vecorset(o, Vector{Python.PyObject})
+    PyIterable_ConvertRule_vecorset(o, Vector{PythonCall.PyObject})
 PyIterable_ConvertRule_vecorset(o, ::Type{Set}) =
-    PyIterable_ConvertRule_vecorset(o, Set{Python.PyObject})
+    PyIterable_ConvertRule_vecorset(o, Set{PythonCall.PyObject})
 
 PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
     S isa DataType || return 0
@@ -189,7 +189,7 @@ PyIterable_ConvertRule_namedtuple(o, ::Type{NamedTuple{names, types}}) where {na
     r == 1 ? putresult(NamedTuple{names, types}(takeresult(types))) : r
 end
 PyIterable_ConvertRule_namedtuple(o, ::Type{NamedTuple{names}}) where {names} = begin
-    types = NTuple{length(names), Python.PyObject}
+    types = NTuple{length(names), PythonCall.PyObject}
     r = PyIterable_ConvertRule_tuple(o, types)
     r == 1 ? putresult(NamedTuple{names}(takeresult(types))) : r
 end
@@ -223,11 +223,11 @@ PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V}}) where {K,V} = begin
     r == -1 ? -1 : r == 0 ? 0 : i[] == 2 ? putresult(Pair{K,V}(k[], v[])) : 0
 end
 PyIterable_ConvertRule_pair(o, ::Type{Pair{K}}) where {K} =
-    PyIterable_ConvertRule_pair(o, Pair{K,Python.PyObject})
+    PyIterable_ConvertRule_pair(o, Pair{K,PythonCall.PyObject})
 PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V} where K}) where {V} =
-    PyIterable_ConvertRule_pair(o, Pair{Python.PyObject,V})
+    PyIterable_ConvertRule_pair(o, Pair{PythonCall.PyObject,V})
 PyIterable_ConvertRule_pair(o, ::Type{Pair}) =
-    PyIterable_ConvertRule_pair(o, Pair{Python.PyObject,Python.PyObject})
+    PyIterable_ConvertRule_pair(o, Pair{PythonCall.PyObject,PythonCall.PyObject})
 PyIterable_ConvertRule_pair(o, ::Type{S}) where {S<:Pair} = begin
     PyErr_SetString(
         PyExc_Exception(),
@@ -258,8 +258,8 @@ PyMapping_ConvertRule_dict(o, ::Type{S}) where {S<:Dict} = begin
     r == -1 ? -1 : r == 0 ? 0 : putresult(xs)
 end
 PyMapping_ConvertRule_dict(o, ::Type{Dict{K}}) where {K} =
-    PyMapping_ConvertRule_dict(o, Dict{K,Python.PyObject})
+    PyMapping_ConvertRule_dict(o, Dict{K,PythonCall.PyObject})
 PyMapping_ConvertRule_dict(o, ::Type{Dict{K,V} where K}) where {V} =
-    PyMapping_ConvertRule_dict(o, Dict{Python.PyObject,V})
+    PyMapping_ConvertRule_dict(o, Dict{PythonCall.PyObject,V})
 PyMapping_ConvertRule_dict(o, ::Type{Dict}) =
-    PyMapping_ConvertRule_dict(o, Dict{Python.PyObject,Python.PyObject})
+    PyMapping_ConvertRule_dict(o, Dict{PythonCall.PyObject,PythonCall.PyObject})

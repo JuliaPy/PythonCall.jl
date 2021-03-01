@@ -8,7 +8,7 @@ PyJuliaRawValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.RawValue",
+                name = "juliacall.RawValue",
                 base = base,
                 repr = pyjlraw_repr,
                 str = pyjlraw_str,

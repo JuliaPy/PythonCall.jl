@@ -8,7 +8,7 @@ PyJuliaTypeValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.TypeValue",
+                name = "juliacall.TypeValue",
                 base = base,
                 as_mapping = (
                     subscript = pyjltype_getitem,

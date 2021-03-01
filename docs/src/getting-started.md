@@ -9,30 +9,30 @@
 
 ```julia
 using Pkg
-pkg"add Python"
+pkg"add PythonCall"
 ```
 
 ## Install the Python package (optional)
 
 This step is only required if you wish to call Julia from Python.
 
-Currently the Python package `juliaaa` is shipped with the source of the Julia package, and must be
+Currently the Python package `juliacall` is shipped with the source of the Julia package, and must be
 pip-installed manually. The following should work in most shells (including PowerShell):
 
 ```bash
-pip install --upgrade $(julia -e "using Python; print(dirname(dirname(pathof(Python))))")
+pip install --upgrade $(julia -e "using PythonCall; print(dirname(dirname(pathof(PythonCall))))")
 ```
 
 The package has no dependencies, so you can also just copy it to somewhere in your PYTHONPATH.
 
-Note that this is a [very small](https://github.com/cjdoris/Python.jl/blob/master/juliaaa/__init__.py)
+Note that this is a [very small](https://github.com/cjdoris/PythonCall.jl/blob/master/juliacall/__init__.py)
 "bootstrap" package whose sole job is to locate and load Julia; the main functionality is in
-the main Julia package. Hence it is not necessary to upgrage `juliaaa` every time
-you upgrade `Python`.
+the main Julia package. Hence it is not necessary to upgrage `juliacall` every time
+you upgrade `PythonCall`.
 
-Note also that regardless of installing `juliaaa`, a module called `juliaaa` will
-always be loaded into the interpreter by `Python`. This means that other Python
-packages can always `import juliaaa`.
+Note also that regardless of installing `juliacall`, a module called `juliacall` will
+always be loaded into the interpreter by `PythonCall`. This means that other Python
+packages can always `import juliacall`.
 
 ## Environment variables
 

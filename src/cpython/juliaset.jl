@@ -8,7 +8,7 @@ PyJuliaSetValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.SetValue",
+                name = "juliacall.SetValue",
                 base = base,
                 methods = [
                     (name = "add", flags = Py_METH_O, meth = pyjlset_add),

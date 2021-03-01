@@ -8,7 +8,7 @@ def init():
         if exepath is None:
             exepath = shutil.which('julia')
             if exepath is None:
-                raise Exception('Cannot find Julia. Ensure it is in your PATH, set JULIAPY_EXE to its path, or set JULIAPY_LIB to the path to libjuliaaa.')
+                raise Exception('Cannot find Julia. Ensure it is in your PATH, set JULIAPY_EXE to its path, or set JULIAPY_LIB to the path to libjuliacall.')
         else:
             if not os.path.isfile(exepath):
                 raise Exception('JULIAPY_EXE=%s does not exist' % repr(exepath))
@@ -35,14 +35,14 @@ def init():
         '''
         try
             ENV["PYTHONJL_LIBPTR"] = "{}"
-            import Python
+            import PythonCall
         catch err
-            @error "Error loading Python.jl" err=err
+            @error "Error loading PythonCall.jl" err=err
             rethrow()
         end
         '''.format(c.pythonapi._handle).encode('utf8'))
     if res is None:
-        raise Exception('Python.jl did not start properly. Ensure that the Python package is installed in Julia.')
+        raise Exception('PythonCall.jl did not start properly. Ensure that the PythonCall package is installed in Julia.')
 
 init()
 del init

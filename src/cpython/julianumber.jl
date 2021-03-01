@@ -8,7 +8,7 @@ PyJuliaNumberValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.NumberValue",
+                name = "juliacall.NumberValue",
                 base = base,
                 as_number = (
                     bool = pyjlnumber_bool,
@@ -56,7 +56,7 @@ PyJuliaComplexValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.ComplexValue",
+                name = "juliacall.ComplexValue",
                 base = base,
                 getset = [
                     (name = "real", get = pyjlcomplex_real),
@@ -101,7 +101,7 @@ PyJuliaRealValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.RealValue",
+                name = "juliacall.RealValue",
                 base = base,
                 as_number = (float = pyjlreal_float,),
                 getset = [
@@ -143,7 +143,7 @@ PyJuliaRationalValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.RationalValue",
+                name = "juliacall.RationalValue",
                 base = base,
                 getset = [
                     (name = "numerator", get = pyjlrational_numerator),
@@ -176,7 +176,7 @@ PyJuliaIntegerValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.IntegerValue",
+                name = "juliacall.IntegerValue",
                 base = base,
                 as_number = (
                     int = pyjlinteger_int,

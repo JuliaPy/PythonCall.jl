@@ -1,12 +1,12 @@
 # Compatability Tools
 
-Some packages require a little extra help to work nicely from `Python.jl`.
+Some packages require a little extra help to work nicely from `PythonCall.jl`.
 
 Some of these are "fixes" that are silently applied for you, and some are just extra functions to bridge a gap. We aim to keep these as minimal as possible.
 
 ## Stdlib
 
-Whenever a Python exception is displayed by Julia, `sys.last_traceback` and friends are set. This allows the post-mortem debugger `pdb.pm()` to work. Disable by setting `Python.CONFIG.sysautolasttraceback = false`.
+Whenever a Python exception is displayed by Julia, `sys.last_traceback` and friends are set. This allows the post-mortem debugger `pdb.pm()` to work. Disable by setting `PythonCall.CONFIG.sysautolasttraceback = false`.
 
 ## Tabular data & Pandas
 
@@ -26,7 +26,7 @@ pypandasdataframe
 pyplotshow
 ```
 
-If Julia is running an IJulia kernel, `pyplotshow()` is automatically called after executing a cell, so that plots generated in a cell are always shown (similar to IPython). It can be disabled by setting `Python.CONFIG.pyplotautoshow = false`.
+If Julia is running an IJulia kernel, `pyplotshow()` is automatically called after executing a cell, so that plots generated in a cell are always shown (similar to IPython). It can be disabled by setting `PythonCall.CONFIG.pyplotautoshow = false`.
 
 ## GUIs (including MatPlotLib)
 
@@ -35,8 +35,8 @@ If Julia is running an IJulia kernel, `pyplotshow()` is automatically called aft
 If for example you wish to use PyPlot in interactive mode (`matplotlib.pyplot.ion()`) then activating the correct event loop will allow it to work.
 
 ```@docs
-Python.event_loop_on
-Python.event_loop_off
+PythonCall.event_loop_on
+PythonCall.event_loop_off
 ```
 
 ### Interaction
@@ -50,7 +50,7 @@ pyinteract
 ### Qt path fix
 
 ```@docs
-Python.fix_qt_plugin_path
+PythonCall.fix_qt_plugin_path
 ```
 
 ## IPython

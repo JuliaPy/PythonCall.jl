@@ -1,4 +1,4 @@
-using Documenter, Python, Markdown
+using Documenter, PythonCall, Markdown
 
 struct CustomCat{cat} end
 Documenter.Utilities.doccat(::Base.Docs.Binding, ::Type{CustomCat{cat}}) where {cat} = string(cat)
@@ -18,8 +18,8 @@ Documenter.Expanders.Selectors.runner(::Type{CustomDocBlocks}, x, page, doc) = b
 end
 
 makedocs(
-    sitename = "Python.jl",
-    modules = [Python],
+    sitename = "PythonCall.jl",
+    modules = [PythonCall],
     pages = [
         "Home" => "index.md",
         "getting-started.md",
@@ -32,5 +32,5 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/cjdoris/Python.jl.git",
+    repo = "github.com/cjdoris/PythonCall.jl.git",
 )

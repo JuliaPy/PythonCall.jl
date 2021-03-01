@@ -54,7 +54,7 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
         env:
-          JULIA_DEBUG: Python
+          JULIA_DEBUG: PythonCall
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v1
         with:
@@ -88,7 +88,7 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
         env:
-          JULIA_DEBUG: Python
+          JULIA_DEBUG: PythonCall
           PYTHONJL_EXE: CONDA
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v1
@@ -111,8 +111,8 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: doctest
-            using Python
-            doctest(Python)'
+            using PythonCall
+            doctest(PythonCall)'
       - run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

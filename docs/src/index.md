@@ -1,4 +1,4 @@
-# Python.jl
+# PythonCall.jl
 
 Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://julialang.org/) together in seamless harmony:
 - Call Python code from Julia and Julia code from Python via a symmetric interface.
@@ -9,4 +9,4 @@ Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://juliala
 - Beautiful stack-traces.
 - Works anywhere: tested on Windows, MacOS and Linux, 32- and 64-bit, Julia 1.0 upwards and Python 3.5 upwards.
 
-This is actually two modules working in harmony: a Julia one called `Python` and a [tiny](https://github.com/cjdoris/Python.jl/blob/master/juliaaa/__init__.py) Python one called `juliaaa`.
+This is actually two modules working in harmony: a Julia one called `PythonCall` and a [tiny](https://github.com/cjdoris/PythonCall.jl/blob/master/juliacall/__init__.py) Python one called `juliacall`.

@@ -8,7 +8,7 @@ PyJuliaArrayValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.ArrayValue",
+                name = "juliacall.ArrayValue",
                 base = base,
                 as_mapping = (
                     subscript = pyjlarray_getitem,
@@ -284,7 +284,7 @@ pyjl_get_buffer_impl(
     if isflagset(flags, PyBUF_STRIDES)
         b.strides[] = cacheptr!(c, Py_ssize_t[strds...])
     else
-        if Python.size_to_cstrides(elsz, sz...) != strds
+        if PythonCall.size_to_cstrides(elsz, sz...) != strds
             PyErr_SetString(PyExc_BufferError(), "not C contiguous and strides not requested")
             return Cint(-1)
         end
@@ -293,20 +293,20 @@ pyjl_get_buffer_impl(
 
     # check contiguity
     if isflagset(flags, PyBUF_C_CONTIGUOUS)
-        if Python.size_to_cstrides(elsz, sz...) != strds
+        if PythonCall.size_to_cstrides(elsz, sz...) != strds
             PyErr_SetString(PyExc_BufferError(), "not C contiguous")
             return Cint(-1)
         end
     end
     if isflagset(flags, PyBUF_F_CONTIGUOUS)
-        if Python.size_to_fstrides(elsz, sz...) != strds
+        if PythonCall.size_to_fstrides(elsz, sz...) != strds
             PyErr_SetString(PyExc_BufferError(), "not Fortran contiguous")
             return Cint(-1)
         end
     end
     if isflagset(flags, PyBUF_ANY_CONTIGUOUS)
-        if Python.size_to_cstrides(elsz, sz...) != strds &&
-           Python.size_to_fstrides(elsz, sz...) != strds
+        if PythonCall.size_to_cstrides(elsz, sz...) != strds &&
+           PythonCall.size_to_fstrides(elsz, sz...) != strds
             PyErr_SetString(PyExc_BufferError(), "not contiguous")
             return Cint(-1)
         end
@@ -346,7 +346,7 @@ pyjlarray_isbufferabletype(::Type{T}) where {T} = T in (
 )
 pyjlarray_isbufferabletype(::Type{T}) where {T<:Tuple} =
     isconcretetype(T) &&
-    Python.allocatedinline(T) &&
+    PythonCall.allocatedinline(T) &&
     all(pyjlarray_isbufferabletype, fieldtypes(T))
 pyjlarray_isbufferabletype(::Type{NamedTuple{names,T}}) where {names,T} =
     pyjlarray_isbufferabletype(T)
@@ -362,10 +362,10 @@ _pyjlarray_get_buffer(xo, buf, flags, x::AbstractArray) =
                 sizeof(eltype(x)),
                 length(x),
                 ndims(x),
-                Python.pybufferformat(eltype(x)),
+                PythonCall.pybufferformat(eltype(x)),
                 size(x),
-                strides(x) .* Python.aligned_sizeof(eltype(x)),
-                Python.ismutablearray(x),
+                strides(x) .* PythonCall.aligned_sizeof(eltype(x)),
+                PythonCall.ismutablearray(x),
             )
         else
             error("element type is not bufferable")
@@ -407,7 +407,7 @@ pyjlarray_isarrayabletype(::Type{T}) where {T} = T in (
 )
 pyjlarray_isarrayabletype(::Type{T}) where {T<:Tuple} =
     isconcretetype(T) &&
-    Python.allocatedinline(T) &&
+    PythonCall.allocatedinline(T) &&
     all(pyjlarray_isarrayabletype, T.parameters)
 pyjlarray_isarrayabletype(::Type{NamedTuple{names,types}}) where {names,types} =
     pyjlarray_isarrayabletype(types)
@@ -434,10 +434,10 @@ _pyjlarray_array_interface(x::AbstractArray) =
         if pyjlarray_isarrayabletype(eltype(x))
             # gather information
             shape = size(x)
-            data = (UInt(Base.unsafe_convert(Ptr{eltype(x)}, x)), !Python.ismutablearray(x))
-            strides = Base.strides(x) .* Python.aligned_sizeof(eltype(x))
+            data = (UInt(Base.unsafe_convert(Ptr{eltype(x)}, x)), !PythonCall.ismutablearray(x))
+            strides = Base.strides(x) .* PythonCall.aligned_sizeof(eltype(x))
             version = 3
-            typestr, descr = Python.pytypestrdescr(eltype(x))
+            typestr, descr = PythonCall.pytypestrdescr(eltype(x))
             isempty(typestr) && error("invalid element type")
             # make the dictionary
             d = PyDict_From(
@@ -471,7 +471,7 @@ pyjlarray_array(xo::PyPtr, ::PyPtr) = begin
         # convert to a PyObjectArray
         x = PyJuliaValue_GetValue(xo)::AbstractArray
         y = try
-            Python.PyObjectArray(x)
+            PythonCall.PyObjectArray(x)
         catch err
             PyErr_SetJuliaError(err)
             return PyNULL

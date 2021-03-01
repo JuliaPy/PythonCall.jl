@@ -1,8 +1,8 @@
 check_libpath(PyCall) = begin
     if realpath(PyCall.libpython) == realpath(CONFIG.libpath)
-        # @info "libpython path agrees between Python and PyCall" Python.CONFIG.libpath PyCall.libpython
+        # @info "libpython path agrees between PythonCall and PyCall" PythonCall.CONFIG.libpath PyCall.libpython
     else
-        @warn "Python and PyCall are using different versions of libpython. This will probably go badly." Python.CONFIG.libpath PyCall.libpython
+        @warn "PythonCall and PyCall are using different versions of libpython. This will probably go badly." PythonCall.CONFIG.libpath PyCall.libpython
     end
 end
 
@@ -236,15 +236,15 @@ end
             "Only Python 3 is supported, this is Python $(CONFIG.version) at $(CONFIG.exepath===nothing ? "unknown location" : CONFIG.exepath).",
         )
 
-        # set up the 'juliaaa' module
+        # set up the 'juliacall' module
         @py ```
         import sys
         if $(CONFIG.isembedded):
-            jl = sys.modules["juliaaa"]
-        elif "juliaaa" in sys.modules:
-            raise ImportError("'juliaaa' module already exists")
+            jl = sys.modules["juliacall"]
+        elif "juliacall" in sys.modules:
+            raise ImportError("'juliacall' module already exists")
         else:
-            jl = sys.modules["juliaaa"] = type(sys)("juliaaa")
+            jl = sys.modules["juliacall"] = type(sys)("juliacall")
             jl.CONFIG = dict()
         jl.Main = $(pyjl(Main))
         jl.Base = $(pyjl(Base))
@@ -260,7 +260,7 @@ end
                 self.value = value
                 self.type = type
             def __repr__(self):
-                return "juliaaa.As({!r}, {!r})".format(self.value, self.type)
+                return "juliacall.As({!r}, {!r})".format(self.value, self.type)
         """
         exec(code, jl.__dict__)
         ```
@@ -326,5 +326,5 @@ end
         end
     end
 
-    @debug "Initialized Python.jl" CONFIG.isembedded CONFIG.isinitialized CONFIG.exepath CONFIG.libpath CONFIG.libptr CONFIG.pyprogname CONFIG.pyhome CONFIG.version CONFIG.isconda CONFIG.condaenv
+    @debug "Initialized PythonCall.jl" CONFIG.isembedded CONFIG.isinitialized CONFIG.exepath CONFIG.libpath CONFIG.libptr CONFIG.pyprogname CONFIG.pyhome CONFIG.version CONFIG.isconda CONFIG.condaenv
 end

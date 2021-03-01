@@ -1,17 +1,17 @@
-# The Python module `juliaaa`
+# The Python module `juliacall`
 
 For interactive or scripting use, the simplest way to get started is:
 
 ```python
-from juliaaa import Main as jl
+from juliacall import Main as jl
 ```
 
-This loads a single variable `jl` (a [`ModuleValue`](#juliaaa.ModuleValue)) which represents the `Main` module in Julia, from which all of Julia's functionality is available.
+This loads a single variable `jl` (a [`ModuleValue`](#juliacall.ModuleValue)) which represents the `Main` module in Julia, from which all of Julia's functionality is available.
 
 If you are writing a package which uses Julia, then to avoid polluting the global `Main` namespace you should do:
 
 ```python
-import juliaaa; jl = juliaaa.newmodule("SomeName");
+import juliacall; jl = juliacall.newmodule("SomeName");
 ```
 
 Now you can do `jl.rand(jl.Bool, 5, 5)`, which is equivalent to `rand(Bool, 5, 5)` in Julia.
@@ -22,31 +22,31 @@ When a Julia value is returned to Python, it will normally be converted accordin
 
 ## [Wrapper types](@id julia-wrappers)
 
-Apart from a few fundamental immutable types (see [here](@ref jl2py)), all Julia values are by default converted into Python to some [`AnyValue`](#juliaaa.AnyValue) object, which wraps the original value. Some types are converted to a subclass of [`AnyValue`](#juliaaa.AnyValue) which provides additional Python semantics --- e.g. Julia vectors are interpreted as Python sequences.
+Apart from a few fundamental immutable types (see [here](@ref jl2py)), all Julia values are by default converted into Python to some [`AnyValue`](#juliacall.AnyValue) object, which wraps the original value. Some types are converted to a subclass of [`AnyValue`](#juliacall.AnyValue) which provides additional Python semantics --- e.g. Julia vectors are interpreted as Python sequences.
 
-There is also a [`RawValue`](#juliaaa.RawValue) object, which gives a stricter "Julia-only" interface, documented below. These types all inherit from `ValueBase`:
+There is also a [`RawValue`](#juliacall.RawValue) object, which gives a stricter "Julia-only" interface, documented below. These types all inherit from `ValueBase`:
 
 - `ValueBase`
-  - [`RawValue`](#juliaaa.RawValue)
-  - [`AnyValue`](#juliaaa.AnyValue)
-    - [`NumberValue`](#juliaaa.NumberValue)
+  - [`RawValue`](#juliacall.RawValue)
+  - [`AnyValue`](#juliacall.AnyValue)
+    - [`NumberValue`](#juliacall.NumberValue)
       - `ComplexValue`
       - `RealValue`
         - `RationalValue`
         - `IntegerValue`
-    - [`ArrayValue`](#juliaaa.ArrayValue)
+    - [`ArrayValue`](#juliacall.ArrayValue)
       - `VectorValue`
-    - [`DictValue`](#juliaaa.DictValue)
-    - [`SetValue`](#juliaaa.SetValue)
-    - [`IOValue`](#juliaaa.IOValue)
+    - [`DictValue`](#juliacall.DictValue)
+    - [`SetValue`](#juliacall.SetValue)
+    - [`IOValue`](#juliacall.IOValue)
       - `RawIOValue`
       - `BufferedIOValue`
       - `TextIOValue`
-    - [`ModuleValue`](#juliaaa.ModuleValue)
-    - [`TypeValue`](#juliaaa.TypeValue)
+    - [`ModuleValue`](#juliacall.ModuleValue)
+    - [`TypeValue`](#juliacall.TypeValue)
 
 `````@customdoc
-juliaaa.AnyValue - Class
+juliacall.AnyValue - Class
 
 Wraps any Julia object, giving it some basic Python semantics. Subtypes provide extra semantics.
 
@@ -57,13 +57,13 @@ Calling, indexing, attribute access, etc. will convert the result to a Python ob
 Attribute access can be used to access Julia properties as well as normal class members. In the case of a name clash, the class member will take precedence. For convenience with Julia naming conventions, `_b` at the end of an attribute is replaced with `!` and `_bb` is replaced with `!!`.
 
 ###### Members
-- `_jl_raw()`: Convert to a [`RawValue`](#juliaaa.RawValue). (See also [`pyjlraw`](@ref).)
+- `_jl_raw()`: Convert to a [`RawValue`](#juliacall.RawValue). (See also [`pyjlraw`](@ref).)
 - `_jl_display()`: Display the object using Julia's display mechanism.
 - `_jl_help()`: Display help for the object.
 `````
 
 `````@customdoc
-juliaaa.NumberValue - Class
+juliacall.NumberValue - Class
 
 This wraps any Julia `Number` value. It is a subclass of `numbers.Number` and behaves similar to other Python numbers.
 
@@ -71,7 +71,7 @@ There are also subtypes `ComplexValue`, `RealValue`, `RationalValue`, `IntegerVa
 `````
 
 `````@customdoc
-juliaaa.ArrayValue - Class
+juliacall.ArrayValue - Class
 
 This wraps any Julia `AbstractArray` value. It is a subclass of `collections.abc.Collection`.
 
@@ -91,17 +91,17 @@ Otherwise, the numpy `__array__` method is supported, and this returns an array 
 `````
 
 `````@customdoc
-juliaaa.DictValue - Class
+juliacall.DictValue - Class
 This wraps any Julia `AbstractDict` value. It is a subclass of `collections.abc.Mapping` and behaves similar to a Python `dict`.
 `````
 
 `````@customdoc
-juliaaa.SetValue - Class
+juliacall.SetValue - Class
 This wraps any Julia `AbstractSet` value. It is a subclass of `collections.abc.Set` and behaves similar to a Python `set`.
 `````
 
 `````@customdoc
-juliaaa.IOValue - Class
+juliacall.IOValue - Class
 
 This wraps any Julia `IO` value. It is a subclass of `io.IOBase` and behaves like Python files.
 
@@ -114,46 +114,46 @@ There are also subtypes `RawIOValue`, `BufferedIOValue` and `TextIOValue`, which
 `````
 
 `````@customdoc
-juliaaa.ModuleValue - Class
+juliacall.ModuleValue - Class
 This wraps any Julia `Module` value.
 
-It is the same as [`AnyValue`](#juliaaa.AnyValue) except for one additional convenience method:
+It is the same as [`AnyValue`](#juliacall.AnyValue) except for one additional convenience method:
 - `seval([module=self], code)`: Evaluates the given code (a string) in the given module.
 `````
 
 `````@customdoc
-juliaaa.TypeValue - Class
+juliacall.TypeValue - Class
 
 This wraps any Julia `Type` value.
 
-It is the same as [`AnyValue`](#juliaaa.AnyValue) except that indexing is used to access Julia's "curly" syntax for specifying parametric types:
+It is the same as [`AnyValue`](#juliacall.AnyValue) except that indexing is used to access Julia's "curly" syntax for specifying parametric types:
 
 ```python
-from juliaaa import Main as jl
+from juliacall import Main as jl
 # equivalent to Vector{Int}() in Julia
 jl.Vector[jl.Int]()
 ```
 `````
 
 `````@customdoc
-juliaaa.RawValue - Class
+juliacall.RawValue - Class
 
 Wraps any Julia value with a rigid interface suitable for generic programming.
 
 Supports `repr(x)`, `str(x)`, attributes (`x.attr`), calling (`x(a,b)`), `len(x)`, `dir(x)`.
 
-This is very similar to [`AnyValue`](#juliaaa.AnyValue) except that indexing, calling, etc. will always return a `RawValue`.
+This is very similar to [`AnyValue`](#juliacall.AnyValue) except that indexing, calling, etc. will always return a `RawValue`.
 
 Indexing with a tuple corresponds to indexing in Julia with multiple values. To index with a single tuple, it will need to be wrapped in another tuple.
 
 ###### Members
-- `_jl_any()`: Convert to a [`AnyValue`](#juliaaa.AnyValue) (or subclass). (See also [`pyjl`](@ref).)
+- `_jl_any()`: Convert to a [`AnyValue`](#juliacall.AnyValue) (or subclass). (See also [`pyjl`](@ref).)
 `````
 
 ## Utilities
 
 `````@customdoc
-juliaaa.newmodule - Function
+juliacall.newmodule - Function
 
 ```python
 newmodule(name)
@@ -163,7 +163,7 @@ A new module with the given name.
 `````
 
 `````@customdoc
-juliaaa.As - Class
+juliacall.As - Class
 
 ```python
 As(x, T)

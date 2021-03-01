@@ -38,10 +38,10 @@ packages can always `import juliacall`.
 
 If Julia and Python are in your PATH, then no further set-up is required.
 Otherwise, the following environment variables control how the package finds these.
-- `PYTHONJL_EXE`: Path to the Python executable. Or the special value `CONDA` which uses
+- `JULIA_PYTHONCALL_EXE`: Path to the Python executable. Or the special value `CONDA` which uses
   Python from the default conda environment, or `CONDA:{env}` to use the given environment.
-- `PYTHONJL_LIB`: Path to the Python library. Normally this is inferred from the Python
+- `JULIA_PYTHONCALL_LIB`: Path to the Python library. Normally this is inferred from the Python
   executable, but can be over-ridden.
-- `JULIAPY_EXE`: Path to the Julia executable.
-- `JULIAPY_LIB`: Path to the Julia library. Normally this is inferred from the Julia
+- `PYTHON_JULIACALL_EXE`: Path to the Julia executable.
+- `PYTHON_JULIACALL_LIB`: Path to the Julia library. Normally this is inferred from the Julia
   executable, but can be over-ridden.

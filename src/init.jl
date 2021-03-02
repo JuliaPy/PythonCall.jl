@@ -1,18 +1,18 @@
 check_libpath(PyCall) = begin
     if realpath(PyCall.libpython) == realpath(CONFIG.libpath)
-        # @info "libpython path agrees between Python and PyCall" Python.CONFIG.libpath PyCall.libpython
+        # @info "libpython path agrees between PythonCall and PyCall" PythonCall.CONFIG.libpath PyCall.libpython
     else
-        @warn "Python and PyCall are using different versions of libpython. This will probably go badly." Python.CONFIG.libpath PyCall.libpython
+        @warn "PythonCall and PyCall are using different versions of libpython. This will probably go badly." PythonCall.CONFIG.libpath PyCall.libpython
     end
 end
 
 @init begin
     # Check if libpython is already loaded (i.e. if the Julia interpreter was started from a Python process)
-    CONFIG.isembedded = haskey(ENV, "PYTHONJL_LIBPTR")
+    CONFIG.isembedded = haskey(ENV, "JULIA_PYTHONCALL_LIBPTR")
 
     if CONFIG.isembedded
         # In this case, getting a handle to libpython is easy
-        CONFIG.libptr = Ptr{Cvoid}(parse(UInt, ENV["PYTHONJL_LIBPTR"]))
+        CONFIG.libptr = Ptr{Cvoid}(parse(UInt, ENV["JULIA_PYTHONCALL_LIBPTR"]))
         # Check Python is initialized
         C.Py_IsInitialized() == 0 && error("Python is not already initialized.")
         CONFIG.isinitialized = CONFIG.preinitialized = true
@@ -20,7 +20,7 @@ end
         # Find Python executable
         exepath = something(
             CONFIG.exepath,
-            get(ENV, "PYTHONJL_EXE", nothing),
+            get(ENV, "JULIA_PYTHONCALL_EXE", nothing),
             Sys.which("python3"),
             Sys.which("python"),
             Some(nothing),
@@ -30,7 +30,7 @@ end
                 """
               Could not find Python executable.
 
-              Ensure 'python3' or 'python' is in your PATH or set environment variable 'PYTHONJL_EXE'
+              Ensure 'python3' or 'python' is in your PATH or set environment variable 'JULIA_PYTHONCALL_EXE'
               to the path to the Python executable.
               """,
             )
@@ -52,8 +52,8 @@ end
 
                 Ensure either:
                 - python3 or python is in your PATH
-                - PYTHONJL_EXE is "CONDA" or "CONDA:<env>"
-                - PYTHONJL_EXE is the path to the Python executable
+                - JULIA_PYTHONCALL_EXE is "CONDA" or "CONDA:<env>"
+                - JULIA_PYTHONCALL_EXE is the path to the Python executable
                 """)
         end
 
@@ -66,7 +66,7 @@ end
 
         # Find Python library
         libpath =
-            something(CONFIG.libpath, get(ENV, "PYTHONJL_LIB", nothing), Some(nothing))
+            something(CONFIG.libpath, get(ENV, "JULIA_PYTHONCALL_LIB", nothing), Some(nothing))
         if libpath !== nothing
             libptr = dlopen_e(path, CONFIG.dlopenflags)
             if libptr == C_NULL
@@ -91,7 +91,7 @@ end
             CONFIG.libpath === nothing && error("""
                 Could not find Python library for Python executable $(repr(CONFIG.exepath)).
 
-                If you know where the library is, set environment variable 'PYTHONJL_LIB' to its path.
+                If you know where the library is, set environment variable 'JULIA_PYTHONCALL_LIB' to its path.
                 """)
         end
 
@@ -236,15 +236,15 @@ end
             "Only Python 3 is supported, this is Python $(CONFIG.version) at $(CONFIG.exepath===nothing ? "unknown location" : CONFIG.exepath).",
         )
 
-        # set up the 'juliaaa' module
+        # set up the 'juliacall' module
         @py ```
         import sys
         if $(CONFIG.isembedded):
-            jl = sys.modules["juliaaa"]
-        elif "juliaaa" in sys.modules:
-            raise ImportError("'juliaaa' module already exists")
+            jl = sys.modules["juliacall"]
+        elif "juliacall" in sys.modules:
+            raise ImportError("'juliacall' module already exists")
         else:
-            jl = sys.modules["juliaaa"] = type(sys)("juliaaa")
+            jl = sys.modules["juliacall"] = type(sys)("juliacall")
             jl.CONFIG = dict()
         jl.Main = $(pyjl(Main))
         jl.Base = $(pyjl(Base))
@@ -260,7 +260,7 @@ end
                 self.value = value
                 self.type = type
             def __repr__(self):
-                return "juliaaa.As({!r}, {!r})".format(self.value, self.type)
+                return "juliacall.As({!r}, {!r})".format(self.value, self.type)
         """
         exec(code, jl.__dict__)
         ```
@@ -326,5 +326,5 @@ end
         end
     end
 
-    @debug "Initialized Python.jl" CONFIG.isembedded CONFIG.isinitialized CONFIG.exepath CONFIG.libpath CONFIG.libptr CONFIG.pyprogname CONFIG.pyhome CONFIG.version CONFIG.isconda CONFIG.condaenv
+    @debug "Initialized PythonCall.jl" CONFIG.isembedded CONFIG.isinitialized CONFIG.exepath CONFIG.libpath CONFIG.libptr CONFIG.pyprogname CONFIG.pyhome CONFIG.version CONFIG.isconda CONFIG.condaenv
 end

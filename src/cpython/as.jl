@@ -1,4 +1,4 @@
-@init PyObject_TryConvert_AddRules("juliaaa.As", [
+@init PyObject_TryConvert_AddRules("juliacall.As", [
     (Any, PyAs_ConvertRule_tryconvert),
 ])
 

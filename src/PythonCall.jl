@@ -1,4 +1,4 @@
-module Python
+module PythonCall
 
 using Dates,
     UnsafePointers,
@@ -37,7 +37,7 @@ include("utils.jl")
     pyprogname_w::Vector{Cwchar_t} = []
     "True if this is stackless Python."
     isstackless::Bool = false
-    """True if Julia is embedded into Python (indicated by ENV["PYTHONJL_LIBPTR"] being set)."""
+    """True if Julia is embedded into Python (indicated by ENV["JULIA_PYTHONCALL_LIBPTR"] being set)."""
     isembedded::Bool = false
     "True if the Python interpreter is currently initialized."
     isinitialized::Bool = false
@@ -126,5 +126,8 @@ include("matplotlib.jl")
 include("ipython.jl")
 
 include("init.jl")
+
+const juliacall_pipdir = dirname(@__DIR__)
+const juliacall_dir = joinpath(juliacall_pipdir, "juliacall")
 
 end # module

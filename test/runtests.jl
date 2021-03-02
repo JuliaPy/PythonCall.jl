@@ -1,11 +1,11 @@
-using Python, Test, Dates, Compat
+using PythonCall, Test, Dates, Compat
 
 mutable struct Struct1
     x :: String
     y :: Int
 end
 
-@testset "Python.jl" begin
+@testset "PythonCall.jl" begin
 
     @testset "cpython" begin
     end
@@ -493,7 +493,7 @@ end
 
     @testset "PyObject" begin
         x = PyObject(1)
-        y = Python.pylazyobject(()->error("nope"))
+        y = PythonCall.pylazyobject(()->error("nope"))
         z = PyObject(2)
         foo = @pyv `Foo()`
         Foo = @pyv `Foo`
@@ -505,8 +505,8 @@ end
         @test x isa PyObject
         @test y isa PyObject
         @test foo isa PyObject
-        @test Python.pyptr(y) === Python.C.PyNULL
-        Python.C.PyErr_Clear()
+        @test PythonCall.pyptr(y) === PythonCall.C.PyNULL
+        PythonCall.C.PyErr_Clear()
         @test string(x) == "1"
         @test (io=IOBuffer(); print(io, x); String(take!(io))) == "1"
         @test repr(x) == "<py 1>"
@@ -773,15 +773,15 @@ end
         @test PyArray{Float64,2,Float64}(mat) isa PyMatrix{Float64, Float64, true, false}
         @test PyArray{Float64,2,Float64,true}(mat) isa PyMatrix{Float64, Float64, true, false}
         @test PyArray{Float64,2,Float64,true,false}(mat) isa PyMatrix{Float64, Float64, true, false}
-        @test PyArray(arr) isa PyArray{Python.CPython.PyObjectRef, 3, PyObject, true, true}
-        @test PyArray(["foo", "bar"]) isa PyVector{Python.CPython.PyObjectRef, PyObject, true, true}
+        @test PyArray(arr) isa PyArray{PythonCall.CPython.PyObjectRef, 3, PyObject, true, true}
+        @test PyArray(["foo", "bar"]) isa PyVector{PythonCall.CPython.PyObjectRef, PyObject, true, true}
         veco = PyArray(vec)
         mato = PyArray(mat)
         arro = PyArray(arr)
-        @test Python.ismutablearray(veco)
-        @test Python.ismutablearray(mato)
-        @test Python.ismutablearray(arro)
-        @test !Python.ismutablearray(PyArray{Int,1,Int,false,true}(vec))
+        @test PythonCall.ismutablearray(veco)
+        @test PythonCall.ismutablearray(mato)
+        @test PythonCall.ismutablearray(arro)
+        @test !PythonCall.ismutablearray(PyArray{Int,1,Int,false,true}(vec))
         @test size(veco) == size(vec)
         @test size(mato) == size(mat)
         @test size(arro) == size(arr)

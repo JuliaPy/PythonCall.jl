@@ -24,18 +24,18 @@ The user can always explicitly choose a different conversion (e.g. by calling `p
 | Standard integer range (`AbstractRange{T}`, `T` a standard integer) | `range`                                             |
 | `Date`, `Time`, `DateTime` (from `Dates`)                           | `date`, `time`, `datetime` (from `datetime`)        |
 | `Second`, `Millisecond`, `Microsecond`, `Nanosecond` (from `Dates`) | `timedelta` (from `datetime`)                       |
-| `Number`                                                            | `juliaaa.NumberValue`, `juliaaa.ComplexValue`, etc. |
-| `AbstractArray`                                                     | `juliaaa.ArrayValue`, `juliaaa.VectorValue`         |
-| `AbstractDict`                                                      | `juliaaa.DictValue`                                 |
-| `AbstractSet`                                                       | `juliaaa.SetValue`                                  |
-| `IO`                                                                | `juliaaa.BufferedIOValue`                           |
-| `Module`                                                            | `juliaaa.ModuleValue`                               |
-| `Type`                                                              | `juliaaa.TypeValue`                                 |
-| Anything else                                                       | `juliaaa.AnyValue`                                  |
+| `Number`                                                            | `juliacall.NumberValue`, `juliacall.ComplexValue`, etc. |
+| `AbstractArray`                                                     | `juliacall.ArrayValue`, `juliacall.VectorValue`         |
+| `AbstractDict`                                                      | `juliacall.DictValue`                                 |
+| `AbstractSet`                                                       | `juliacall.SetValue`                                  |
+| `IO`                                                                | `juliacall.BufferedIOValue`                           |
+| `Module`                                                            | `juliacall.ModuleValue`                               |
+| `Type`                                                              | `juliacall.TypeValue`                                 |
+| Anything else                                                       | `juliacall.AnyValue`                                  |
 
-The `juliaaa.*Value` types are all subtypes of `juliaaa.AnyValue`. They wrap a Julia value, providing access to Julia semantics: it can be called, indexed, and so on. Subtypes add additional Pythonic semantics. Read more [here](@ref julia-wrappers).
+The `juliacall.*Value` types are all subtypes of `juliacall.AnyValue`. They wrap a Julia value, providing access to Julia semantics: it can be called, indexed, and so on. Subtypes add additional Pythonic semantics. Read more [here](@ref julia-wrappers).
 
-This conversion policy is defined/implemented by `Python.C.PyObject_From` and `Python.C.PyJuliaValue_From`. Package authors can (carefully) overload these with additional rules for custom types.
+This conversion policy is defined/implemented by `PythonCall.C.PyObject_From` and `PythonCall.C.PyJuliaValue_From`. Package authors can (carefully) overload these with additional rules for custom types.
 
 ## [Python to Julia](@id py2jl)
 
@@ -54,7 +54,7 @@ The following table specifies the conversion rules in place. If the initial Pyth
 | From                                                                                                         | To                                                          |
 | :----------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------- |
 | **Top priority (wrapped values).**                                                                           |                                                             |
-| `juliaaa.AnyValue`                                                                                           | `Any`                                                       |
+| `juliacall.AnyValue`                                                                                           | `Any`                                                       |
 | **Very high priority (arrays).**                                                                             |                                                             |
 | Objects satisfying the buffer or array interface (inc. `bytes`, `bytearray`, `array.array`, `numpy.ndarray`) | `PyArray`                                                   |
 | **High priority (canonical conversions).**                                                                   |                                                             |
@@ -96,4 +96,4 @@ The following table specifies the conversion rules in place. If the initial Pyth
 | Objects satisfying the buffer interface                                                                      | `PyBuffer`                                                  |
 | Anything                                                                                                     | `PyRef`                                                     |
 
-Package authors can (carefully) add extra rules by calling `Python.C.PyObject_TryConvert_AddRule` in `__init__`.
+Package authors can (carefully) add extra rules by calling `PythonCall.C.PyObject_TryConvert_AddRule` in `__init__`.

@@ -8,7 +8,7 @@ PyJuliaDictValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.DictValue",
+                name = "juliacall.DictValue",
                 base = base,
                 iter = pyjldict_iter,
                 methods = [

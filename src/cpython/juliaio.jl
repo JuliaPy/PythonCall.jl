@@ -8,7 +8,7 @@ PyJuliaIOValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.IOValue",
+                name = "juliacall.IOValue",
                 base = base,
                 iter = pyjlio_iter,
                 iternext = pyjlio_next,
@@ -61,7 +61,7 @@ PyJuliaRawIOValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.RawIOValue",
+                name = "juliacall.RawIOValue",
                 base = base,
                 methods = [
                     (name = "write", flags = Py_METH_O, meth = pyjlio_write_bytes),
@@ -100,7 +100,7 @@ PyJuliaBufferedIOValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.BufferedIOValue",
+                name = "juliacall.BufferedIOValue",
                 base = base,
                 methods = [
                     (name = "detach", flags = Py_METH_NOARGS, meth = pyjlio_detach),
@@ -141,7 +141,7 @@ PyJuliaTextIOValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.TextIOValue",
+                name = "juliacall.TextIOValue",
                 base = base,
                 methods = [
                     (name = "detach", flags = Py_METH_NOARGS, meth = pyjlio_detach),

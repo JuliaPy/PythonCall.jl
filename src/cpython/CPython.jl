@@ -1,7 +1,7 @@
 module CPython
 
 using Libdl, Dates, Compat, Requires
-import ..Python:
+import ..PythonCall:
     CONFIG,
     isnull,
     ism1,
@@ -15,7 +15,7 @@ import ..Python:
     putresult,
     takeresult,
     CACHE,
-    Python
+    PythonCall
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
 
@@ -220,7 +220,7 @@ include("arg.jl")
         ],
     )
     PyObject_TryConvert_AddRules(
-        "juliaaa.ValueBase",
+        "juliacall.ValueBase",
         [(Any, PyJuliaValue_TryConvert_any, 1000)],
     )
     PyObject_TryConvert_AddExtraTypes([

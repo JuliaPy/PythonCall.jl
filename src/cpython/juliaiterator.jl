@@ -15,7 +15,7 @@ PyJuliaIteratorValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.IteratorValue",
+                name = "juliacall.IteratorValue",
                 base = base,
                 iter = pyjliter_iter,
                 iternext = pyjliter_iternext,

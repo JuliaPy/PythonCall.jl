@@ -8,7 +8,7 @@ PyJuliaModuleValue_Type() = begin
         t = fill(
             PyType_Create(
                 c,
-                name = "juliaaa.ModuleValue",
+                name = "juliacall.ModuleValue",
                 base = base,
                 methods = [
                     (name = "seval", flags = Py_METH_VARARGS, meth = pyjlmodule_seval),

@@ -1,6 +1,6 @@
-# Compatability Tools
+# Compatibility Tools
 
-Some packages require a little extra help to work nicely from `PythonCall.jl`.
+Some packages require a little extra help to work nicely with `PythonCall.jl`.
 
 Some of these are "fixes" that are silently applied for you, and some are just extra functions to bridge a gap. We aim to keep these as minimal as possible.
 

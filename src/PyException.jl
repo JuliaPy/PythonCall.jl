@@ -181,14 +181,18 @@ function Base.showerror(io::IO, e::PyException)
             import traceback
             $(fs :: Vector{Tuple{String, String, Int}}) = [(x.name, x.filename, x.lineno) for x in traceback.extract_tb($(e.bref))]
             ```
-            for (i, (name, fname, lineno)) in enumerate(reverse(fs))
-                if VERSION < v"1.6.0-rc1"
+            if VERSION < v"1.6.0-rc1"
+                for (i, (name, fname, lineno)) in enumerate(reverse(fs))
                     println(io)
                     printstyled(io, " [", i, "] ")
                     printstyled(io, name, bold = true)
                     printstyled(io, " at ")
                     printstyled(io, fname, ":", lineno, bold = true)
-                else
+                end
+            else
+                mcdict = Dict{String, Symbol}()
+                mccyclyer = Iterators.Stateful(Iterators.cycle(Base.STACKTRACE_MODULECOLORS))
+                for (i, (name, fname, lineno)) in enumerate(reverse(fs))
                     println(io)
                     printstyled(io, " [", i, "] ")
                     printstyled(io, name, bold = true)
@@ -196,7 +200,15 @@ function Base.showerror(io::IO, e::PyException)
                     printstyled(io, "   @ ", color = :light_black)
                     mod = file_to_pymodule(fname)
                     if mod !== nothing
-                        printstyled(io, mod, " ", color = :magenta)
+                        # print the module, with colour determined by the top level name
+                        tmod = first(split(mod, ".", limit=2))
+                        color = get!(mcdict, tmod) do
+                            popfirst!(mccyclyer)
+                        end
+                        printstyled(io, mod, " ", color = color)
+                    end
+                    if isfile(fname) && Base.stacktrace_contract_userdir()
+                        fname = Base.replaceuserpath(fname)
                     end
                     printstyled(io, fname, ":", lineno, color = :light_black)
                 end

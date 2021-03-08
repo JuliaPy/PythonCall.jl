@@ -192,6 +192,9 @@ function Base.showerror(io::IO, e::PyException)
             else
                 mcdict = Dict{String, Symbol}()
                 mccyclyer = Iterators.Stateful(Iterators.cycle(Base.STACKTRACE_MODULECOLORS))
+                # skip a couple as a basic attempt to make the colours different from the Julia stacktrace
+                popfirst!(mccyclyer)
+                popfirst!(mccyclyer)
                 for (i, (name, fname, lineno)) in enumerate(reverse(fs))
                     println(io)
                     printstyled(io, " [", i, "] ")

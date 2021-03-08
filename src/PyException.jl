@@ -75,6 +75,19 @@ checknullconvert(::Type{T}, x::Ptr, ambig::Bool = false) where {T} = begin
     C.takeresult(T)
 end
 
+file_to_pymodule(fname::String) = begin
+    isfile(fname) || return nothing
+    modules = PyDict{String}(pyimport("sys").modules)
+    for (n,m) in modules
+        if pyhasattr(m, :__file__)
+            fname2 = pystr(String, m.__file__)
+            if isfile(fname2) && realpath(fname) == realpath(fname2)
+                return n
+            end
+        end
+    end
+end
+
 function Base.showerror(io::IO, e::PyException)
     print(io, "Python: ")
 
@@ -169,15 +182,24 @@ function Base.showerror(io::IO, e::PyException)
             $(fs :: Vector{Tuple{String, String, Int}}) = [(x.name, x.filename, x.lineno) for x in traceback.extract_tb($(e.bref))]
             ```
             for (i, (name, fname, lineno)) in enumerate(reverse(fs))
-                println(io)
-                printstyled(io, " [", i, "] ")
-                printstyled(io, name, bold = true)
-                printstyled(io, " at ")
-                # if (m=match(r"^(.*):([0-9]+)$", fname)) !== nothing
-                #     fname = m.captures[1]
-                #     lineno += parse(Int, m.captures[2]) - 1
-                # end
-                printstyled(io, fname, ":", lineno, bold = true)
+                if VERSION < v"1.6.0-rc1"
+                    println(io)
+                    printstyled(io, " [", i, "] ")
+                    printstyled(io, name, bold = true)
+                    printstyled(io, " at ")
+                    printstyled(io, fname, ":", lineno, bold = true)
+                else
+                    println(io)
+                    printstyled(io, " [", i, "] ")
+                    printstyled(io, name, bold = true)
+                    println(io)
+                    printstyled(io, "   @ ", color = :light_black)
+                    mod = file_to_pymodule(fname)
+                    if mod !== nothing
+                        printstyled(io, mod, " ", color = :magenta)
+                    end
+                    printstyled(io, fname, ":", lineno, color = :light_black)
+                end
             end
         catch err
             print(io, "<error while printing stacktrace: $err>")

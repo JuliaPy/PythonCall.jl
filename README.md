@@ -31,7 +31,7 @@ In this example, we use `PythonCall.jl` from an IJulia notebook to inspect the I
 
 In this example we use the Python module `juliacall` from an IPython notebook to train a simple neural network:
 - We generate some random training data using Python's `numpy`.
-- We construct and train a neural network model using Julia' `Flux`.
+- We construct and train a neural network model using Julia's `Flux`.
 - We plot some sample output from the model using Python's `matplotlib.pyplot`.
 
 ![Flux example screenshot](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/master/examples/flux.png)

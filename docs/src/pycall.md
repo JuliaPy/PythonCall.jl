@@ -1,6 +1,11 @@
 # Comparison to PyCall
 
-The existing package [`PyCall`](https://github.com/JuliaPy/PyCall.jl) is another similar interface to Python. Here is a comparison of the designs:
+The existing package [`PyCall`](https://github.com/JuliaPy/PyCall.jl) is another similar interface to Python.
+
+You can use both `PythonCall` and `PyCall` in the same session, provided they are both using the same Python library.
+One way to ensure this is to set `JULIA_PYTHONCALL_EXE=PYCALL` (see [Environment variables](@ref)).
+
+Here is a comparison of the designs:
 - **Flexibility of conversion.** The mechanisms for data conversion from Python to Julia are different. In `PyCall`, conversion to `T` (via `convert(T,::PyObject)`) essentially only takes `T` into account, so for example when `T=Real` then the input will always be converted to a Python `float`, which is then converted to a `Cdouble`. In `PythonCall`, conversion takes into account both the target type `T` and the Python type of the Python object, and an extensible system allows one to declare conversions for any combination. Many conversions for overlapping combinations can be defined and the most specific one takes precedence. Hence in `PythonCall`, converting to a `Real` might return an `Int` (e.g. the input is a `int`), or `Cdouble` (e.g. the input is `float`), or `Rational{BigInt}`, or...
 - **Lossiness of conversion from Python.** In `PyCall`, the default `PyAny` conversion from Python to Julia can be lossy in the sense that it is impossible to recover the original value exactly. For example a list of ints is converted to a `Vector{Int}` which is a copy of the data, and therefore modifying the original list is not possible. It is also a source of off-by-one errors, since `Vector` and `list` have different indexing semantics. In `PythonCall`, the default conversion is to `PyObject` (non-lossy), and even if you convert to `Any` then by default this will be non-lossy: for example a `list` will be converted to a `PyList` which is a `Vector`-like view of the list.
 - **Lossiness of conversion to Python.** Similarly, in `PyCall` the default conversion from Julia to Python can be lossy: a `Vector{Int}` will be converted to a `list` of `int`s for example, losing mutability of the original vector. In `PythonCall`, only immutable values are truly converted to Python, everything else is wrapped into a Python wrapper around the Julia value: a `Vector{Int}` is wrapped into a `juliacall.VectorValue` which is a `list`-like sequence type

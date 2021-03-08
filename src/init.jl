@@ -1,3 +1,6 @@
+const PYCALL_UUID = Base.UUID("438e738f-606a-5dbb-bf0a-cddfbfd45ab0")
+const PYCALL_PKGID = Base.PkgId(PYCALL_UUID, "PyCall")
+
 check_libpath(PyCall) = begin
     if realpath(PyCall.libpython) == realpath(CONFIG.libpath)
         # @info "libpython path agrees between PythonCall and PyCall" PythonCall.CONFIG.libpath PyCall.libpython
@@ -13,6 +16,23 @@ end
     if CONFIG.isembedded
         # In this case, getting a handle to libpython is easy
         CONFIG.libptr = Ptr{Cvoid}(parse(UInt, ENV["JULIA_PYTHONCALL_LIBPTR"]))
+        # Check Python is initialized
+        C.Py_IsInitialized() == 0 && error("Python is not already initialized.")
+        CONFIG.isinitialized = CONFIG.preinitialized = true
+    elseif get(ENV, "JULIA_PYTHONCALL_EXE", "") == "PYCALL"
+        # Import PyCall and use its choices for libpython
+        PyCall = get(Base.loaded_modules, PYCALL_PKGID, nothing)
+        if PyCall === nothing
+            PyCall = Base.require(PYCALL_PKGID)
+        end
+        CONFIG.exepath = PyCall.python
+        CONFIG.libpath = PyCall.libpython
+        CONFIG.libptr = dlopen_e(CONFIG.libpath, CONFIG.dlopenflags)
+        if CONFIG.libptr == C_NULL
+            error("Python library $(repr(CONFIG.libpath)) (from PyCall) could not be opened.")
+        end
+        CONFIG.pyprogname = PyCall.pyprogramname
+        CONFIG.pyhome = PyCall.PYTHONHOME
         # Check Python is initialized
         C.Py_IsInitialized() == 0 && error("Python is not already initialized.")
         CONFIG.isinitialized = CONFIG.preinitialized = true
@@ -52,7 +72,7 @@ end
 
                 Ensure either:
                 - python3 or python is in your PATH
-                - JULIA_PYTHONCALL_EXE is "CONDA" or "CONDA:<env>"
+                - JULIA_PYTHONCALL_EXE is "CONDA", "CONDA:<env>" or "PYCALL"
                 - JULIA_PYTHONCALL_EXE is the path to the Python executable
                 """)
         end
@@ -96,7 +116,7 @@ end
         end
 
         # Compare libpath with PyCall
-        PyCall = get(Base.loaded_modules, Base.PkgId(Base.UUID("438e738f-606a-5dbb-bf0a-cddfbfd45ab0"), "PyCall"), nothing)
+        PyCall = get(Base.loaded_modules, PYCALL_PKGID, nothing)
         if PyCall === nothing
             @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" check_libpath(PyCall)
         else

@@ -1,7 +1,7 @@
 name = "PythonCall"
 uuid = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 authors = ["Christopher Doris <github.com/cjdoris>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"

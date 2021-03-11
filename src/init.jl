@@ -43,6 +43,7 @@ end
             get(ENV, "JULIA_PYTHONCALL_EXE", nothing),
             Sys.which("python3"),
             Sys.which("python"),
+            get(ENV, "JULIA_PKGEVAL", "") == "true" ? "CONDA" : nothing,
             Some(nothing),
         )
         if exepath === nothing

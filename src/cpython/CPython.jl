@@ -101,140 +101,65 @@ include("as.jl")
 include("arg.jl")
 
 @init begin
-    PyObject_TryConvert_AddRules(
-        "builtins.NoneType",
-        [
-            (Nothing, PyNone_TryConvertRule_nothing, 100),
-            (Missing, PyNone_TryConvertRule_missing),
-        ],
-    )
-    PyObject_TryConvert_AddRules("builtins.bool", [(Bool, PyBool_TryConvertRule_bool, 100)])
-    PyObject_TryConvert_AddRules(
-        "numbers.Integral",
-        [
-            (Integer, PyLongable_TryConvertRule_integer, 100),
-            (Rational, PyLongable_TryConvertRule_tryconvert),
-            (Real, PyLongable_TryConvertRule_tryconvert),
-            (Number, PyLongable_TryConvertRule_tryconvert),
-            (Any, PyLongable_TryConvertRule_tryconvert),
-        ],
-    )
-    PyObject_TryConvert_AddRules(
-        "builtins.float",
-        [(Float64, PyFloatable_TryConvertRule_convert, 100)],
-    )
-    PyObject_TryConvert_AddRules(
-        "numbers.Real",
-        [
-            (Float64, PyFloatable_TryConvertRule_convert),
-            (BigFloat, PyFloatable_TryConvertRule_convert),
-            (Float32, PyFloatable_TryConvertRule_convert),
-            (Float16, PyFloatable_TryConvertRule_convert),
-            (AbstractFloat, PyFloatable_TryConvertRule_tryconvert),
-            (Real, PyFloatable_TryConvertRule_tryconvert),
-            (Number, PyFloatable_TryConvertRule_tryconvert),
-        ],
-    )
-    PyObject_TryConvert_AddRules(
-        "builtins.complex",
-        [(Complex{Float64}, PyComplexable_TryConvertRule_convert, 100)],
-    )
-    PyObject_TryConvert_AddRules(
-        "numbers.Complex",
-        [
-            (Complex{Float64}, PyComplexable_TryConvertRule_convert),
-            (Complex{BigFloat}, PyComplexable_TryConvertRule_convert),
-            (Complex{Float32}, PyComplexable_TryConvertRule_convert),
-            (Complex{Float16}, PyComplexable_TryConvertRule_convert),
-            (Complex{T} where {T<:AbstractFloat}, PyComplexable_TryConvertRule_tryconvert),
-            (Complex{T} where {T<:Real}, PyComplexable_TryConvertRule_tryconvert),
-            (Number, PyComplexable_TryConvertRule_tryconvert),
-        ],
-    )
-    PyObject_TryConvert_AddRules(
-        "builtins.bytes",
-        [
-            (Vector{UInt8}, PyBytes_TryConvertRule_vector),
-            (Vector{Int8}, PyBytes_TryConvertRule_vector),
-            (String, PyBytes_TryConvertRule_string),
-        ],
-    )
-    PyObject_TryConvert_AddRules(
-        "builtins.str",
-        [
-            (String, PyUnicode_TryConvertRule_string, 100),
-            (Symbol, PyUnicode_TryConvertRule_symbol),
-            (Char, PyUnicode_TryConvertRule_char),
-            (Vector{UInt8}, PyUnicode_TryConvertRule_vector),
-            (Vector{Int8}, PyUnicode_TryConvertRule_vector),
-        ],
-    )
-    PyObject_TryConvert_AddRules(
-        "builtins.tuple",
-        [(Tuple, PyIterable_ConvertRule_tuple, 100)],
-    )
-    PyObject_TryConvert_AddRules(
-        "builtins.range",
-        [
-            (
-                StepRange{T,S} where {T<:Integer,S<:Integer},
-                PyRange_TryConvertRule_steprange,
-                100,
-            ),
-            (UnitRange{T} where {T<:Integer}, PyRange_TryConvertRule_unitrange),
-        ],
-    )
-    PyObject_TryConvert_AddRules(
-        "collections.abc.Iterable",
-        [
-            (Vector, PyIterable_ConvertRule_vecorset),
-            (Set, PyIterable_ConvertRule_vecorset),
-            (Tuple, PyIterable_ConvertRule_tuple),
-            (NamedTuple, PyIterable_ConvertRule_namedtuple),
-            (Pair, PyIterable_ConvertRule_pair),
-        ],
-    )
-    PyObject_TryConvert_AddRules(
-        "collections.abc.Sequence",
-        [(Vector, PyIterable_ConvertRule_vecorset)],
-    )
-    PyObject_TryConvert_AddRules(
-        "collections.abc.Set",
-        [(Set, PyIterable_ConvertRule_vecorset)],
-    )
-    PyObject_TryConvert_AddRules(
-        "collections.abc.Mapping",
-        [(Dict, PyMapping_ConvertRule_dict)],
-    )
-    PyObject_TryConvert_AddRules("datetime.time", [(Time, PyTime_TryConvertRule_time, 100)])
-    PyObject_TryConvert_AddRules("datetime.date", [(Date, PyDate_TryConvertRule_date, 100)])
-    PyObject_TryConvert_AddRules(
-        "datetime.datetime",
-        [(DateTime, PyDateTime_TryConvertRule_datetime, 100)],
-    )
-    PyObject_TryConvert_AddRules(
-        "datetime.timedelta",
-        [
-            (Dates.Period, PyTimeDelta_TryConvertRule_period, 100),
-            (Dates.CompoundPeriod, PyTimeDelta_TryConvertRule_compoundperiod),
-        ],
-    )
-    PyObject_TryConvert_AddRules(
-        "juliacall.ValueBase",
-        [(Any, PyJuliaValue_TryConvert_any, 1000)],
-    )
-    PyObject_TryConvert_AddExtraTypes([
-        PyIterableABC_Type,
-        PyCallableABC_Type,
-        PySequenceABC_Type,
-        PyMappingABC_Type,
-        PySetABC_Type,
-        PyNumberABC_Type,
-        PyComplexABC_Type,
-        PyRealABC_Type,
-        PyRationalABC_Type,
-        PyIntegralABC_Type,
-    ])
+    PyObject_TryConvert_AddRule("builtins.NoneType", Nothing, PyNone_TryConvertRule_nothing, 100)
+    PyObject_TryConvert_AddRule("builtins.NoneType", Missing, PyNone_TryConvertRule_missing)
+    PyObject_TryConvert_AddRule("builtins.bool", Bool, PyBool_TryConvertRule_bool, 100)
+    PyObject_TryConvert_AddRule("numbers.Integral", Integer, PyLongable_TryConvertRule_integer, 100)
+    PyObject_TryConvert_AddRule("numbers.Integral", Rational, PyLongable_TryConvertRule_tryconvert)
+    PyObject_TryConvert_AddRule("numbers.Integral", Real, PyLongable_TryConvertRule_tryconvert)
+    PyObject_TryConvert_AddRule("numbers.Integral", Number, PyLongable_TryConvertRule_tryconvert)
+    PyObject_TryConvert_AddRule("numbers.Integral", Any, PyLongable_TryConvertRule_tryconvert)
+    PyObject_TryConvert_AddRule("builtins.float", Float64, PyFloatable_TryConvertRule_convert, 100)
+    PyObject_TryConvert_AddRule("numbers.Real", Float64, PyFloatable_TryConvertRule_convert)
+    PyObject_TryConvert_AddRule("numbers.Real", BigFloat, PyFloatable_TryConvertRule_convert)
+    PyObject_TryConvert_AddRule("numbers.Real", Float32, PyFloatable_TryConvertRule_convert)
+    PyObject_TryConvert_AddRule("numbers.Real", Float16, PyFloatable_TryConvertRule_convert)
+    PyObject_TryConvert_AddRule("numbers.Real", AbstractFloat, PyFloatable_TryConvertRule_tryconvert)
+    PyObject_TryConvert_AddRule("numbers.Real", Real, PyFloatable_TryConvertRule_tryconvert)
+    PyObject_TryConvert_AddRule("numbers.Real", Number, PyFloatable_TryConvertRule_tryconvert)
+    PyObject_TryConvert_AddRule("builtins.complex", Complex{Float64}, PyComplexable_TryConvertRule_convert, 100)
+    PyObject_TryConvert_AddRule("numbers.Complex", Complex{Float64}, PyComplexable_TryConvertRule_convert)
+    PyObject_TryConvert_AddRule("numbers.Complex", Complex{BigFloat}, PyComplexable_TryConvertRule_convert)
+    PyObject_TryConvert_AddRule("numbers.Complex", Complex{Float32}, PyComplexable_TryConvertRule_convert)
+    PyObject_TryConvert_AddRule("numbers.Complex", Complex{Float16}, PyComplexable_TryConvertRule_convert)
+    PyObject_TryConvert_AddRule("numbers.Complex", Complex{T} where {T<:AbstractFloat}, PyComplexable_TryConvertRule_tryconvert)
+    PyObject_TryConvert_AddRule("numbers.Complex", Complex{T} where {T<:Real}, PyComplexable_TryConvertRule_tryconvert)
+    PyObject_TryConvert_AddRule("numbers.Complex", Number, PyComplexable_TryConvertRule_tryconvert)
+    PyObject_TryConvert_AddRule("builtins.bytes", Vector{UInt8}, PyBytes_TryConvertRule_vector)
+    PyObject_TryConvert_AddRule("builtins.bytes", Vector{Int8}, PyBytes_TryConvertRule_vector)
+    PyObject_TryConvert_AddRule("builtins.bytes", String, PyBytes_TryConvertRule_string)
+    PyObject_TryConvert_AddRule("builtins.str", String, PyUnicode_TryConvertRule_string, 100)
+    PyObject_TryConvert_AddRule("builtins.str", Symbol, PyUnicode_TryConvertRule_symbol)
+    PyObject_TryConvert_AddRule("builtins.str", Char, PyUnicode_TryConvertRule_char)
+    PyObject_TryConvert_AddRule("builtins.str", Vector{UInt8}, PyUnicode_TryConvertRule_vector)
+    PyObject_TryConvert_AddRule("builtins.str", Vector{Int8}, PyUnicode_TryConvertRule_vector)
+    PyObject_TryConvert_AddRule("builtins.tuple", Tuple, PyIterable_ConvertRule_tuple, 100)
+    PyObject_TryConvert_AddRule("builtins.range", StepRange{T,S} where {T<:Integer,S<:Integer}, PyRange_TryConvertRule_steprange, 100)
+    PyObject_TryConvert_AddRule("builtins.range", UnitRange{T} where {T<:Integer}, PyRange_TryConvertRule_unitrange)
+    PyObject_TryConvert_AddRule("collections.abc.Iterable", Vector, PyIterable_ConvertRule_vecorset)
+    PyObject_TryConvert_AddRule("collections.abc.Iterable", Set, PyIterable_ConvertRule_vecorset)
+    PyObject_TryConvert_AddRule("collections.abc.Iterable", Tuple, PyIterable_ConvertRule_tuple)
+    PyObject_TryConvert_AddRule("collections.abc.Iterable", NamedTuple, PyIterable_ConvertRule_namedtuple)
+    PyObject_TryConvert_AddRule("collections.abc.Iterable", Pair, PyIterable_ConvertRule_pair)
+    PyObject_TryConvert_AddRule("collections.abc.Sequence", Vector, PyIterable_ConvertRule_vecorset)
+    PyObject_TryConvert_AddRule("collections.abc.Set", Set, PyIterable_ConvertRule_vecorset)
+    PyObject_TryConvert_AddRule("collections.abc.Mapping", Dict, PyMapping_ConvertRule_dict)
+    PyObject_TryConvert_AddRule("datetime.time", Time, PyTime_TryConvertRule_time, 100)
+    PyObject_TryConvert_AddRule("datetime.date", Date, PyDate_TryConvertRule_date, 100)
+    PyObject_TryConvert_AddRule("datetime.datetime", DateTime, PyDateTime_TryConvertRule_datetime, 100)
+    PyObject_TryConvert_AddRule("datetime.timedelta", Dates.Period, PyTimeDelta_TryConvertRule_period, 100)
+    PyObject_TryConvert_AddRule("datetime.timedelta", Dates.CompoundPeriod, PyTimeDelta_TryConvertRule_compoundperiod)
+    PyObject_TryConvert_AddRule("juliacall.ValueBase", Any, PyJuliaValue_TryConvert_any, 1000)
+    PyObject_TryConvert_AddExtraType(PyIterableABC_Type)
+    PyObject_TryConvert_AddExtraType(PyCallableABC_Type)
+    PyObject_TryConvert_AddExtraType(PySequenceABC_Type)
+    PyObject_TryConvert_AddExtraType(PyMappingABC_Type)
+    PyObject_TryConvert_AddExtraType(PySetABC_Type)
+    PyObject_TryConvert_AddExtraType(PyNumberABC_Type)
+    PyObject_TryConvert_AddExtraType(PyComplexABC_Type)
+    PyObject_TryConvert_AddExtraType(PyRealABC_Type)
+    PyObject_TryConvert_AddExtraType(PyRationalABC_Type)
+    PyObject_TryConvert_AddExtraType(PyIntegralABC_Type)
 
     ### ctypes
     for (p, T) in [
@@ -262,30 +187,20 @@ include("arg.jl")
         isfloat = occursin("float", p) || occursin("double", p)
         isint = !(isfloat || isptr)
         isreal = isint || isfloat
-        PyObject_TryConvert_AddRules(
-            "ctypes.c_$p",
-            [
-                (
-                    p == "char_p" ? Cstring : p == "wchar_p" ? Cwstring : Union{},
-                    PySimpleCData_TryConvert_value{T,false}(),
-                ),
-                (T, PySimpleCData_TryConvert_value{T,false}()),
-                (isint ? Integer : Union{}, PySimpleCData_TryConvert_value{T,true}()),
-                (isint ? Rational : Union{}, PySimpleCData_TryConvert_value{T,true}()),
-                (isreal ? Float64 : Union{}, PySimpleCData_TryConvert_value{T,false}()),
-                (isreal ? BigFloat : Union{}, PySimpleCData_TryConvert_value{T,false}()),
-                (isreal ? Float32 : Union{}, PySimpleCData_TryConvert_value{T,false}()),
-                (isreal ? Float16 : Union{}, PySimpleCData_TryConvert_value{T,false}()),
-                (
-                    isreal ? AbstractFloat : Union{},
-                    PySimpleCData_TryConvert_value{T,true}(),
-                ),
-                (isreal ? Real : Union{}, PySimpleCData_TryConvert_value{T,true}()),
-                (isreal ? Number : Union{}, PySimpleCData_TryConvert_value{T,true}()),
-                (isptr ? Ptr : Union{}, PySimpleCData_TryConvert_value{T,false}()),
-                (Any, PySimpleCData_TryConvert_value{T,true}()),
-            ],
-        )
+        p == "char_p" && PyObject_TryConvert_AddRule("ctypes.c_$p", Cstring, PySimpleCData_TryConvert_value{T,false}())
+        p == "wchar_p" && PyObject_TryConvert_AddRule("ctypes.c_$p", Cwstring, PySimpleCData_TryConvert_value{T,false}())
+        PyObject_TryConvert_AddRule("ctypes.c_$p", T, PySimpleCData_TryConvert_value{T,false}())
+        isint && PyObject_TryConvert_AddRule("ctypes.c_$p", Integer, PySimpleCData_TryConvert_value{T,true}())
+        isint && PyObject_TryConvert_AddRule("ctypes.c_$p", Rational, PySimpleCData_TryConvert_value{T,true}())
+        isreal && PyObject_TryConvert_AddRule("ctypes.c_$p", Float64, PySimpleCData_TryConvert_value{T,false}())
+        isreal && PyObject_TryConvert_AddRule("ctypes.c_$p", BigFloat, PySimpleCData_TryConvert_value{T,false}())
+        isreal && PyObject_TryConvert_AddRule("ctypes.c_$p", Float32, PySimpleCData_TryConvert_value{T,false}())
+        isreal && PyObject_TryConvert_AddRule("ctypes.c_$p", Float16, PySimpleCData_TryConvert_value{T,false}())
+        isreal && PyObject_TryConvert_AddRule("ctypes.c_$p", AbstractFloat, PySimpleCData_TryConvert_value{T,true}())
+        isreal && PyObject_TryConvert_AddRule("ctypes.c_$p", Real, PySimpleCData_TryConvert_value{T,true}())
+        isreal && PyObject_TryConvert_AddRule("ctypes.c_$p", Number, PySimpleCData_TryConvert_value{T,true}())
+        isptr && PyObject_TryConvert_AddRule("ctypes.c_$p", Ptr, PySimpleCData_TryConvert_value{T,false}())
+        PyObject_TryConvert_AddRule("ctypes.c_$p", Any, PySimpleCData_TryConvert_value{T,true}())
     end
 
     ### numpy
@@ -313,52 +228,23 @@ include("arg.jl")
         isfloat = occursin("float", p)
         iscomplex = occursin("complex", p)
         isreal = isint || isfloat
-        PyObject_TryConvert_AddRules(
-            "numpy.$p",
-            [
-                (T, PyNumpySimpleData_TryConvert_value{T,false}(), 100),
-                (isint ? Integer : Union{}, PyNumpySimpleData_TryConvert_value{T,true}()),
-                (isint ? Rational : Union{}, PyNumpySimpleData_TryConvert_value{T,true}()),
-                (isreal ? Float64 : Union{}, PyNumpySimpleData_TryConvert_value{T,false}()),
-                (
-                    isreal ? BigFloat : Union{},
-                    PyNumpySimpleData_TryConvert_value{T,false}(),
-                ),
-                (isreal ? Float32 : Union{}, PyNumpySimpleData_TryConvert_value{T,false}()),
-                (isreal ? Float16 : Union{}, PyNumpySimpleData_TryConvert_value{T,false}()),
-                (
-                    isreal ? AbstractFloat : Union{},
-                    PyNumpySimpleData_TryConvert_value{T,true}(),
-                ),
-                (isreal ? Real : Union{}, PyNumpySimpleData_TryConvert_value{T,true}()),
-                (
-                    iscomplex ? Complex{Float64} : Union{},
-                    PyNumpySimpleData_TryConvert_value{T,false}(),
-                ),
-                (
-                    iscomplex ? Complex{BigFloat} : Union{},
-                    PyNumpySimpleData_TryConvert_value{T,false}(),
-                ),
-                (
-                    iscomplex ? Complex{Float32} : Union{},
-                    PyNumpySimpleData_TryConvert_value{T,false}(),
-                ),
-                (
-                    iscomplex ? Complex{Float16} : Union{},
-                    PyNumpySimpleData_TryConvert_value{T,false}(),
-                ),
-                (
-                    iscomplex ? (Complex{T} where {T<:AbstractFloat}) : Union{},
-                    PyNumpySimpleData_TryConvert_value{T,true}(),
-                ),
-                (
-                    iscomplex ? (Complex{T} where {T<:Real}) : Union{},
-                    PyNumpySimpleData_TryConvert_value{T,true}(),
-                ),
-                (Number, PyNumpySimpleData_TryConvert_value{T,true}()),
-                (Any, PyNumpySimpleData_TryConvert_value{T,true}()),
-            ],
-        )
+        PyObject_TryConvert_AddRule("numpy.$p", T, PyNumpySimpleData_TryConvert_value{T,false}(), 100)
+        isint && PyObject_TryConvert_AddRule("numpy.$p", Integer, PyNumpySimpleData_TryConvert_value{T,true}())
+        isint && PyObject_TryConvert_AddRule("numpy.$p", Rational, PyNumpySimpleData_TryConvert_value{T,true}())
+        isreal && PyObject_TryConvert_AddRule("numpy.$p", Float64, PyNumpySimpleData_TryConvert_value{T,false}())
+        isreal && PyObject_TryConvert_AddRule("numpy.$p", BigFloat, PyNumpySimpleData_TryConvert_value{T,false}())
+        isreal && PyObject_TryConvert_AddRule("numpy.$p", Float32, PyNumpySimpleData_TryConvert_value{T,false}())
+        isreal && PyObject_TryConvert_AddRule("numpy.$p", Float16, PyNumpySimpleData_TryConvert_value{T,false}())
+        isreal && PyObject_TryConvert_AddRule("numpy.$p", AbstractFloat, PyNumpySimpleData_TryConvert_value{T,true}())
+        isreal && PyObject_TryConvert_AddRule("numpy.$p", Real, PyNumpySimpleData_TryConvert_value{T,true}())
+        iscomplex && PyObject_TryConvert_AddRule("numpy.$p", Complex{Float64}, PyNumpySimpleData_TryConvert_value{T,false}())
+        iscomplex && PyObject_TryConvert_AddRule("numpy.$p", Complex{BigFloat}, PyNumpySimpleData_TryConvert_value{T,false}())
+        iscomplex && PyObject_TryConvert_AddRule("numpy.$p", Complex{Float32}, PyNumpySimpleData_TryConvert_value{T,false}())
+        iscomplex && PyObject_TryConvert_AddRule("numpy.$p", Complex{Float16}, PyNumpySimpleData_TryConvert_value{T,false}())
+        iscomplex && PyObject_TryConvert_AddRule("numpy.$p", Complex{T} where {T<:AbstractFloat}, PyNumpySimpleData_TryConvert_value{T,true}())
+        iscomplex && PyObject_TryConvert_AddRule("numpy.$p", Complex{T} where {T<:Real}, PyNumpySimpleData_TryConvert_value{T,true}())
+        PyObject_TryConvert_AddRule("numpy.$p", Number, PyNumpySimpleData_TryConvert_value{T,true}())
+        PyObject_TryConvert_AddRule("numpy.$p", Any, PyNumpySimpleData_TryConvert_value{T,true}())
     end
 end
 

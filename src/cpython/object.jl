@@ -117,11 +117,19 @@ end
 PyObject_CallNice(f, args...; kwargs...) = PyObject_CallArgs(f, args, kwargs)
 
 """
+If true, we precompile C functions implementing conversion.
+
+Otherwise, we use ordinary Julia functions.
+"""
+const TRYCONVERT_C = true
+const TRYCONVERT_FUNCTYPE = TRYCONVERT_C ? Ptr{Cvoid} : Function
+
+"""
 Mapping of Julia types to mappings of Python types to vectors of compiled functions implementing the conversion.
 """
-const TRYCONVERT_COMPILED_RULES = Dict{Type,Dict{PyPtr,Vector{Ptr{Cvoid}}}}()
+const TRYCONVERT_COMPILED_RULES = Dict{Type,Dict{PyPtr,Vector{TRYCONVERT_FUNCTYPE}}}()
 
-const TRYCONVERT_COMPILED_RULES_CACHE = Dict{Any,PyPtr}()
+const TRYCONVERT_COMPILED_RULES_CACHE = Dict{Any,TRYCONVERT_FUNCTYPE}()
 
 """
 Mapping of type names to lists of rules.
@@ -150,24 +158,16 @@ Can also return NULL. Without an error set, this indicates the type is not loade
 """
 const TRYCONVERT_EXTRATYPES = Vector{Any}()
 
-@generated PyObject_TryConvert_CompiledRules(::Type{T}) where {T} =
-    get!(Dict{PyPtr,Vector{Ptr{Cvoid}}}, TRYCONVERT_COMPILED_RULES, T)
+@generated PyObject_TryConvert_CompiledRules(T::Type) =
+    get!(valtype(TRYCONVERT_COMPILED_RULES), TRYCONVERT_COMPILED_RULES, T)
 
 PyObject_TryConvert_Rules(n::String) =
     get!(Vector{Tuple{Int,Type,Function}}, TRYCONVERT_RULES, n)
-PyObject_TryConvert_AddRule(n::String, T, rule, priority = 0) =
+PyObject_TryConvert_AddRule(n::String, @nospecialize(T), @nospecialize(rule), priority::Int = 0) =
     push!(PyObject_TryConvert_Rules(n), (priority, T, rule))
-PyObject_TryConvert_AddRules(n::String, xs) =
-    for x in xs
-        PyObject_TryConvert_AddRule(n, x...)
-    end
-PyObject_TryConvert_AddExtraType(tfunc) = push!(TRYCONVERT_EXTRATYPES, tfunc)
-PyObject_TryConvert_AddExtraTypes(xs) =
-    for x in xs
-        PyObject_TryConvert_AddExtraType(x)
-    end
+PyObject_TryConvert_AddExtraType(@nospecialize(tfunc)) = push!(TRYCONVERT_EXTRATYPES, tfunc)
 
-PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
+PyObject_TryConvert_CompileRule(@nospecialize(T::Type), t::PyPtr) = begin
 
     ### STAGE 1: Get a list of supertypes to consider.
     #
@@ -278,10 +278,10 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
     # sort by priority
     sort!(rules, by = x -> (-x[1], x[2]))
     # intersect S with T
-    rules = [typeintersect(S, T) => r for (p, i, S, r) in rules]
+    rules = [Pair{Type,Any}(typeintersect(S, T), r) for (p, i, S, r) in rules]
     # discard rules where S is a subtype of the union of all previous S for rules with the same implementation
     # in particular this removes rules with S==Union{} and removes duplicates
-    rules = [S => rule for (i, (S, rule)) in enumerate(rules) if
+    rules = [Pair{Type,Any}(S, rule) for (i, (S, rule)) in enumerate(rules) if
      !(S <: Union{[S′ for (S′, rule′) in rules[1:i-1] if rule == rule′]...})]
 
     @debug "PYTHON CONVERSION FOR '$(PyType_Name(t))' to '$T'" basetypes =
@@ -289,22 +289,29 @@ PyObject_TryConvert_CompileRule(::Type{T}, t::PyPtr) where {T} = begin
 
     ### STAGE 3: Define and compile functions implementing these rules.
 
+    mkrulefunc(::Type{S}, rule) where {S} = (o::PyPtr) -> rule(o, S)
+
     map(rules) do x
         get!(TRYCONVERT_COMPILED_RULES_CACHE, x) do
             S, rule = x
             # make the function implementing the rule
-            rulefunc = @eval (o::PyPtr) -> $rule(o, $S)
-            # compile it
-            crulefunc = @cfunction($rulefunc, Int, (PyPtr,))
-            # cache it
-            push!(CACHE, crulefunc)
-            # get the function pointer
-            Base.unsafe_convert(Ptr{Cvoid}, crulefunc)
+            rulefunc = mkrulefunc(S, rule)
+            precompile(rulefunc, (PyPtr,))
+            if TRYCONVERT_C
+                # compile it
+                crulefunc = @cfunction($rulefunc, Int, (PyPtr,))
+                # cache it
+                push!(CACHE, crulefunc)
+                # get the function pointer
+                Base.unsafe_convert(Ptr{Cvoid}, crulefunc)
+            else
+                rulefunc
+            end
         end
     end
 end
 
-const TRYCONVERT_ERR_ARRAY = Ptr{Cvoid}[]
+const TRYCONVERT_ERR_ARRAY = TRYCONVERT_FUNCTYPE[]
 
 PyObject_TryConvert(o::PyPtr, ::Type{T}) where {T} = begin
     # First try based only on the type T
@@ -322,7 +329,7 @@ PyObject_TryConvert(o::PyPtr, ::Type{T}) where {T} = begin
         rules[t] = crules
     end
     for crule in crules
-        r = ccall(crule, Int, (PyPtr,), o)
+        r = TRYCONVERT_C ? ccall(crule, Int, (PyPtr,), o) : crule(o)::Int
         r == 0 || return r
     end
 
@@ -332,7 +339,7 @@ end
 PyObject_TryConvert(o, ::Type{T}) where {T} =
     GC.@preserve o PyObject_TryConvert(Base.unsafe_convert(PyPtr, o), T)
 
-PyObject_TryConvert__initial(o, ::Type{T}) where {T} = 0
+PyObject_TryConvert__initial(o, T::Type) = 0
 
 PyObject_Convert(o::PyPtr, ::Type{T}) where {T} = begin
     r = PyObject_TryConvert(o, T)

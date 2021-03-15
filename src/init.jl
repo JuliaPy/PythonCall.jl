@@ -179,40 +179,18 @@ end
         end
     end
 
-    C.PyObject_TryConvert_AddRules(
-        "builtins.object",
-        [(PyObject, CTryConvertRule_wrapref, -100), (PyRef, CTryConvertRule_wrapref, -200)],
-    )
-    C.PyObject_TryConvert_AddRules(
-        "collections.abc.Sequence",
-        [(PyList, CTryConvertRule_wrapref, 100)],
-    )
-    C.PyObject_TryConvert_AddRules(
-        "collections.abc.Set",
-        [(PySet, CTryConvertRule_wrapref, 100)],
-    )
-    C.PyObject_TryConvert_AddRules(
-        "collections.abc.Mapping",
-        [(PyDict, CTryConvertRule_wrapref, 100)],
-    )
-    C.PyObject_TryConvert_AddRules("_io._IOBase", [(PyIO, CTryConvertRule_trywrapref, 100)])
-    C.PyObject_TryConvert_AddRules("io.IOBase", [(PyIO, CTryConvertRule_trywrapref, 100)])
-    C.PyObject_TryConvert_AddRules(
-        "<buffer>",
-        [
-            (PyArray, CTryConvertRule_trywrapref, 200),
-            (PyBuffer, CTryConvertRule_wrapref, -200),
-        ],
-    )
-    C.PyObject_TryConvert_AddRules(
-        "<arrayinterface>",
-        [(PyArray, CTryConvertRule_trywrapref, 200)],
-    )
-    C.PyObject_TryConvert_AddRules(
-        "<arraystruct>",
-        [(PyArray, CTryConvertRule_trywrapref, 200)],
-    )
-    C.PyObject_TryConvert_AddRules("<array>", [(PyArray, CTryConvertRule_trywrapref, 0)])
+    C.PyObject_TryConvert_AddRule("builtins.object", PyObject, CTryConvertRule_wrapref, -100)
+    C.PyObject_TryConvert_AddRule("builtins.object", PyRef, CTryConvertRule_wrapref, -200)
+    C.PyObject_TryConvert_AddRule("collections.abc.Sequence", PyList, CTryConvertRule_wrapref, 100)
+    C.PyObject_TryConvert_AddRule("collections.abc.Set", PySet, CTryConvertRule_wrapref, 100)
+    C.PyObject_TryConvert_AddRule("collections.abc.Mapping", PyDict, CTryConvertRule_wrapref, 100)
+    C.PyObject_TryConvert_AddRule("_io._IOBase", PyIO, CTryConvertRule_trywrapref, 100)
+    C.PyObject_TryConvert_AddRule("io.IOBase", PyIO, CTryConvertRule_trywrapref, 100)
+    C.PyObject_TryConvert_AddRule("<buffer>", PyArray, CTryConvertRule_trywrapref, 200)
+    C.PyObject_TryConvert_AddRule("<buffer>", PyBuffer, CTryConvertRule_wrapref, -200)
+    C.PyObject_TryConvert_AddRule("<arrayinterface>", PyArray, CTryConvertRule_trywrapref, 200)
+    C.PyObject_TryConvert_AddRule("<arraystruct>", PyArray, CTryConvertRule_trywrapref, 200)
+    C.PyObject_TryConvert_AddRule("<array>", PyArray, CTryConvertRule_trywrapref, 0)
 
     with_gil() do
 

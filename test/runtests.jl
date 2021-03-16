@@ -926,6 +926,9 @@ end
             @test @pyv `$xv[-3] == 1`::Bool
             @test @pyv `$xm[0,0] == 1`::Bool
             @test @pyv `$xm[1,-1] == 4`::Bool
+            @test @pyv `$xv[::] == $xv`::Bool
+            @test @pyv `$xv[:2] == $([1,2])`::Bool
+            @test @pyv `$xv[::-2] == $([3,1])`::Bool
             @py `$xm[0,0] = 0`
             @test jm[1,1] == 0
             @py `del $xv[1]`::Bool

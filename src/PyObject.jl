@@ -66,10 +66,12 @@ pylazyobject(mk) = PyObject(Val(:lazy), mk)
 
 C.PyObject_TryConvert__initial(o, ::Type{PyObject}) = C.putresult(pyborrowedobject(o))
 
-Base.convert(::Type{PyObject}, x::PyObject) = x
-Base.convert(::Type{Any}, x::PyObject) = x
-Base.convert(::Type{T}, x::PyObject) where {T} = x isa T ? x : pyconvert(T, x)
-Base.convert(::Type{PyObject}, x) = PyObject(x)
+# These cause a LOT of method invalidations and slow down package load by a couple of
+# seconds. You can always use PyObject and pyconvert to go in either direction.
+# Base.convert(::Type{PyObject}, x::PyObject) = x
+# Base.convert(::Type{Any}, x::PyObject) = x
+# Base.convert(::Type{T}, x::PyObject) where {T} = x isa T ? x : pyconvert(T, x)
+# Base.convert(::Type{PyObject}, x) = PyObject(x)
 
 ### Cache some common values
 

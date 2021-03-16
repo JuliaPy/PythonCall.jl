@@ -12,7 +12,7 @@ end
 
     @testset "eval" begin
         @pyg ```
-        import sys, os, datetime, array, io, fractions, array, ctypes
+        import sys, os, datetime, array, io, fractions, array, ctypes, numbers, math
         eq = lambda a, b: type(a) is type(b) and a == b
         class Foo:
             def __init__(self, x=None):
@@ -870,6 +870,46 @@ end
             @test @pyv `not ($(pyjl(3)) > 3)`::Bool
             @test @pyv `$(pyjl(3)) > 2`::Bool
             @test @pyv `$(pyjl(identity)).__name__ == "identity"`::Bool
+        end
+
+        @testset "julianumber" begin
+            xi = pyjl(1)
+            xq = pyjl(1//2)
+            xf = pyjl(0.4)
+            xc = pyjl(1+2im)
+            @test @pyv `isinstance($xi, numbers.Integral)`::Bool
+            @test @pyv `isinstance($xq, numbers.Rational)`::Bool
+            @test @pyv `isinstance($xf, numbers.Real)`::Bool
+            @test @pyv `isinstance($xc, numbers.Complex)`::Bool
+            @test @pyv `bool($xi)`::Bool
+            @test @pyv `not bool($(pyjl(0.0)))`::Bool
+            @test @pyv `+$xi == $xi`::Bool
+            @test @pyv `-$xi == $(pyjl(-1))`::Bool
+            @test @pyv `abs($(pyjl(-3.0))) == $(pyjl(3.0))`::Bool
+            @test @pyv `$xi + $xq == $(pyjl(3//2))`::Bool
+            @test @pyv `$(pyjl(0.5))**2 == $(pyjl(0.25))`::Bool
+            @test @pyv `pow($(pyjl(2)),$(pyjl(5)),$(pyjl(10))) == $(pyjl(2))`::Bool
+            @test @pyv `$xc.real == $(pyjl(1))`::Bool
+            @test @pyv `$xc.imag == $(pyjl(2))`::Bool
+            @test @pyv `$xc.conjugate() == $(pyjl(Complex(1-2im)))`::Bool
+            @test @pyv `complex($xc) == complex(1,2)`::Bool
+            @test @pyv `$xq.real == $xq`::Bool
+            @test @pyv `$xq.imag == $(pyjl(0))`::Bool
+            @test @pyv `$xq.conjugate() == $xq`::Bool
+            @test @pyv `complex($xq) == complex(0.5)`::Bool
+            @test @pyv `float($xq) == 0.5`::Bool
+            @test @pyv `math.trunc($xq) == 0`::Bool
+            @test @pyv `math.floor($xq) == 0`::Bool
+            @test @pyv `math.ceil($xq) == 1`::Bool
+            @test @pyv `round($xq) == 0`::Bool
+            @test @pyv `round($xq, 1) == 0.5`::Bool
+            @test @pyv `$xq.numerator == $(pyjl(1))`::Bool
+            @test @pyv `$xq.denominator == $(pyjl(2))`::Bool
+            @test @pyv `$xi.numerator == $(pyjl(1))`::Bool
+            @test @pyv `$xi.denominator == 1`::Bool
+            @test @pyv `int($xi) == 1`::Bool
+            @test @pyv `$xi.__index__() == 1`::Bool
+            @test @pyv `~$xi == $(pyjl(-2))`::Bool
         end
 
         @testset "juliaio" begin

@@ -19,14 +19,14 @@ Base.display(d::IPythonDisplay, @nospecialize(x)) = begin
     end
     buf = IOBuffer()
     dict = pydict()
-    for (m, _) in [_py_mimes; (MIME"text/plain", "")]
+    for m in C.mimes_for(x)
         try
-            show(buf, m(), x)
+            show(buf, MIME(m), x)
         catch
             continue
         end
         data = take!(buf)
-        dict[string(m())] = istextmime(m()) ? pystr(data) : pybytes(data)
+        dict[m] = istextmime(m) ? pystr(data) : pybytes(data)
     end
     length(dict) == 0 && throw(MethodError(display, (d, x)))
     try

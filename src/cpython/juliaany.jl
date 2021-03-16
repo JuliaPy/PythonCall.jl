@@ -391,6 +391,19 @@ const ALL_MIMES = [
     "video/webm",
 ]
 
+mimes_for(@nospecialize(x)) = begin
+    # default mimes we always try
+    mimes = copy(ALL_MIMES)
+    # look for mimes on show methods for this type
+    for meth in methods(show, Tuple{IO, MIME, typeof(x)}).ms
+        mimetype = meth.sig.parameters[3]
+        mimetype isa DataType || continue
+        mime = string(mimetype.parameters[1])
+        push!(mimes, mime)
+    end
+    return mimes
+end
+
 pyjlany_repr_mimebundle(xo::PyPtr, args::PyPtr, kwargs::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)
     ism1(PyArg_CheckNumArgsEq("_repr_mimebundle_", args, 0)) && return PyNULL
@@ -399,19 +412,8 @@ pyjlany_repr_mimebundle(xo::PyPtr, args::PyPtr, kwargs::PyPtr) = begin
     ism1(PyArg_GetArg(Union{Set{String},Nothing}, "_repr_mimebundle_", kwargs, "exclude", nothing)) && return PyNULL
     exc = takeresult(Union{Set{String},Nothing})
     # decide which mimes to include
-    if inc === nothing
-        # default set of mimes to try
-        mimes = copy(ALL_MIMES)
-        # looks for mimes on show methods for the type
-        for meth in methods(show, Tuple{IO, MIME, typeof(x)}).ms
-            mimetype = meth.sig.parameters[3]
-            mimetype isa DataType || continue
-            mime = string(mimetype.parameters[1])
-            push!(mimes, mime)
-        end
-    else
-        mimes = push!(inc, "text/plain")
-    end
+    mimes = inc === nothing ? mimes_for(x) : push!(inc, "text/plain")
+    # respect exclude
     exc === nothing || setdiff!(mimes, exc)
     # make the bundle
     bundle = PyDict_New()

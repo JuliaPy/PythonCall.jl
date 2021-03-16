@@ -912,6 +912,39 @@ end
             @test @pyv `~$xi == $(pyjl(-2))`::Bool
         end
 
+        @testset "juliaarray" begin
+            js = fill(1)
+            jv = [1,2,3]
+            jm = [1 2; 3 4]
+            xs = pyjl(js)
+            xv = pyjl(jv)
+            xm = pyjl(jm)
+            @test @pyv `$xs[()] == 1`::Bool
+            @test @pyv `$xv[0] == 1`::Bool
+            @test @pyv `$xv[1] == 2`::Bool
+            @test @pyv `$xv[-1] == 3`::Bool
+            @test @pyv `$xv[-3] == 1`::Bool
+            @test @pyv `$xm[0,0] == 1`::Bool
+            @test @pyv `$xm[1,-1] == 4`::Bool
+            @py `$xm[0,0] = 0`
+            @test jm[1,1] == 0
+            @py `del $xv[1]`::Bool
+            @test jv == [1,3]
+            @test @pyv `$xs.ndim == 0`::Bool
+            @test @pyv `$xv.ndim == 1`::Bool
+            @test @pyv `$xm.ndim == 2`::Bool
+            @test @pyv `$xs.shape == ()`::Bool
+            @test @pyv `$xv.shape == (2,)`::Bool
+            @test @pyv `$xm.shape == (2,2)`::Bool
+            xm2 = @pyv `$xm.copy()`
+            @py `$xm2[0,0] = 99`
+            @test @pyv `$xm[0,0] == 0`::Bool
+            @test @pyv `$xm2[0,0] == 99`::Bool
+            xmv = @pyv `$xm.reshape(4)`
+            @test @pyv `$xmv.shape == (4,)`::Bool
+            @test @pyv `list($xmv) == [0,3,2,4]`::Bool
+        end
+
         @testset "juliaio" begin
             for value in Any[stdin, stdout, IOBuffer()]
                 @test @pyv `type($(pyjl(value))).__name__ == "BufferedIOValue"`::Bool

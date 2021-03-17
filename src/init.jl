@@ -9,7 +9,7 @@ check_libpath(PyCall) = begin
     end
 end
 
-@init begin
+init() = begin
     # Check if libpython is already loaded (i.e. if the Julia interpreter was started from a Python process)
     CONFIG.isembedded = haskey(ENV, "JULIA_PYTHONCALL_LIBPTR")
 
@@ -327,3 +327,6 @@ end
 
     @debug "Initialized PythonCall.jl" CONFIG.isembedded CONFIG.isinitialized CONFIG.exepath CONFIG.libpath CONFIG.libptr CONFIG.pyprogname CONFIG.pyhome CONFIG.version CONFIG.isconda CONFIG.condaenv
 end
+precompile(init, ())
+
+@init init()

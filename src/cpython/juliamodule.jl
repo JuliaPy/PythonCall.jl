@@ -1,32 +1,3 @@
-const PyJuliaModuleValue_Type__ref = Ref(PyNULL)
-PyJuliaModuleValue_Type() = begin
-    ptr = PyJuliaModuleValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaAnyValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.ModuleValue",
-                base = base,
-                methods = [
-                    (name = "seval", flags = Py_METH_VARARGS, meth = pyjlmodule_seval),
-                ],
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaModuleValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaModuleValue_New(x::Module) = PyJuliaValue_New(PyJuliaModuleValue_Type(), x)
-PyJuliaValue_From(x::Module) = PyJuliaModuleValue_New(x)
-
 pyjlmodule_seval(xo::PyPtr, args::PyPtr) = begin
     ism1(PyArg_CheckNumArgsBetween("seval", args, 1, 2)) && return PyNULL
     if PyTuple_Size(args) == 1
@@ -46,3 +17,28 @@ pyjlmodule_seval(xo::PyPtr, args::PyPtr) = begin
         PyNULL
     end
 end
+
+const PyJuliaModuleValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaAnyValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.ModuleValue"),
+        base = base,
+        methods = cacheptr!(c, [
+            PyMethodDef(
+                name = cacheptr!(c, "seval"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlmodule_seval),
+            ),
+            PyMethodDef(),
+        ]),
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+PyJuliaModuleValue_New(x::Module) = PyJuliaValue_New(PyJuliaModuleValue_Type(), x)
+PyJuliaValue_From(x::Module) = PyJuliaModuleValue_New(x)

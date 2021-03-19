@@ -1,25 +1,3 @@
-const PyExc_JuliaError__ref = Ref(PyNULL)
-PyExc_JuliaError() = begin
-    ptr = PyExc_JuliaError__ref[]
-    if isnull(ptr)
-        c = []
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.Error",
-                base = PyExc_Exception(),
-                str = pyjlerr_str,
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyExc_JuliaError__ref[] = ptr
-    end
-    ptr
-end
-
 PyErr_SetJuliaError(err, bt = nothing) = begin
     t = PyExc_JuliaError()
     if isnull(t)
@@ -72,4 +50,17 @@ pyjlerr_str(xo::PyPtr) = begin
     so = PyObject_Str(args)
     Py_DecRef(args)
     return so
+end
+
+const PyExc_JuliaError = LazyPyObject() do
+    c = []
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.Error"),
+        base = PyExc_Exception(),
+        str = @cfunctionOO(pyjlerr_str),
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
 end

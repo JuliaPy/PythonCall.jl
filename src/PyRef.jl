@@ -18,6 +18,7 @@ mutable struct PyRef
                 ptr = x.ptr
                 if !isnull(ptr)
                     with_gil(false) do
+                        @assert C.Py_RefCnt(ptr) > 0
                         C.Py_DecRef(ptr)
                     end
                     x.ptr = C_NULL

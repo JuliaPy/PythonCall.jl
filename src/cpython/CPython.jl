@@ -100,7 +100,7 @@ include("juliaio.jl")
 include("as.jl")
 include("arg.jl")
 
-@init begin
+init() = begin
     PyObject_TryConvert_AddRule("builtins.NoneType", Nothing, PyNone_TryConvertRule_nothing, 100)
     PyObject_TryConvert_AddRule("builtins.NoneType", Missing, PyNone_TryConvertRule_missing)
     PyObject_TryConvert_AddRule("builtins.bool", Bool, PyBool_TryConvertRule_bool, 100)
@@ -150,6 +150,7 @@ include("arg.jl")
     PyObject_TryConvert_AddRule("datetime.timedelta", Dates.Period, PyTimeDelta_TryConvertRule_period, 100)
     PyObject_TryConvert_AddRule("datetime.timedelta", Dates.CompoundPeriod, PyTimeDelta_TryConvertRule_compoundperiod)
     PyObject_TryConvert_AddRule("juliacall.ValueBase", Any, PyJuliaValue_TryConvert_any, 1000)
+    PyObject_TryConvert_AddRule("juliacall.As", Any, PyAs_ConvertRule_tryconvert, 1000)
     PyObject_TryConvert_AddExtraType(PyIterableABC_Type)
     PyObject_TryConvert_AddExtraType(PyCallableABC_Type)
     PyObject_TryConvert_AddExtraType(PySequenceABC_Type)
@@ -247,5 +248,10 @@ include("arg.jl")
         PyObject_TryConvert_AddRule("numpy.$p", Any, PyNumpySimpleData_TryConvert_value{T,true}())
     end
 end
+precompile(init, ())
+@init init()
+
+precompile(PyJuliaValue_New, (PyPtr, Function))
+precompile(PyMappingABC_Type, ())
 
 end

@@ -1,49 +1,3 @@
-const PyJuliaDictValue_Type__ref = Ref(PyNULL)
-PyJuliaDictValue_Type() = begin
-    ptr = PyJuliaDictValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaAnyValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.DictValue",
-                base = base,
-                iter = pyjldict_iter,
-                methods = [
-                    (name = "keys", flags = Py_METH_NOARGS, meth = pyjldict_keys),
-                    (name = "values", flags = Py_METH_NOARGS, meth = pyjldict_values),
-                    (name = "items", flags = Py_METH_NOARGS, meth = pyjldict_items),
-                    (name = "get", flags = Py_METH_VARARGS, meth = pyjldict_get),
-                    (name = "clear", flags = Py_METH_NOARGS, meth = pyjldict_clear),
-                    (name = "pop", flags = Py_METH_VARARGS, meth = pyjldict_pop),
-                    (name = "popitem", flags = Py_METH_NOARGS, meth = pyjldict_popitem),
-                    # (name="update", flags=Py_METH_VARARGS|Py_METH_KEYWORDS, meth=pyjldict_update),
-                    (
-                        name = "setdefault",
-                        flags = Py_METH_VARARGS,
-                        meth = pyjldict_setdefault,
-                    ),
-                ],
-                as_sequence = (contains = pyjldict_contains,),
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        abc = PyMutableMappingABC_Type()
-        isnull(abc) && return PyNULL
-        ism1(PyABC_Register(ptr, abc)) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaDictValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaDictValue_New(x::AbstractDict) = PyJuliaValue_New(PyJuliaDictValue_Type(), x)
-PyJuliaValue_From(x::AbstractDict) = PyJuliaDictValue_New(x)
-
 pyjldict_iter(xo::PyPtr) =
     PyJuliaIteratorValue_New(Iterator(keys(PyJuliaValue_GetValue(xo)::AbstractDict)))
 
@@ -175,3 +129,75 @@ Base.iterate(x::DictPairSet) =
 Base.iterate(x::DictPairSet, st) =
     (r = iterate(x.dict, st); r === nothing ? nothing : (Tuple(r[1]), r[2]))
 Base.in(v, x::DictPairSet) = v in x.dict
+
+const PyJuliaDictValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaAnyValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.DictValue"),
+        base = base,
+        iter = @cfunctionOO(pyjldict_iter),
+        methods = cacheptr!(c, [
+            PyMethodDef(
+                name = cacheptr!(c, "keys"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOO(pyjldict_keys),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "values"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOO(pyjldict_values),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "items"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOO(pyjldict_items),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "get"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOO(pyjldict_get),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "clear"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOO(pyjldict_clear),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "pop"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOO(pyjldict_pop),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "popitem"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOO(pyjldict_popitem),
+            ),
+            # PyMethodDef(
+            #     name = cacheptr!(c, "update"),
+            #     flags = Py_METH_VARARGS|Py_METH_KEYWORDS,
+            #     meth = @cfunctionOOOO(pyjldict_update),
+            # ),
+            PyMethodDef(
+                name = cacheptr!(c, "setdefault"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOO(pyjldict_setdefault),
+            ),
+            PyMethodDef(),
+        ]),
+        as_sequence = cacheptr!(c, fill(PySequenceMethods(
+            contains = @cfunctionIOO(pyjldict_contains),
+        ))),
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    abc = PyMutableMappingABC_Type()
+    isnull(abc) && return PyNULL
+    ism1(PyABC_Register(ptr, abc)) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+PyJuliaDictValue_New(x::AbstractDict) = PyJuliaValue_New(PyJuliaDictValue_Type(), x)
+PyJuliaValue_From(x::AbstractDict) = PyJuliaDictValue_New(x)

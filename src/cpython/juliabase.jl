@@ -30,34 +30,25 @@ pyjlbase_dealloc(o::PyPtr) = begin
     nothing
 end
 
-const PyJuliaBaseValue_Type__ref = Ref(PyNULL)
-PyJuliaBaseValue_Type() = begin
-    ptr = PyJuliaBaseValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.ValueBase",
-                basicsize = sizeof(PyJuliaValueObject),
-                new = pyglobal(:PyType_GenericNew),
-                init = @cfunction(pyjlbase_init, Cint, (PyPtr, PyPtr, PyPtr)),
-                dealloc = @cfunction(pyjlbase_dealloc, Cvoid, (PyPtr,)),
-                flags = Py_TPFLAGS_BASETYPE |
-                        Py_TPFLAGS_HAVE_VERSION_TAG |
-                        (CONFIG.isstackless ? Py_TPFLAGS_HAVE_STACKLESS_EXTENSION : 0x00),
-                weaklistoffset = fieldoffset(PyJuliaValueObject, 3),
-                getattro = pyglobal(:PyObject_GenericGetAttr),
-                setattro = pyglobal(:PyObject_GenericSetAttr),
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaBaseValue_Type__ref[] = ptr
-    end
-    ptr
+const PyJuliaBaseValue_Type = LazyPyObject() do
+    c = []
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.ValueBase"),
+        basicsize = sizeof(PyJuliaValueObject),
+        new = pyglobal(:PyType_GenericNew),
+        init = @cfunctionIOOO(pyjlbase_init),
+        dealloc = @cfunctionVO(pyjlbase_dealloc),
+        flags = Py_TPFLAGS_BASETYPE |
+                Py_TPFLAGS_HAVE_VERSION_TAG |
+                (CONFIG.isstackless ? Py_TPFLAGS_HAVE_STACKLESS_EXTENSION : 0x00),
+        weaklistoffset = fieldoffset(PyJuliaValueObject, 3),
+        getattro = pyglobal(:PyObject_GenericGetAttr),
+        setattro = pyglobal(:PyObject_GenericSetAttr),
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
 end
 
 PyJuliaValue_Check(o) = Py_TypeCheck(o, PyJuliaBaseValue_Type())

@@ -1,77 +1,3 @@
-const PyJuliaSetValue_Type__ref = Ref(PyNULL)
-PyJuliaSetValue_Type() = begin
-    ptr = PyJuliaSetValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaAnyValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.SetValue",
-                base = base,
-                methods = [
-                    (name = "add", flags = Py_METH_O, meth = pyjlset_add),
-                    (name = "clear", flags = Py_METH_NOARGS, meth = pyjlset_clear),
-                    (name = "copy", flags = Py_METH_NOARGS, meth = pyjlset_copy),
-                    (name = "difference", flags = Py_METH_O, meth = pyjlset_difference),
-                    (
-                        name = "difference_update",
-                        flags = Py_METH_O,
-                        meth = pyjlset_difference_update,
-                    ),
-                    (name = "discard", flags = Py_METH_O, meth = pyjlset_discard),
-                    (name = "intersection", flags = Py_METH_O, meth = pyjlset_intersection),
-                    (
-                        name = "intersection_update",
-                        flags = Py_METH_O,
-                        meth = pyjlset_intersection_update,
-                    ),
-                    (name = "isdisjoint", flags = Py_METH_O, meth = pyjlset_isdisjoint),
-                    # (name="issubset", flags=Py_METH_O, meth=pyjlset_issubset),
-                    # (name="issuperset", flags=Py_METH_O, meth=pyjlset_issuperset),
-                    (name = "pop", flags = Py_METH_NOARGS, meth = pyjlset_pop),
-                    (name = "remove", flags = Py_METH_O, meth = pyjlset_remove),
-                    (
-                        name = "symmetric_difference",
-                        flags = Py_METH_O,
-                        meth = pyjlset_symmetric_difference,
-                    ),
-                    (
-                        name = "symmetric_difference_update",
-                        flags = Py_METH_O,
-                        meth = pyjlset_symmetric_difference_update,
-                    ),
-                    (name = "union", flags = Py_METH_O, meth = pyjlset_union),
-                    (name = "update", flags = Py_METH_O, meth = pyjlset_update),
-                ],
-                # as_number = (
-                #     or = pyjlset_or,
-                #     and = pyjlset_and,
-                #     xor = pyjlset_xor,
-                #     subtract = pyjlset_sub,
-                #     inplace_or = pyjlset_ior,
-                #     inplace_and = pyjlset_iand,
-                #     inplace_xor = pyjlset_ixor,
-                #     inplace_subtract = pyjlset_isub,
-                # ),
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        abc = PyMutableSetABC_Type()
-        isnull(abc) && return PyNULL
-        ism1(PyABC_Register(ptr, abc)) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaSetValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaSetValue_New(x::AbstractSet) = PyJuliaValue_New(PyJuliaSetValue_Type(), x)
-PyJuliaValue_From(x::AbstractSet) = PyJuliaSetValue_New(x)
-
 pyjlset_add(xo::PyPtr, vo::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractSet
     ism1(PyObject_Convert(vo, eltype(x))) && return PyNULL
@@ -284,3 +210,121 @@ _pyjlset_isdisjoint(x::AbstractSet, yso::PyPtr) = begin
     end
     r == -1 ? PyNULL : r == 0 ? PyObject_From(false) : PyObject_From(true)
 end
+
+const PyJuliaSetValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaAnyValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.SetValue"),
+        base = base,
+        methods = cacheptr!(c, [
+            PyMethodDef(
+                name = cacheptr!(c, "add"),
+                flags = Py_METH_O,
+                meth = @cfunctionOO(pyjlset_add),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "clear"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOO(pyjlset_clear),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "copy"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOO(pyjlset_copy),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "difference"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOO(pyjlset_difference),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "difference_update"),
+                flags = Py_METH_O,
+                meth = @cfunctionOO(pyjlset_difference_update),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "discard"),
+                flags = Py_METH_O,
+                meth = @cfunctionOO(pyjlset_discard),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "intersection"),
+                flags = Py_METH_O,
+                meth = @cfunctionOO(pyjlset_intersection),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "intersection_update"),
+                flags = Py_METH_O,
+                meth = @cfunctionOO(pyjlset_intersection_update),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "isdisjoint"),
+                flags = Py_METH_O,
+                meth = @cfunctionOO(pyjlset_isdisjoint),
+            ),
+            # PyMethodDef(
+            #     name = cacheptr!(c, "issubset"),
+            #     flags = Py_METH_O,
+            #     meth = @cfunctionOO(pyjlset_issubset),
+            # ),
+            # PyMethodDef(
+            #     name = cacheptr!(c, "issuperset"),
+            #     flags = Py_METH_O,
+            #     meth = @cfunctionOO(pyjlset_issuperset),
+            # ),
+            PyMethodDef(
+                name = cacheptr!(c, "pop"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOO(pyjlset_pop),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "remove"),
+                flags = Py_METH_O,
+                meth = @cfunctionOO(pyjlset_remove),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "symmetric_difference"),
+                flags = Py_METH_O,
+                meth = @cfunctionOO(pyjlset_symmetric_difference),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "symmetric_difference_update"),
+                flags = Py_METH_O,
+                meth = @cfunctionOO(pyjlset_symmetric_difference_update),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "union"),
+                flags = Py_METH_O,
+                meth = @cfunctionOO(pyjlset_union),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "update"),
+                flags = Py_METH_O,
+                meth = @cfunctionOO(pyjlset_update),
+            ),
+            PyMethodDef(),
+        ]),
+        # as_number = cacheptr!(c, fill(PyNumberMethods(
+        #     or = @cfunctionOO(pyjlset_or),
+        #     and = @cfunctionOO(pyjlset_and),
+        #     xor = @cfunctionOO(pyjlset_xor),
+        #     subtract = @cfunctionOO(pyjlset_subtract),
+        #     inplace_or = @cfunctionOO(pyjlset_ior),
+        #     inplace_and = @cfunctionOO(pyjlset_iand),
+        #     inplace_xor = @cfunctionOO(pyjlset_ixor),
+        #     inplace_subtract = @cfunctionOO(pyjlset_isubtract),
+        # ))),
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    abc = PyMutableSetABC_Type()
+    isnull(abc) && return PyNULL
+    ism1(PyABC_Register(ptr, abc)) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+PyJuliaSetValue_New(x::AbstractSet) = PyJuliaValue_New(PyJuliaSetValue_Type(), x)
+PyJuliaValue_From(x::AbstractSet) = PyJuliaSetValue_New(x)

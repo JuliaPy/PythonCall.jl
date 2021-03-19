@@ -5,33 +5,6 @@ end
 Iterator(x) = Iterator(x, nothing)
 Base.length(x::Iterator) = length(x.val)
 
-const PyJuliaIteratorValue_Type__ref = Ref(PyNULL)
-PyJuliaIteratorValue_Type() = begin
-    ptr = PyJuliaIteratorValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaAnyValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.IteratorValue",
-                base = base,
-                iter = pyjliter_iter,
-                iternext = pyjliter_iternext,
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaIteratorValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaIteratorValue_New(x::Iterator) = PyJuliaValue_New(PyJuliaIteratorValue_Type(), x)
-
 pyjliter_iter(xo::PyPtr) =
     PyJuliaIteratorValue_New(Iterator((PyJuliaValue_GetValue(xo)::Iterator).val))
 
@@ -60,3 +33,21 @@ pyjliter_iternext(xo::PyPtr) =
         end
         PyNULL
     end
+
+const PyJuliaIteratorValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaAnyValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.IteratorValue"),
+        base = base,
+        iter = @cfunctionOO(pyjliter_iter),
+        iternext = @cfunctionOO(pyjliter_iternext),
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+PyJuliaIteratorValue_New(x::Iterator) = PyJuliaValue_New(PyJuliaIteratorValue_Type(), x)

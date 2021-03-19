@@ -1,209 +1,3 @@
-const PyJuliaNumberValue_Type__ref = Ref(PyNULL)
-PyJuliaNumberValue_Type() = begin
-    ptr = PyJuliaNumberValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaAnyValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.NumberValue",
-                base = base,
-                as_number = (
-                    bool = pyjlnumber_bool,
-                    positive = pyjlnumber_positive,
-                    negative = pyjlnumber_negative,
-                    absolute = pyjlnumber_absolute,
-                    power = pyjlnumber_power,
-                    add = pyjlnumber_binop(+),
-                    subtract = pyjlnumber_binop(-),
-                    multiply = pyjlnumber_binop(*),
-                    truedivide = pyjlnumber_binop(/),
-                    divmod = pyjlnumber_binop((x, y) -> (fld(x, y), mod(x, y))),
-                    floordivide = pyjlnumber_binop(fld),
-                    remainder = pyjlnumber_binop(mod),
-                    lshift = pyjlnumber_binop(<<),
-                    rshift = pyjlnumber_binop(>>),
-                    and = pyjlnumber_binop(&),
-                    xor = pyjlnumber_binop(xor),
-                    or = pyjlnumber_binop(|),
-                ),
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        abc = PyNumberABC_Type()
-        isnull(abc) && return PyNULL
-        ism1(PyABC_Register(ptr, abc)) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaNumberValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaNumberValue_New(x::Number) = PyJuliaValue_New(PyJuliaNumberValue_Type(), x)
-PyJuliaValue_From(x::Number) = PyJuliaNumberValue_New(x)
-
-const PyJuliaComplexValue_Type__ref = Ref(PyNULL)
-PyJuliaComplexValue_Type() = begin
-    ptr = PyJuliaComplexValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaNumberValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.ComplexValue",
-                base = base,
-                getset = [
-                    (name = "real", get = pyjlcomplex_real),
-                    (name = "imag", get = pyjlcomplex_imag),
-                ],
-                methods = [
-                    (
-                        name = "conjugate",
-                        flags = Py_METH_NOARGS,
-                        meth = pyjlcomplex_conjugate,
-                    ),
-                    (
-                        name = "__complex__",
-                        flags = Py_METH_NOARGS,
-                        meth = pyjlcomplex_complex,
-                    ),
-                ],
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        abc = PyComplexABC_Type()
-        isnull(abc) && return PyNULL
-        ism1(PyABC_Register(ptr, abc)) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaComplexValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaComplexValue_New(x::Complex) = PyJuliaValue_New(PyJuliaComplexValue_Type(), x)
-PyJuliaValue_From(x::Complex) = PyJuliaComplexValue_New(x)
-
-const PyJuliaRealValue_Type__ref = Ref(PyNULL)
-PyJuliaRealValue_Type() = begin
-    ptr = PyJuliaRealValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaNumberValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.RealValue",
-                base = base,
-                as_number = (float = pyjlreal_float,),
-                getset = [
-                    (name = "real", get = pyjlreal_real),
-                    (name = "imag", get = pyjlreal_imag),
-                ],
-                methods = [
-                    (name = "conjugate", flags = Py_METH_NOARGS, meth = pyjlreal_conjugate),
-                    (name = "__complex__", flags = Py_METH_NOARGS, meth = pyjlreal_complex),
-                    (name = "__trunc__", flags = Py_METH_NOARGS, meth = pyjlreal_trunc),
-                    (name = "__floor__", flags = Py_METH_NOARGS, meth = pyjlreal_floor),
-                    (name = "__ceil__", flags = Py_METH_NOARGS, meth = pyjlreal_ceil),
-                    (name = "__round__", flags = Py_METH_VARARGS, meth = pyjlreal_round),
-                ],
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        abc = PyRealABC_Type()
-        isnull(abc) && return PyNULL
-        ism1(PyABC_Register(ptr, abc)) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaRealValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaRealValue_New(x::Real) = PyJuliaValue_New(PyJuliaRealValue_Type(), x)
-PyJuliaValue_From(x::Real) = PyJuliaRealValue_New(x)
-
-const PyJuliaRationalValue_Type__ref = Ref(PyNULL)
-PyJuliaRationalValue_Type() = begin
-    ptr = PyJuliaRationalValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaRealValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.RationalValue",
-                base = base,
-                getset = [
-                    (name = "numerator", get = pyjlrational_numerator),
-                    (name = "denominator", get = pyjlrational_denominator),
-                ],
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        abc = PyRationalABC_Type()
-        isnull(abc) && return PyNULL
-        ism1(PyABC_Register(ptr, abc)) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaRationalValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaRationalValue_New(x::Rational) = PyJuliaValue_New(PyJuliaRationalValue_Type(), x)
-PyJuliaValue_From(x::Rational) = PyJuliaRationalValue_New(x)
-
-const PyJuliaIntegerValue_Type__ref = Ref(PyNULL)
-PyJuliaIntegerValue_Type() = begin
-    ptr = PyJuliaIntegerValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaRealValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.IntegerValue",
-                base = base,
-                as_number = (
-                    int = pyjlinteger_int,
-                    index = pyjlinteger_index,
-                    invert = pyjlinteger_invert,
-                ),
-                getset = [
-                    (name = "numerator", get = pyjlinteger_numerator),
-                    (name = "denominator", get = pyjlinteger_denominator),
-                ],
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        abc = PyIntegralABC_Type()
-        isnull(abc) && return PyNULL
-        ism1(PyABC_Register(ptr, abc)) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaIntegerValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaIntegerValue_New(x::Integer) = PyJuliaValue_New(PyJuliaIntegerValue_Type(), x)
-PyJuliaValue_From(x::Integer) = PyJuliaIntegerValue_New(x)
-
 pyjlnumber_bool(xo::PyPtr) =
     try
         iszero(PyJuliaValue_GetValue(xo)::Number) ? Cint(0) : Cint(1)
@@ -424,3 +218,220 @@ pyjlinteger_invert(xo::PyPtr) =
         PyErr_SetJuliaError(err)
         PyNULL
     end
+
+const PyJuliaNumberValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaAnyValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.NumberValue"),
+        base = base,
+        as_number = cacheptr!(c, fill(PyNumberMethods(
+            bool = @cfunctionIO(pyjlnumber_bool),
+            positive = @cfunctionOO(pyjlnumber_positive),
+            negative = @cfunctionOO(pyjlnumber_negative),
+            absolute = @cfunctionOO(pyjlnumber_absolute),
+            power = @cfunctionOOOO(pyjlnumber_power),
+            add = @cfunctionOOO(pyjlnumber_binop(+)),
+            subtract = @cfunctionOOO(pyjlnumber_binop(-)),
+            multiply = @cfunctionOOO(pyjlnumber_binop(*)),
+            truedivide = @cfunctionOOO(pyjlnumber_binop(/)),
+            divmod = @cfunctionOOO(pyjlnumber_binop((x,y)->(fld(x,y), mod(x,y)))),
+            floordivide = @cfunctionOOO(pyjlnumber_binop(fld)),
+            remainder = @cfunctionOOO(pyjlnumber_binop(mod)),
+            lshift = @cfunctionOOO(pyjlnumber_binop(<<)),
+            rshift = @cfunctionOOO(pyjlnumber_binop(>>)),
+            and = @cfunctionOOO(pyjlnumber_binop(&)),
+            xor = @cfunctionOOO(pyjlnumber_binop(⊻)),
+            or = @cfunctionOOO(pyjlnumber_binop(|)),
+        )))
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    abc = PyNumberABC_Type()
+    isnull(abc) && return PyNULL
+    ism1(PyABC_Register(ptr, abc)) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+PyJuliaNumberValue_New(x::Number) = PyJuliaValue_New(PyJuliaNumberValue_Type(), x)
+PyJuliaValue_From(x::Number) = PyJuliaNumberValue_New(x)
+
+const PyJuliaComplexValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaNumberValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.ComplexValue"),
+        base = base,
+        getset = cacheptr!(c, [
+            PyGetSetDef(
+                name = cacheptr!(c, "real"),
+                get = @cfunctionOOP(pyjlcomplex_real),
+            ),
+            PyGetSetDef(
+                name = cacheptr!(c, "imag"),
+                get = @cfunctionOOP(pyjlcomplex_imag),
+            ),
+            PyGetSetDef(),
+        ]),
+        methods = cacheptr!(c, [
+            PyMethodDef(
+                name = cacheptr!(c, "conjugate"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlcomplex_conjugate),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "__complex__"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlcomplex_complex),
+            ),
+            PyMethodDef(),
+        ]),
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    abc = PyComplexABC_Type()
+    isnull(abc) && return PyNULL
+    ism1(PyABC_Register(ptr, abc)) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+PyJuliaComplexValue_New(x::Complex) = PyJuliaValue_New(PyJuliaComplexValue_Type(), x)
+PyJuliaValue_From(x::Complex) = PyJuliaComplexValue_New(x)
+
+const PyJuliaRealValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaNumberValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.RealValue"),
+        base = base,
+        as_number = cacheptr!(c, fill(PyNumberMethods(
+            float = @cfunctionOO(pyjlreal_float),
+        ))),
+        getset = cacheptr!(c, [
+            PyGetSetDef(
+                name = cacheptr!(c, "real"),
+                get = @cfunctionOOP(pyjlreal_real),
+            ),
+            PyGetSetDef(
+                name = cacheptr!(c, "imag"),
+                get = @cfunctionOOP(pyjlreal_imag),
+            ),
+            PyGetSetDef(),
+        ]),
+        methods = cacheptr!(c, [
+            PyMethodDef(
+                name = cacheptr!(c, "conjugate"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlreal_conjugate),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "__complex__"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlreal_complex),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "__trunc__"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlreal_trunc),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "__floor__"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlreal_floor),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "__ceil__"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlreal_ceil),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "__round__"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlreal_round),
+            ),
+            PyMethodDef(),
+        ]),
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    abc = PyRealABC_Type()
+    isnull(abc) && return PyNULL
+    ism1(PyABC_Register(ptr, abc)) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+PyJuliaRealValue_New(x::Real) = PyJuliaValue_New(PyJuliaRealValue_Type(), x)
+PyJuliaValue_From(x::Real) = PyJuliaRealValue_New(x)
+
+const PyJuliaRationalValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaRealValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.RationalValue"),
+        base = base,
+        getset = cacheptr!(c, [
+            PyGetSetDef(
+                name = cacheptr!(c, "numerator"),
+                get = @cfunctionOOP(pyjlrational_numerator),
+            ),
+            PyGetSetDef(
+                name = cacheptr!(c, "denominator"),
+                get = @cfunctionOOP(pyjlrational_denominator),
+            ),
+            PyGetSetDef(),
+        ])
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    abc = PyRationalABC_Type()
+    isnull(abc) && return PyNULL
+    ism1(PyABC_Register(ptr, abc)) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+PyJuliaRationalValue_New(x::Rational) = PyJuliaValue_New(PyJuliaRationalValue_Type(), x)
+PyJuliaValue_From(x::Rational) = PyJuliaRationalValue_New(x)
+
+const PyJuliaIntegerValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaRealValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.IntegerValue"),
+        base = base,
+        as_number = cacheptr!(c, fill(PyNumberMethods(
+            int = @cfunctionOO(pyjlinteger_int),
+            index = @cfunctionOO(pyjlinteger_index),
+            invert = @cfunctionOO(pyjlinteger_invert),
+        ))),
+        getset = cacheptr!(c, [
+            PyGetSetDef(
+                name = cacheptr!(c, "numerator"),
+                get = @cfunctionOOP(pyjlinteger_numerator),
+            ),
+            PyGetSetDef(
+                name = cacheptr!(c, "denominator"),
+                get = @cfunctionOOP(pyjlinteger_denominator),
+            ),
+            PyGetSetDef(),
+        ]),
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    abc = PyIntegralABC_Type()
+    isnull(abc) && return PyNULL
+    ism1(PyABC_Register(ptr, abc)) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+PyJuliaIntegerValue_New(x::Integer) = PyJuliaValue_New(PyJuliaIntegerValue_Type(), x)
+PyJuliaValue_From(x::Integer) = PyJuliaIntegerValue_New(x)

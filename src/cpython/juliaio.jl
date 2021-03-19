@@ -1,184 +1,3 @@
-const PyJuliaIOValue_Type__ref = Ref(PyNULL)
-PyJuliaIOValue_Type() = begin
-    ptr = PyJuliaIOValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaAnyValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.IOValue",
-                base = base,
-                iter = pyjlio_iter,
-                iternext = pyjlio_next,
-                methods = [
-                    (name = "close", flags = Py_METH_NOARGS, meth = pyjlio_close),
-                    (name = "fileno", flags = Py_METH_NOARGS, meth = pyjlio_fileno),
-                    (name = "flush", flags = Py_METH_NOARGS, meth = pyjlio_flush),
-                    (name = "isatty", flags = Py_METH_NOARGS, meth = pyjlio_isatty),
-                    (name = "readable", flags = Py_METH_NOARGS, meth = pyjlio_readable),
-                    (name = "writable", flags = Py_METH_NOARGS, meth = pyjlio_writable),
-                    (name = "tell", flags = Py_METH_NOARGS, meth = pyjlio_tell),
-                    (name = "seek", flags = Py_METH_VARARGS, meth = pyjlio_seek),
-                    (name = "writelines", flags = Py_METH_O, meth = pyjlio_writelines),
-                    (name = "readlines", flags = Py_METH_VARARGS, meth = pyjlio_readlines),
-                    (name = "truncate", flags = Py_METH_VARARGS, meth = pyjlio_truncate),
-                    (name = "seekable", flags = Py_METH_NOARGS, meth = pyjlio_seekable),
-                    (name = "__enter__", flags = Py_METH_NOARGS, meth = pyjlio_enter),
-                    (name = "__exit__", flags = Py_METH_VARARGS, meth = pyjlio_exit),
-                    # extras
-                    (name = "torawio", flags = Py_METH_NOARGS, meth = pyjlio_torawio),
-                    (
-                        name = "tobufferedio",
-                        flags = Py_METH_NOARGS,
-                        meth = pyjlio_tobufferedio,
-                    ),
-                    (name = "totextio", flags = Py_METH_NOARGS, meth = pyjlio_totextio),
-                ],
-                getset = [(name = "closed", get = pyjlio_closed)],
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        abc = PyIOBase_Type()
-        isnull(abc) && return PyNULL
-        ism1(PyABC_Register(ptr, abc)) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaIOValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-const PyJuliaRawIOValue_Type__ref = Ref(PyNULL)
-PyJuliaRawIOValue_Type() = begin
-    ptr = PyJuliaRawIOValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaIOValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.RawIOValue",
-                base = base,
-                methods = [
-                    (name = "write", flags = Py_METH_O, meth = pyjlio_write_bytes),
-                    (name = "readall", flags = Py_METH_VARARGS, meth = pyjlio_read_bytes),
-                    (name = "read", flags = Py_METH_VARARGS, meth = pyjlio_read_bytes),
-                    (
-                        name = "readline",
-                        flags = Py_METH_VARARGS,
-                        meth = pyjlio_readline_bytes,
-                    ),
-                    (name = "readinto", flags = Py_METH_O, meth = pyjlio_readinto),
-                    # extras
-                    (name = "torawio", flags = Py_METH_NOARGS, meth = pyjlio_identity),
-                ],
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        abc = PyRawIOBase_Type()
-        isnull(abc) && return PyNULL
-        ism1(PyABC_Register(ptr, abc)) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaRawIOValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-const PyJuliaBufferedIOValue_Type__ref = Ref(PyNULL)
-PyJuliaBufferedIOValue_Type() = begin
-    ptr = PyJuliaBufferedIOValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaIOValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.BufferedIOValue",
-                base = base,
-                methods = [
-                    (name = "detach", flags = Py_METH_NOARGS, meth = pyjlio_detach),
-                    (name = "write", flags = Py_METH_O, meth = pyjlio_write_bytes),
-                    (name = "read", flags = Py_METH_VARARGS, meth = pyjlio_read_bytes),
-                    (name = "read1", flags = Py_METH_VARARGS, meth = pyjlio_read_bytes),
-                    (
-                        name = "readline",
-                        flags = Py_METH_VARARGS,
-                        meth = pyjlio_readline_bytes,
-                    ),
-                    (name = "readinto", flags = Py_METH_O, meth = pyjlio_readinto),
-                    (name = "readinto1", flags = Py_METH_O, meth = pyjlio_readinto),
-                    # extras
-                    (name = "tobufferedio", flags = Py_METH_NOARGS, meth = pyjlio_identity),
-                ],
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        abc = PyBufferedIOBase_Type()
-        isnull(abc) && return PyNULL
-        ism1(PyABC_Register(ptr, abc)) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaBufferedIOValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-const PyJuliaTextIOValue_Type__ref = Ref(PyNULL)
-PyJuliaTextIOValue_Type() = begin
-    ptr = PyJuliaTextIOValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaIOValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.TextIOValue",
-                base = base,
-                methods = [
-                    (name = "detach", flags = Py_METH_NOARGS, meth = pyjlio_detach),
-                    (name = "write", flags = Py_METH_O, meth = pyjlio_write_str),
-                    (name = "read", flags = Py_METH_VARARGS, meth = pyjlio_read_str),
-                    (
-                        name = "readline",
-                        flags = Py_METH_VARARGS,
-                        meth = pyjlio_readline_str,
-                    ),
-                    # extras
-                    (name = "totextio", flags = Py_METH_NOARGS, meth = pyjlio_identity),
-                ],
-                getset = [
-                    (name = "encoding", get = pyjlio_encoding),
-                    (name = "errors", get = pyjlio_errors),
-                ],
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        abc = PyTextIOBase_Type()
-        isnull(abc) && return PyNULL
-        ism1(PyABC_Register(ptr, abc)) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaTextIOValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaIOValue_New(x::IO) = PyJuliaValue_New(PyJuliaIOValue_Type(), x)
-PyJuliaRawIOValue_New(x::IO) = PyJuliaValue_New(PyJuliaRawIOValue_Type(), x)
-PyJuliaBufferedIOValue_New(x::IO) = PyJuliaValue_New(PyJuliaBufferedIOValue_Type(), x)
-PyJuliaTextIOValue_New(x::IO) = PyJuliaValue_New(PyJuliaTextIOValue_Type(), x)
-PyJuliaValue_From(x::IO) = PyJuliaBufferedIOValue_New(x)
-
 pyjlio_torawio(xo::PyPtr, ::PyPtr) = PyJuliaRawIOValue_New(PyJuliaValue_GetValue(xo)::IO)
 pyjlio_tobufferedio(xo::PyPtr, ::PyPtr) =
     PyJuliaBufferedIOValue_New(PyJuliaValue_GetValue(xo)::IO)
@@ -629,3 +448,289 @@ pyjlio_readline_str(xo::PyPtr, args::PyPtr) = begin
         PyNULL
     end
 end
+
+const PyJuliaIOValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaAnyValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.IOValue"),
+        base = base,
+        iter = @cfunctionOO(pyjlio_iter),
+        iternext = @cfunctionOO(pyjlio_next),
+        methods = cacheptr!(c, [
+            PyMethodDef(
+                name = cacheptr!(c, "close"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_close),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "fileno"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_fileno),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "flush"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_flush),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "isatty"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_isatty),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "readable"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_readable),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "writable"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_writable),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "tell"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_tell),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "seek"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlio_seek),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "writelines"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlio_writelines),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "readlines"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlio_readlines),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "truncate"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlio_truncate),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "seekable"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_seekable),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "__enter__"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_enter),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "__exit__"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlio_exit),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "torawio"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_torawio),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "tobufferedio"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_tobufferedio),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "totextio"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_totextio),
+            ),
+            PyMethodDef(),
+        ]),
+        getset = cacheptr!(c, [
+            PyGetSetDef(
+                name = cacheptr!(c, "closed"),
+                get = @cfunctionOOP(pyjlio_closed),
+            ),
+            PyGetSetDef(),
+        ])
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    abc = PyIOBase_Type()
+    isnull(abc) && return PyNULL
+    ism1(PyABC_Register(ptr, abc)) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+const PyJuliaRawIOValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaIOValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.RawIOValue"),
+        base = base,
+        methods = cacheptr!(c, [
+            PyMethodDef(
+                name = cacheptr!(c, "write"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlio_write_bytes),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "readall"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlio_read_bytes),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "read"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlio_read_bytes),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "readline"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlio_readline_bytes),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "readinto"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlio_readinto),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "torawio"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_identity),
+            ),
+            PyMethodDef(),
+        ]),
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    abc = PyRawIOBase_Type()
+    isnull(abc) && return PyNULL
+    ism1(PyABC_Register(ptr, abc)) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+const PyJuliaBufferedIOValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaIOValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.BufferedIOValue"),
+        base = base,
+        methods = cacheptr!(c, [
+            PyMethodDef(
+                name = cacheptr!(c, "detach"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_detach),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "write"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlio_write_bytes),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "read"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlio_read_bytes),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "read1"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlio_read_bytes),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "readline"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlio_readline_bytes),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "readinto"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlio_readinto),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "readinto1"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlio_readinto),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "tobufferedio"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_identity),
+            ),
+            PyMethodDef(),
+        ])
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    abc = PyBufferedIOBase_Type()
+    isnull(abc) && return PyNULL
+    ism1(PyABC_Register(ptr, abc)) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+const PyJuliaTextIOValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaIOValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.TextIOValue"),
+        base = base,
+        methods = cacheptr!(c, [
+            PyMethodDef(
+                name = cacheptr!(c, "detach"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_detach),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "write"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlio_write_str),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "read"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlio_read_str),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "readline"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlio_readline_str),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "totextio"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlio_identity),
+            ),
+            PyMethodDef(),
+        ]),
+        getset = cacheptr!(c, [
+            PyGetSetDef(
+                name = cacheptr!(c, "encoding"),
+                get = @cfunctionOOP(pyjlio_encoding),
+            ),
+            PyGetSetDef(
+                name = cacheptr!(c, "errors"),
+                get = @cfunctionOOP(pyjlio_errors),
+            ),
+            PyGetSetDef(),
+        ]),
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    abc = PyTextIOBase_Type()
+    isnull(abc) && return PyNULL
+    ism1(PyABC_Register(ptr, abc)) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+PyJuliaIOValue_New(x::IO) = PyJuliaValue_New(PyJuliaIOValue_Type(), x)
+PyJuliaRawIOValue_New(x::IO) = PyJuliaValue_New(PyJuliaRawIOValue_Type(), x)
+PyJuliaBufferedIOValue_New(x::IO) = PyJuliaValue_New(PyJuliaBufferedIOValue_Type(), x)
+PyJuliaTextIOValue_New(x::IO) = PyJuliaValue_New(PyJuliaTextIOValue_Type(), x)
+PyJuliaValue_From(x::IO) = PyJuliaBufferedIOValue_New(x)

@@ -1,5 +1,3 @@
-@init PyObject_TryConvert_AddRule("juliacall.As", Any, PyAs_ConvertRule_tryconvert)
-
 PyAs_ConvertRule_tryconvert(o, ::Type{S}) where {S} = begin
     # get the type
     to = PyObject_GetAttrString(o, "type")

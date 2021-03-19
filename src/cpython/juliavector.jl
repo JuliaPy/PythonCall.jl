@@ -1,54 +1,3 @@
-const PyJuliaVectorValue_Type__ref = Ref(PyNULL)
-PyJuliaVectorValue_Type() = begin
-    ptr = PyJuliaVectorValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaArrayValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.VectorValue",
-                base = base,
-                methods = [
-                    (name = "resize", flags = Py_METH_O, meth = pyjlvector_resize),
-                    (
-                        name = "sort",
-                        flags = Py_METH_KEYWORDS | Py_METH_VARARGS,
-                        meth = pyjlvector_sort,
-                    ),
-                    (name = "reverse", flags = Py_METH_NOARGS, meth = pyjlvector_reverse),
-                    (name = "clear", flags = Py_METH_NOARGS, meth = pyjlvector_clear),
-                    (
-                        name = "__reversed__",
-                        flags = Py_METH_NOARGS,
-                        meth = pyjlvector_reversed,
-                    ),
-                    (name = "insert", flags = Py_METH_VARARGS, meth = pyjlvector_insert),
-                    (name = "append", flags = Py_METH_O, meth = pyjlvector_append),
-                    (name = "extend", flags = Py_METH_O, meth = pyjlvector_extend),
-                    (name = "pop", flags = Py_METH_VARARGS, meth = pyjlvector_pop),
-                    (name = "remove", flags = Py_METH_O, meth = pyjlvector_remove),
-                    (name = "index", flags = Py_METH_O, meth = pyjlvector_index),
-                    (name = "count", flags = Py_METH_O, meth = pyjlvector_count),
-                ],
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        abc = PyMutableSequenceABC_Type()
-        isnull(abc) && return PyNULL
-        ism1(PyABC_Register(ptr, abc)) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaVectorValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaVectorValue_New(x::AbstractVector) = PyJuliaValue_New(PyJuliaVectorValue_Type(), x)
-PyJuliaValue_From(x::AbstractVector) = PyJuliaVectorValue_New(x)
-
 pyjlvector_resize(xo::PyPtr, arg::PyPtr) =
     try
         x = PyJuliaValue_GetValue(xo)::AbstractVector
@@ -244,3 +193,86 @@ pyjlvector_count(xo::PyPtr, vo::PyPtr) = begin
         PyNULL
     end
 end
+
+const PyJuliaVectorValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaArrayValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.VectorValue"),
+        base = base,
+        methods = cacheptr!(c, [
+            PyMethodDef(
+                name = cacheptr!(c, "resize"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlvector_resize),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "sort"),
+                flags = Py_METH_VARARGS | Py_METH_VARARGS,
+                meth = @cfunctionOOOO(pyjlvector_sort),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "reverse"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlvector_reverse),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "clear"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlvector_clear),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "__reversed__"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlvector_reversed),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "insert"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlvector_insert),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "append"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlvector_append),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "extend"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlvector_extend),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "pop"),
+                flags = Py_METH_VARARGS,
+                meth = @cfunctionOOO(pyjlvector_pop),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "remove"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlvector_remove),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "index"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlvector_index),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "count"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlvector_count),
+            ),
+            PyMethodDef(),
+        ])
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    abc = PyMutableSequenceABC_Type()
+    isnull(abc) && return PyNULL
+    ism1(PyABC_Register(ptr, abc)) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+PyJuliaVectorValue_New(x::AbstractVector) = PyJuliaValue_New(PyJuliaVectorValue_Type(), x)
+PyJuliaValue_From(x::AbstractVector) = PyJuliaVectorValue_New(x)

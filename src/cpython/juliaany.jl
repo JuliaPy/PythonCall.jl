@@ -1,68 +1,3 @@
-const PyJuliaAnyValue_Type__ref = Ref(PyNULL)
-PyJuliaAnyValue_Type() = begin
-    ptr = PyJuliaAnyValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaBaseValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.AnyValue",
-                base = base,
-                repr = pyjlany_repr,
-                str = pyjlany_str,
-                getattro = pyjlany_getattro,
-                setattro = pyjlany_setattro,
-                call = pyjlany_call,
-                iter = pyjlany_iter,
-                richcompare = pyjlany_richcompare,
-                as_mapping = (
-                    length = pyjlany_length,
-                    subscript = pyjlany_getitem,
-                    ass_subscript = pyjlany_setitem,
-                ),
-                as_sequence = (contains = pyjlany_contains,),
-                as_number = (
-                    positive = pyjlany_positive,
-                    negative = pyjlany_negative,
-                    absolute = pyjlany_absolute,
-                    power = pyjlany_power,
-                    add = pyjlany_binop(+),
-                    subtract = pyjlany_binop(-),
-                    multiply = pyjlany_binop(*),
-                    truedivide = pyjlany_binop(/),
-                    divmod = pyjlany_binop((x, y) -> (fld(x, y), mod(x, y))),
-                    floordivide = pyjlany_binop(fld),
-                    remainder = pyjlany_binop(mod),
-                    lshift = pyjlany_binop(<<),
-                    rshift = pyjlany_binop(>>),
-                    and = pyjlany_binop(&),
-                    xor = pyjlany_binop(xor),
-                    or = pyjlany_binop(|),
-                ),
-                methods = [
-                    (name = "__dir__", flags = Py_METH_NOARGS, meth = pyjlany_dir),
-                    (name = "_repr_mimebundle_", flags = Py_METH_VARARGS | Py_METH_KEYWORDS, meth = pyjlany_repr_mimebundle),
-                    (name = "_jl_raw", flags = Py_METH_NOARGS, meth = pyjlany_toraw),
-                    (name = "_jl_display", flags = Py_METH_NOARGS, meth = pyjlany_display),
-                    (name = "_jl_help", flags = Py_METH_NOARGS, meth = pyjlany_help),
-                ],
-                getset = [(name = "__name__", get = pyjlany_name)],
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaAnyValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaAnyValue_New(x) = PyJuliaValue_New(PyJuliaAnyValue_Type(), x)
-PyJuliaValue_From(x) = PyJuliaAnyValue_New(x)
-
 pyjlany_repr(xo::PyPtr) =
     try
         x = PyJuliaValue_GetValue(xo)
@@ -552,4 +487,89 @@ pyjlany_power(xo::PyPtr, yo::PyPtr, zo::PyPtr) = begin
             end
         end
     end
+end
+
+PyJuliaAnyValue_New(x) = PyJuliaValue_New(PyJuliaAnyValue_Type(), x)
+PyJuliaValue_From(x) = PyJuliaAnyValue_New(x)
+
+const PyJuliaAnyValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaBaseValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.AnyValue"),
+        base = base,
+        repr = @cfunctionOO(pyjlany_repr),
+        str = @cfunctionOO(pyjlany_str),
+        getattro = @cfunctionOOO(pyjlany_getattro),
+        setattro = @cfunctionIOOO(pyjlany_setattro),
+        call = @cfunctionOOOO(pyjlany_call),
+        iter = @cfunctionOO(pyjlany_iter),
+        richcompare = @cfunctionOOOI(pyjlany_richcompare),
+        as_mapping = cacheptr!(c, fill(PyMappingMethods(
+            length = @cfunctionZO(pyjlany_length),
+            subscript = @cfunctionOOO(pyjlany_getitem),
+            ass_subscript = @cfunctionIOOO(pyjlany_setitem),
+        ))),
+        as_sequence = cacheptr!(c, fill(PySequenceMethods(
+            contains = @cfunctionIOO(pyjlany_contains),
+        ))),
+        as_number = cacheptr!(c, fill(PyNumberMethods(
+            positive = @cfunctionOO(pyjlany_positive),
+            negative = @cfunctionOO(pyjlany_negative),
+            absolute = @cfunctionOO(pyjlany_absolute),
+            power = @cfunctionOOOO(pyjlany_power),
+            add = @cfunctionOOO(pyjlany_binop(+)),
+            subtract = @cfunctionOOO(pyjlany_binop(-)),
+            multiply = @cfunctionOOO(pyjlany_binop(*)),
+            truedivide = @cfunctionOOO(pyjlany_binop(/)),
+            divmod = @cfunctionOOO(pyjlany_binop((x,y) -> (fld(x,y), mod(x,y)))),
+            floordivide = @cfunctionOOO(pyjlany_binop(fld)),
+            remainder = @cfunctionOOO(pyjlany_binop(mod)),
+            lshift = @cfunctionOOO(pyjlany_binop(<<)),
+            rshift = @cfunctionOOO(pyjlany_binop(>>)),
+            and = @cfunctionOOO(pyjlany_binop(&)),
+            xor = @cfunctionOOO(pyjlany_binop(⊻)),
+            or = @cfunctionOOO(pyjlany_binop(|)),
+        ))),
+        methods = cacheptr!(c, [
+            PyMethodDef(
+                name = cacheptr!(c, "__dir__"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlany_dir),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "_repr_mimebundle_"),
+                flags = Py_METH_VARARGS | Py_METH_KEYWORDS,
+                meth = @cfunctionOOOO(pyjlany_repr_mimebundle),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "_jl_raw"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlany_toraw),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "_jl_display"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlany_display),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "_jl_help"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlany_help),
+            ),
+            PyMethodDef(),
+        ]),
+        getset = cacheptr!(c, [
+            PyGetSetDef(
+                name = cacheptr!(c, "__name__"),
+                get = @cfunctionOOP(pyjlany_name),
+            ),
+            PyGetSetDef(),
+        ])
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
 end

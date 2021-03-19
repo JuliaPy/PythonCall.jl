@@ -1,52 +1,3 @@
-const PyJuliaArrayValue_Type__ref = Ref(PyNULL)
-PyJuliaArrayValue_Type() = begin
-    ptr = PyJuliaArrayValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaAnyValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.ArrayValue",
-                base = base,
-                as_mapping = (
-                    subscript = pyjlarray_getitem,
-                    ass_subscript = pyjlarray_setitem,
-                ),
-                as_buffer = (
-                    get = pyjlarray_get_buffer,
-                    release = pyjlarray_release_buffer,
-                ),
-                getset = [
-                    (name = "ndim", get = pyjlarray_ndim),
-                    (name = "shape", get = pyjlarray_shape),
-                    (name = "__array_interface__", get = pyjlarray_array_interface),
-                ],
-                methods = [
-                    (name = "copy", flags = Py_METH_NOARGS, meth = pyjlarray_copy),
-                    (name = "reshape", flags = Py_METH_O, meth = pyjlarray_reshape),
-                    (name = "__array__", flags = Py_METH_NOARGS, meth = pyjlarray_array),
-                ],
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        for abcf in (CONFIG.version < v"3.6" ? (PyContainerABC_Type, PyIterableABC_Type, PySizedABC_Type) : (PyCollectionABC_Type,))
-            abc = abcf()
-            isnull(abc) && return PyNULL
-            ism1(PyABC_Register(ptr, abc)) && return PyNULL
-        end
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaArrayValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaArrayValue_New(x::AbstractArray) = PyJuliaValue_New(PyJuliaArrayValue_Type(), x)
-PyJuliaValue_From(x::AbstractArray) = PyJuliaArrayValue_New(x)
-
 pyjl_getaxisindex(x::AbstractUnitRange{<:Integer}, ko::PyPtr) = begin
     if PySlice_Check(ko)
         ao, co, bo = PySimpleObject_GetValue(ko, Tuple{PyPtr,PyPtr,PyPtr})
@@ -504,3 +455,66 @@ pyjlarray_array(xo::PyPtr, ::PyPtr) = begin
         ao
     end
 end
+
+const PyJuliaArrayValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaAnyValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.ArrayValue"),
+        base = base,
+        as_mapping = cacheptr!(c, fill(PyMappingMethods(
+            subscript = @cfunctionOOO(pyjlarray_getitem),
+            ass_subscript = @cfunctionIOOO(pyjlarray_setitem),
+        ))),
+        as_buffer = cacheptr!(c, fill(PyBufferProcs(
+            get = @cfunction(pyjlarray_get_buffer, Cint, (PyPtr, Ptr{Py_buffer}, Cint)),
+            release = @cfunction(pyjlarray_release_buffer, Cvoid, (PyPtr, Ptr{Py_buffer})),
+        ))),
+        getset = cacheptr!(c, [
+            PyGetSetDef(
+                name = cacheptr!(c, "ndim"),
+                get = @cfunctionOOP(pyjlarray_ndim),
+            ),
+            PyGetSetDef(
+                name = cacheptr!(c, "shape"),
+                get = @cfunctionOOP(pyjlarray_shape),
+            ),
+            PyGetSetDef(
+                name = cacheptr!(c, "__array_interface__"),
+                get = @cfunctionOOP(pyjlarray_array_interface),
+            ),
+            PyGetSetDef(),
+        ]),
+        methods = cacheptr!(c, [
+            PyMethodDef(
+                name = cacheptr!(c, "copy"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlarray_copy),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "reshape"),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlarray_reshape),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "__array__"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlarray_array),
+            ),
+            PyMethodDef(),
+        ])
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    for abcf in (CONFIG.version < v"3.6" ? (PyContainerABC_Type, PyIterableABC_Type, PySizedABC_Type) : (PyCollectionABC_Type,))
+        abc = abcf()
+        isnull(abc) && return PyNULL
+        ism1(PyABC_Register(ptr, abc)) && return PyNULL
+    end
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+PyJuliaArrayValue_New(x::AbstractArray) = PyJuliaValue_New(PyJuliaArrayValue_Type(), x)
+PyJuliaValue_From(x::AbstractArray) = PyJuliaArrayValue_New(x)

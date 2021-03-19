@@ -328,5 +328,4 @@ init() = begin
     @debug "Initialized PythonCall.jl" CONFIG.isembedded CONFIG.isinitialized CONFIG.exepath CONFIG.libpath CONFIG.libptr CONFIG.pyprogname CONFIG.pyhome CONFIG.version CONFIG.isconda CONFIG.condaenv
 end
 precompile(init, ())
-
 @init init()

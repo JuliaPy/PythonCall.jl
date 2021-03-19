@@ -1,42 +1,3 @@
-const PyJuliaRawValue_Type__ref = Ref(PyNULL)
-PyJuliaRawValue_Type() = begin
-    ptr = PyJuliaRawValue_Type__ref[]
-    if isnull(ptr)
-        c = []
-        base = PyJuliaBaseValue_Type()
-        isnull(base) && return PyNULL
-        t = fill(
-            PyType_Create(
-                c,
-                name = "juliacall.RawValue",
-                base = base,
-                repr = pyjlraw_repr,
-                str = pyjlraw_str,
-                getattro = pyjlraw_getattro,
-                setattro = pyjlraw_setattro,
-                call = pyjlraw_call,
-                as_mapping = (
-                    length = pyjlraw_length,
-                    subscript = pyjlraw_getitem,
-                    ass_subscript = pyjlraw_setitem,
-                ),
-                methods = [
-                    (name = "__dir__", flags = Py_METH_NOARGS, meth = pyjlraw_dir),
-                    (name = "_jl_any", flags = Py_METH_NOARGS, meth = pyjlraw_toany),
-                ],
-            ),
-        )
-        ptr = PyPtr(pointer(t))
-        err = PyType_Ready(ptr)
-        ism1(err) && return PyNULL
-        PYJLGCCACHE[ptr] = push!(c, t)
-        PyJuliaRawValue_Type__ref[] = ptr
-    end
-    ptr
-end
-
-PyJuliaRawValue_New(x) = PyJuliaValue_New(PyJuliaRawValue_Type(), x)
-
 pyjlraw_repr(xo::PyPtr) =
     try
         x = PyJuliaValue_GetValue(xo)
@@ -213,3 +174,42 @@ pyjlraw_setitem(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
 end
 
 pyjlraw_toany(xo::PyPtr, ::PyPtr) = PyJuliaValue_From(PyJuliaValue_GetValue(xo))
+
+const PyJuliaRawValue_Type = LazyPyObject() do
+    c = []
+    base = PyJuliaBaseValue_Type()
+    isnull(base) && return PyNULL
+    ptr = PyPtr(cacheptr!(c, fill(PyTypeObject(
+        name = cacheptr!(c, "juliacall.RawValue"),
+        base = base,
+        repr = @cfunctionOO(pyjlraw_repr),
+        str = @cfunctionOO(pyjlraw_str),
+        getattro = @cfunctionOOO(pyjlraw_getattro),
+        setattro = @cfunctionIOOO(pyjlraw_setattro),
+        call = @cfunctionOOOO(pyjlraw_call),
+        as_mapping = cacheptr!(c, fill(PyMappingMethods(
+            length = @cfunctionZO(pyjlraw_length),
+            subscript = @cfunctionOOO(pyjlraw_getitem),
+            ass_subscript = @cfunctionIOOO(pyjlraw_setitem),
+        ))),
+        methods = cacheptr!(c, [
+            PyMethodDef(
+                name = cacheptr!(c, "__dir__"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlraw_dir),
+            ),
+            PyMethodDef(
+                name = cacheptr!(c, "_jl_any"),
+                flags = Py_METH_NOARGS,
+                meth = @cfunctionOOO(pyjlraw_toany),
+            ),
+            PyMethodDef(),
+        ])
+    ))))
+    err = PyType_Ready(ptr)
+    ism1(err) && return PyNULL
+    PYJLGCCACHE[ptr] = c
+    return ptr
+end
+
+PyJuliaRawValue_New(x) = PyJuliaValue_New(PyJuliaRawValue_Type(), x)

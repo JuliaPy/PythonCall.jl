@@ -34,112 +34,42 @@ end
 
 pyjlio_close(xo::PyPtr, ::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::IO
-    try
-        close(x)
-        PyNone_New()
-    catch err
-        if err isa MethodError && err.f === close
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    @pyjltry (close(x); PyNone_New()) PyNULL (MethodError, close)=>ValueError
 end
 
 pyjlio_closed(xo::PyPtr, ::Ptr{Cvoid}) = begin
     x = PyJuliaValue_GetValue(xo)::IO
-    try
-        PyObject_From(!isopen(x))
-    catch err
-        if err isa MethodError && err.f === isopen
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    @pyjltry PyObject_From(!isopen(x)) PyNULL (MethodError, isopen)=>ValueError
 end
 
 pyjlio_fileno(xo::PyPtr, ::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::IO
-    try
-        PyObject_From(fd(x))
-    catch err
-        if err isa MethodError && err.f === fd
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    @pyjltry PyObject_From(fd(x)) PyNULL (MethodError, fd)=>ValueError
 end
 
 pyjlio_flush(xo::PyPtr, ::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::IO
-    try
-        flush(x)
-        PyNone_New()
-    catch err
-        if err isa MethodError && err.f === flush
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    @pyjltry (flush(x); PyNone_New()) PyNULL (MethodError, flush)=>ValueError
 end
 
 pyjlio_isatty(xo::PyPtr, ::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::IO
-    try
-        PyObject_From(x isa Base.TTY)
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    @pyjltry PyObject_From(x isa Base.TTY) PyNULL
 end
 
 pyjlio_readable(xo::PyPtr, ::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::IO
-    try
-        PyObject_From(isreadable(x))
-    catch err
-        if err isa MethodError && err.f === isreadable
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    @pyjltry PyObject_From(isreadable(x)) PyNULL (MethodError, isreadable)=>ValueError
 end
 
 pyjlio_writable(xo::PyPtr, ::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::IO
-    try
-        PyObject_From(iswritable(x))
-    catch err
-        if err isa MethodError && err.f === iswritable
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    @pyjltry PyObject_From(iswritable(x)) PyNULL (MethodError, iswritable)=>ValueError
 end
 
 pyjlio_tell(xo::PyPtr, ::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::IO
-    try
-        PyObject_From(position(x))
-    catch err
-        if err isa MethodError && err.f === position
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    @pyjltry PyObject_From(position(x)) PyNULL (MethodError, position)=>ValueError
 end
 
 pyjlio_seek(xo::PyPtr, args::PyPtr) = begin
@@ -149,7 +79,7 @@ pyjlio_seek(xo::PyPtr, args::PyPtr) = begin
     n = takeresult(Int)
     ism1(PyArg_GetArg(Int, "seek", args, 1, 0)) && return PyNULL
     w = takeresult(Int)
-    try
+    @pyjltry begin
         if w == 0
             seek(x, n)
         elseif w == 1
@@ -162,14 +92,7 @@ pyjlio_seek(xo::PyPtr, args::PyPtr) = begin
             return PyNULL
         end
         PyObject_From(position(x))
-    catch err
-        if err isa MethodError && (err.f === seek || err.f === position || err.f === seekend)
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    end PyNULL (MethodError, seek, position, seekend)=>ValueError
 end
 
 pyjlio_writelines(xo::PyPtr, lines::PyPtr) = begin
@@ -212,18 +135,11 @@ pyjlio_truncate(xo::PyPtr, args::PyPtr) = begin
         return PyNULL
     n = takeresult(Union{Int,Nothing})
     x = PyJuliaValue_GetValue(xo)::IO
-    try
+    @pyjltry begin
         m = n === nothing ? position(x) : n
         truncate(x, m)
         PyObject_From(m)
-    catch err
-        if err isa MethodError && (err.f === truncate || err.f === position)
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    end PyNULL (MethodError, truncate, position)=>ValueError
 end
 
 pyjlio_seekable(xo::PyPtr, ::PyPtr) = begin
@@ -242,19 +158,10 @@ pyjlio_write_bytes(xo::PyPtr, bo::PyPtr) = begin
     b = Ref(Py_buffer())
     ism1(PyObject_GetBuffer(bo, b, PyBUF_SIMPLE)) && return PyNULL
     s = unsafe_wrap(Vector{UInt8}, Ptr{UInt8}(b[].buf), b[].len)
-    try
+    @pyjltry begin
         write(x, s)
         PyObject_From(length(s))
-    catch err
-        if err isa MethodError && err.f === write
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    finally
-        PyBuffer_Release(b)
-    end
+    end PyNULL (MethodError, write)=>ValueError Finally=>PyBuffer_Release(b)
 end
 
 pyjlio_write_str(xo::PyPtr, so::PyPtr) = begin
@@ -263,7 +170,7 @@ pyjlio_write_str(xo::PyPtr, so::PyPtr) = begin
     s = takeresult(String)
     sep = ""
     havesep = false
-    try
+    @pyjltry begin
         i = firstindex(s)
         while true
             j = findnext('\n', s, i)
@@ -291,14 +198,7 @@ pyjlio_write_str(xo::PyPtr, so::PyPtr) = begin
             end
         end
         PyObject_From(length(s))
-    catch err
-        if err isa MethodError && err.f === write
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    end PyNULL (MethodError, write)=>ValueError
 end
 
 pyjlio_readinto(xo::PyPtr, bo::PyPtr) = begin
@@ -306,18 +206,7 @@ pyjlio_readinto(xo::PyPtr, bo::PyPtr) = begin
     ism1(PyObject_GetBuffer(bo, b, PyBUF_WRITABLE)) && return PyNULL
     x = PyJuliaValue_GetValue(xo)::IO
     a = unsafe_wrap(Vector{UInt8}, Ptr{UInt8}(b[].buf), b[].len)
-    try
-        PyObject_From(readbytes!(x, a, length(a)))
-    catch err
-        if err isa MethodError && err.f === readbytes!
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    finally
-        PyBuffer_Release(b)
-    end
+    @pyjltry PyObject_From(readbytes!(x, a, length(a))) PyNULL (MethodError, readbytes!)=>ValueError Finally=>PyBuffer_Release(b)
 end
 
 readpybytes(io::IO, limit = nothing) = begin
@@ -335,16 +224,9 @@ pyjlio_read_bytes(xo::PyPtr, args::PyPtr) = begin
     ism1(PyArg_GetArg(Union{Int,Nothing}, "read", args, 0, nothing)) && return PyNULL
     limit = takeresult(Union{Int,Nothing})
     x = PyJuliaValue_GetValue(xo)::IO
-    try
+    @pyjltry begin
         PyBytes_From(readpybytes(x, (limit === nothing || limit < 0) ? nothing : limit))
-    catch err
-        if err isa MethodError && (err.f === eof || err.f === read || err.f === peek)
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    end PyNULL (MethodError, eof, read, peek)=>ValueError
 end
 
 readpystr(io::IO, limit = nothing) = begin
@@ -370,16 +252,9 @@ pyjlio_read_str(xo::PyPtr, args::PyPtr) = begin
     ism1(PyArg_GetArg(Union{Int,Nothing}, "read", args, 0, nothing)) && return PyNULL
     limit = takeresult(Union{Int,Nothing})
     x = PyJuliaValue_GetValue(xo)::IO
-    try
+    @pyjltry begin
         PyObject_From(readpystr(x, (limit === nothing || limit < 0) ? nothing : limit))
-    catch err
-        if err isa MethodError && (err.f === eof || err.f === read || err.f === peek)
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    end PyNULL (MethodError, eof, read, peek)=>ValueError
 end
 
 readpybyteline(io::IO, limit = nothing) = begin
@@ -399,16 +274,9 @@ pyjlio_readline_bytes(xo::PyPtr, args::PyPtr) = begin
         return PyNULL
     limit = takeresult(Union{Int,Nothing})
     x = PyJuliaValue_GetValue(xo)::IO
-    try
+    @pyjltry begin
         PyBytes_From(readpybyteline(x, (limit === nothing || limit < 0) ? nothing : limit))
-    catch err
-        if err isa MethodError && (err.f === eof || err.f === read || err.f === peek)
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    end PyNULL (MethodError, eof, read, peek)=>ValueError
 end
 
 readpyline(io::IO, limit = nothing) = begin
@@ -437,16 +305,9 @@ pyjlio_readline_str(xo::PyPtr, args::PyPtr) = begin
         return PyNULL
     limit = takeresult(Union{Int,Nothing})
     x = PyJuliaValue_GetValue(xo)::IO
-    try
+    @pyjltry begin
         PyObject_From(readpyline(x, (limit === nothing || limit < 0) ? nothing : limit))
-    catch err
-        if err isa MethodError && (err.f === eof || err.f === read || err.f === peek)
-            PyErr_SetStringFromJuliaError(PyExc_ValueError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    end PyNULL (MethodError, eof, read, peek)=>ValueError
 end
 
 const PyJuliaIOValue_Type = LazyPyObject() do

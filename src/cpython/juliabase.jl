@@ -100,3 +100,58 @@ PyJuliaValue_TryConvert_any(o, ::Type{S}) where {S} = begin
     x = PyJuliaValue_GetValue(o)
     putresult(tryconvert(S, x))
 end
+
+macro pyjltry(body, errval, handlers...)
+    handlercode = []
+    finalcode = nothing
+    for handler in handlers
+        handler isa Expr && handler.head === :call && handler.args[1] == :(=>) || error("invalid handler: $handler (not a pair)")
+        jt, pt = handler.args[2:end]
+        if jt === :Finally
+            finalcode = esc(pt)
+            break
+        end
+        if jt isa Expr && jt.head === :tuple
+            args = jt.args[2:end]
+            jt = jt.args[1]
+        else
+            args = []
+        end
+        if jt === :MethodError
+            if length(args) == 0
+                cond = :(err isa MethodError)
+            elseif length(args) == 1
+                cond = :(err isa MethodError && err.f === $(esc(args[1])))
+            elseif length(args) == 2
+                cond = :(err isa MethodError && (err.f === $(esc(args[1])) || err.f === $(esc(args[2]))))
+            elseif length(args) == 3
+                cond = :(err isa MethodError && (err.f === $(esc(args[1])) || err.f === $(esc(args[2])) || err.f === $(esc(args[3]))))
+            else
+                error("more than two methods not implemented")
+            end
+        else
+            error("invalid handler: $handler (bad julia error type)")
+        end
+        if pt === :JuliaError
+            seterr = :(PyErr_SetJuliaError(err))
+        elseif pt === :TypeError
+            seterr = :(PyErr_SetStringFromJuliaError(PyExc_ValueError(), err))
+        elseif pt === :ValueError
+            seterr = :(PyErr_SetStringFromJuliaError(PyExc_ValueError(), err))
+        else
+            error("invalid handler: $handler (bad python error type)")
+        end
+        push!(handlercode, :($cond && ($seterr; return $(esc(errval)))))
+    end
+    quote
+        try
+            $(esc(body))
+        catch err
+            $(handlercode...)
+            PyErr_SetJuliaError(err)
+            return $(esc(errval))
+        finally
+            $finalcode
+        end
+    end
+end

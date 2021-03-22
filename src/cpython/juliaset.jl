@@ -2,13 +2,10 @@ pyjlset_add(xo::PyPtr, vo::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractSet
     ism1(PyObject_Convert(vo, eltype(x))) && return PyNULL
     v = takeresult(eltype(x))
-    try
+    @pyjltry begin
         push!(x, v)
         PyNone_New()
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjlset_discard(xo::PyPtr, vo::PyPtr) = begin
@@ -17,49 +14,35 @@ pyjlset_discard(xo::PyPtr, vo::PyPtr) = begin
     r == -1 && return PyNULL
     r == 0 && return PyNone_New()
     v = takeresult(eltype(x))
-    try
+    @pyjltry begin
         delete!(x, v)
         PyNone_New()
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjlset_clear(xo::PyPtr, _::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractSet
-    try
+    @pyjltry begin
         empty!(x)
         PyNone_New()
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjlset_copy(xo::PyPtr, _::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractSet
-    try
-        PyObject_From(copy(x))
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    @pyjltry PyObject_From(copy(x)) PyNULL
 end
 
 pyjlset_pop(xo::PyPtr, _::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractSet
-    try
+    @pyjltry begin
         if isempty(x)
             PyErr_SetString(PyExc_KeyError(), "pop from an empty set")
             PyNULL
         else
             PyObject_From(pop!(x))
         end
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjlset_remove(xo::PyPtr, vo::PyPtr) = begin
@@ -72,7 +55,7 @@ pyjlset_remove(xo::PyPtr, vo::PyPtr) = begin
         return PyNULL
     end
     v = takeresult(eltype(x))
-    try
+    @pyjltry begin
         if v in x
             delete!(x, v)
             PyNone_New()
@@ -80,23 +63,17 @@ pyjlset_remove(xo::PyPtr, vo::PyPtr) = begin
             PyErr_SetObject(PyExc_KeyError(), vo)
             PyNULL
         end
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjlset_ibinop_named(xo, yo, op, skip) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractSet
     y = PyIterable_Collect(yo, eltype(x), skip)
     isempty(y) && PyErr_IsSet() && return PyNULL
-    try
+    @pyjltry begin
         op(x, y)
         PyNone_New()
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 pyjlset_update(xo, yo) = pyjlset_ibinop_named(xo, yo, union!, false)
 pyjlset_difference_update(xo, yo) = pyjlset_ibinop_named(xo, yo, setdiff!, true)
@@ -110,12 +87,7 @@ pyjlset_intersection_update(xo, yo) = pyjlset_ibinop_named(xo, yo, intersect!, t
 #     x = PyJuliaValue_GetValue(xo)::AbstractSet
 #     y = PyIterable_Collect(yo, eltype(x), skip)
 #     isempty(y) && PyErr_IsSet() && return PyNULL
-#     try
-#         PyObject_From(op(x, y))
-#     catch err
-#         PyErr_SetJuliaError(err)
-#         PyNULL
-#     end
+#     @pyjltry PyObject_From(op(x, y)) PyNULL
 # end
 # pyjlset_ior(xo, yo) = pyjlset_ibinop_operator(xo, yo, union!, false)
 # pyjlset_isub(xo, yo) = pyjlset_ibinop_operator(xo, yo, setdiff!, true)
@@ -140,12 +112,7 @@ pyjlset_sub_generic(xo, yo) = pyjlset_binop_generic(xo, yo, PyNumber_InPlaceSubt
 pyjlset_binop_special(xo::PyPtr, yo::PyPtr, op) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractSet
     y = PyJuliaValue_GetValue(yo)::AbstractSet
-    try
-        PyObject_From(op(x, y))
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    @pyjltry PyObject_From(op(x, y)) PyNULL
 end
 pyjlset_or_special(xo, yo) = pyjlset_binop_special(xo, yo, union)
 pyjlset_xor_special(xo, yo) = pyjlset_binop_special(xo, yo, symdiff)

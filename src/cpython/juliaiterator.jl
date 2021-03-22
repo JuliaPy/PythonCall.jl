@@ -9,7 +9,7 @@ pyjliter_iter(xo::PyPtr) =
     PyJuliaIteratorValue_New(Iterator((PyJuliaValue_GetValue(xo)::Iterator).val))
 
 pyjliter_iternext(xo::PyPtr) =
-    try
+    @pyjltry begin
         x = PyJuliaValue_GetValue(xo)::Iterator
         val = x.val
         st = x.st
@@ -25,14 +25,7 @@ pyjliter_iternext(xo::PyPtr) =
             x.st = Some(newst)
             PyObject_From(r)
         end
-    catch err
-        if err isa MethodError && err.f === iterate
-            PyErr_SetStringFromJuliaError(PyExc_TypeError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    end PyNULL (MethodError, iterate)=>TypeError
 
 const PyJuliaIteratorValue_Type = LazyPyObject() do
     c = []

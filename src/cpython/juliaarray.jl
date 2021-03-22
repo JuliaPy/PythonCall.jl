@@ -92,27 +92,20 @@ pyjlarray_getitem(xo::PyPtr, ko::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractArray
     k = pyjl_getarrayindices(x, ko)
     k === PYERR() && return PyNULL
-    try
+    @pyjltry begin
         if all(x -> x isa Int, k)
             PyObject_From(x[k...])
         else
             PyObject_From(view(x, k...))
         end
-    catch err
-        if err isa BoundsError && err.a === x
-            PyErr_SetStringFromJuliaError(PyExc_IndexError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    end PyNULL (BoundsError, x)=>IndexError
 end
 
 pyjlarray_setitem(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractArray
     k = pyjl_getarrayindices(x, ko)
     k === PYERR() && return Cint(-1)
-    try
+    @pyjltry begin
         if isnull(vo)
             deleteat!(x, k...)
             Cint(0)
@@ -127,16 +120,7 @@ pyjlarray_setitem(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
                 Cint(-1)
             end
         end
-    catch err
-        if err isa BoundsError && err.a === x
-            PyErr_SetStringFromJuliaError(PyExc_IndexError(), err)
-        elseif err isa MethodError && err.f === deleteat!
-            PyErr_SetStringFromJuliaError(PyExc_TypeError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        Cint(-1)
-    end
+    end Cint(-1) (BoundsError, x)=>IndexError (MethodError, deleteat!)=>TypeError
 end
 
 pyjlarray_ndim(xo::PyPtr, ::Ptr) = begin
@@ -150,16 +134,13 @@ pyjlarray_shape(xo::PyPtr, ::Ptr) = begin
 end
 
 pyjlarray_copy(xo::PyPtr, ::PyPtr) =
-    try
+    @pyjltry begin
         x = PyJuliaValue_GetValue(xo)::AbstractArray
         PyObject_From(copy(x))
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 
 pyjlarray_reshape(xo::PyPtr, arg::PyPtr) =
-    try
+    @pyjltry begin
         x = PyJuliaValue_GetValue(xo)::AbstractArray
         r = PyObject_TryConvert(arg, Union{Int,Tuple{Vararg{Int}}})
         r == -1 && return PyNULL
@@ -171,10 +152,7 @@ pyjlarray_reshape(xo::PyPtr, arg::PyPtr) =
             return PyNULL
         )
         PyObject_From(reshape(x, takeresult()...))
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 
 ### Buffer Protocol
 

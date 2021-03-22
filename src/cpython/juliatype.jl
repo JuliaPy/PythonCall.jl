@@ -4,22 +4,12 @@ pyjltype_getitem(xo::PyPtr, ko::PyPtr) = begin
         r = PyObject_Convert(ko, Tuple)
         ism1(r) && return PyNULL
         k = takeresult(Tuple)
-        try
-            PyObject_From(x{k...})
-        catch err
-            PyErr_SetJuliaError(err)
-            PyNULL
-        end
+        @pyjltry PyObject_From(x{k...}) PyNULL
     else
         r = PyObject_Convert(ko, Any)
         ism1(r) && return PyNULL
         k = takeresult(Any)
-        try
-            PyObject_From(x{k})
-        catch err
-            PyErr_SetJuliaError(err)
-            PyNULL
-        end
+        @pyjltry PyObject_From(x{k}) PyNULL
     end
 end
 

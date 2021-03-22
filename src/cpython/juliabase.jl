@@ -103,12 +103,15 @@ end
 
 macro pyjltry(body, errval, handlers...)
     handlercode = []
-    finalcode = nothing
+    finalcode = []
     for handler in handlers
         handler isa Expr && handler.head === :call && handler.args[1] == :(=>) || error("invalid handler: $handler (not a pair)")
         jt, pt = handler.args[2:end]
         if jt === :Finally
-            finalcode = esc(pt)
+            push!(finalcode, esc(pt))
+            break
+        elseif jt === :OnErr
+            push!(handlercode, esc(pt))
             break
         end
         if jt isa Expr && jt.head === :tuple
@@ -126,18 +129,64 @@ macro pyjltry(body, errval, handlers...)
                 cond = :(err isa MethodError && (err.f === $(esc(args[1])) || err.f === $(esc(args[2]))))
             elseif length(args) == 3
                 cond = :(err isa MethodError && (err.f === $(esc(args[1])) || err.f === $(esc(args[2])) || err.f === $(esc(args[3]))))
+            elseif length(args) == 4
+                cond = :(err isa MethodError && (err.f === $(esc(args[1])) || err.f === $(esc(args[2])) || err.f === $(esc(args[3])) || err.f === $(esc(args[4]))))
+            elseif length(args) == 5
+                cond = :(err isa MethodError && (err.f === $(esc(args[1])) || err.f === $(esc(args[2])) || err.f === $(esc(args[3])) || err.f === $(esc(args[4])) || err.f === $(esc(args[5]))))
+            elseif length(args) == 6
+                cond = :(err isa MethodError && (err.f === $(esc(args[1])) || err.f === $(esc(args[2])) || err.f === $(esc(args[3])) || err.f === $(esc(args[4])) || err.f === $(esc(args[5])) || err.f === $(esc(args[6]))))
             else
-                error("more than two methods not implemented")
+                error("not implemented: more than 6 arguments to MethodError")
+            end
+        elseif jt === :UndefVarError
+            if length(args) == 0
+                cond = :(err isa UndefVarError)
+            elseif length(args) == 1
+                cond = :(err isa UndefVarError && err.var === $(esc(args[1])))
+            else
+                error("not implemented: more than 1 argument to UndefVarError")
+            end
+        elseif jt === :BoundsError
+            if length(args) == 0
+                cond = :(err isa BoundsError)
+            elseif length(args) == 1
+                cond = :(err isa BoundsError && err.a === $(esc(args[1])))
+            else
+                error("not implemented: more than 1 argument to BoundsError")
+            end
+        elseif jt === :KeyError
+            if length(args) == 0
+                cond = :(err isa KeyError)
+            elseif length(args) == 1
+                cond = :(err isa KeyError && err.key === $(esc(args[1])))
+            elseif length(args) == 2
+                cond = :(err isa KeyError && (err.key === $(esc(args[1])) || err.key === $(esc(args[2]))))
+            else
+                error("not implemented: more than 2 arguments to KeyError")
+            end
+        elseif jt === :ErrorException
+            if length(args) == 0
+                cond = :(err isa ErrorException)
+            elseif length(args) == 1
+                cond = :(err isa ErrorException && match($(args[1]), err.msg) !== nothing)
+            else
+                error("not implemented: more than 1 argument to ErrorException")
+            end
+        elseif jt === :Custom
+            if length(args) == 1
+                cond = esc(args[1])
+            else
+                error("expecting 1 argument to Custom")
             end
         else
             error("invalid handler: $handler (bad julia error type)")
         end
         if pt === :JuliaError
             seterr = :(PyErr_SetJuliaError(err))
-        elseif pt === :TypeError
-            seterr = :(PyErr_SetStringFromJuliaError(PyExc_ValueError(), err))
-        elseif pt === :ValueError
-            seterr = :(PyErr_SetStringFromJuliaError(PyExc_ValueError(), err))
+        elseif pt === :NotImplemented
+            seterr = :(return PyNotImplemented_New())
+        elseif pt in (:TypeError, :ValueError, :AttributeError, :NotImplementedError, :IndexError, :KeyError)
+            seterr = :(PyErr_SetStringFromJuliaError($(Symbol(:PyExc_, pt))(), err))
         else
             error("invalid handler: $handler (bad python error type)")
         end
@@ -151,7 +200,7 @@ macro pyjltry(body, errval, handlers...)
             PyErr_SetJuliaError(err)
             return $(esc(errval))
         finally
-            $finalcode
+            $(finalcode...)
         end
     end
 end

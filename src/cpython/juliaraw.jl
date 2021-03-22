@@ -1,22 +1,16 @@
 pyjlraw_repr(xo::PyPtr) =
-    try
+    @pyjltry begin
         x = PyJuliaValue_GetValue(xo)
         s = "<jl $(repr(x))>"
         PyUnicode_From(s)
-    catch err
-        PyErr_SetJuliaError(err)
-        return PyNULL
-    end
+    end PyNULL
 
 pyjlraw_str(xo::PyPtr) =
-    try
+    @pyjltry begin
         x = PyJuliaValue_GetValue(xo)
         s = string(x)
         PyUnicode_From(s)
-    catch err
-        PyErr_SetJuliaError(err)
-        return PyNULL
-    end
+    end PyNULL
 
 pyjl_attr_py2jl(k::String) = replace(k, r"_[b]+$" => (x -> "!"^(length(x) - 1)))
 pyjl_attr_jl2py(k::String) = replace(k, r"!+$" => (x -> "_" * "b"^length(x)))
@@ -34,13 +28,7 @@ pyjlraw_getattro(xo::PyPtr, ko::PyPtr) = begin
     k = PyUnicode_AsString(ko)
     isempty(k) && PyErr_IsSet() && return PyNULL
     k = pyjl_attr_py2jl(k)
-    try
-        v = getproperty(x, Symbol(k))
-        PyJuliaRawValue_New(v)
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    @pyjltry PyJuliaRawValue_New(getproperty(x, Symbol(k))) PyNULL
 end
 
 pyjlraw_setattro(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
@@ -58,13 +46,7 @@ pyjlraw_setattro(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
     k = pyjl_attr_py2jl(k)
     ism1(PyObject_Convert(vo, Any)) && return Cint(-1)
     v = takeresult(Any)
-    try
-        setproperty!(x, Symbol(k), v)
-        Cint(0)
-    catch err
-        PyErr_SetJuliaError(err)
-        Cint(-1)
-    end
+    @pyjltry (setproperty!(x, Symbol(k), v); Cint(0)) Cint(-1)
 end
 
 pyjlraw_dir(xo::PyPtr, _::PyPtr) = begin
@@ -74,13 +56,7 @@ pyjlraw_dir(xo::PyPtr, _::PyPtr) = begin
     Py_DecRef(fo)
     isnull(ro) && return PyNULL
     x = PyJuliaValue_GetValue(xo)
-    ks = try
-        collect(map(string, propertynames(x)))
-    catch err
-        Py_DecRef(ro)
-        PyErr_SetJuliaError(err)
-        return PyNULL
-    end
+    ks = @pyjltry collect(map(string, propertynames(x))) PyNULL OnErr=>Py_DecRef(ro)
     for k in ks
         ko = PyUnicode_From(pyjl_attr_jl2py(k))
         isnull(ko) && (Py_DecRef(ro); return PyNULL)
@@ -105,44 +81,24 @@ pyjlraw_call(fo::PyPtr, argso::PyPtr, kwargso::PyPtr) = begin
         ism1(PyObject_Convert(kwargso, Dict{Symbol,Any})) && return PyNULL
         kwargs = takeresult(Dict{Symbol,Any})
     end
-    try
-        x = f(args...; kwargs...)
-        PyJuliaRawValue_New(x)
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    @pyjltry PyJuliaRawValue_New(f(args...; kwargs...)) PyNULL
 end
 
-pyjlraw_length(xo::PyPtr) =
-    try
-        x = PyJuliaValue_GetValue(xo)
-        Py_ssize_t(length(x))
-    catch err
-        PyErr_SetJuliaError(err)
-        Py_ssize_t(-1)
-    end
+pyjlraw_length(xo::PyPtr) = begin
+    x = PyJuliaValue_GetValue(xo)
+    @pyjltry Py_ssize_t(length(x)) Py_ssize_t(-1)
+end
 
 pyjlraw_getitem(xo::PyPtr, ko::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)
     if PyTuple_Check(ko)
         ism1(PyObject_Convert(ko, Tuple)) && return PyNULL
         k = takeresult(Tuple)
-        try
-            PyJuliaRawValue_New(x[k...])
-        catch err
-            PyErr_SetJuliaError(err)
-            PyNULL
-        end
+        @pyjltry PyJuliaRawValue_New(x[k...]) PyNULL
     else
         ism1(PyObject_Convert(ko, Any)) && return PyNULL
         k = takeresult(Any)
-        try
-            PyJuliaRawValue_New(x[k])
-        catch err
-            PyErr_SetJuliaError(err)
-            PyNULL
-        end
+        @pyjltry PyJuliaRawValue_New(x[k]) PyNULL
     end
 end
 
@@ -153,23 +109,11 @@ pyjlraw_setitem(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
     if PyTuple_Check(ko)
         ism1(PyObject_Convert(ko, Tuple)) && return PyNULL
         k = takeresult(Tuple)
-        try
-            x[k...] = v
-            Cint(0)
-        catch err
-            PyErr_SetJuliaError(err)
-            Cint(-1)
-        end
+        @pyjltry (x[k...] = v; Cint(0)) Cint(-1)
     else
         ism1(PyObject_Convert(ko, Any)) && return PyNULL
         k = takeresult(Any)
-        try
-            x[k] = v
-            Cint(0)
-        catch err
-            PyErr_SetJuliaError(err)
-            Cint(-1)
-        end
+        @pyjltry (x[k] = v; Cint(0)) Cint(-1)
     end
 end
 

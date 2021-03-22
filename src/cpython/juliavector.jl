@@ -1,5 +1,5 @@
 pyjlvector_resize(xo::PyPtr, arg::PyPtr) =
-    try
+    @pyjltry begin
         x = PyJuliaValue_GetValue(xo)::AbstractVector
         r = PyObject_TryConvert(arg, Int)
         r == -1 && return PyNULL
@@ -7,13 +7,10 @@ pyjlvector_resize(xo::PyPtr, arg::PyPtr) =
             (PyErr_SetString(PyExc_TypeError(), "size must be an integer"); return PyNULL)
         resize!(x, takeresult(Int))
         PyNone_New()
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 
 pyjlvector_sort(xo::PyPtr, args::PyPtr, kwargs::PyPtr) =
-    try
+    @pyjltry begin
         x = PyJuliaValue_GetValue(xo)::AbstractVector
         ism1(PyArg_CheckNumArgsEq("sort", args, 0)) && return PyNULL
         ism1(PyArg_GetArg(Bool, "sort", kwargs, "reverse", false)) && return PyNULL
@@ -22,39 +19,27 @@ pyjlvector_sort(xo::PyPtr, args::PyPtr, kwargs::PyPtr) =
         by = takeresult()
         sort!(x, rev = rev, by = by === nothing ? identity : by)
         PyNone_New()
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 
 pyjlvector_reverse(xo::PyPtr, ::PyPtr) =
-    try
+    @pyjltry begin
         x = PyJuliaValue_GetValue(xo)::AbstractVector
         reverse!(x)
         PyNone_New()
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 
 pyjlvector_clear(xo::PyPtr, ::PyPtr) =
-    try
+    @pyjltry begin
         x = PyJuliaValue_GetValue(xo)::AbstractVector
         empty!(x)
         PyNone_New()
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 
 pyjlvector_reversed(xo::PyPtr, ::PyPtr) =
-    try
+    @pyjltry begin
         x = PyJuliaValue_GetValue(xo)::AbstractVector
         PyObject_From(reverse(x))
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 
 pyjlvector_insert(xo::PyPtr, args::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractVector
@@ -68,13 +53,10 @@ pyjlvector_insert(xo::PyPtr, args::PyPtr) = begin
     )
     ism1(PyArg_GetArg(eltype(x), "insert", args, 1)) && return PyNULL
     v = takeresult(eltype(x))
-    try
+    @pyjltry begin
         insert!(x, k′, v)
         PyNone_New()
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjlvector_append(xo::PyPtr, vo::PyPtr) = begin
@@ -89,13 +71,10 @@ pyjlvector_append(xo::PyPtr, vo::PyPtr) = begin
         return PyNULL
     )
     v = takeresult(eltype(x))
-    try
+    @pyjltry begin
         push!(x, v)
         PyNone_New()
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjlvector_extend(xo::PyPtr, vso::PyPtr) = begin
@@ -120,7 +99,7 @@ pyjlvector_pop(xo::PyPtr, args::PyPtr) = begin
     checkbounds(Bool, x, k′) || (
         PyErr_SetString(PyExc_IndexError(), "array index out of bounds"); return PyNULL
     )
-    try
+    @pyjltry begin
         if k′ == last(a)
             v = pop!(x)
         elseif k′ == first(a)
@@ -130,10 +109,7 @@ pyjlvector_pop(xo::PyPtr, args::PyPtr) = begin
             deleteat!(x, k′)
         end
         PyObject_From(v)
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjlvector_remove(xo::PyPtr, vo::PyPtr) = begin
@@ -143,7 +119,7 @@ pyjlvector_remove(xo::PyPtr, vo::PyPtr) = begin
     r == 0 &&
         (PyErr_SetString(PyExc_ValueError(), "value not in vector"); return PyNULL)
     v = takeresult(eltype(x))
-    try
+    @pyjltry begin
         k = findfirst(x -> x == v, x)
         if k === nothing
             PyErr_SetString(PyExc_ValueError(), "value not in vector")
@@ -152,10 +128,7 @@ pyjlvector_remove(xo::PyPtr, vo::PyPtr) = begin
             deleteat!(x, k)
             PyNone_New()
         end
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjlvector_index(xo::PyPtr, vo::PyPtr) = begin
@@ -165,7 +138,7 @@ pyjlvector_index(xo::PyPtr, vo::PyPtr) = begin
     r == 0 &&
         (PyErr_SetString(PyExc_ValueError(), "value not in vector"); return PyNULL)
     v = takeresult(eltype(x))
-    try
+    @pyjltry begin
         k = findfirst(x -> x == v, x)
         if k === nothing
             PyErr_SetString(PyExc_ValueError(), "value not in vector")
@@ -173,10 +146,7 @@ pyjlvector_index(xo::PyPtr, vo::PyPtr) = begin
         else
             PyObject_From(k - first(axes(x, 1)))
         end
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjlvector_count(xo::PyPtr, vo::PyPtr) = begin
@@ -185,13 +155,10 @@ pyjlvector_count(xo::PyPtr, vo::PyPtr) = begin
     r == -1 && return PyNULL
     r == 0 && return PyObject_From(0)
     v = takeresult(eltype(x))
-    try
+    @pyjltry begin
         n = count(x -> x == v, x)
         PyObject_From(n)
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 const PyJuliaVectorValue_Type = LazyPyObject() do

@@ -10,12 +10,7 @@ pyjlmodule_seval(xo::PyPtr, args::PyPtr) = begin
         ism1(PyArg_GetArg(String, "seval", args, 1)) && return PyNULL
         s = takeresult(String)
     end
-    try
-        PyObject_From(Base.eval(m, Meta.parse(s)))
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    @pyjltry PyObject_From(Base.eval(m, Meta.parse(s))) PyNULL
 end
 
 const PyJuliaModuleValue_Type = LazyPyObject() do

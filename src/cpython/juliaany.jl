@@ -1,22 +1,16 @@
 pyjlany_repr(xo::PyPtr) =
-    try
+    @pyjltry begin
         x = PyJuliaValue_GetValue(xo)
         s = "<jl $(repr(x))>"
         PyUnicode_From(s)
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 
 pyjlany_str(xo::PyPtr) =
-    try
+    @pyjltry begin
         x = PyJuliaValue_GetValue(xo)
         s = string(x)
         PyUnicode_From(s)
-    catch err
-        PyErr_SetJuliaError(err)
-        return PyNULL
-    end
+    end PyNULL
 
 pyjlany_getattro(xo::PyPtr, ko::PyPtr) = begin
     # Try generic lookup first
@@ -31,19 +25,10 @@ pyjlany_getattro(xo::PyPtr, ko::PyPtr) = begin
     k = PyUnicode_AsString(ko)
     isempty(k) && PyErr_IsSet() && return PyNULL
     k = pyjl_attr_py2jl(k)
-    try
+    @pyjltry begin
         v = getproperty(x, Symbol(k))
         PyObject_From(v)
-    catch err
-        if !hasproperty(x, Symbol(k)) ||
-           (err isa UndefVarError && err.var === Symbol(k)) ||
-           (err isa ErrorException && occursin("has no field", err.msg))
-            PyErr_SetStringFromJuliaError(PyExc_AttributeError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    end PyNULL (Custom, !hasproperty(x, Symbol(k)))=>AttributeError (UndefVarError, Symbol(k))=>AttributeError (ErrorException, r"has no field")=>AttributeError
 end
 
 propertytype(x, k) =
@@ -68,22 +53,13 @@ pyjlany_setattro(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
     k = PyUnicode_AsString(ko)
     isempty(k) && PyErr_IsSet() && return Cint(-1)
     k = pyjl_attr_py2jl(k)
-    try
+    @pyjltry begin
         V = propertytype(x, Symbol(k))
         ism1(PyObject_Convert(vo, V)) && return Cint(-1)
         v = takeresult(V)
         setproperty!(x, Symbol(k), v)
         Cint(0)
-    catch err
-        if !hasproperty(x, Symbol(k)) ||
-           (err isa UndefVarError && err.var === Symbol(k)) ||
-           (err isa ErrorException && occursin("has no field", err.msg))
-            PyErr_SetStringFromJuliaError(PyExc_AttributeError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        Cint(-1)
-    end
+    end Cint(-1) (Custom, !hasproperty(x, Symbol(k)))=>AttributeError (UndefVarError, Symbol(k))=>AttributeError (ErrorException, r"has no field")=>AttributeError
 end
 
 pyjl_dir(x) = propertynames(x)
@@ -103,13 +79,7 @@ pyjlany_dir(xo::PyPtr, _::PyPtr) = begin
     Py_DecRef(fo)
     isnull(ro) && return PyNULL
     x = PyJuliaValue_GetValue(xo)
-    ks = try
-        collect(map(string, pyjl_dir(x)))
-    catch err
-        Py_DecRef(ro)
-        PyErr_SetJuliaError(err)
-        return PyNULL
-    end
+    ks = @pyjltry collect(map(string, pyjl_dir(x))) PyNULL OnErr=>Py_DecRef(ro)
     for k in ks
         ko = PyUnicode_From(pyjl_attr_jl2py(k))
         isnull(ko) && (Py_DecRef(ro); return PyNULL)
@@ -134,31 +104,11 @@ pyjlany_call(fo::PyPtr, argso::PyPtr, kwargso::PyPtr) = begin
         ism1(PyObject_Convert(kwargso, Dict{Symbol,Any})) && return PyNULL
         kwargs = takeresult(Dict{Symbol,Any})
     end
-    try
-        x = f(args...; kwargs...)
-        PyObject_From(x)
-    catch err
-        if err isa MethodError && err.f === f
-            PyErr_SetStringFromJuliaError(PyExc_TypeError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    @pyjltry PyObject_From(f(args...; kwargs...)) PyNULL (MethodError, f)=>TypeError
 end
 
 pyjlany_length(xo::PyPtr) =
-    try
-        x = PyJuliaValue_GetValue(xo)
-        Py_ssize_t(length(x))
-    catch err
-        if err isa MethodError && err.f === length
-            PyErr_SetStringFromJuliaError(PyExc_TypeError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        Py_ssize_t(-1)
-    end
+    @pyjltry Py_ssize_t(length(PyJuliaValue_GetValue(xo))) Py_ssize_t(-1) (MethodError, length)=>TypeError
 
 @generated pyjl_keytype(::Type{T}) where {T} =
     try
@@ -182,18 +132,7 @@ pyjlany_getitem(xo::PyPtr, ko::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)
     k = pyjl_getindices(x, ko)
     k === PYERR() && return PyNULL
-    try
-        PyObject_From(x[k...])
-    catch err
-        if err isa BoundsError && err.a === x
-            PyErr_SetStringFromJuliaError(PyExc_IndexError(), err)
-        elseif err isa KeyError && (err.key === k || (err.key,) === k)
-            PyErr_SetStringFromJuliaError(PyExc_KeyError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    @pyjltry PyObject_From(x[k...]) PyNULL BoundsError=>IndexError KeyError=>KeyError
 end
 
 @generated pyjl_valtype(::Type{T}) where {T} =
@@ -218,7 +157,7 @@ pyjlany_setitem(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)
     k = pyjl_getindices(x, ko)
     k === PYERR() && return Cint(-1)
-    try
+    @pyjltry begin
         if isnull(vo)
             delete!(x, k...)
             Cint(0)
@@ -228,18 +167,7 @@ pyjlany_setitem(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
             x[k...] = v
             Cint(0)
         end
-    catch err
-        if err isa BoundsError && err.a === x
-            PyErr_SetStringFromJuliaError(PyExc_IndexError(), err)
-        elseif err isa KeyError && (err.key === k || (err.key,) === k)
-            PyErr_SetStringFromJuliaError(PyExc_KeyError(), err)
-        elseif err isa MethodError && err.f === delete!
-            PyErr_SetStringFromJuliaError(PyExc_TypeError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        Cint(-1)
-    end
+    end Cint(-1) BoundsError=>IndexError KeyError=>KeyError (MethodError, delete!)=>TypeError
 end
 
 pyjlany_iter(xo::PyPtr) = PyJuliaIteratorValue_New(Iterator(PyJuliaValue_GetValue(xo)))
@@ -250,16 +178,7 @@ pyjlany_contains(xo::PyPtr, vo::PyPtr) = begin
     r == -1 && return Cint(-1)
     r == 0 && return Cint(0)
     v = takeresult(eltype(x))
-    try
-        Cint(v in x)
-    catch err
-        if err isa MethodError && err.f === :in
-            PyErr_SetStringFromJuliaError(PyExc_TypeError(), err)
-        else
-            PyErr_SetJuliaError(err)
-        end
-        Cint(-1)
-    end
+    @pyjltry Cint(v in x) Cint(-1) (MethodError, in)=>TypeError
 end
 
 pyjlany_richcompare(xo::PyPtr, yo::PyPtr, op::Cint) = begin
@@ -268,7 +187,7 @@ pyjlany_richcompare(xo::PyPtr, yo::PyPtr, op::Cint) = begin
     r == -1 && return PyNULL
     r == 0 && return PyNotImplemented_New()
     y = takeresult()
-    try
+    @pyjltry begin
         if op == Py_EQ
             PyObject_From(x == y)
         elseif op == Py_NE
@@ -285,14 +204,7 @@ pyjlany_richcompare(xo::PyPtr, yo::PyPtr, op::Cint) = begin
             PyErr_SetString(PyExc_ValueError(), "bad op given to richcompare: $op")
             PyNULL
         end
-    catch err
-        if err isa MethodError && err.f in (==, !=, <=, <, >=, >)
-            PyNotImplemented_New()
-        else
-            PyErr_SetJuliaError(err)
-            PyNULL
-        end
-    end
+    end PyNULL (MethodError, ==, !=, <=, <, >=, >)=>NotImplemented
 end
 
 const ALL_MIMES = [
@@ -374,16 +286,7 @@ pyjlany_repr_mimebundle(xo::PyPtr, args::PyPtr, kwargs::PyPtr) = begin
 end
 
 pyjlany_name(xo::PyPtr, ::Ptr{Cvoid}) =
-    try
-        PyObject_From(string(nameof(PyJuliaValue_GetValue(xo))))
-    catch err
-        if err isa MethodError && err.f === nameof
-            PyErr_SetString(PyExc_AttributeError(), "__name__")
-        else
-            PyErr_SetJuliaError(err)
-        end
-        PyNULL
-    end
+    @pyjltry PyObject_From(string(nameof(PyJuliaValue_GetValue(xo)))) PyNULL (MethodError, nameof)=>AttributeError
 
 pyjlany_toraw(xo::PyPtr, ::PyPtr) = PyJuliaRawValue_New(PyJuliaValue_GetValue(xo))
 
@@ -394,48 +297,28 @@ Base.show(io::IO, m::MIME, x::ExtraNewline) = show(io, m, x.value)
 Base.show(io::IO, m::MIME"text/plain", x::ExtraNewline) = (show(io, m, x.value); println(io))
 Base.showable(m, x::ExtraNewline) = showable(m, x.value)
 
-pyjlany_display(xo::PyPtr, ::PyPtr) = try
-    x = PyJuliaValue_GetValue(xo)
-    display(ExtraNewline(x))
-    PyNone_New()
-catch err
-    PyErr_SetJuliaError(err)
-    PyNULL
-end
+pyjlany_display(xo::PyPtr, ::PyPtr) =
+    @pyjltry begin
+        x = PyJuliaValue_GetValue(xo)
+        display(ExtraNewline(x))
+        PyNone_New()
+    end PyNULL
 
 pyjlany_help(xo::PyPtr, ::PyPtr) =
-    try
+    @pyjltry begin
         x = Docs.doc(PyJuliaValue_GetValue(xo))
         display(ExtraNewline(x))
         PyNone_New()
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 
 pyjlany_positive(xo::PyPtr) =
-    try
-        PyObject_From(+(PyJuliaValue_GetValue(xo)))
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    @pyjltry PyObject_From(+(PyJuliaValue_GetValue(xo))) PyNULL
 
 pyjlany_negative(xo::PyPtr) =
-    try
-        PyObject_From(-(PyJuliaValue_GetValue(xo)))
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    @pyjltry PyObject_From(-(PyJuliaValue_GetValue(xo))) PyNULL
 
 pyjlany_absolute(xo::PyPtr) =
-    try
-        PyObject_From(abs(PyJuliaValue_GetValue(xo)))
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    @pyjltry PyObject_From(abs(PyJuliaValue_GetValue(xo))) PyNULL
 
 struct pyjlany_binop{F}
     f::F
@@ -445,16 +328,7 @@ end
     PyJuliaValue_Check(yo) || return PyNotImplemented_New()
     x = PyJuliaValue_GetValue(xo)
     y = PyJuliaValue_GetValue(yo)
-    try
-        PyObject_From(f.f(x, y))
-    catch err
-        if err isa MethodError && err.f === f.f
-            PyNotImplemented_New()
-        else
-            PyErr_SetJuliaError(err)
-            PyNULL
-        end
-    end
+    @pyjltry PyObject_From(f.f(x, y)) PyNULL (MethodError, f.f)=>NotImplemented
 end
 
 pyjlany_power(xo::PyPtr, yo::PyPtr, zo::PyPtr) = begin
@@ -463,29 +337,11 @@ pyjlany_power(xo::PyPtr, yo::PyPtr, zo::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)
     y = PyJuliaValue_GetValue(yo)
     if PyNone_Check(zo)
-        try
-            PyObject_From(x^y)
-        catch err
-            if err isa MethodError && err.f === ^
-                PyNotImplemented_New()
-            else
-                PyErr_SetJuliaError(err)
-                PyNULL
-            end
-        end
+        @pyjltry PyObject_From(x^y) PyNULL (MethodError, ^)=>NotImplemented
     else
         PyJuliaValue_Check(zo) || return PyNotImplemented_New()
         z = PyJuliaValue_GetValue(zo)
-        try
-            PyObject_From(powermod(x, y, z))
-        catch err
-            if err isa MethodError && err.f === powermod
-                PyNotImplemented_New()
-            else
-                PyErr_SetJuliaError(err)
-                PyNULL
-            end
-        end
+        @pyjltry PyObject_From(powermod(x, y, z)) PyNULL (MethodError, powermod)=>NotImplemented
     end
 end
 

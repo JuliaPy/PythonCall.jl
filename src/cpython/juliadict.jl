@@ -12,12 +12,7 @@ pyjldict_contains(xo::PyPtr, vo::PyPtr) = begin
     r == -1 && return Cint(-1)
     r == 0 && return Cint(0)
     v = takeresult(keytype(x))
-    try
-        Cint(haskey(x, v))
-    catch err
-        PyErr_SetJuliaError(err)
-        Cint(-1)
-    end
+    @pyjltry Cint(haskey(x, v)) Cint(-1)
 end
 
 pyjldict_get(xo::PyPtr, args::PyPtr) = begin
@@ -29,17 +24,14 @@ pyjldict_get(xo::PyPtr, args::PyPtr) = begin
     r == -1 && return PyNULL
     r == 0 && (Py_IncRef(vo); return vo)
     k = takeresult(keytype(x))
-    try
+    @pyjltry begin
         if haskey(x, k)
             PyObject_From(x[k])
         else
             Py_IncRef(vo)
             vo
         end
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjldict_setdefault(xo::PyPtr, args::PyPtr) = begin
@@ -51,7 +43,7 @@ pyjldict_setdefault(xo::PyPtr, args::PyPtr) = begin
     r == -1 && return PyNULL
     r == 0 && (Py_IncRef(vo); return vo)
     k = takeresult(keytype(x))
-    try
+    @pyjltry begin
         if haskey(x, k)
             PyObject_From(x[k])
         else
@@ -61,26 +53,20 @@ pyjldict_setdefault(xo::PyPtr, args::PyPtr) = begin
             Py_IncRef(vo)
             vo
         end
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjldict_clear(xo::PyPtr, ::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractDict
-    try
+    @pyjltry begin
         empty!(x)
         PyNone_New()
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjldict_popitem(xo::PyPtr, ::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)::AbstractDict
-    try
+    @pyjltry begin
         if isempty(x)
             PyErr_SetString(PyExc_KeyError(), "pop empty dictionary")
             PyNULL
@@ -88,10 +74,7 @@ pyjldict_popitem(xo::PyPtr, ::PyPtr) = begin
             k, v = pop!(x)
             PyTuple_From((k, v))
         end
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 pyjldict_pop(xo::PyPtr, args::PyPtr) = begin
@@ -104,7 +87,7 @@ pyjldict_pop(xo::PyPtr, args::PyPtr) = begin
     r == 0 &&
         (isnull(vo) ? (PyErr_SetObject(PyExc_KeyError(), ko)) : (Py_IncRef(vo); vo))
     k = takeresult(keytype(x))
-    try
+    @pyjltry begin
         if haskey(x, k)
             PyObject_From(pop!(x, k))
         elseif isnull(vo)
@@ -114,10 +97,7 @@ pyjldict_pop(xo::PyPtr, args::PyPtr) = begin
             Py_IncRef(vo)
             vo
         end
-    catch err
-        PyErr_SetJuliaError(err)
-        PyNULL
-    end
+    end PyNULL
 end
 
 struct DictPairSet{K,V,T<:AbstractDict{K,V}} <: AbstractSet{Tuple{K,V}}

@@ -172,7 +172,7 @@ _pyjlset_isdisjoint(x::AbstractSet, yso::PyPtr) = begin
         r = PyObject_TryConvert(yo, eltype(x))
         r == -1 && return -1
         r == 0 && return 1
-        y == takeresult(eltype(x))
+        y = takeresult(eltype(x))
         y in x ? 0 : 1
     end
     r == -1 ? PyNULL : r == 0 ? PyObject_From(false) : PyObject_From(true)
@@ -189,99 +189,99 @@ const PyJuliaSetValue_Type = LazyPyObject() do
             PyMethodDef(
                 name = cacheptr!(c, "add"),
                 flags = Py_METH_O,
-                meth = @cfunctionOO(pyjlset_add),
+                meth = @cfunctionOOO(pyjlset_add),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "clear"),
                 flags = Py_METH_NOARGS,
-                meth = @cfunctionOO(pyjlset_clear),
+                meth = @cfunctionOOO(pyjlset_clear),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "copy"),
                 flags = Py_METH_NOARGS,
-                meth = @cfunctionOO(pyjlset_copy),
+                meth = @cfunctionOOO(pyjlset_copy),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "difference"),
-                flags = Py_METH_NOARGS,
-                meth = @cfunctionOO(pyjlset_difference),
+                flags = Py_METH_O,
+                meth = @cfunctionOOO(pyjlset_difference),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "difference_update"),
                 flags = Py_METH_O,
-                meth = @cfunctionOO(pyjlset_difference_update),
+                meth = @cfunctionOOO(pyjlset_difference_update),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "discard"),
                 flags = Py_METH_O,
-                meth = @cfunctionOO(pyjlset_discard),
+                meth = @cfunctionOOO(pyjlset_discard),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "intersection"),
                 flags = Py_METH_O,
-                meth = @cfunctionOO(pyjlset_intersection),
+                meth = @cfunctionOOO(pyjlset_intersection),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "intersection_update"),
                 flags = Py_METH_O,
-                meth = @cfunctionOO(pyjlset_intersection_update),
+                meth = @cfunctionOOO(pyjlset_intersection_update),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "isdisjoint"),
                 flags = Py_METH_O,
-                meth = @cfunctionOO(pyjlset_isdisjoint),
+                meth = @cfunctionOOO(pyjlset_isdisjoint),
             ),
             # PyMethodDef(
             #     name = cacheptr!(c, "issubset"),
             #     flags = Py_METH_O,
-            #     meth = @cfunctionOO(pyjlset_issubset),
+            #     meth = @cfunctionOOO(pyjlset_issubset),
             # ),
             # PyMethodDef(
             #     name = cacheptr!(c, "issuperset"),
             #     flags = Py_METH_O,
-            #     meth = @cfunctionOO(pyjlset_issuperset),
+            #     meth = @cfunctionOOO(pyjlset_issuperset),
             # ),
             PyMethodDef(
                 name = cacheptr!(c, "pop"),
                 flags = Py_METH_NOARGS,
-                meth = @cfunctionOO(pyjlset_pop),
+                meth = @cfunctionOOO(pyjlset_pop),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "remove"),
                 flags = Py_METH_O,
-                meth = @cfunctionOO(pyjlset_remove),
+                meth = @cfunctionOOO(pyjlset_remove),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "symmetric_difference"),
                 flags = Py_METH_O,
-                meth = @cfunctionOO(pyjlset_symmetric_difference),
+                meth = @cfunctionOOO(pyjlset_symmetric_difference),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "symmetric_difference_update"),
                 flags = Py_METH_O,
-                meth = @cfunctionOO(pyjlset_symmetric_difference_update),
+                meth = @cfunctionOOO(pyjlset_symmetric_difference_update),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "union"),
                 flags = Py_METH_O,
-                meth = @cfunctionOO(pyjlset_union),
+                meth = @cfunctionOOO(pyjlset_union),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "update"),
                 flags = Py_METH_O,
-                meth = @cfunctionOO(pyjlset_update),
+                meth = @cfunctionOOO(pyjlset_update),
             ),
             PyMethodDef(),
         ]),
         # as_number = cacheptr!(c, fill(PyNumberMethods(
-        #     or = @cfunctionOO(pyjlset_or),
-        #     and = @cfunctionOO(pyjlset_and),
-        #     xor = @cfunctionOO(pyjlset_xor),
-        #     subtract = @cfunctionOO(pyjlset_subtract),
-        #     inplace_or = @cfunctionOO(pyjlset_ior),
-        #     inplace_and = @cfunctionOO(pyjlset_iand),
-        #     inplace_xor = @cfunctionOO(pyjlset_ixor),
-        #     inplace_subtract = @cfunctionOO(pyjlset_isubtract),
+        #     or = @cfunctionOOO(pyjlset_or),
+        #     and = @cfunctionOOO(pyjlset_and),
+        #     xor = @cfunctionOOO(pyjlset_xor),
+        #     subtract = @cfunctionOOO(pyjlset_subtract),
+        #     inplace_or = @cfunctionOOO(pyjlset_ior),
+        #     inplace_and = @cfunctionOOO(pyjlset_iand),
+        #     inplace_xor = @cfunctionOOO(pyjlset_ixor),
+        #     inplace_subtract = @cfunctionOOO(pyjlset_isubtract),
         # ))),
     ))))
     err = PyType_Ready(ptr)

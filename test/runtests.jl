@@ -1019,7 +1019,39 @@ end
         end
 
         @testset "juliaset" begin
-            # TODO
+            x = Set([1,2,3])
+            @test @pyv `$x.union({0,2,5}) == {0,1,2,3,5}`::Bool
+            @test @pyv `$x.difference({0,2,5}) == {1,3}`::Bool
+            @test @pyv `$x.intersection({0,2,5}) == {2}`::Bool
+            @test @pyv `$x.symmetric_difference({0,2,5}) == {0,1,3,5}`::Bool
+            @test @pyv `not $x.isdisjoint({0,2,5})`::Bool
+            @test @pyv `$x.isdisjoint({0,5})`::Bool
+            @py `$x.add(4)`
+            @test x == Set([1,2,3,4])
+            @py `$x.update({0,2,5})`
+            @test x == Set([0,1,2,3,4,5])
+            @py `$x.difference_update({0,2,6})`
+            @test x == Set([1,3,4,5])
+            @py `$x.discard(1)`
+            @test x == Set([3,4,5])
+            @py `$x.discard(1)`
+            @test x == Set([3,4,5])
+            @py `$x.remove(4)`
+            @test x == Set([3,5])
+            @test_throws Exception @py `$x.remove(4)`
+            @py `$x.symmetric_difference_update({2,3,4})`
+            @test x == Set([2,4,5])
+            @py `$x.intersection_update({2,3,4})`
+            @test x == Set([2,4])
+            @test @pyv `$x.pop() in {2,4}`::Bool
+            @test x == Set([2]) || x == Set([4])
+            push!(x, 2, 4)
+            y = @pyv `$x.copy()`
+            @py `$y.add(3)`
+            @test pyconvert(Any, y) == Set([2,3,4])
+            @test x == Set([2,4])
+            @py `$x.clear()`
+            @test isempty(x)
         end
 
         @testset "juliadict" begin

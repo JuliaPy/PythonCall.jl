@@ -108,7 +108,8 @@ Base.iterate(x::DictPairSet) =
     (r = iterate(x.dict); r === nothing ? nothing : (Tuple(r[1]), r[2]))
 Base.iterate(x::DictPairSet, st) =
     (r = iterate(x.dict, st); r === nothing ? nothing : (Tuple(r[1]), r[2]))
-Base.in(v, x::DictPairSet) = v in x.dict
+Base.in(v::Pair, x::DictPairSet) = v in x.dict
+Base.in(v::Tuple{Any,Any}, x::DictPairSet) = Pair(v[1], v[2]) in x.dict
 
 const PyJuliaDictValue_Type = LazyPyObject() do
     c = []
@@ -122,37 +123,37 @@ const PyJuliaDictValue_Type = LazyPyObject() do
             PyMethodDef(
                 name = cacheptr!(c, "keys"),
                 flags = Py_METH_NOARGS,
-                meth = @cfunctionOO(pyjldict_keys),
+                meth = @cfunctionOOO(pyjldict_keys),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "values"),
                 flags = Py_METH_NOARGS,
-                meth = @cfunctionOO(pyjldict_values),
+                meth = @cfunctionOOO(pyjldict_values),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "items"),
                 flags = Py_METH_NOARGS,
-                meth = @cfunctionOO(pyjldict_items),
+                meth = @cfunctionOOO(pyjldict_items),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "get"),
                 flags = Py_METH_VARARGS,
-                meth = @cfunctionOO(pyjldict_get),
+                meth = @cfunctionOOO(pyjldict_get),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "clear"),
                 flags = Py_METH_NOARGS,
-                meth = @cfunctionOO(pyjldict_clear),
+                meth = @cfunctionOOO(pyjldict_clear),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "pop"),
                 flags = Py_METH_VARARGS,
-                meth = @cfunctionOO(pyjldict_pop),
+                meth = @cfunctionOOO(pyjldict_pop),
             ),
             PyMethodDef(
                 name = cacheptr!(c, "popitem"),
                 flags = Py_METH_NOARGS,
-                meth = @cfunctionOO(pyjldict_popitem),
+                meth = @cfunctionOOO(pyjldict_popitem),
             ),
             # PyMethodDef(
             #     name = cacheptr!(c, "update"),
@@ -162,7 +163,7 @@ const PyJuliaDictValue_Type = LazyPyObject() do
             PyMethodDef(
                 name = cacheptr!(c, "setdefault"),
                 flags = Py_METH_VARARGS,
-                meth = @cfunctionOO(pyjldict_setdefault),
+                meth = @cfunctionOOO(pyjldict_setdefault),
             ),
             PyMethodDef(),
         ]),

@@ -824,6 +824,35 @@ end
             @test pyjlgetvalue(v) === value
         end
 
+        @testset "juliaraw" begin
+            xo = pyjlraw(nothing)
+            @test @pyv `repr($xo) == "<jl nothing>"`::Bool
+            @test @pyv `str($xo) == "nothing"`::Bool
+            x = Struct1("foo", 12)
+            xo = pyjlraw(x)
+            @test (@pyv `$xo.x`::Any) === x.x
+            @test (@pyv `$xo.y`::Any) === x.y
+            @py `$xo.x = "bar"`
+            @test x.x == "bar"
+            @test @pyv `"x" in dir($xo)`::Bool
+            @test @pyv `"y" in dir($xo)`::Bool
+            xo = pyjlraw(+)
+            @test (@pyv `$xo(2,3)`::Any) === 5
+            x = [1,2,3]
+            xo = pyjlraw(x)
+            @test @pyv `len($xo) == 3`::Bool
+            @test (@pyv `$xo[1]`::Any) === x[1]
+            @test (@pyv `$xo[$(pyjlraw(1:3))]`::Any) == [1,2,3]
+            @py `$xo[1] = 0`
+            @test x == [0,2,3]
+            x = [1 2; 3 4]
+            xo = pyjlraw(x)
+            @test @pyv `len($xo) == 4`::Bool
+            @test (@pyv `$xo[1,2]`::Any) === x[1,2]
+            @py `$xo[1,2] = 0`
+            @test x == [1 0; 3 4]
+        end
+
         @testset "juliaany" begin
             for value in Any[nothing, missing, (), identity, push!]
                 @test @pyv `type($(pyjl(value))).__name__ == "AnyValue"`::Bool
@@ -946,6 +975,45 @@ end
             xmv = @pyv `$xm.reshape(4)`
             @test @pyv `$xmv.shape == (4,)`::Bool
             @test @pyv `list($xmv) == [0,3,2,4]`::Bool
+        end
+
+        @testset "juliavector" begin
+            # TODO
+        end
+
+        @testset "juliaset" begin
+            # TODO
+        end
+
+        @testset "juliadict" begin
+            x = Dict("foo"=>1, "bar"=>2, "baz"=>3)
+            @test @pyv `set($x) == {"foo", "bar", "baz"}`::Bool
+            @test @pyv `set($x.keys()) == {"foo", "bar", "baz"}`::Bool
+            @test @pyv `set($x.values()) == {1, 2, 3}`::Bool
+            @test @pyv `set($x.items()) == {("foo", 1), ("bar", 2), ("baz", 3)}`::Bool
+            @test @pyv `len($x) == 3`::Bool
+            @test @pyv `len($x.items()) == 3`::Bool
+            @test @pyv `"foo" in $x`::Bool
+            @test @pyv `"hello" not in $x`::Bool
+            @test @pyv `1 not in $x`::Bool
+            @test @pyv `("foo", 1) in $x.items()`::Bool
+            @test @pyv `$x.get("bar") == 2`::Bool
+            @test @pyv `$x.get("hello") is None`::Bool
+            @test @pyv `$x.get(1) is None`::Bool
+            @test @pyv `$x.get("hello", "MISSING") == "MISSING"`::Bool
+            @test @pyv `$x.setdefault("foo", 0) == 1`::Bool
+            @test x["foo"] == 1
+            @test @pyv `$x.setdefault("bax", 0) == 0`::Bool
+            @test x["bax"] == 0
+            @test @pyv `$x.pop("bax", None) == 0`::Bool
+            @test @pyv `$x.pop("bax", None) is None`::Bool
+            @test_throws Exception @pyv `$x.pop("bax")`
+            @py `$x.clear()`
+            @test isempty(x)
+            x["foo"] = 1
+            @test @pyv `$x.popitem() == ("foo", 1)`::Bool
+            @test_throws Exception @pyv `$x.popitem()`
+            @test isempty(x)
         end
 
         @testset "juliaio" begin

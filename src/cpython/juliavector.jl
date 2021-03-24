@@ -48,7 +48,7 @@ pyjlvector_insert(xo::PyPtr, args::PyPtr) = begin
     ism1(PyArg_GetArg(Int, "insert", args, 0)) && return PyNULL
     k = takeresult(Int)
     k′ = k < 0 ? (last(a) + 1 + k) : (first(a) + k)
-    checkbounds(Bool, x, k′) || (
+    checkbounds(Bool, x, k′) || k′ == last(a)+1 || (
         PyErr_SetString(PyExc_IndexError(), "array index out of bounds"); return PyNULL
     )
     ism1(PyArg_GetArg(eltype(x), "insert", args, 1)) && return PyNULL

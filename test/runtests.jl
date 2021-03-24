@@ -978,7 +978,44 @@ end
         end
 
         @testset "juliavector" begin
-            # TODO
+            x = [3,1,2]
+            @py `$x.sort()`
+            @test x == [1,2,3]
+            @py `$x.reverse()`
+            @test x == [3,2,1]
+            @py `$x.resize(2)`
+            @test x == [3,2]
+            @py `$x.resize(5)`
+            @test length(x) == 5 && x[1:2] == [3,2]
+            @py `$x.clear()`
+            @test isempty(x)
+            @test_throws Exception @py `$x.pop()`
+            @py `$x.append(5)`
+            @test x == [5]
+            @py `$x.extend([6,7,8,9])`
+            @test x == [5,6,7,8,9]
+            @test @pyv `list(reversed($x)) == [9,8,7,6,5]`::Bool
+            @test @pyv `$x.pop() == 9`::Bool
+            @test @pyv `$x.pop(0) == 5`::Bool
+            @test @pyv `$x.pop(-2) == 7`::Bool
+            @test x == [6,8]
+            @py `$x.insert(0, 1)`
+            @py `$x.insert(2, 1)`
+            @py `$x.insert(4, 1)`
+            @test x == [1,6,1,8,1]
+            @py `$x.remove(1)`
+            @test x == [6,1,8,1]
+            @test_throws Exception @py `$x.remove(99)`
+            @test_throws Exception @py `$x.remove(None)`
+            @test @pyv `$x.index(6) == 0`::Bool
+            @test @pyv `$x.index(1) == 1`::Bool
+            @test_throws Exception @py `$x.index(99)`
+            @test_throws Exception @py `$x.index(None)`
+            @test @pyv `$x.count(8) == 1`::Bool
+            @test @pyv `$x.count(1) == 2`::Bool
+            @test @pyv `$x.count(1.0) == 2`::Bool
+            @test @pyv `$x.count(99) == 0`::Bool
+            @test @pyv `$x.count(None) == 0`::Bool
         end
 
         @testset "juliaset" begin

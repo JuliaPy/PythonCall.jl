@@ -825,9 +825,9 @@ end
         end
 
         @testset "juliaraw" begin
-            xo = pyjlraw(nothing)
-            @test @pyv `repr($xo) == "<jl nothing>"`::Bool
-            @test @pyv `str($xo) == "nothing"`::Bool
+            xo = pyjlraw(missing)
+            @test @pyv `repr($xo) == "<jl missing>"`::Bool
+            @test @pyv `str($xo) == "missing"`::Bool
             x = Struct1("foo", 12)
             xo = pyjlraw(x)
             @test (@pyv `$xo.x`::Any) === x.x

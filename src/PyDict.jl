@@ -28,6 +28,20 @@ pyptr(x::PyDict) = begin
 end
 Base.unsafe_convert(::Type{CPyPtr}, x::PyDict) = checknull(pyptr(x))
 
+ensurehasbuiltins!(x::PyDict) = begin
+    if !x.hasbuiltins
+        if C.PyMapping_HasKeyString(x, "__builtins__") == 0
+            err = C.PyMapping_SetItemString(
+                x,
+                "__builtins__",
+                C.PyEval_GetBuiltins(),
+            )
+            ism1(err) && pythrow()
+        end
+        x.hasbuiltins = true
+    end
+end
+
 Base.iterate(x::PyDict{K,V}, it::PyRef) where {K,V} = begin
     ko = C.PyIter_Next(it)
     if !isnull(ko)

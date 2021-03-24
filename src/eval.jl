@@ -1,3 +1,58 @@
+eval_impl(::Type{T}, code, globals, locals=nothing, extrakeys::Tuple{Vararg{Any,N}}=(), extravals::Tuple{Vararg{Any,N}}=()) where {T,N} = GC.@preserve code globals locals begin
+    # get pointers to inputs
+    cptr = checknull(pyptr(code))
+    ensurehasbuiltins!(globals)
+    gptr = checknull(pyptr(globals))
+    lptr = checknull(locals === nothing ? C.PyDict_New() : pyptr(locals))
+    # insert extras into locals
+    for (k, v) in zip(extrakeys, extravals)
+        vo = C.PyObject_From(v)
+        isnull(vo) && @goto error
+        err = C.PyObject_SetItem(lptr, k, vo)
+        C.Py_DecRef(vo)
+        ism1(err) && @goto error
+    end
+    # eval
+    rptr = C.PyEval_EvalCode(cptr, gptr, lptr)
+    isnull(rptr) && @goto error
+    # convert the result
+    err = C.PyObject_Convert(rptr, T)
+    C.Py_DecRef(rptr)
+    ism1(err) && @goto error
+    locals === nothing && C.Py_DecRef(lptr)
+    return takeresult(T)
+
+    @label error
+    locals === nothing && C.Py_DecRef(lptr)
+    pythrow()
+end
+
+exec_impl(f, code, globals, locals=nothing, extrakeys::Tuple{Vararg{Any,N}}=(), extravals::Tuple{Vararg{Any,N}}=()) where {N} = GC.@preserve code globals locals begin
+    # get pointers to inputs
+    cptr = checknull(pyptr(code))
+    ensurehasbuiltins!(globals)
+    gptr = checknull(pyptr(globals))
+    lptr = checknull(locals === nothing ? C.PyDict_New() : pyptr(locals))
+    # insert extras into locals
+    for (k, v) in zip(extrakeys, extravals)
+        vo = C.PyObject_From(v)
+        isnull(vo) && @goto error
+        err = C.PyObject_SetItem(lptr, k, vo)
+        C.Py_DecRef(vo)
+        ism1(err) && @goto error
+    end
+    # eval
+    rptr = C.PyEval_EvalCode(cptr, gptr, lptr)
+    isnull(rptr) && @goto error
+    C.Py_DecRef(rptr)
+    # extract the result
+    return f(lptr, locals===nothing)
+
+    @label error
+    locals === nothing && C.Py_DecRef(lptr)
+    pythrow()
+end
+
 pyeval_filename(src) =
     isfile(string(src.file)) ? "$(src.file):$(src.line)" : "julia:$(src.file):$(src.line)"
 
@@ -77,118 +132,69 @@ pyeval_macro(filename, mode, codearg, args...) = begin
     end
     # make the code be a function body
     if mode == :execr
-        newcode = "def _jl_tmp_ans_func_($(join(intvars, ", "))):\n" * join(map(line->"    "*line, split(newcode, "\n")), "\n") * "\n\nans = _jl_tmp_ans_func_($(join(intvars, ", ")))"
+        newcode = "def _jl_tmp_ans_func_($(join(intvars, ", "))):\n" * join(map(line->"    "*line, split(newcode, "\n")), "\n") * "\n\n_jl_tmp_ans_ = _jl_tmp_ans_func_($(join(intvars, ", ")))"
     end
     # make the code object
     co = PyCode(newcode, filename, mode == :eval ? :eval : :exec)
+    # make the keys to interpolate
+    extrakeys = Tuple(PyInternedString(string(k)) for (k,_) in kvs)
+    extravals = :(($([esc(v) for (k,v) in kvs]...),))
+    args = (co, esc(:pyglobals), esc(locals), extrakeys, extravals)
+    mkgetvar(jv, pv, t) = quote
+        ro = C.PyObject_GetItem(lptr, $(PyInternedString(string(pv))))
+        isnull(ro) && (decref && C.Py_DecRef(lptr); pythrow())
+        err = C.PyObject_Convert(ro, $t)
+        ism1(err) && (decref && C.Py_DecRef(lptr); pythrow())
+        $(Symbol(jv)) = takeresult($t)
+    end
     # go
-    freelocals =
-        locals === nothing ? :(C.Py_DecRef(lptr)) : :(GC.@preserve locals nothing)
-    ret = quote
-        let
-            # evaluate the inputs (so any errors are thrown before we have object references)
-            $([:($(Symbol(:input, i)) = $(esc(v))) for (i, (k, v)) in enumerate(kvs)]...)
-            # get the code pointer
-            cptr = checknull(pyptr($co))
-            # get the globals pointer
-            globals = $(esc(:pyglobals))
-            gptr = checknull(pyptr(globals))
-            # ensure globals includes builtins
-            if globals isa PyDict && !globals.hasbuiltins
-                if C.PyMapping_HasKeyString(gptr, "__builtins__") == 0
-                    err = C.PyMapping_SetItemString(
-                        gptr,
-                        "__builtins__",
-                        C.PyEval_GetBuiltins(),
-                    )
-                    ism1(err) && pythrow()
+    if mode == :eval
+        :(eval_impl($(esc(rettypearg)), $(args...)))
+    elseif mode == :exec
+        if length(outkvts) == 0
+            quote
+                exec_impl($(args...),) do lptr::CPyPtr, decref::Bool
+                    decref && C.Py_DecRef(lptr)
+                    nothing
                 end
-                globals.hasbuiltins = true
             end
-            # get locals (ALLOCATES lptr if locals===nothing)
-            $(
-                locals === nothing ? :(lptr = checknull(C.PyDict_New())) :
-                :(locals = $(esc(locals)); lptr = checknull(pyptr(locals)))
-            )
-            # insert extra locals
-            $(
-                [
-                    :(
-                        let
-                            vo = C.PyObject_From($(Symbol(:input, i)))
-                            isnull(vo) && ($freelocals; pythrow())
-                            err = C.PyObject_SetItem(
-                                lptr,
-                                $(PyInternedString(string(k))),
-                                vo,
-                            )
-                            C.Py_DecRef(vo)
-                            ism1(err) && ($freelocals; pythrow())
-                        end
-                    ) for (i, (k, v)) in enumerate(kvs)
-                ]...
-            )
-            # Call eval (ALLOCATES rptr)
-            rptr = GC.@preserve globals C.PyEval_EvalCode(cptr, gptr, lptr)
-            isnull(rptr) && ($freelocals; pythrow())
-            # extract values
-            $(
-                if mode == :eval
-                    quote
-                        $freelocals
-                        res = C.PyObject_Convert(rptr, $(esc(rettypearg)))
-                        C.Py_DecRef(rptr)
-                        ism1(res) && pythrow()
-                        C.takeresult($(esc(rettypearg)))
-                    end
-                elseif mode in (:execa, :execr)
-                    quote
-                        C.Py_DecRef(rptr)
-                        xo = C.PyObject_GetItem(lptr, $(PyInternedString("ans")))
-                        isnull(xo) && ($freelocals; pythrow())
-                        res = C.PyObject_Convert(xo, $(esc(rettypearg)))
-                        C.Py_DecRef(xo)
-                        $freelocals
-                        ism1(res) && pythrow()
-                        C.takeresult($(esc(rettypearg)))
-                    end
-                elseif mode == :exec
-                    quote
-                        C.Py_DecRef(rptr)
-                        $(
-                            (
-                                quote
-                                    $(Symbol(:output, i)) =
-                                        let
-                                            xo = C.PyObject_GetItem(
-                                                lptr,
-                                                $(PyInternedString(v)),
-                                            )
-                                            isnull(xo) && ($freelocals; pythrow())
-                                            res = C.PyObject_Convert(xo, $t)
-                                            C.Py_DecRef(xo)
-                                            ism1(res) && ($freelocals; pythrow())
-                                            C.takeresult($t)
-                                        end
-                                end for (i, (_, v, t)) in enumerate(outkvts)
-                            )...
-                        )
-                        $freelocals
-                        ($((Symbol(:output, i) for i = 1:length(outkvts))...),)
-                    end
-                else
-                    error()
+        elseif length(outkvts) == 1
+            k, v, t = outkvts[1]
+            quote
+                $k = exec_impl($(args...),) do lptr::CPyPtr, decref::Bool
+                    $(mkgetvar("r", v, t))
+                    decref && C.Py_DecRef(lptr)
+                    return r
                 end
-            )
+            end
+        else
+            quote
+                ($([k for (k,_,_) in outkvts]...),) = exec_impl($(args...),) do lptr::CPyPtr, decref::Bool
+                    $([mkgetvar("r$i", v, t) for (i,(k,v,t)) in enumerate(outkvts)]...)
+                    decref && C.Py_DecRef(lptr)
+                    return ($([Symbol("r$i") for i in 1:length(outkvts)]...),)
+                end
+            end
         end
-    end
-    if mode == :exec
-        ret = quote
-            ($((k for (k, _, _) in outkvts)...),) = $ret
-            nothing
+    elseif mode == :execr
+        quote
+            exec_impl($(args...),) do lptr::CPyPtr, decref::Bool
+                $(mkgetvar("r", "_jl_tmp_ans_", esc(rettypearg)))
+                decref && C.Py_DecRef(lptr)
+                return r
+            end
         end
+    elseif mode == :execa
+        quote
+            exec_impl($(args...),) do lptr, decref
+                $(mkgetvar("r", "ans", esc(rettypearg)))
+                decref && C.Py_DecRef(lptr)
+                return r
+            end
+        end
+    else
+        @assert false
     end
-    ret
 end
 
 """

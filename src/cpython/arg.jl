@@ -54,7 +54,8 @@ end
 
 struct NODEFAULT end
 
-PyArg_Find(args::PyPtr, kwargs::PyPtr, i::Union{Int,Nothing}, k::Union{String,Nothing}) =
+PyArg_Find(args::PyPtr, kwargs::PyPtr, i::Union{Int,Nothing}, k::Union{String,Nothing}) = begin
+    @debug "PyArg_Find" args kwargs i k
     if i !== nothing && !isnull(args) && 0 ≤ i < PyTuple_Size(args)
         return PyTuple_GetItem(args, i)
     elseif k !== nothing &&
@@ -64,6 +65,7 @@ PyArg_Find(args::PyPtr, kwargs::PyPtr, i::Union{Int,Nothing}, k::Union{String,No
     else
         return PyNULL
     end
+end
 
 """
     PyArg_GetArg(T, funcname, [args, i], [kwargs, k], [default])

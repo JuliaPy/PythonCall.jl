@@ -34,3 +34,13 @@ pyptr(co::PyCode) = begin
     ptr
 end
 Base.unsafe_convert(::Type{CPyPtr}, x::PyCode) = checknull(pyptr(x))
+Base.show(io::IO, x::PyCode) = begin
+    show(io, typeof(x))
+    print(io, "(")
+    show(io, x.code)
+    print(io, ", ")
+    show(io, x.filename)
+    print(io, ", ")
+    show(io, x.mode)
+    print(io, ")")
+end

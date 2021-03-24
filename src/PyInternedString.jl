@@ -27,6 +27,12 @@ pyptr(x::PyInternedString) = begin
     ptr
 end
 Base.unsafe_convert(::Type{CPyPtr}, x::PyInternedString) = checknull(pyptr(x))
+Base.show(io::IO, x::PyInternedString) = begin
+    show(io, typeof(x))
+    print(io, '(')
+    show(io, x.val)
+    print(io, ')')
+end
 
 """
     pystr"..." :: PyInternedString

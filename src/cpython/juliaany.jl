@@ -61,7 +61,7 @@ pyjlany_setattro(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
     # If has double leading and trailing underscore, do not allow
     if length(k) > 4 && startswith(k, "__") && endswith(k, "__")
         PyErr_SetString(PyExc_AttributeError(), "'$(PyType_Name(Py_Type(xo)))' object has no attribute '$k'")
-        return PyNULL
+        return Cint(-1)
     end
     # Look up a property on the Julia object
     k = pyjl_attr_py2jl(k)

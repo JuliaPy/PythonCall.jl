@@ -52,7 +52,7 @@ pyjlraw_setattro(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
     # If has double leading and trailing underscore, do not allow
     if length(k) > 4 && startswith(k, "__") && endswith(k, "__")
         PyErr_SetString(PyExc_AttributeError(), "'$(PyType_Name(Py_Type(xo)))' object has no attribute '$k'")
-        return PyNULL
+        return Cint(-1)
     end
     # Look up a property on the Julia object
     k = pyjl_attr_py2jl(k)
@@ -116,14 +116,14 @@ end
 
 pyjlraw_setitem(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
     x = PyJuliaValue_GetValue(xo)
-    ism1(PyObject_Convert(vo, Any)) && return PyNULL
+    ism1(PyObject_Convert(vo, Any)) && return Cint(-1)
     v = takeresult(Any)
     if PyTuple_Check(ko)
-        ism1(PyObject_Convert(ko, Tuple)) && return PyNULL
+        ism1(PyObject_Convert(ko, Tuple)) && return Cint(-1)
         k = takeresult(Tuple)
         @pyjltry (x[k...] = v; Cint(0)) Cint(-1)
     else
-        ism1(PyObject_Convert(ko, Any)) && return PyNULL
+        ism1(PyObject_Convert(ko, Any)) && return Cint(-1)
         k = takeresult(Any)
         @pyjltry (x[k] = v; Cint(0)) Cint(-1)
     end

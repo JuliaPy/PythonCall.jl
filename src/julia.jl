@@ -1,9 +1,3 @@
-pyjlbasetype(::Type{T}) where {T} = checknullconvert(T, C.PyJuliaBaseValue_Type())
-pyjlbasetype() = pyjlbasetype(PyObject)
-
-pyjlrawtype(::Type{T}) where {T} = checknullconvert(T, C.PyJuliaRawValue_Type())
-pyjlrawtype() = pyjlrawtype(PyObject)
-
 """
     pyjlraw([T=PyObject,] x)
 

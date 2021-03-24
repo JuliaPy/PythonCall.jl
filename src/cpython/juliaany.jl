@@ -20,10 +20,16 @@ pyjlany_getattro(xo::PyPtr, ko::PyPtr) = begin
     else
         return ro
     end
-    # Now try to get the corresponding property
+    # Convert attribute to a string
     x = PyJuliaValue_GetValue(xo)
     k = PyUnicode_AsString(ko)
     isempty(k) && PyErr_IsSet() && return PyNULL
+    # If has double leading and trailing underscore, do not allow
+    if length(k) > 4 && startswith(k, "__") && endswith(k, "__")
+        PyErr_SetString(PyExc_AttributeError(), "'$(PyType_Name(Py_Type(xo)))' object has no attribute '$k'")
+        return PyNULL
+    end
+    # Look up a property on the Julia object
     k = pyjl_attr_py2jl(k)
     @pyjltry begin
         v = getproperty(x, Symbol(k))
@@ -48,10 +54,16 @@ pyjlany_setattro(xo::PyPtr, ko::PyPtr, vo::PyPtr) = begin
         PyErr_SetString(PyExc_TypeError(), "attribute deletion not supported")
         return Cint(-1)
     end
-    # Now try to set the corresponding property
+    # Convert attribute to a string
     x = PyJuliaValue_GetValue(xo)
     k = PyUnicode_AsString(ko)
     isempty(k) && PyErr_IsSet() && return Cint(-1)
+    # If has double leading and trailing underscore, do not allow
+    if length(k) > 4 && startswith(k, "__") && endswith(k, "__")
+        PyErr_SetString(PyExc_AttributeError(), "'$(PyType_Name(Py_Type(xo)))' object has no attribute '$k'")
+        return PyNULL
+    end
+    # Look up a property on the Julia object
     k = pyjl_attr_py2jl(k)
     @pyjltry begin
         V = propertytype(x, Symbol(k))

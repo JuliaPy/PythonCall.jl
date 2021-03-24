@@ -837,7 +837,7 @@ end
             @test @pyv `"x" in dir($xo)`::Bool
             @test @pyv `"y" in dir($xo)`::Bool
             xo = pyjlraw(+)
-            @test (@pyv `$xo(2,3)`::Any) === 5
+            @test (@pyv `$xo(2,3)`::Any) == 5
             x = [1,2,3]
             xo = pyjlraw(x)
             @test @pyv `len($xo) == 3`::Bool

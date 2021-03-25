@@ -306,8 +306,10 @@ struct ExtraNewline{T}
     value :: T
 end
 Base.show(io::IO, m::MIME, x::ExtraNewline) = show(io, m, x.value)
+Base.show(io::IO, m::MIME"text/csv", x::ExtraNewline) = show(io, m, x.value)
+Base.show(io::IO, m::MIME"text/tab-separated-values", x::ExtraNewline) = show(io, m, x.value)
 Base.show(io::IO, m::MIME"text/plain", x::ExtraNewline) = (show(io, m, x.value); println(io))
-Base.showable(m, x::ExtraNewline) = showable(m, x.value)
+Base.showable(m::MIME, x::ExtraNewline) = showable(m, x.value)
 
 pyjlany_display(xo::PyPtr, ::PyPtr) =
     @pyjltry begin

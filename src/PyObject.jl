@@ -179,6 +179,8 @@ function Base.show(io::IO, ::MIME"text/plain", o::PyObject)
 end
 
 Base.show(io::IO, mime::MIME, o::PyObject) = _py_mime_show(io, mime, o)
+Base.show(io::IO, mime::MIME"text/csv", o::PyObject) = _py_mime_show(io, mime, o)
+Base.show(io::IO, mime::MIME"text/tab-separated-values", o::PyObject) = _py_mime_show(io, mime, o)
 Base.showable(mime::MIME, o::PyObject) = _py_mime_showable(mime, o)
 
 ### PROPERTIES

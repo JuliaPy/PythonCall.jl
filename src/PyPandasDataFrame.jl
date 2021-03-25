@@ -100,6 +100,9 @@ C.PyObject_TryConvert__initial(o, ::Type{PyPandasDataFrame}) =
 
 Base.show(io::IO, x::PyPandasDataFrame) = print(io, pystr(String, x))
 Base.show(io::IO, mime::MIME, o::PyPandasDataFrame) = _py_mime_show(io, mime, o)
+Base.show(io::IO, mime::MIME"text/plain", o::PyPandasDataFrame) = _py_mime_show(io, mime, o)
+Base.show(io::IO, mime::MIME"text/csv", o::PyPandasDataFrame) = _py_mime_show(io, mime, o)
+Base.show(io::IO, mime::MIME"text/tab-separated-values", o::PyPandasDataFrame) = _py_mime_show(io, mime, o)
 Base.showable(mime::MIME, o::PyPandasDataFrame) = _py_mime_showable(mime, o)
 
 ### Tables.jl / TableTraits.jl integration

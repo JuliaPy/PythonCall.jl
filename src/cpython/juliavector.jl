@@ -176,7 +176,7 @@ const PyJuliaVectorValue_Type = LazyPyObject() do
             ),
             PyMethodDef(
                 name = cacheptr!(c, "sort"),
-                flags = Py_METH_VARARGS | Py_METH_VARARGS,
+                flags = Py_METH_VARARGS | Py_METH_KEYWORDS,
                 meth = @cfunctionOOOO(pyjlvector_sort),
             ),
             PyMethodDef(

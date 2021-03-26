@@ -308,7 +308,7 @@ PyObject_TryConvert_CompileRule(@nospecialize(T::Type), t::PyPtr) = begin
                 rulefunc
             end
         end
-    end
+    end::Vector{TRYCONVERT_FUNCTYPE}
 end
 
 const TRYCONVERT_ERR_ARRAY = TRYCONVERT_FUNCTYPE[]
@@ -324,9 +324,9 @@ PyObject_TryConvert(o::PyPtr, ::Type{T}) where {T} = begin
     t = Py_Type(o)
     crules = get(rules, t, TRYCONVERT_ERR_ARRAY)
     if crules === TRYCONVERT_ERR_ARRAY
-        crules = PyObject_TryConvert_CompileRule(T, t)
-        crules === PYERR() && return -1
-        rules[t] = crules
+        _crules = PyObject_TryConvert_CompileRule(T, t)
+        _crules === PYERR() && return -1
+        rules[t] = crules = _crules
     end
     for crule in crules
         r = TRYCONVERT_C ? ccall(crule, Int, (PyPtr,), o) : crule(o)::Int

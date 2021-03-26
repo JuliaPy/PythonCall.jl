@@ -10,15 +10,7 @@ mutable struct PyObjectArray{N} <: AbstractArray{PyObject,N}
     ptrs::Array{CPyPtr,N}
     function PyObjectArray{N}(::UndefInitializer, dims::NTuple{N,Integer}) where {N}
         x = new{N}(fill(CPyPtr(C_NULL), dims))
-        finalizer(x) do x
-            if CONFIG.isinitialized
-                with_gil(false) do
-                    for ptr in x.ptrs
-                        C.Py_DecRef(ptr)
-                    end
-                end
-            end
-        end
+        finalizer(pyobjectarray_finalize!, x)
     end
 end
 PyObjectArray{N}(::UndefInitializer, dims::Vararg{Integer,N}) where {N} =
@@ -31,6 +23,15 @@ PyObjectArray{N}(x::AbstractArray{T,N}) where {T,N} =
     copyto!(PyObjectArray{N}(undef, size(x)), x)
 PyObjectArray(x::AbstractArray{T,N}) where {T,N} = PyObjectArray{N}(x)
 export PyObjectArray
+
+pyobjectarray_finalize!(x::PyObjectArray) = begin
+    CONFIG.isinitialized || return
+    with_gil(false) do
+        for ptr in x.ptrs
+            C.Py_DecRef(ptr)
+        end
+    end
+end
 
 Base.IndexStyle(x) = Base.IndexStyle(x.ptrs)
 

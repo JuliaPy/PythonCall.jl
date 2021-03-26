@@ -22,14 +22,7 @@ mutable struct PyBuffer
     info::Array{C.Py_buffer,0}
     function PyBuffer()
         b = new(fill(C.Py_buffer()))
-        finalizer(b) do b
-            if CONFIG.isinitialized
-                with_gil(false) do
-                    C.PyBuffer_Release(pointer(b.info))
-                end
-            end
-        end
-        b
+        finalizer(pybuffer_finalize!, b)
     end
 end
 PyBuffer(o, flags::Integer = C.PyBUF_FULL_RO) = begin
@@ -38,6 +31,14 @@ PyBuffer(o, flags::Integer = C.PyBUF_FULL_RO) = begin
     b
 end
 export PyBuffer
+
+pybuffer_finalize!(x::PyBuffer) = begin
+    CONFIG.isinitialized || return
+    with_gil(false) do
+        C.PyBuffer_Release(pointer(x.info))
+    end
+    return
+end
 
 Base.getproperty(b::PyBuffer, k::Symbol) =
     if k == :buf

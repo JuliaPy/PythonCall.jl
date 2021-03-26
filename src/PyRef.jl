@@ -13,22 +13,23 @@ mutable struct PyRef
     PyRef(::Val{:new}, ptr::Ptr, borrowed::Bool) = begin
         x = new(CPyPtr(ptr))
         borrowed && C.Py_IncRef(ptr)
-        finalizer(x) do x
-            if CONFIG.isinitialized
-                ptr = x.ptr
-                if !isnull(ptr)
-                    with_gil(false) do
-                        @assert C.Py_RefCnt(ptr) > 0
-                        C.Py_DecRef(ptr)
-                    end
-                    x.ptr = C_NULL
-                end
-            end
-        end
-        x
+        finalizer(pyref_finalize!, x)
     end
 end
 export PyRef
+
+pyref_finalize!(x::PyRef) = begin
+    CONFIG.isinitialized || return
+    ptr = x.ptr
+    if !isnull(ptr)
+        with_gil(false) do
+            @assert C.Py_RefCnt(ptr) > 0
+            C.Py_DecRef(ptr)
+        end
+        x.ptr = C_NULL
+    end
+    return
+end
 
 pynewref(x::Ptr, check::Bool = false) =
     (check && isnull(x)) ? pythrow() : PyRef(Val(:new), x, false)

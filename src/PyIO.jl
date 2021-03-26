@@ -42,15 +42,16 @@ mutable struct PyIO <: IO
             obuflen,
             UInt8[],
         )
-        finalizer(io) do io
-            if CONFIG.isinitialized
-                io.own ? close(io) : flush(io)
-            end
-        end
-        io
+        finalizer(pyio_finalize!, io)
     end
 end
 export PyIO
+
+pyio_finalize!(x::PyIO) = begin
+    CONFIG.isinitialized || return
+    io.own ? close(io) : flush(io)
+    return
+end
 
 ispyreftype(::Type{PyIO}) = true
 pyptr(io::PyIO) = pyptr(io.ref)

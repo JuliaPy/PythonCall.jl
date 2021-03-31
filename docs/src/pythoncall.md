@@ -22,7 +22,7 @@ PyObject
 
 These macros are used to execute or evaluate Python code. The main differences between them are in whether/how any values are extracted out again.
 
-**Note to package writers.** These all expect there to be a variable `pyglobals` in scope, which is a Python dictionary giving the global scope. For convenience, this module exports such a variable so that these macros work in the REPL. However other packages should define their own global scope by defining `const pyglobals = PyDict()`. You can alternatively define `const pyglobals = PythonCall.pylazyobject(()->pyimport("some_module").__dict__)` to use the global scope of an existing Python module.
+**Note to package writers.** These all expect there to be a variable `pyglobals` in scope, which is a Python dictionary giving the global scope. For convenience, this module exports such a variable so that these macros work in the REPL. However other packages should define their own global scope by defining `const pyglobals = PyDict()`.
 
 ```@docs
 @py

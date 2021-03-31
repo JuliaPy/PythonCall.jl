@@ -35,12 +35,10 @@ another type. To avoid clashes with object attributes, they all have the prefix 
 """
 mutable struct PyObject
     ptr::CPyPtr
-    make::Any
     PyObject(::Val{:new}, ptr::Ptr, borrowed::Bool) = begin
         borrowed && C.Py_IncRef(ptr)
-        finalizer(pyref_finalize!, new(CPyPtr(ptr), nothing))
+        finalizer(pyref_finalize!, new(CPyPtr(ptr)))
     end
-    PyObject(::Val{:lazy}, mk) = finalizer(pyref_finalize!, new(CPyPtr(0), mk))
 end
 PyObject(x) = begin
     ptr = C.PyObject_From(x)
@@ -50,26 +48,12 @@ end
 export PyObject
 
 ispyreftype(::Type{PyObject}) = true
-pyptr(o::PyObject) = begin
-    ptr = getfield(o, :ptr)
-    if isnull(ptr)
-        val = try
-            getfield(o, :make)()
-        catch err
-            C.PyErr_SetString(C.PyExc_Exception(), "Error retrieving object value: $err")
-            return ptr
-        end
-        ptr = C.PyObject_From(val)
-        setfield!(o, :ptr, ptr)
-    end
-    ptr
-end
+pyptr(o::PyObject) = getfield(o, :ptr)
 Base.unsafe_convert(::Type{CPyPtr}, o::PyObject) = checknull(pyptr(o))
 pynewobject(p::Ptr, check::Bool = false) =
     (check && isnull(p)) ? pythrow() : PyObject(Val(:new), p, false)
 pyborrowedobject(p::Ptr, check::Bool = false) =
     (check && isnull(p)) ? pythrow() : PyObject(Val(:new), p, true)
-pylazyobject(mk) = PyObject(Val(:lazy), mk)
 
 C.PyObject_TryConvert__initial(o, ::Type{PyObject}) = C.putresult(pyborrowedobject(o))
 
@@ -79,15 +63,6 @@ C.PyObject_TryConvert__initial(o, ::Type{PyObject}) = C.putresult(pyborrowedobje
 # Base.convert(::Type{Any}, x::PyObject) = x
 # Base.convert(::Type{T}, x::PyObject) where {T} = x isa T ? x : pyconvert(T, x)
 # Base.convert(::Type{PyObject}, x) = PyObject(x)
-
-### Cache some common values
-
-const _pynone = pylazyobject(() -> pynone(PyRef))
-pynone(::Type{PyObject}) = _pynone
-
-const _pytrue = pylazyobject(() -> pybool(PyRef, true))
-const _pyfalse = pylazyobject(() -> pybool(PyRef, false))
-pybool(::Type{PyObject}, x::Bool) = x ? _pytrue : _pyfalse
 
 ### IO
 

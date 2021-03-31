@@ -493,7 +493,6 @@ end
 
     @testset "PyObject" begin
         x = PyObject(1)
-        y = PythonCall.pylazyobject(()->error("nope"))
         z = PyObject(2)
         foo = @pyv `Foo()`
         Foo = @pyv `Foo`
@@ -503,10 +502,7 @@ end
         mat = PyObject([1 2; 3 4])
         bio = @pyv `io.BytesIO()`
         @test x isa PyObject
-        @test y isa PyObject
         @test foo isa PyObject
-        @test PythonCall.pyptr(y) === PythonCall.C.PyNULL
-        PythonCall.C.PyErr_Clear()
         @test string(x) == "1"
         @test (io=IOBuffer(); print(io, x); String(take!(io))) == "1"
         @test repr(x) == "<py 1>"

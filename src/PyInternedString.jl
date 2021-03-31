@@ -8,21 +8,21 @@ This can provide a performance boost when using strings to index dictionaries or
 See also [`@pystr_str`](@ref).
 """
 mutable struct PyInternedString
-    ref::PyRef
+    ptr::CPyPtr
     val::String
-    PyInternedString(x::String) = new(PyRef(), x)
+    PyInternedString(x::String) = finalizer(pyref_finalize!, new(CPyPtr(0), x))
 end
 export PyInternedString
 
 ispyreftype(::Type{PyInternedString}) = true
 pyptr(x::PyInternedString) = begin
-    ptr = x.ref.ptr
+    ptr = x.ptr
     if isnull(ptr)
         s = Ref{CPyPtr}()
         s[] = C.PyUnicode_From(x.val)
         isnull(s[]) && return ptr
         C.PyUnicode_InternInPlace(s)
-        ptr = x.ref.ptr = s[]
+        ptr = x.ptr = s[]
     end
     ptr
 end

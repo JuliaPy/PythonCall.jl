@@ -3,14 +3,17 @@
 
 Wrap the Python dictionary `o` (or anything satisfying the mapping interface) as a Julia dictionary with keys of type `K` and values of type `V`.
 
+If `o` is not a Python object, it must iterate pairs and is converted to a Python dict.
+
 If `o` is not given, an empty dict is created.
 """
 mutable struct PyDict{K,V} <: AbstractDict{K,V}
-    ref::PyRef
+    ptr::CPyPtr
     hasbuiltins::Bool
-    PyDict{K,V}(o) where {K,V} = new(ispyref(o) ? PyRef(o) : pydict(PyRef, o), false)
-    PyDict{K,V}() where {K,V} = new(PyRef(), false)
+    PyDict{K,V}(::Val{:new}, ptr::Ptr, hasbuiltins::Bool=false) where {K,V} = finalizer(pyref_finalize!, new{K,V}(CPyPtr(ptr), hasbuiltins))
 end
+PyDict{K,V}(o) where {K,V} = PyDict{K,V}(Val(:new), checknull(ispyref(o) ? C.PyObject_From(o) : C.PyDict_FromPairs(o)))
+PyDict{K,V}() where {K,V} = PyDict{K,V}(Val(:new), CPyPtr(0))
 PyDict{K}(args...) where {K} = PyDict{K,PyObject}(args...)
 PyDict(args...) = PyDict{PyObject,PyObject}(args...)
 export PyDict
@@ -20,13 +23,21 @@ export pyglobals
 
 ispyreftype(::Type{<:PyDict}) = true
 pyptr(x::PyDict) = begin
-    ptr = x.ref.ptr
+    ptr = x.ptr
     if isnull(ptr)
-        ptr = x.ref.ptr = C.PyDict_New()
+        ptr = x.ptr = C.PyDict_New()
     end
     ptr
 end
 Base.unsafe_convert(::Type{CPyPtr}, x::PyDict) = checknull(pyptr(x))
+C.PyObject_TryConvert__initial(o, ::Type{PyDict}) =
+    C.PyObject_TryConvert__initial(o, PyDict{PyObject, PyObject})
+C.PyObject_TryConvert__initial(o, ::Type{PyDict{K}}) where {K} =
+    C.PyObject_TryConvert__initial(o, PyDict{K, PyObject})
+C.PyObject_TryConvert__initial(o, ::Type{PyDict{K,V}}) where {K,V} = begin
+    C.Py_IncRef(o)
+    C.putresult(PyDict{K,V}(Val(:new), o))
+end
 
 ensurehasbuiltins!(x::PyDict) = begin
     if !x.hasbuiltins
@@ -42,7 +53,7 @@ ensurehasbuiltins!(x::PyDict) = begin
     end
 end
 
-Base.iterate(x::PyDict{K,V}, it::PyRef) where {K,V} = begin
+Base.iterate(x::PyDict{K,V}, it::PyRef = pyiter(PyRef, x)) where {K,V} = begin
     ko = C.PyIter_Next(it)
     if !isnull(ko)
         # key
@@ -65,13 +76,8 @@ Base.iterate(x::PyDict{K,V}, it::PyRef) where {K,V} = begin
         nothing
     end
 end
-Base.iterate(x::PyDict) = begin
-    it = C.PyObject_GetIter(x)
-    isnull(it) && pythrow()
-    iterate(x, pynewref(it))
-end
 
-Base.iterate(x::Base.KeySet{K,PyDict{K,V}}, it::PyRef) where {K,V} = begin
+Base.iterate(x::Base.KeySet{K,PyDict{K,V}}, it::PyRef = pyiter(PyRef, x.dict)) where {K,V} = begin
     ko = C.PyIter_Next(it)
     if !isnull(ko)
         r = C.PyObject_Convert(ko, K)
@@ -84,11 +90,6 @@ Base.iterate(x::Base.KeySet{K,PyDict{K,V}}, it::PyRef) where {K,V} = begin
     else
         nothing
     end
-end
-Base.iterate(x::Base.KeySet{K,PyDict{K,V}}) where {K,V} = begin
-    it = C.PyObject_GetIter(x.dict)
-    isnull(it) && pythrow()
-    iterate(x, pynewref(it))
 end
 
 Base.setindex!(x::PyDict{K,V}, v, k) where {K,V} =

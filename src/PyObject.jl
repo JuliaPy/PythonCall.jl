@@ -34,18 +34,24 @@ another type. To avoid clashes with object attributes, they all have the prefix 
 - `x.jl!matrix(...)` is `PyMatrix{...}(x)`
 """
 mutable struct PyObject
-    ref::PyRef
+    ptr::CPyPtr
     make::Any
-    PyObject(::Val{:nocopy}, o::PyRef) = new(o)
-    PyObject(o) = new(PyRef(o))
-    PyObject(::Val{:lazy}, mk) = new(PyRef(), mk)
+    PyObject(::Val{:new}, ptr::Ptr, borrowed::Bool) = begin
+        borrowed && C.Py_IncRef(ptr)
+        finalizer(pyref_finalize!, new(CPyPtr(ptr), nothing))
+    end
+    PyObject(::Val{:lazy}, mk) = finalizer(pyref_finalize!, new(CPyPtr(0), mk))
+end
+PyObject(x) = begin
+    ptr = C.PyObject_From(x)
+    isnull(ptr) && pythrow()
+    pynewobject(ptr)
 end
 export PyObject
 
 ispyreftype(::Type{PyObject}) = true
 pyptr(o::PyObject) = begin
-    ref = getfield(o, :ref)
-    ptr = ref.ptr
+    ptr = getfield(o, :ptr)
     if isnull(ptr)
         val = try
             getfield(o, :make)()
@@ -53,15 +59,16 @@ pyptr(o::PyObject) = begin
             C.PyErr_SetString(C.PyExc_Exception(), "Error retrieving object value: $err")
             return ptr
         end
-        ptr = ref.ptr = C.PyObject_From(val)
+        ptr = C.PyObject_From(val)
+        setfield!(o, :ptr, ptr)
     end
     ptr
 end
 Base.unsafe_convert(::Type{CPyPtr}, o::PyObject) = checknull(pyptr(o))
 pynewobject(p::Ptr, check::Bool = false) =
-    (check && isnull(p)) ? pythrow() : PyObject(Val(:nocopy), pynewref(p))
+    (check && isnull(p)) ? pythrow() : PyObject(Val(:new), p, false)
 pyborrowedobject(p::Ptr, check::Bool = false) =
-    (check && isnull(p)) ? pythrow() : PyObject(Val(:nocopy), pyborrowedref(p))
+    (check && isnull(p)) ? pythrow() : PyObject(Val(:new), p, true)
 pylazyobject(mk) = PyObject(Val(:lazy), mk)
 
 C.PyObject_TryConvert__initial(o, ::Type{PyObject}) = C.putresult(pyborrowedobject(o))

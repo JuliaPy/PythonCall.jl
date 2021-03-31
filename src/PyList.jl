@@ -3,28 +3,35 @@
 
 Wrap the Python list `o` (or anything satisfying the sequence interface) as a Julia vector with elements of type `T`.
 
+If `o` is not a Python object, it must be an iterable and is converted to a Python list.
+
 If `o` is not given, an empty list is created.
 """
-struct PyList{T} <: AbstractVector{T}
-    ref::PyRef
-    PyList{T}(o) where {T} = new{T}(ispyref(o) ? PyRef(o) : pylist(PyRef, o))
-    PyList{T}() where {T} = new{T}(PyRef())
+mutable struct PyList{T} <: AbstractVector{T}
+    ptr::CPyPtr
+    PyList{T}(::Val{:new}, ptr::Ptr) where {T} = finalizer(pyref_finalize!, new{T}(CPyPtr(ptr)))
 end
+PyList{T}(o) where {T} = PyList{T}(Val(:new), checknull(ispyref(o) ? C.PyObject_From(o) : C.PyList_FromIter(o)))
+PyList{T}() where {T} = PyList{T}(Val(:new), CPyPtr(0))
 PyList(o) = PyList{PyObject}(o)
 PyList() = PyList{PyObject}()
 export PyList
 
 ispyreftype(::Type{<:PyList}) = true
 pyptr(x::PyList) = begin
-    ptr = x.ref.ptr
+    ptr = x.ptr
     if isnull(ptr)
-        ptr = x.ref.ptr = C.PyList_New(0)
+        ptr = x.ptr = C.PyList_New(0)
     end
     ptr
 end
 Base.unsafe_convert(::Type{CPyPtr}, x::PyList) = checknull(pyptr(x))
-C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PyList} =
-    C.putresult(T(pyborrowedref(o)))
+C.PyObject_TryConvert__initial(o, ::Type{PyList}) =
+    C.PyObject_TryConvert__initial(o, PyList{PyObject})
+C.PyObject_TryConvert__initial(o, ::Type{PyList{T}}) where {T} = begin
+    C.Py_IncRef(o)
+    C.putresult(PyList{T}(Val(:new), o))
+end
 
 # Base.length(x::PyList) = @pyv `len($x)`::Int
 Base.length(x::PyList) = Int(pylen(x))

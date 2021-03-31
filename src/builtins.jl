@@ -31,7 +31,9 @@ cpyop(f::Function, x, y, z) = begin
     r
 end
 
-cpyop(::Type{T}, f::Function, args...) where {T} = checknullconvert(T, cpyop(f, args...))
+cpyop(::Type{T}, f::Function, x) where {T} = checknullconvert(T, cpyop(f, x))
+cpyop(::Type{T}, f::Function, x, y) where {T} = checknullconvert(T, cpyop(f, x, y))
+cpyop(::Type{T}, f::Function, x, y, z) where {T} = checknullconvert(T, cpyop(f, x, y, z))
 
 """
     pyconvert(T, x) :: T

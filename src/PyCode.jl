@@ -8,23 +8,24 @@ The `filename` is used for exception printing. The mode must be `:exec` or `:eva
 See also [`@py_cmd`](@ref) and [`@pyv_cmd`](@ref).
 """
 mutable struct PyCode
-    ref::PyRef
+    ptr::CPyPtr
     code::String
     filename::String
     mode::Symbol
     PyCode(code::String, filename::String, mode::Symbol) = begin
         mode in (:exec, :eval) || error("invalid mode $(repr(mode))")
-        new(PyRef(), code, filename, mode)
+        co = new(CPyPtr(0), code, filename, mode)
+        finalizer(pyref_finalize!, co)
     end
 end
 export PyCode
 
 ispyreftype(::Type{PyCode}) = true
 pyptr(co::PyCode) = begin
-    ptr = co.ref.ptr
+    ptr = co.ptr
     if isnull(ptr)
         ptr =
-            co.ref.ptr = C.Py_CompileString(
+            co.ptr = C.Py_CompileString(
                 co.code,
                 co.filename,
                 co.mode == :exec ? C.Py_file_input :

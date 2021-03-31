@@ -3,18 +3,23 @@
 
 Wrap the Python object `o` into a Julia object which iterates values of type `T`.
 """
-struct PyIterable{T}
-    ref::PyRef
-    PyIterable{T}(o) where {T} = new{T}(PyRef(o))
+mutable struct PyIterable{T}
+    ptr::CPyPtr
+    PyIterable{T}(::Val{:new}, ptr::Ptr) where {T} = finalizer(pyref_finalize!, new{T}(CPyPtr(ptr)))
 end
+PyIterable{T}(o) where {T} = PyIterable{T}(Val(:new), checknull(C.PyObject_From(o)))
 PyIterable(o) = PyIterable{PyObject}(o)
 export PyIterable
 
 ispyreftype(::Type{<:PyIterable}) = true
-pyptr(x::PyIterable) = pyptr(x.ref)
+pyptr(x::PyIterable) = x.ptr
 Base.unsafe_convert(::Type{CPyPtr}, x::PyIterable) = checknull(pyptr(x))
-C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PyIterable} =
-    C.putresult(T(pyborrowedref(o)))
+C.PyObject_TryConvert__initial(o, ::Type{PyIterable}) =
+    C.PyObject_TryConvert__initial(o, PyIterable{PyObject})
+C.PyObject_TryConvert__initial(o, ::Type{PyIterable{T}}) where {T} = begin
+    C.Py_IncRef(o)
+    C.putresult(PyIterable{T}(Val(:new), o))
+end
 
 Base.length(x::PyIterable) = Int(pylen(x))
 
@@ -24,7 +29,7 @@ Base.IteratorEltype(::Type{<:PyIterable}) = Base.HasEltype()
 
 Base.eltype(::Type{PyIterable{T}}) where {T} = T
 
-function Base.iterate(x::PyIterable{T}, it = pyiter(PyRef, x)) where {T}
+function Base.iterate(x::PyIterable{T}, it::PyRef = pyiter(PyRef, x)) where {T}
     vo = C.PyIter_Next(it)
     if !isnull(vo)
         r = C.PyObject_Convert(vo, T)

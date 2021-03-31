@@ -10,7 +10,7 @@ If `text=false` then `o` must be a binary stream and arbitrary binary I/O is pos
 For efficiency, reads and writes are buffered before being sent to `o`. The size of the buffer is `buflen`.
 """
 mutable struct PyIO <: IO
-    ref::PyRef
+    ptr::CPyPtr
     # true to close the file automatically
     own::Bool
     # true if `o` is text, false if binary
@@ -24,37 +24,24 @@ mutable struct PyIO <: IO
     obuflen::Int
     obuf::Vector{UInt8}
 
-    function PyIO(
-        o;
-        own::Bool = false,
-        text::Union{Missing,Bool} = missing,
-        buflen::Integer = 4096,
-        ibuflen = buflen,
-        obuflen = buflen,
-    )
-        io = new(
-            PyRef(o),
-            own,
-            text === missing ? pyisinstance(o, pyiomodule().TextIOBase) : text,
-            false,
-            ibuflen,
-            UInt8[],
-            obuflen,
-            UInt8[],
-        )
+    PyIO(::Val{:new}, ptr::Ptr, own::Bool, text::Bool, ibuflen::Int, obuflen::Int) = begin
+        io = new(CPyPtr(ptr), own, text, false, ibuflen, UInt8[], obuflen, UInt8[])
         finalizer(pyio_finalize!, io)
     end
 end
+PyIO(o; own::Bool = false, text::Union{Missing,Bool} = missing, buflen::Integer = 4096, ibuflen::Integer = buflen, obuflen::Integer = buflen) =
+    PyIO(Val(:new), checknull(C.PyObject_From(o)), own, text === missing ? pyhasattr(o, "encoding") : text, convert(Int, ibuflen), convert(Int, obuflen))
 export PyIO
 
 pyio_finalize!(x::PyIO) = begin
     CONFIG.isinitialized || return
     io.own ? close(io) : flush(io)
+    pyref_finalize!(io)
     return
 end
 
 ispyreftype(::Type{PyIO}) = true
-pyptr(io::PyIO) = pyptr(io.ref)
+pyptr(io::PyIO) = io.ptr
 Base.unsafe_convert(::Type{CPyPtr}, io::PyIO) = checknull(pyptr(io))
 C.PyObject_TryConvert__initial(o, ::Type{PyIO}) = C.putresult(PyIO(pyborrowedref(o)))
 

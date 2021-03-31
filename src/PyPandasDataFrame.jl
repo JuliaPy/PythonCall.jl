@@ -82,18 +82,20 @@ This object satisfies the `Tables.jl` and `TableTraits.jl` interfaces.
 - `columntypes`: An iterable of `columnname=>type` or `[columnnames...]=>type` pairs, used when converting to a table.
 - `copy`: True to copy columns on conversion.
 """
-struct PyPandasDataFrame
-    ref::PyRef
+mutable struct PyPandasDataFrame
+    ptr::CPyPtr
     indexname::Union{Symbol,Nothing}
     columntypes::Dict{Symbol,Type}
     copy::Bool
+    PyPandasDataFrame(::Val{:new}, ptr::Ptr, indexname::Union{Symbol,Nothing}, columntypes::Dict{Symbol,Type}, copy::Bool) =
+        finalizer(pyref_finalize!, new(CPyPtr(ptr), indexname, columntypes, copy))
 end
-PyPandasDataFrame(o; indexname = :index, columntypes = (), copy = false) =
-    PyPandasDataFrame(PyRef(o), indexname, multidict(columntypes), copy)
+PyPandasDataFrame(o; indexname::Union{Symbol,Type} = :index, columntypes = (), copy::Bool = false) =
+    PyPandasDataFrame(Val(:new), checknull(C.PyObject_From(o)), indexname, multidict(columntypes), copy)
 export PyPandasDataFrame
 
 ispyreftype(::Type{PyPandasDataFrame}) = true
-pyptr(df::PyPandasDataFrame) = df.ref
+pyptr(df::PyPandasDataFrame) = df.ptr
 Base.unsafe_convert(::Type{CPyPtr}, df::PyPandasDataFrame) = checknull(pyptr(df))
 C.PyObject_TryConvert__initial(o, ::Type{PyPandasDataFrame}) =
     C.putresult(PyPandasDataFrame(pyborrowedref(o)))

@@ -16,12 +16,14 @@ All type parameters are optional:
 There are alias types with names of the form `Py[Mutable/Immutable/][Linear/Cartesian/][Array/Vector/Matrix]`.
 """
 mutable struct PyArray{R,N,T,M,L} <: AbstractArray{T,N}
-    ref::PyRef
-    ptr::Ptr{R}
+    ptr::CPyPtr
+    buf::Ptr{R}
     size::NTuple{N,Int}
     length::Int
     bytestrides::NTuple{N,Int}
     handle::Any
+    PyArray{R,N,T,M,L}(::Val{:new}, ptr::CPyPtr, buf::Ptr{R}, size::NTuple{N,Int}, length::Int, bytestrides::NTuple{N,Int}, handle::Any) where {R,N,T,M,L} =
+        finalizer(pyref_finalize!, new{R,N,T,M,L}(ptr, buf, size, length, bytestrides, handle))
 end
 export PyArray
 
@@ -40,13 +42,13 @@ for M in (true, false, missing)
 end
 
 ispyreftype(::Type{<:PyArray}) = true
-pyptr(x::PyArray) = pyptr(x.ref)
-Base.unsafe_convert(::Type{CPyPtr}, x::PyArray) = pyptr(x.ref)
+pyptr(x::PyArray) = x.ptr
+Base.unsafe_convert(::Type{CPyPtr}, x::PyArray) = pyptr(x)
 C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PyArray} =
     CTryConvertRule_trywrapref(o, T)
 
 (::Type{A})(o; opts...) where {A<:PyArray} = begin
-    ref = PyRef(o)
+    ref = o isa C.PyObjectRef ? PyRef(o) : ispyref(o) ? o : PyRef(o)
     info = pyarray_info(ref; opts...)
     R = pyarray_R(A, info)
     N = pyarray_N(A, info)
@@ -55,7 +57,8 @@ C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PyArray} =
     L = pyarray_L(A, info, Val(N))
     size = pyarray_size(info, Val(N))
     PyArray{R,N,T,M,L}(
-        ref,
+        Val(:new),
+        pyptr(ref),
         Ptr{R}(pyarray_ptr(info)),
         size,
         N == 0 ? 1 : prod(size),
@@ -270,7 +273,7 @@ Base.@propagate_inbounds Base.getindex(
 
 Base.@propagate_inbounds pyarray_getindex(x::PyArray, i...) = begin
     @boundscheck checkbounds(x, i...)
-    pyarray_load(eltype(x), x.ptr + pyarray_offset(x, i...))
+    pyarray_load(eltype(x), x.buf + pyarray_offset(x, i...))
 end
 
 Base.@propagate_inbounds Base.setindex!(
@@ -291,7 +294,7 @@ Base.@propagate_inbounds Base.setindex!(
 
 Base.@propagate_inbounds pyarray_setindex!(x::PyArray, v, i...) = begin
     @boundscheck checkbounds(x, i...)
-    pyarray_store!(x.ptr + pyarray_offset(x, i...), convert(eltype(x), v))
+    pyarray_store!(x.buf + pyarray_offset(x, i...), convert(eltype(x), v))
     x
 end
 

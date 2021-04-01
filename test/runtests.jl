@@ -895,6 +895,16 @@ end
             @test @pyv `not ($(pyjl(3)) > 3)`::Bool
             @test @pyv `$(pyjl(3)) > 2`::Bool
             @test @pyv `$(pyjl(identity)).__name__ == "identity"`::Bool
+            @test @pyv `$(HTML("hello"))._repr_mimebundle_()["text/html"] == "hello"`::Bool
+            @py `$(pyjl(missing))._jl_raw()`
+            @py `$(pyjl(missing))._jl_display()`
+            @py `$(pyjl(missing))._jl_help()`
+            @test_throws Exception @py `+$(pyjl(nothing))`
+            @test_throws Exception @py `-$(pyjl(nothing))`
+            @test_throws Exception @py `abs($(pyjl(nothing)))`
+            @test_throws Exception @py `$(pyjl(nothing)) + $(pyjl(nothing))`
+            @test_throws Exception @py `$(pyjl(nothing)) ** $(pyjl(nothing))`
+            @test_throws Exception @py `pow($(pyjl(nothing)), $(pyjl(nothing)), $(pyjl(nothing)))`
         end
 
         @testset "julianumber" begin

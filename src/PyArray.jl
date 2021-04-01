@@ -56,9 +56,10 @@ C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PyArray} =
     M = pyarray_M(A, info)
     L = pyarray_L(A, info, Val(N))
     size = pyarray_size(info, Val(N))
+    ptr = checknull(C.PyObject_From(ref))
     PyArray{R,N,T,M,L}(
         Val(:new),
-        pyptr(ref),
+        ptr,
         Ptr{R}(pyarray_ptr(info)),
         size,
         N == 0 ? 1 : prod(size),

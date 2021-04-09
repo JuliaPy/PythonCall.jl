@@ -69,14 +69,16 @@ end
 pypandasdataframe(args...; opts...) = pypandasdataframe(PyObject, args...; opts...)
 export pypandasdataframe
 
-multidict(src) = Dict(k => v for (ks, v) in src for k in (ks isa Vector ? ks : [ks]))
+multidict(src) = Dict{String,Type}(k => v for (ks, v) in src for k in (ks isa Vector ? ks : [ks]))
 
 """
-    PyPandasDataFrame(o; indexname=:index, columntypes=(), copy=false)
+    PyPandasDataFrame(o; indexname="index", columntypes=(), copy=false)
 
 Wrap the Pandas dataframe `o` as a Julia table.
 
 This object satisfies the `Tables.jl` and `TableTraits.jl` interfaces.
+
+Columns can be accessed as `df["colname"]`. Column names are given by `keys(df)`.
 
 - `indexname`: The name of the index column when converting this to a table, and may be `nothing` to exclude the index.
 - `columntypes`: An iterable of `columnname=>type` or `[columnnames...]=>type` pairs, used when converting to a table.
@@ -84,13 +86,13 @@ This object satisfies the `Tables.jl` and `TableTraits.jl` interfaces.
 """
 mutable struct PyPandasDataFrame
     ptr::CPyPtr
-    indexname::Union{Symbol,Nothing}
-    columntypes::Dict{Symbol,Type}
+    indexname::Union{String,Nothing}
+    columntypes::Dict{String,Type}
     copy::Bool
-    PyPandasDataFrame(::Val{:new}, ptr::Ptr, indexname::Union{Symbol,Nothing}, columntypes::Dict{Symbol,Type}, copy::Bool) =
+    PyPandasDataFrame(::Val{:new}, ptr::Ptr, indexname::Union{String,Nothing}, columntypes::Dict{String,Type}, copy::Bool) =
         finalizer(pyref_finalize!, new(CPyPtr(ptr), indexname, columntypes, copy))
 end
-PyPandasDataFrame(o; indexname::Union{Symbol,Type} = :index, columntypes = (), copy::Bool = false) =
+PyPandasDataFrame(o; indexname::Union{String,Nothing} = "index", columntypes = (), copy::Bool = false) =
     PyPandasDataFrame(Val(:new), checknull(C.PyObject_From(o)), indexname, multidict(columntypes), copy)
 export PyPandasDataFrame
 
@@ -107,28 +109,35 @@ Base.show(io::IO, mime::MIME"text/csv", o::PyPandasDataFrame) = _py_mime_show(io
 Base.show(io::IO, mime::MIME"text/tab-separated-values", o::PyPandasDataFrame) = _py_mime_show(io, mime, o)
 Base.showable(mime::MIME, o::PyPandasDataFrame) = _py_mime_showable(mime, o)
 
+Base.keys(x::PyPandasDataFrame) = begin
+    names = @pyv `$x.columns`::Vector{String}
+    if x.indexname !== nothing
+        x.indexname ∈ names && error("table already has a column called $(x.indexname), cannot use it for index")
+        pushfirst!(names, x.indexname)
+    end
+    names
+end
+
+Base.haskey(x::PyPandasDataFrame, c::AbstractString) = c == x.indexname || @pyv `$c in $x`::Bool
+
+Base.getindex(x::PyPandasDataFrame, c::AbstractString) = begin
+    T = haskey(x.columntypes, c) ? AbstractVector{x.columntypes[c]} : AbstractVector
+    if c === x.indexname
+        v = @pyv `$x.index`::T
+    else
+        v = @pyv `$x[$c]`::T
+    end
+    x.copy ? copy(v) : v
+end
+
 ### Tables.jl / TableTraits.jl integration
 
 Tables.istable(::Type{PyPandasDataFrame}) = true
 Tables.columnaccess(::Type{PyPandasDataFrame}) = true
 function Tables.columns(x::PyPandasDataFrame)
-    error("not implemented")
-    # # columns
-    # names = Symbol[Symbol(pystr(String, c)) for c in x.o.columns]
-    # columns = PyVector[PyVector{get(x.columntypes, c, missing)}(x.o[pystr(c)].to_numpy()) for c in names]
-    # # index
-    # if x.indexname !== nothing
-    #     if x.indexname ∈ names
-    #         error("table already has column called $(x.indexname), cannot use it for index")
-    #     else
-    #         pushfirst!(names, x.indexname)
-    #         pushfirst!(columns, PyArray{get(x.columntypes, x.indexname, missing)}(x.o.index.to_numpy()))
-    #     end
-    # end
-    # if x.copy
-    #     columns = map(copy, columns)
-    # end
-    # return NamedTuple{Tuple(names)}(Tuple(columns))
+    names = keys(x)
+    columns = [x[c] for c in names]
+    return NamedTuple{Tuple(map(Symbol, names))}(Tuple(columns))
 end
 
 IteratorInterfaceExtensions.isiterable(x::PyPandasDataFrame) = true

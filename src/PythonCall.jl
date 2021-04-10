@@ -120,6 +120,7 @@ include("PyArray.jl")
 include("PyObjectArray.jl")
 include("PyPandasDataFrame.jl")
 
+include("dsl.jl")
 include("julia.jl")
 include("gui.jl")
 include("matplotlib.jl")

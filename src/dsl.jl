@@ -290,7 +290,6 @@ end
     tmpvars_used :: Set{Symbol} = Set{Symbol}()
     pyvars :: Set{Symbol} = Set{Symbol}()
     pyerrblocks :: Vector{Expr} = Vector{Expr}()
-    isfreedvar :: Symbol = gensym("pyfreed")
 end
 
 function pydsl_tmpvar(st::PyDSLLowerState)
@@ -329,7 +328,6 @@ end
 
 function pydsl_errblock(st::PyDSLLowerState, ignorevars...)
     ex = Expr(:block, [:($(C.Py_DecRef)($v)) for v in st.tmpvars_used if v ∉ ignorevars]...)
-    push!(ex.args, :($(st.isfreedvar) = true))
     push!(st.pyerrblocks, ex)
     ex
 end
@@ -676,7 +674,6 @@ function pydsl_lower(ex; onpyerror, onjlerror)
         ans = gensym("ans")
         quote
             let
-                $(st.isfreedvar) = false
                 $(inits...)
                 $ans = $(ex)
                 $(decrefs...)
@@ -684,16 +681,20 @@ function pydsl_lower(ex; onpyerror, onjlerror)
             end
         end
     else
+        isfreed = gensym("freed")
+        for block in st.pyerrblocks
+            pushfirst!(block.args, :($isfreed = true))
+        end
         quote
             let
-                $(st.isfreedvar) = false
+                $isfreed = false
                 $(inits...)
                 try
                     $((ex isa Expr && ex.head == :block ? ex.args : [ex])...)
                 catch exc
                     $((onjlerror isa Expr && onjlerror.head == :block ? onjlerror.args : [onjlerror])...)
                 finally
-                    if !$(st.isfreedvar)
+                    if !$isfreed
                         $(decrefs...)
                     end
                 end

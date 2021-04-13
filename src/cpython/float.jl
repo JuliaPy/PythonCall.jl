@@ -22,3 +22,16 @@ PyFloatable_TryConvertRule_tryconvert(o, ::Type{S}) where {S} = begin
     ism1(x) && PyErr_IsSet() && return -1
     putresult(tryconvert(S, x))
 end
+
+# NaN is sometimes used to represent missing data of other types
+PyFloatable_TryConvertRule_nothing(o, ::Type{Nothing}) = begin
+    x = PyFloat_AsDouble(o)
+    ism1(x) && PyErr_IsSet() && return -1
+    isnan(x) ? putresult(nothing) : 0
+end
+
+PyFloatable_TryConvertRule_missing(o, ::Type{Missing}) = begin
+    x = PyFloat_AsDouble(o)
+    ism1(x) && PyErr_IsSet() && return -1
+    isnan(x) ? putresult(missing) : 0
+end

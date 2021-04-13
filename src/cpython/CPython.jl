@@ -117,6 +117,8 @@ init() = begin
     PyObject_TryConvert_AddRule("numbers.Real", AbstractFloat, PyFloatable_TryConvertRule_tryconvert)
     PyObject_TryConvert_AddRule("numbers.Real", Real, PyFloatable_TryConvertRule_tryconvert)
     PyObject_TryConvert_AddRule("numbers.Real", Number, PyFloatable_TryConvertRule_tryconvert)
+    PyObject_TryConvert_AddRule("numbers.Real", Nothing, PyFloatable_TryConvertRule_nothing)
+    PyObject_TryConvert_AddRule("numbers.Real", Missing, PyFloatable_TryConvertRule_missing)
     PyObject_TryConvert_AddRule("builtins.complex", Complex{Float64}, PyComplexable_TryConvertRule_convert, 100)
     PyObject_TryConvert_AddRule("numbers.Complex", Complex{Float64}, PyComplexable_TryConvertRule_convert)
     PyObject_TryConvert_AddRule("numbers.Complex", Complex{BigFloat}, PyComplexable_TryConvertRule_convert)

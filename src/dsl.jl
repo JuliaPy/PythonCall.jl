@@ -24,12 +24,36 @@ PYDSL_OPS = Dict(
     (:xor, 2) => :PyNumber_Xor,
 )
 
+PYDSL_CMPS = Dict(
+    :(===) => :PyObject_Is,
+    :(≡) => :PyObject_Is,
+    :(!==) => :PyObject_IsNot,
+    :(≢) => :PyObject_IsNot,
+    :(==) => :PyObject_Eq,
+    :(!=) => :PyObject_Ne,
+    :(≠) => :PyObject_Ne,
+    :(<) => :PyObject_Lt,
+    :(<=) => :PyObject_Le,
+    :(≤) => :PyObject_Le,
+    :(>) => :PyObject_Gt,
+    :(>=) => :PyObject_Ge,
+    :(≥) => :PyObject_Ge,
+    :(isa) => :PyObject_IsInstance,
+    :(<:) => :PyObject_IsSubclass,
+)
+
 PYEXPR_HEADS = Set([
     :PyVar,
     :PyObject_From,
     :PyObject_GetAttr,
     :PyObject_GetItem,
     :PyTuple,
+    :PyKwargs,
+    :PyBlock,
+    :PyAssign,
+    :PyIf,
+    :PyAnd,
+    :PyOr,
     :PyNumber_Add,
     :PyNumber_Positive,
     :PyNumber_Subtract,
@@ -49,30 +73,39 @@ PYEXPR_HEADS = Set([
     :PyObject_Call,
     :PyImport_Import,
     :PyImport_ImportModuleLevelObject,
+    :PyObject_Eq,
+    :PyObject_Ne,
+    :PyObject_Lt,
+    :PyObject_Le,
+    :PyObject_Gt,
+    :PyObject_Ge,
 ])
 
-ispyexpr(ex) = ex isa Expr && (
-    ex.head in PYEXPR_HEADS
-    || (ex.head == :block && !isempty(ex.args) && ispyexpr(last(ex.args)))
-    || (ex.head == :(=) && length(ex.args)==2 && ispyexpr(ex.args[2]))
-)
+ispyexpr(ex) = ex isa Expr && ex.head in PYEXPR_HEADS
 
 aspyexpr(ex) = ispyexpr(ex) ? ex : Expr(:PyObject_From, ex)
 
 nopyexpr(ex) = ispyexpr(ex) ? Expr(:PyObject_Convert, ex, PyObject) : ex
+
+ignorepyexpr(ex) = ispyexpr(ex) ? Expr(:PyIgnore, ex) : ex
+
+truthpyexpr(ex) = ispyexpr(ex) ? Expr(:PyTruth, ex) : ex
 
 @kwdef struct PyDSLInterpretState
     ispyvar :: Dict{Symbol, Bool} = Dict{Symbol, Bool}()
     __module__ :: Module
 end
 
-ispyvar(v::Symbol, st::PyDSLInterpretState) = get!(st.ispyvar, v, false)
+ispyvar(v::Symbol, st::PyDSLInterpretState, dflt::Bool=false) = get!(st.ispyvar, v, dflt)
 addpyvar(v::Symbol, st::PyDSLInterpretState) = @assert get!(st.ispyvar, v, true)
 
 function pydsl_interpret_lhs(ex, st::PyDSLInterpretState, ispy::Bool)
     if ex isa Symbol
-        @assert get!(st.ispyvar, ex, ispy) == ispy
-        ex
+        if ispyvar(ex, st, ispy)
+            Expr(:PyLHSVar, ex)
+        else
+            ex
+        end
     else
         error("pydsl_interpret: assignment is only implemented for single variables")
     end
@@ -118,14 +151,66 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
         # begin; ...; end
         elseif head == :block
             args2 = [pydsl_interpret(arg, st) for arg in args]
-            Expr(:block, args2...)
+            if !isempty(args2) && ispyexpr(last(args2))
+                Expr(:PyBlock, args2...)
+            else
+                Expr(:block, args2...)
+            end
+
+        # while cond; body; end
+        elseif head == :while && nargs == 2
+            cond, body = args
+            cond2 = pydsl_interpret(cond, st)
+            body2 = pydsl_interpret(body, st)
+            Expr(:while, cond2, body2)
+
+        # if cond; body; end
+        elseif head in (:if, :elseif) && nargs in (2, 3)
+            cond, body = args[1:2]
+            ebody = nargs == 3 ? args[3] : nothing
+            cond2 = pydsl_interpret(cond, st)
+            body2 = pydsl_interpret(body, st)
+            ebody2 = pydsl_interpret(ebody, st)
+            if ispyexpr(body2) || ispyexpr(ebody2)
+                Expr(:PyIf, cond2, body2, ebody2)
+            elseif nargs == 3
+                Expr(head, cond2, body2, ebody2)
+            else
+                Expr(head, cond2, body2)
+            end
+
+        # x || y
+        elseif head == :(||) && nargs == 2
+            x, y = args
+            x2 = pydsl_interpret(x, st)
+            y2 = pydsl_interpret(y, st)
+            if ispyexpr(x2) || ispyexpr(y2)
+                Expr(:PyOr, x2, y2)
+            else
+                Expr(head, x2, y2)
+            end
+
+        # x && y
+        elseif head == :(&&) && nargs == 2
+            x, y = args
+            x2 = pydsl_interpret(x, st)
+            y2 = pydsl_interpret(y, st)
+            if ispyexpr(x2) || ispyexpr(y2)
+                Expr(:PyAnd, x2, y2)
+            else
+                Expr(head, x2, y2)
+            end
 
         # lhs = rhs
         elseif head == :(=) && nargs == 2
             lhs, rhs = args
             rhs2 = pydsl_interpret(rhs, st)
             lhs2 = pydsl_interpret_lhs(lhs, st, ispyexpr(rhs2))
-            Expr(:(=), lhs2, rhs2)
+            if ispyexpr(rhs2)
+                Expr(:PyAssign, lhs2, rhs2)
+            else
+                Expr(:(=), lhs2, rhs2)
+            end
 
         # x.k
         elseif head == :. && nargs == 2
@@ -155,12 +240,34 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
 
         # op(xs...)
         elseif head == :call && nargs ≥ 1 && haskey(PYDSL_OPS, (args[1], nargs-1))
-            _, xs... = args
+            f, xs... = args
             xs2 = [pydsl_interpret(x, st) for x in xs]
             if any(ispyexpr, xs2)
-                Expr(PYDSL_OPS[(args[1], nargs-1)], xs2...)
+                Expr(PYDSL_OPS[(f, nargs-1)], xs2...)
             else
-                Expr(:call, args[1], xs2...)
+                Expr(:call, f, xs2...)
+            end
+
+        # cmp(x, y)
+        elseif head == :call && nargs == 3 && haskey(PYDSL_CMPS, args[1])
+            f, x, y = args
+            x2 = pydsl_interpret(x, st)
+            y2 = pydsl_interpret(y, st)
+            if ispyexpr(x2) || ispyexpr(y2)
+                Expr(PYDSL_CMPS[f], x2, y2)
+            else
+                Expr(:call, f, x2, y2)
+            end
+
+        # x <: y
+        elseif head == :(<:) && nargs == 2
+            x, y = args
+            x2 = pydsl_interpret(x, st)
+            y2 = pydsl_interpret(y, st)
+            if ispyexpr(x2) || ispyexpr(y2)
+                Expr(:PyObject_IsSubclass, x2, y2)
+            else
+                Expr(head, x2, y2)
             end
 
         # +(xs...)
@@ -195,21 +302,92 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
                 Expr(:call, :*, xs2...)
             end
 
+        # Bool(x)
+        elseif head == :call && nargs == 2 && args[1] == :Bool
+            _, x = args
+            x2 = pydsl_interpret(x, st)
+            if ispyexpr(x2)
+                Expr(:PyTruth, x2)
+            else
+                Expr(:call, :Bool, x2)
+            end
+
+        # !x
+        elseif head == :call && nargs == 2 && args[1] == :!
+            _, x = args
+            x2 = pydsl_interpret(x, st)
+            if ispyexpr(x2)
+                Expr(:call, !, Expr(:PyTruth, x2))
+            else
+                Expr(:call, :!, x2)
+            end
+
         # f(...)
         elseif head == :call && nargs ≥ 1
-            args2 = [pydsl_interpret(arg, st) for arg in args]
-            if ispyexpr(args2[1])
-                Expr(:PyObject_Call, args2...)
+            f, allargs... = args
+            f2 = pydsl_interpret(f, st)
+            if ispyexpr(f2)
+                varargs = []
+                kwargs = []
+                for arg in allargs
+                    if arg isa Expr && arg.head == :parameters
+                        for p in arg.args
+                            if p isa Expr && p.head == :kw && length(p.args) == 2
+                                k, v = p.args
+                                v2 = pydsl_interpret(v, st)
+                                push!(kwargs, Expr(:kw, k, v2))
+                            else
+                                p2 = pydsl_interpret(p, st)
+                                push!(kwargs, p2)
+                            end
+                        end
+                    else
+                        if arg isa Expr && arg.head == :kw && length(arg.args) == 2
+                            k, v = arg.args
+                            v2 = pydsl_interpret(v, st)
+                            push!(kwargs, Expr(:kw, k, v2))
+                        else
+                            arg2 = pydsl_interpret(arg, st)
+                            push!(varargs, arg2)
+                        end
+                    end
+                end
+                if !isempty(kwargs)
+                    Expr(:PyObject_Call, f2, Expr(:PyTuple, varargs...), Expr(:PyKwargs, kwargs...))
+                elseif !isempty(varargs)
+                    Expr(:PyObject_Call, f2, Expr(:PyTuple, varargs...))
+                else
+                    Expr(:PyObject_Call, f2)
+                end
             else
-                Expr(:call, args2...)
+                allargs2 = []
+                for arg in allargs
+                    if arg isa Expr && arg.head == :parameters
+                        params2 = []
+                        for p in arg.args
+                            if p isa Expr && p.head == :kw && length(p.args) == 2
+                                k, v = p.args
+                                v2 = pydsl_interpret(v, st)
+                                push!(params2, Expr(:kw, k, v2))
+                            else
+                                p2 = pydsl_interpret(p, st)
+                                push!(params2, p2)
+                            end
+                        end
+                        push!(allargs2, Expr(:parameters, params2...))
+                    else
+                        if arg isa Expr && arg.head == :kw && length(arg.args) == 2
+                            k, v = arg.args
+                            v2 = pydsl_interpret(v, st)
+                            push!(allargs2, Expr(:kw, k, v2))
+                        else
+                            arg2 = pydsl_interpret(arg, st)
+                            push!(allargs2, arg2)
+                        end
+                    end
+                end
+                Expr(:call, f2, allargs2...)
             end
-        elseif head == :kw && nargs == 2
-            k, v = args
-            v2 = pydsl_interpret(v, st)
-            Expr(:kw, k, v2)
-        elseif head == :parameters
-            args = [pydsl_interpret(arg, st) for arg in args]
-            Expr(:parameters, args...)
 
         # @pyimport ...
         elseif head == :macrocall && args[1] == Symbol("@pyimport")
@@ -252,13 +430,14 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
                     for v in vnames
                         addpyvar(v, st)
                     end
-                    push!(res.args, :(($(vnames...),) = $(Expr(:PyImport_ImportModuleLevelObject, mname, nothing, nothing, Expr(:PyTuple, anames...), 0))))
+                    push!(res.args, Expr(:PyAssign, Expr(:PyLHSTuple, [Expr(:PyLHSVar, v) for v in vnames]...), Expr(:PyImport_ImportModuleLevelObject, mname, nothing, nothing, Expr(:PyTuple, anames...), 0)) )
                 else
                     mname, vname, named = modnamevarname(arg)
                     addpyvar(vname, st)
-                    push!(res.args, :($vname = $(Expr(:PyImport_ImportModuleLevelObject, mname, nothing, nothing, Expr(:PyObject_From, PyLazyObject(named && '.' in mname ? ("*",) : ())), 0))))
+                    push!(res.args, Expr(:PyAssign, Expr(:PyLHSVar, vname), Expr(:PyImport_ImportModuleLevelObject, mname, nothing, nothing, Expr(:PyObject_From, PyLazyObject(named && '.' in mname ? ("*",) : ())), 0)))
                 end
             end
+            push!(res.args, nothing) # @pyimport(...) evaluates to nothing
             res
 
         # @m(...)
@@ -273,6 +452,15 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
     end
 end
 
+"""
+    @pydsl_interpret EXPR
+
+Return the expression after applying the interpret step of the Julia-Python DSL.
+
+This expression is not valid Julia. For that, the lower step must be applied.
+
+See also: [`@pydsl_expand`](@ref).
+"""
 macro pydsl_interpret(ex)
     QuoteNode(pydsl_interpret(ex, PyDSLInterpretState(__module__=__module__)))
 end
@@ -306,7 +494,7 @@ end
 
 function pydsl_discard(st::PyDSLLowerState, v::PyExpr)
     if ex.tmp
-        pydsl_discard(st, ex.var)
+        pydsl_discard(st, v)
     end
 end
 
@@ -326,6 +514,20 @@ function pydsl_free(st::PyDSLLowerState, ex::PyExpr)
     end
 end
 
+function pydsl_steal(st::PyDSLLowerState, ex::PyExpr)
+    if ex.tmp
+        pydsl_discard(st, ex.var)
+        quote
+            $(ex.var) = $CPyPtr(0)
+        end
+    else
+        quote
+            $(C.Py_IncRef)($(ex.var))
+            $(ex.var) = $CPyPtr(0)
+        end
+    end
+end
+
 function pydsl_errblock(st::PyDSLLowerState, ignorevars...)
     ex = Expr(:block, [:($(C.Py_DecRef)($v)) for v in st.tmpvars_used if v ∉ ignorevars]...)
     push!(st.pyerrblocks, ex)
@@ -333,7 +535,7 @@ function pydsl_errblock(st::PyDSLLowerState, ignorevars...)
 end
 
 function pydsl_lower_inner(ex, st::PyDSLLowerState)
-    if ex isa Expr
+    res = if ex isa Expr
         head = ex.head
         args = ex.args
         nargs = length(args)
@@ -436,24 +638,23 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                 end
             end, t, true)
         elseif head == :PyObject_Call
-            nargs ≥ 1 || error("syntax error")
-            f, allargs... = args
-            f2 = pydsl_lower_inner(aspyexpr(f), st) :: PyExpr
-            varargs = []
-            kwargs = []
-            for arg in allargs
-                if arg isa Expr && arg.head == :parameters
-                    append!(kwargs, arg.args)
-                elseif arg isa Expr && arg.head == :kw && length(arg.args) == 2
-                    push!(kwargs, arg)
-                else
-                    push!(varargs, arg)
-                end
-            end
-            if !isempty(kwargs)
-                error("kwargs not implemented")
-            elseif !isempty(varargs)
-                varargs2 = pydsl_lower_inner(Expr(:PyTuple, varargs...), st) :: PyExpr
+            if nargs == 1
+                f, = args
+                f2 = pydsl_lower_inner(aspyexpr(f), st) :: PyExpr
+                t = pydsl_tmpvar(st)
+                PyExpr(quote
+                    $(f2.ex)
+                    $t = $(C.PyObject_CallObject)($(f2.var), $CPyPtr(0))
+                    $(pydsl_free(st, f2))
+                    if $t == $CPyPtr(0)
+                        $(pydsl_errblock(st, t))
+                    end
+                end, t, true)
+            elseif nargs == 2
+                f, varargs = args
+                f2 = pydsl_lower_inner(aspyexpr(f), st) :: PyExpr
+                varargs isa Expr && varargs.head == :PyTuple || error("syntax error")
+                varargs2 = pydsl_lower_inner(varargs, st) :: PyExpr
                 t = pydsl_tmpvar(st)
                 PyExpr(quote
                     $(f2.ex)
@@ -465,16 +666,28 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                         $(pydsl_errblock(st, t))
                     end
                 end, t, true)
-            else
+            elseif nargs == 3
+                f, varargs, kwargs = args
+                f2 = pydsl_lower_inner(aspyexpr(f), st) :: PyExpr
+                varargs isa Expr && varargs.head == :PyTuple || error("syntax error")
+                varargs2 = pydsl_lower_inner(varargs, st) :: PyExpr
+                kwargs isa Expr && kwargs.head == :PyKwargs || error("syntax error")
+                kwargs2 = pydsl_lower_inner(kwargs, st) :: PyExpr
                 t = pydsl_tmpvar(st)
                 PyExpr(quote
                     $(f2.ex)
-                    $t = $(C.PyObject_CallObject)($(f2.var), $C_NULL)
+                    $(varargs2.ex)
+                    $(kwargs2.ex)
+                    $t = $(C.PyObject_CallObject)($(f2.var), $(varargs2.var), $(kwargs2.var))
                     $(pydsl_free(st, f2))
+                    $(pydsl_free(st, varargs2))
+                    $(pydsl_free(st, kwargs2))
                     if $t == $CPyPtr(0)
                         $(pydsl_errblock(st, t))
                     end
                 end, t, true)
+            else
+                error("syntax error")
             end
         elseif head == :PyTuple
             if any(ex -> ex isa Expr && ex.head == :..., args)
@@ -607,55 +820,253 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                     $(pydsl_errblock(st, t))
                 end
             end, t, true)
-        elseif head == :block
-            res = Expr(:block)
-            for (i, arg) in enumerate(args)
-                arg2 = pydsl_lower_inner(arg, st)
-                if arg2 isa PyExpr
-                    if i == length(args)
-                        # last expression is a PyExpr, so whole block is a PyExpr
-                        @assert ispyexpr(ex)
-                        push!(res.args, arg2.ex)
-                        return PyExpr(res, arg2.var, arg2.tmp)
-                    else
-                        push!(res.args, quote
-                            $(arg2.ex)
-                            $(pydsl_free(st, arg2))
-                        end)
-                    end
-                else
-                    push!(res.args, arg2)
+        elseif head == :PyIgnore
+            nargs == 1 || error("syntax error")
+            inner, = args
+            inner2 = pydsl_lower_inner(inner, st)
+            if inner2 isa PyExpr
+                quote
+                    $(inner2.ex)
+                    $(pydsl_free(st, inner2))
+                    nothing
                 end
+            else
+                inner2
             end
-            @assert !ispyexpr(ex)
-            res
-        elseif head == :call
-            args2 = [pydsl_lower_inner(nopyexpr(arg), st) for arg in args]
-            Expr(:call, args2...)
-        elseif head == :(=) && nargs == 2
+        elseif head == :PyBlock
+            args2 = [pydsl_lower_inner(i==nargs ? aspyexpr(arg) : ignorepyexpr(arg), st) for (i,arg) in enumerate(args)]
+            isempty(args2) && push!(args2, pydsl_lower_inner(aspyexpr(nothing), st))
+            PyExpr(Expr(:block, [arg for arg in args2[1:end-1]]..., last(args2).ex), last(args2).var, last(args2).tmp)
+        elseif head == :PyAssign
+            nargs == 2 || error("syntax error")
             lhs, rhs = args
+            rhs2 = pydsl_lower_inner(aspyexpr(rhs), st)::PyExpr
             if lhs isa Symbol
-                rhs2 = pydsl_lower_inner(rhs, st)
-                if rhs2 isa PyExpr
-                    push!(st.pyvars, lhs)
-                    PyExpr(quote
-                        $(rhs2.ex)
-                        $(C.Py_DecRef)($lhs)
-                        $lhs = $(rhs2.var)
-                        $(C.Py_IncRef)($lhs)
-                    end, rhs2.var, rhs2.tmp)
-                else
-                    Expr(:(=), lhs, rhs2)
-                end
+                err = gensym("err")
+                PyExpr(quote
+                    $(rhs2.ex)
+                    $err = $(C.PyObject_Convert)($(rhs2.var), $PyObject)
+                    if $err == -1
+                        $(pydsl_errblock(st))
+                    end
+                    $lhs = $takeresult($PyObject)
+                end, rhs2.var, rhs2.tmp)
+            elseif lhs isa Expr && lhs.head == :PyLHSVar
+                length(lhs.args) == 1 || error("syntax error")
+                v, = lhs.args
+                v isa Symbol || error("syntax error")
+                push!(st.pyvars, v)
+                PyExpr(quote
+                    $(rhs2.ex)
+                    $(C.Py_DecRef)($v)
+                    $v = $(rhs2.var)
+                    $(C.Py_IncRef)($v)
+                end, rhs2.var, rhs2.tmp)
             else
                 error("pydsl_lower: not implemented: assignment to anything other than a single variable")
             end
+        elseif head == :PyTruth
+            nargs == 1 || error("syntax error")
+            inner, = args
+            inner2 = pydsl_lower_inner(inner, st)
+            if inner2 isa PyExpr
+                t = gensym("truth")
+                quote
+                    $(inner2.ex)
+                    $t = $(C.PyObject_IsTrue)($(inner2.var))
+                    $(pydsl_free(st, inner2))
+                    if $t == -1
+                        $(pydsl_errblock(st))
+                    end
+                    $t != 0
+                end
+            else
+                inner2
+            end
+        elseif head == :PyIf
+            nargs == 3 || error("syntax error")
+            cond, body, ebody = args
+            cond2 = pydsl_lower_inner(truthpyexpr(cond), st)
+            tmp = gensym("ifans")
+            body2 = pydsl_lower_inner(aspyexpr(body), st)::PyExpr
+            body2 = quote
+                $(body2.ex)
+                $tmp = $(body2.var)
+                $(pydsl_steal(st, body2))
+            end
+            ebody2 = pydsl_lower_inner(aspyexpr(ebody), st)::PyExpr
+            ebody2 = quote
+                $(ebody2.ex)
+                $tmp = $(ebody2.var)
+                $(pydsl_steal(st, ebody2))
+            end
+            t = pydsl_tmpvar(st)
+            c = gensym("cond")
+            PyExpr(quote
+                $c = $cond2
+                if $c
+                    $body2
+                else
+                    $ebody2
+                end
+                $t = $tmp
+            end, t, true)
+        elseif head == :PyAnd
+            nargs == 2 || error("syntax error")
+            x, y = args
+            x2 = pydsl_lower_inner(aspyexpr(x), st)::PyExpr
+            tmp = gensym("lhs")
+            cond = gensym("cond")
+            x2 = quote
+                $(x2.ex)
+                $tmp = $(x2.var)
+                $cond = $(C.PyObject_IsTrue)($tmp)
+                if $cond == -1
+                    $(pydsl_errblock(st))
+                end
+                $(pydsl_steal(st, x2))
+            end
+            y2 = pydsl_lower_inner(aspyexpr(y), st)::PyExpr
+            t = pydsl_tmpvar(st)
+            PyExpr(quote
+                $(x2.args...)
+                if $cond != 0
+                    $(y2.ex)
+                    $(C.Py_DecRef)($tmp)
+                    $tmp = $(y2.var)
+                    $(pydsl_steal(st, y2))
+                end
+                $t = $tmp
+            end, t, true)
+        elseif head == :PyOr
+            nargs == 2 || error("syntax error")
+            x, y = args
+            x2 = pydsl_lower_inner(aspyexpr(x), st)::PyExpr
+            tmp = gensym("lhs")
+            cond = gensym("cond")
+            x2 = quote
+                $(x2.ex)
+                $tmp = $(x2.var)
+                $cond = $(C.PyObject_IsTrue)($tmp)
+                if $cond == -1
+                    $(pydsl_errblock(st))
+                end
+                $(pydsl_steal(st, x2))
+            end
+            y2 = pydsl_lower_inner(aspyexpr(y), st)::PyExpr
+            t = pydsl_tmpvar(st)
+            PyExpr(quote
+                $(x2.args...)
+                if $cond == 0
+                    $(y2.ex)
+                    $(C.Py_DecRef)($tmp)
+                    $tmp = $(y2.var)
+                    $(pydsl_steal(st, y2))
+                end
+                $t = $tmp
+            end, t, true)
+        elseif head in (:PyObject_IsInstance, :PyObject_IsSubclass)
+            nargs == 2 || error("syntax error")
+            x, y = args
+            x2 = pydsl_lower_inner(aspyexpr(x), st)::PyExpr
+            y2 = pydsl_lower_inner(aspyexpr(y), st)::PyExpr
+            t = gensym("ans")
+            quote
+                $(x2.ex)
+                $(y2.ex)
+                $t = $(getproperty(C, head))($(x2.var), $(y2.var))
+                $(pydsl_free(st, x2))
+                $(pydsl_free(st, y2))
+                if $t == -1
+                    $(pydsl_errblock(st))
+                end
+                $t != 0
+            end
+        elseif head in (:PyObject_Is, :PyObject_IsNot)
+            nargs == 2 || error("syntax error")
+            x, y = args
+            x2 = pydsl_lower_inner(aspyexpr(x), st)::PyExpr
+            y2 = pydsl_lower_inner(aspyexpr(y), st)::PyExpr
+            op =
+                head == :PyObject_Is    ? (==) :
+                head == :PyObject_IsNot ? (!=) :
+                @assert false
+            t = gensym("ans")
+            quote
+                $(x2.ex)
+                $(y2.ex)
+                $t = $(op)($(x2.var), $(y2.var))
+                $(pydsl_free(st, x2))
+                $(pydsl_free(st, y2))
+                $t
+            end
+        elseif head in (:PyObject_Eq, :PyObject_Ne, :PyObject_Le, :PyObject_Lt, :PyObject_Ge, :PyObject_Gt)
+            nargs == 2 || error("syntax error")
+            x, y = args
+            x2 = pydsl_lower_inner(aspyexpr(x), st)::PyExpr
+            y2 = pydsl_lower_inner(aspyexpr(y), st)::PyExpr
+            op =
+                head == :PyObject_Eq ? C.Py_EQ :
+                head == :PyObject_Ne ? C.Py_NE :
+                head == :PyObject_Le ? C.Py_LE :
+                head == :PyObject_Lt ? C.Py_LT :
+                head == :PyObject_Ge ? C.Py_GE :
+                head == :PyObject_Gt ? C.Py_GT :
+                @assert false
+            t = pydsl_tmpvar(st)
+            PyExpr(quote
+                $(x2.ex)
+                $(y2.ex)
+                $t = $(C.PyObject_RichCompare)($(x2.var), $(y2.var), $op)
+                $(pydsl_free(st, x2))
+                $(pydsl_free(st, y2))
+                if $t == $CPyPtr(0)
+                    $(pydsl_errblock(st))
+                end
+            end, t, true)
+        elseif head == :block
+            args2 = [pydsl_lower_inner(i==nargs ? nopyexpr(arg) : ignorepyexpr(arg), st) for (i,arg) in enumerate(args)]
+            Expr(:block, args2...)
+        elseif head == :call
+            args2 = [pydsl_lower_inner(nopyexpr(arg), st) for arg in args]
+            Expr(:call, args2...)
+        elseif head == :while && nargs == 2
+            cond, body = args
+            cond2 = pydsl_lower_inner(truthpyexpr(cond), st)
+            body2 = pydsl_lower_inner(ignorepyexpr(body), st)
+            Expr(:while, cond2, body2)
+        elseif head in (:if, :elseif) && nargs in (2,3)
+            cond, rest... = args
+            cond2 = pydsl_lower_inner(truthpyexpr(cond), st)
+            rest2 = [pydsl_lower_inner(nopyexpr(x), st) for x in rest]
+            Expr(head, cond2, rest2...)
+
+        # elseif head == :(=) && nargs == 2
+        #     lhs, rhs = args
+        #     if lhs isa Symbol
+        #         rhs2 = pydsl_lower_inner(rhs, st)
+        #         if rhs2 isa PyExpr
+        #             push!(st.pyvars, lhs)
+        #             PyExpr(quote
+        #                 $(rhs2.ex)
+        #                 $(C.Py_DecRef)($lhs)
+        #                 $lhs = $(rhs2.var)
+        #                 $(C.Py_IncRef)($lhs)
+        #             end, rhs2.var, rhs2.tmp)
+        #         else
+        #             Expr(:(=), lhs, rhs2)
+        #         end
+        #     else
+        #         error("pydsl_lower: not implemented: assignment to anything other than a single variable")
+        #     end
         else
             error("pydsl_lower: not implemented: Expr($(repr(head)), ...)")
         end
     else
         ex
     end
+    @assert ispyexpr(ex) == isa(res, PyExpr)
+    res
 end
 
 function pydsl_lower(ex; onpyerror, onjlerror)
@@ -666,8 +1077,8 @@ function pydsl_lower(ex; onpyerror, onjlerror)
     @assert !ispyexpr(ex)
     inits = [:($v :: $CPyPtr = $CPyPtr(0)) for v in st.pyvars]
     decrefs = [:($(C.Py_DecRef)($v)) for v in st.pyvars]
+    tmpdecrefs = [:($(C.Py_DecRef)($v)) for v in st.tmpvars_unused]
     for block in st.pyerrblocks
-        prepend!(block.args, decrefs)
         push!(block.args, onpyerror)
     end
     if onjlerror === :impossible
@@ -681,28 +1092,42 @@ function pydsl_lower(ex; onpyerror, onjlerror)
             end
         end
     else
-        isfreed = gensym("freed")
+        ispyerr = gensym("ispyerr")
         for block in st.pyerrblocks
-            pushfirst!(block.args, :($isfreed = true))
+            pushfirst!(block.args, :($ispyerr = true))
         end
         quote
             let
-                $isfreed = false
+                $ispyerr = false
                 $(inits...)
                 try
-                    $((ex isa Expr && ex.head == :block ? ex.args : [ex])...)
+                    $(ex)
                 catch exc
-                    $((onjlerror isa Expr && onjlerror.head == :block ? onjlerror.args : [onjlerror])...)
-                finally
-                    if !$isfreed
-                        $(decrefs...)
+                    if $ispyerr
+                        rethrow()
+                    else
+                        $(tmpdecrefs...)
+                        $(onjlerror)
                     end
+                finally
+                    $(decrefs...)
                 end
             end
         end
     end
 end
 
+"""
+    @pydsl EXPR [onpyerror=pythrow()] [onjlerror=rethrow()] [interpret=true]
+
+Execute the given expression, interpreting it in the Julia-Python DSL.
+
+# Keyword Arguments
+
+- `onpyerror`: The action to take when a Python error occurs. It must `throw` or `return`.
+- `onjlerror`: The action to take when a Julia error occurs. It must `throw` or `return`. The special value `impossible` indicates that the Julia errors cannot happen, so the resulting expression is not wrapped in a `try`/`catch` block. In this case, any Python variables are decref'd at the end, so you MUST NOT use this when the expression contains Python variables and might not execute to the end (e.g. if it contains a `throw` or `return`).
+- `interpret`: When false, do not apply the interpret step of the language.
+"""
 macro pydsl(ex, kwargs...)
     onpyerror = :($pythrow())
     onjlerror = :($rethrow())
@@ -731,6 +1156,13 @@ end
 
 export @pydsl
 
+"""
+    @pydsl_expand EXPR ...
+
+Similar to `@macroexpand @pydsl EXPR ...` but makes the output much more readable.
+
+See also: [`@pydsl_interpret`](@ref).
+"""
 macro pydsl_expand(args...)
     ex = @eval @macroexpand1 @pydsl $(args...)
     ex = MacroTools.striplines(ex)

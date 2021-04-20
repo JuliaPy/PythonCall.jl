@@ -82,7 +82,7 @@ The following table specifies the conversion rules in place. If the initial Pyth
 | `collections.abc.Iterable`                                                                                   | `Vector`, `Set`, `Tuple`, `NamedTuple`, `Pair`              |
 | `datetime.timedelta`                                                                                         | `Dates.CompoundPeriod`                                      |
 | `numbers.Integral`                                                                                           | `Integer`, `Rational`, `Real`, `Number`                     |
-| `numbers.Real`                                                                                               | `AbstractFloat`, `Number`                                   |
+| `numbers.Real`                                                                                               | `AbstractFloat`, `Number`, `Missing`/`Nothing` (if NaN)     |
 | `numbers.Complex`                                                                                            | `Complex`, `Number`                                         |
 | `ctypes.c_int` and other integers                                                                            | `Integer`, `Rational`, `Real`, `Number`                     |
 | `ctypes.c_float`/`ctypes.c_double`                                                                           | `Cfloat`/`Cdouble`, `AbstractFloat`, `Real`, `Number`       |

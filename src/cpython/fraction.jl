@@ -1,13 +1,12 @@
-const PyFraction_Type__ref = Ref(PyNULL)
 PyFraction_Type() = begin
-    ptr = PyFraction_Type__ref[]
+    ptr = POINTERS.PyFraction_Type
     if isnull(ptr)
         m = PyImport_ImportModule("fractions")
         isnull(m) && return ptr
         ptr = PyObject_GetAttrString(m, "Fraction")
         Py_DecRef(m)
         isnull(m) && return ptr
-        PyFraction_Type__ref[] = ptr
+        POINTERS.PyFraction_Type = ptr
     end
     ptr
 end

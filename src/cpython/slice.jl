@@ -1,7 +1,6 @@
-@cdef :PySlice_New PyPtr (PyPtr, PyPtr, PyPtr)
+PySlice_New(x, y, z) = ccall(POINTERS.PySlice_New, PyPtr, (PyPtr, PyPtr, PyPtr), x, y, z)
 
-const PySlice_Type__ref = Ref(PyNULL)
-PySlice_Type() = pyglobal(PySlice_Type__ref, :PySlice_Type)
+PySlice_Type() = POINTERS.PySlice_Type
 
 PySlice_Check(o) = Py_TypeCheck(o, PySlice_Type())
 
@@ -9,8 +8,7 @@ PySlice_CheckExact(o) = Py_TypeCheckExact(o, PySlice_Type())
 
 ### ELLIPSIS
 
-const Py_Ellipsis__ref = Ref(PyNULL)
-Py_Ellipsis() = pyglobal(Py_Ellipsis__ref, :_Py_EllipsisObject)
+Py_Ellipsis() = POINTERS._Py_EllipsisObject
 
 PyEllipsis_Check(o) = Py_Is(o, Py_Ellipsis())
 

@@ -1,16 +1,14 @@
-@cdef :PySet_New PyPtr (PyPtr,)
-@cdef :PyFrozenSet_New PyPtr (PyPtr,)
-@cdef :PySet_Add Cint (PyPtr, PyPtr)
+PySet_New(o) = ccall(POINTERS.PySet_New, PyPtr, (PyPtr,), o)
+PyFrozenSet_New(o) = ccall(POINTERS.PyFrozenSet_New, PyPtr, (PyPtr,), o)
+PySet_Add(o, v) = ccall(POINTERS.PySet_Add, Cint, (PyPtr, PyPtr), o, v)
 
-const PySet_Type__ref = Ref(PyNULL)
-PySet_Type() = pyglobal(PySet_Type__ref, :PySet_Type)
+PySet_Type() = POINTERS.PySet_Type
 
 PySet_Check(o) = Py_TypeCheckFast(o, PySet_Type())
 
 PySet_CheckExact(o) = Py_TypeCheckExact(o, PySet_Type())
 
-const PyFrozenSet_Type__ref = Ref(PyNULL)
-PyFrozenSet_Type() = pyglobal(PyFrozenSet_Type__ref, :PyFrozenSet_Type)
+PyFrozenSet_Type() = POINTERS.PyFrozenSet_Type
 
 PyFrozenSet_Check(o) = Py_TypeCheckFast(o, PyFrozenSet_Type())
 

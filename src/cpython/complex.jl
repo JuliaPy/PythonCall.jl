@@ -1,10 +1,9 @@
-@cdef :PyComplex_FromDoubles PyPtr (Cdouble, Cdouble)
-@cdef :PyComplex_RealAsDouble Cdouble (PyPtr,)
-@cdef :PyComplex_ImagAsDouble Cdouble (PyPtr,)
-@cdef :PyComplex_AsCComplex Py_complex (PyPtr,)
+PyComplex_FromDoubles(re, im) = ccall(POINTERS.PyComplex_FromDoubles, PyPtr, (Cdouble, Cdouble), re, im)
+PyComplex_RealAsDouble(o) = ccall(POINTERS.PyComplex_RealAsDouble, Cdouble, (PyPtr,), o)
+PyComplex_ImagAsDouble(o) = ccall(POINTERS.PyComplex_ImagAsDouble, Cdouble, (PyPtr,), o)
+PyComplex_AsCComplex(o) = ccall(POINTERS.PyComplex_AsCComplex, Py_complex, (PyPtr,), o)
 
-const PyComplex_Type__ref = Ref(PyNULL)
-PyComplex_Type() = pyglobal(PyComplex_Type__ref, :PyComplex_Type)
+PyComplex_Type() = POINTERS.PyComplex_Type
 
 PyComplex_Check(o) = Py_TypeCheck(o, PyComplex_Type())
 

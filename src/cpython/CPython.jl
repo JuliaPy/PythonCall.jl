@@ -20,6 +20,7 @@ using Base: @kwdef
 using UnsafePointers: UnsafePtr
 
 pyglobal(name) = dlsym(CONFIG.libptr, name)
+pyloadglobal(::Type{T}, name) where {T} = unsafe_load(Ptr{T}(pyglobal(name)))
 pyglobal(r::Ref{Ptr{T}}, name) where {T} = begin
     p = r[]
     if isnull(p)
@@ -35,25 +36,8 @@ pyloadglobal(r::Ref{Ptr{T}}, name) where {T} = begin
     p
 end
 
-macro cdef(name, rettype, argtypes)
-    name isa QuoteNode && name.value isa Symbol || error("name must be a symbol, got $name")
-    jname = esc(name.value)
-    refname = esc(Symbol(name.value, :__ref))
-    name = esc(name)
-    rettype = esc(rettype)
-    argtypes isa Expr && argtypes.head == :tuple ||
-        error("argtypes must be a tuple, got $argtypes")
-    nargs = length(argtypes.args)
-    argtypes = esc(argtypes)
-    args = [gensym() for i = 1:nargs]
-    quote
-        const $refname = Ref(C_NULL)
-        $jname($(args...)) =
-            ccall(pyglobal($refname, $name), $rettype, $argtypes, $(args...))
-    end
-end
-
 include("consts.jl")
+include("pointers.jl")
 include("fundamentals.jl")
 include("none.jl")
 include("object.jl")
@@ -117,6 +101,8 @@ init() = begin
     PyObject_TryConvert_AddRule("numbers.Real", AbstractFloat, PyFloatable_TryConvertRule_tryconvert)
     PyObject_TryConvert_AddRule("numbers.Real", Real, PyFloatable_TryConvertRule_tryconvert)
     PyObject_TryConvert_AddRule("numbers.Real", Number, PyFloatable_TryConvertRule_tryconvert)
+    PyObject_TryConvert_AddRule("numbers.Real", Nothing, PyFloatable_TryConvertRule_nothing)
+    PyObject_TryConvert_AddRule("numbers.Real", Missing, PyFloatable_TryConvertRule_missing)
     PyObject_TryConvert_AddRule("builtins.complex", Complex{Float64}, PyComplexable_TryConvertRule_convert, 100)
     PyObject_TryConvert_AddRule("numbers.Complex", Complex{Float64}, PyComplexable_TryConvertRule_convert)
     PyObject_TryConvert_AddRule("numbers.Complex", Complex{BigFloat}, PyComplexable_TryConvertRule_convert)

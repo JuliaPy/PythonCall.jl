@@ -1,10 +1,9 @@
-@cdef :PyTuple_New PyPtr (Py_ssize_t,)
-@cdef :PyTuple_Size Py_ssize_t (PyPtr,)
-@cdef :PyTuple_GetItem PyPtr (PyPtr, Py_ssize_t)
-@cdef :PyTuple_SetItem Cint (PyPtr, Py_ssize_t, PyPtr)
+PyTuple_New(n) = ccall(POINTERS.PyTuple_New, PyPtr, (Py_ssize_t,), n)
+PyTuple_Size(o) = ccall(POINTERS.PyTuple_Size, Py_ssize_t, (PyPtr,), o)
+PyTuple_GetItem(o, i) = ccall(POINTERS.PyTuple_GetItem, PyPtr, (PyPtr, Py_ssize_t), o, i)
+PyTuple_SetItem(o, i, v) = ccall(POINTERS.PyTuple_SetItem, Cint, (PyPtr, Py_ssize_t, PyPtr), o, i, v)
 
-const PyTuple_Type__ref = Ref(PyNULL)
-PyTuple_Type() = pyglobal(PyTuple_Type__ref, :PyTuple_Type)
+PyTuple_Type() = POINTERS.PyTuple_Type
 
 PyTuple_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_TUPLE_SUBCLASS)
 

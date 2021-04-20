@@ -76,15 +76,15 @@ multidict(src) = Dict{String,Type}(k => v for (ks, v) in src for k in (ks isa Ve
 
 Wrap the Pandas dataframe `o` as a Julia table.
 
-This object satisfies the `Tables.jl` and `TableTraits.jl` interfaces.
+It is an `AbstractDict{String,AbstractVector}` mapping names to columns.
 
-Columns can be accessed as `df["colname"]`. Column names are given by `keys(df)`.
+It satisfies the `Tables.jl` and `TableTraits.jl` interfaces.
 
 - `indexname`: The name of the index column when converting this to a table, and may be `nothing` to exclude the index.
 - `columntypes`: An iterable of `columnname=>type` or `[columnnames...]=>type` pairs, used when converting to a table.
 - `copy`: True to copy columns on conversion.
 """
-mutable struct PyPandasDataFrame
+mutable struct PyPandasDataFrame <: AbstractDict{String,AbstractVector}
     ptr::CPyPtr
     indexname::Union{String,Nothing}
     columntypes::Dict{String,Type}
@@ -109,14 +109,27 @@ Base.show(io::IO, mime::MIME"text/csv", o::PyPandasDataFrame) = _py_mime_show(io
 Base.show(io::IO, mime::MIME"text/tab-separated-values", o::PyPandasDataFrame) = _py_mime_show(io, mime, o)
 Base.showable(mime::MIME, o::PyPandasDataFrame) = _py_mime_showable(mime, o)
 
-Base.keys(x::PyPandasDataFrame) = begin
-    names = @pyv `$x.columns`::Vector{String}
-    if x.indexname !== nothing
-        x.indexname ∈ names && error("table already has a column called $(x.indexname), cannot use it for index")
-        pushfirst!(names, x.indexname)
+Base.iterate(x::PyPandasDataFrame, st=nothing) = begin
+    if st === nothing
+        names = @pyv `$x.columns`::Vector{String}
+        if x.indexname !== nothing
+            x.indexname ∈ names && error("table already has a column called $(x.indexname), cannot use it for index")
+            pushfirst!(names, x.indexname)
+        end
+        it = iterate(names)
+    else
+        names = st[1]
+        it = iterate(st[1], st[2])
     end
-    names
+    if it === nothing
+        nothing
+    else
+        name, newst = it
+        (name => x[name], (names, newst))
+    end
 end
+
+Base.length(x::PyPandasDataFrame) = (@pyv `len($x.columns)`::Int) + (x.indexname !== nothing)
 
 Base.haskey(x::PyPandasDataFrame, c::AbstractString) = c == x.indexname || @pyv `$c in $x`::Bool
 
@@ -129,6 +142,8 @@ Base.getindex(x::PyPandasDataFrame, c::AbstractString) = begin
     end
     x.copy ? copy(v) : v
 end
+
+Base.get(x::PyPandasDataFrame, c::AbstractString, d) = haskey(x, c) ? x[c] : d
 
 ### Tables.jl / TableTraits.jl integration
 

@@ -1,9 +1,8 @@
-@cdef :PyList_New PyPtr (Py_ssize_t,)
-@cdef :PyList_Append Cint (PyPtr, PyPtr)
-@cdef :PyList_AsTuple PyPtr (PyPtr,)
+PyList_New(n) = ccall(POINTERS.PyList_New, PyPtr, (Py_ssize_t,), n)
+PyList_Append(o, v) = ccall(POINTERS.PyList_Append, Cint, (PyPtr, PyPtr), o, v)
+PyList_AsTuple(o) = ccall(POINTERS.PyList_AsTuple, PyPtr, (PyPtr,), o)
 
-const PyList_Type__ref = Ref(PyNULL)
-PyList_Type() = pyglobal(PyList_Type__ref, :PyList_Type)
+PyList_Type() = POINTERS.PyList_Type
 
 PyList_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_LIST_SUBCLASS)
 

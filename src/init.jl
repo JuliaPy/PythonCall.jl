@@ -16,6 +16,7 @@ init() = begin
     if CONFIG.isembedded
         # In this case, getting a handle to libpython is easy
         CONFIG.libptr = Ptr{Cvoid}(parse(UInt, ENV["JULIA_PYTHONCALL_LIBPTR"]))
+        C.init_pointers()
         # Check Python is initialized
         C.Py_IsInitialized() == 0 && error("Python is not already initialized.")
         CONFIG.isinitialized = CONFIG.preinitialized = true
@@ -33,6 +34,7 @@ init() = begin
         end
         CONFIG.pyprogname = PyCall.pyprogramname
         CONFIG.pyhome = PyCall.PYTHONHOME
+        C.init_pointers()
         # Check Python is initialized
         C.Py_IsInitialized() == 0 && error("Python is not already initialized.")
         CONFIG.isinitialized = CONFIG.preinitialized = true
@@ -115,6 +117,7 @@ init() = begin
                 If you know where the library is, set environment variable 'JULIA_PYTHONCALL_LIB' to its path.
                 """)
         end
+        C.init_pointers()
 
         # Compare libpath with PyCall
         PyCall = get(Base.loaded_modules, PYCALL_PKGID, nothing)

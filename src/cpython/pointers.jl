@@ -3,7 +3,7 @@ const CAPI_FUNCS = [
     :Py_Initialize,
     :Py_InitializeEx,
     :Py_Finalize,
-    :Py_FinalizeEx,
+    :Py_FinalizeEx, # Python 3.6+
     :Py_AtExit,
     :Py_IsInitialized,
     :Py_SetPythonHome,
@@ -115,7 +115,14 @@ end
 const POINTERS = CAPIPointers()
 
 @eval init!(p::CAPIPointers) = begin
-    $([:(p.$name = pyglobal($(QuoteNode(name)))) for name in CAPI_FUNCS]...)
+    $([
+        if name == :Py_FinalizeEx
+            :(p.$name = dlsym_e(CONFIG.libptr, $(QuoteNode(name))))
+        else
+            :(p.$name = dlsym(CONFIG.libptr, $(QuoteNode(name))))
+        end
+        for name in CAPI_FUNCS
+    ]...)
     $([:(p.$name = pyloadglobal(PyPtr, $(QuoteNode(name)))) for name in CAPI_EXCEPTIONS]...)
 end
 

@@ -93,7 +93,7 @@ const CAPI_EXCEPTIONS = [
     :PyExc_TimeoutError,
     :PyExc_EnvironmentError,
     :PyExc_IOError,
-    :PyExc_WindowsError,
+    # :PyExc_WindowsError, # only on Windows
     :PyExc_Warning,
     :PyExc_UserWarning,
     :PyExc_DeprecationWarning,

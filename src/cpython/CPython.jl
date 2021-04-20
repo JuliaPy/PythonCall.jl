@@ -20,6 +20,7 @@ using Base: @kwdef
 using UnsafePointers: UnsafePtr
 
 pyglobal(name) = dlsym(CONFIG.libptr, name)
+pyloadglobal(::Type{T}, name) where {T} = unsafe_load(Ptr{T}(pyglobal(name)))
 pyglobal(r::Ref{Ptr{T}}, name) where {T} = begin
     p = r[]
     if isnull(p)
@@ -54,6 +55,7 @@ macro cdef(name, rettype, argtypes)
 end
 
 include("consts.jl")
+include("pointers.jl")
 include("fundamentals.jl")
 include("none.jl")
 include("object.jl")

@@ -1,5 +1,5 @@
-@cdef :PyType_IsSubtype Cint (PyPtr, PyPtr)
-@cdef :PyType_Ready Cint (PyPtr,)
+PyType_IsSubtype(t1, t2) = ccall(POINTERS.PyType_IsSubtype, Cint, (PyPtr, PyPtr), t1, t2)
+PyType_Ready(t) = ccall(POINTERS.PyType_Ready, Cint, (PyPtr,), t)
 
 Py_Type(o) = GC.@preserve o Ptr{PyObject}(UnsafePtr(Base.unsafe_convert(PyPtr, o)).type[!])
 Py_TypeCheck(o, t) = PyType_IsSubtype(Py_Type(o), t) != 0
@@ -16,8 +16,7 @@ PyType_MRO(o) = GC.@preserve o UnsafePtr{PyTypeObject}(Base.unsafe_convert(PyPtr
 PyType_IsSubtypeFast(s, f) = PyType_HasFeature(s, f)
 PyType_HasFeature(s, f) = !iszero(PyType_Flags(s) & f)
 
-const PyType_Type__ref = Ref(PyNULL)
-PyType_Type() = pyglobal(PyType_Type__ref, :PyType_Type)
+PyType_Type() = POINTERS.PyType_Type
 
 PyType_Check(o) = Py_TypeCheck(o, Py_TPFLAGS_TYPE_SUBCLASS)
 

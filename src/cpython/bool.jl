@@ -1,11 +1,8 @@
-const PyBool_Type__ref = Ref(PyNULL)
-PyBool_Type() = pyglobal(PyBool_Type__ref, :PyBool_Type)
+PyBool_Type() = POINTERS.PyBool_Type
 
-const Py_True__ref = Ref(PyNULL)
-Py_True() = pyglobal(Py_True__ref, :_Py_TrueStruct)
+Py_True() = POINTERS._Py_TrueStruct
 
-const Py_False__ref = Ref(PyNULL)
-Py_False() = pyglobal(Py_False__ref, :_Py_FalseStruct)
+Py_False() = POINTERS._Py_FalseStruct
 
 PyBool_From(x::Bool) = (o = x ? Py_True() : Py_False(); Py_IncRef(o); o)
 

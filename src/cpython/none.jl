@@ -1,12 +1,10 @@
-const Py_NotImplemented__ref = Ref(PyNULL)
-Py_NotImplemented() = pyglobal(Py_NotImplemented__ref, :_Py_NotImplementedStruct)
+Py_NotImplemented() = POINTERS._Py_NotImplementedStruct
 
 PyNotImplemented_Check(o) = Py_Is(o, Py_NotImplemented())
 
 PyNotImplemented_New() = (o = Py_NotImplemented(); Py_IncRef(o); o)
 
-const Py_None__ref = Ref(PyNULL)
-Py_None() = pyglobal(Py_None__ref, :_Py_NoneStruct)
+Py_None() = POINTERS._Py_NoneStruct
 
 PyNone_Check(o) = Py_Is(o, Py_None())
 

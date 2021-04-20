@@ -1,10 +1,9 @@
-const PyRange_Type__ref = Ref(PyNULL)
 PyRange_Type() = begin
-    ptr = PyRange_Type__ref[]
+    ptr = POINTERS.PyRange_Type
     isnull(ptr) || return ptr
     bs = PyEval_GetBuiltins()
     ptr = PyMapping_GetItemString(bs, "range")
-    PyRange_Type__ref[] = ptr
+    POINTERS.PyRange_Type = ptr
 end
 
 PyRange_From(a::Integer) = begin

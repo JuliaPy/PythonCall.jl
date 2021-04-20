@@ -1,11 +1,10 @@
-@cdef :PyLong_FromLongLong PyPtr (Clonglong,)
-@cdef :PyLong_FromUnsignedLongLong PyPtr (Culonglong,)
-@cdef :PyLong_FromString PyPtr (Cstring, Ptr{Cvoid}, Cint)
-@cdef :PyLong_AsLongLong Clonglong (PyPtr,)
-@cdef :PyLong_AsUnsignedLongLong Culonglong (PyPtr,)
+PyLong_FromLongLong(x) = ccall(POINTERS.PyLong_FromLongLong, PyPtr, (Clonglong,), x)
+PyLong_FromUnsignedLongLong(x) = ccall(POINTERS.PyLong_FromUnsignedLongLong, PyPtr, (Culonglong,), x)
+PyLong_FromString(x, e, b) = ccall(POINTERS.PyLong_FromString, PyPtr, (Cstring, Ptr{Cvoid}, Cint), x, e, b)
+PyLong_AsLongLong(o) = ccall(POINTERS.PyLong_AsLongLong, Clonglong, (PyPtr,), o)
+PyLong_AsUnsignedLongLong(o) = ccall(POINTERS.PyLong_AsUnsignedLongLong, Culonglong, (PyPtr,), o)
 
-const PyLong_Type__ref = Ref(PyNULL)
-PyLong_Type() = pyglobal(PyLong_Type__ref, :PyLong_Type)
+PyLong_Type() = POINTERS.PyLong_Type
 
 PyLong_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_LONG_SUBCLASS)
 

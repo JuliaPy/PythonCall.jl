@@ -36,24 +36,6 @@ pyloadglobal(r::Ref{Ptr{T}}, name) where {T} = begin
     p
 end
 
-macro cdef(name, rettype, argtypes)
-    name isa QuoteNode && name.value isa Symbol || error("name must be a symbol, got $name")
-    jname = esc(name.value)
-    refname = esc(Symbol(name.value, :__ref))
-    name = esc(name)
-    rettype = esc(rettype)
-    argtypes isa Expr && argtypes.head == :tuple ||
-        error("argtypes must be a tuple, got $argtypes")
-    nargs = length(argtypes.args)
-    argtypes = esc(argtypes)
-    args = [gensym() for i = 1:nargs]
-    quote
-        const $refname = Ref(C_NULL)
-        $jname($(args...)) =
-            ccall(pyglobal($refname, $name), $rettype, $argtypes, $(args...))
-    end
-end
-
 include("consts.jl")
 include("pointers.jl")
 include("fundamentals.jl")

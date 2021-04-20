@@ -1,8 +1,7 @@
-@cdef :PyFloat_FromDouble PyPtr (Cdouble,)
-@cdef :PyFloat_AsDouble Cdouble (PyPtr,)
+PyFloat_FromDouble(x) = ccall(POINTERS.PyFloat_FromDouble, PyPtr, (Cdouble,), x)
+PyFloat_AsDouble(o) = ccall(POINTERS.PyFloat_AsDouble, Cdouble, (PyPtr,), o)
 
-const PyFloat_Type__ref = Ref(PyNULL)
-PyFloat_Type() = pyglobal(PyFloat_Type__ref, :PyFloat_Type)
+PyFloat_Type() = POINTERS.PyFloat_Type
 
 PyFloat_Check(o) = Py_TypeCheck(o, PyFloat_Type())
 

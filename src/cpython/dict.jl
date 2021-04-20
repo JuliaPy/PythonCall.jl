@@ -1,12 +1,11 @@
-@cdef :PyDict_New PyPtr ()
-@cdef :PyDict_GetItem PyPtr (PyPtr, PyPtr)
-@cdef :PyDict_GetItemString PyPtr (PyPtr, Cstring)
-@cdef :PyDict_SetItem Cint (PyPtr, PyPtr, PyPtr)
-@cdef :PyDict_SetItemString Cint (PyPtr, Cstring, PyPtr)
-@cdef :PyDict_DelItemString Cint (PyPtr, Cstring)
+PyDict_New() = ccall(POINTERS.PyDict_New, PyPtr, ())
+PyDict_GetItem(o, k) = ccall(POINTERS.PyDict_GetItem, PyPtr, (PyPtr, PyPtr), o, k)
+PyDict_GetItemString(o, k) = ccall(POINTERS.PyDict_GetItemString, PyPtr, (PyPtr, Cstring), o, k)
+PyDict_SetItem(o, k, v) = ccall(POINTERS.PyDict_SetItem, Cint, (PyPtr, PyPtr, PyPtr), o, k, v)
+PyDict_SetItemString(o, k, v) = ccall(POINTERS.PyDict_SetItemString, Cint, (PyPtr, Cstring, PyPtr), o, k, v)
+PyDict_DelItemString(o, k) = ccall(POINTERS.PyDict_DelItemString, Cint, (PyPtr, Cstring), o, k)
 
-const PyDict_Type__ref = Ref(PyNULL)
-PyDict_Type() = pyglobal(PyDict_Type__ref, :PyDict_Type)
+PyDict_Type() = POINTERS.PyDict_Type
 
 PyDict_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_DICT_SUBCLASS)
 

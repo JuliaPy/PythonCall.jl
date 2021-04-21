@@ -60,6 +60,7 @@ const CAPI_FUNCS = [
     :PyObject_IsInstance,
     :PyObject_Hash,
     :PyObject_IsTrue,
+    :PyObject_Not,
     :PyObject_Length,
     :PyObject_GetItem,
     :PyObject_SetItem,

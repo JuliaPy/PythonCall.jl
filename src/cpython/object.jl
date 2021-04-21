@@ -18,6 +18,7 @@ PyObject_IsSubclass(o, t) = ccall(POINTERS.PyObject_IsSubclass, Cint, (PyPtr, Py
 PyObject_IsInstance(t1, t2) = ccall(POINTERS.PyObject_IsInstance, Cint, (PyPtr, PyPtr), t1, t2)
 PyObject_Hash(o) = ccall(POINTERS.PyObject_Hash, Py_hash_t, (PyPtr,), o)
 PyObject_IsTrue(o) = ccall(POINTERS.PyObject_IsTrue, Cint, (PyPtr,), o)
+PyObject_Not(o) = ccall(POINTERS.PyObject_Not, Cint, (PyPtr,), o)
 PyObject_Length(o) = ccall(POINTERS.PyObject_Length, Py_ssize_t, (PyPtr,), o)
 PyObject_GetItem(o, k) = ccall(POINTERS.PyObject_GetItem, PyPtr, (PyPtr, PyPtr), o, k)
 PyObject_SetItem(o, k, v) = ccall(POINTERS.PyObject_SetItem, Cint, (PyPtr, PyPtr, PyPtr), o, k, v)

@@ -26,7 +26,7 @@ pyref_finalize!(x) = begin
             @assert C.Py_RefCnt(ptr) > 0
             C.Py_DecRef(ptr)
         end
-        setfield!(x, :ptr, CPyPtr(0))
+        setfield!(x, :ptr, fieldtype(typeof(x), :ptr)(0))
     end
     return
 end

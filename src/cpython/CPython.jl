@@ -38,6 +38,7 @@ end
 
 include("consts.jl")
 include("pointers.jl")
+include("dsl.jl")
 include("fundamentals.jl")
 include("none.jl")
 include("object.jl")

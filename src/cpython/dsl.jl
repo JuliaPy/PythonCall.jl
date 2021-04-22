@@ -113,6 +113,21 @@ PYDSL_OPS_ALIAS = Dict(
     :(∉) => (:PyObject_NotIn, 2, x->x[2]),
 )
 
+PYDSL_IOPS = Dict(
+    :(+=) => :PyNumber_InPlaceAdd,
+    :(-=) => :PyNumber_InPlaceSubtract,
+    :(*=) => :PyNumber_InPlaceMultiply,
+    :(^=) => :PyNumber_InPlacePower,
+    :(/=) => :PyNumber_InPlaceTrueDivide,
+    :(÷=) => :PyNumber_InPlaceFloorDivide,
+    :(%=) => :PyNumber_InPlaceRemainder,
+    :(<<=) => :PyNumber_InPlaceLshift,
+    :(>>=) => :PyNumber_InPlaceRshift,
+    :(|=) => :PyNumber_InPlaceOr,
+    :(&=) => :PyNumber_InPlaceAnd,
+    :(⊻=) => :PyNumber_InPlaceXor,
+)
+
 PYEXPR_HEADS = Set([
     :PyVar,
     :PyExternObject,
@@ -120,6 +135,7 @@ PYEXPR_HEADS = Set([
     :PyKwargs,
     :PyBlock,
     :PyAssign,
+    :PyInPlaceAssign,
     :PyIf,
     :PyAnd,
     :PyOr,
@@ -150,7 +166,9 @@ addpyvar(v::Symbol, st::PyDSLInterpretState) = @assert get!(st.ispyvar, v, true)
 
 function pydsl_interpret_lhs(ex, st::PyDSLInterpretState, ispy::Bool)
     if ex isa Symbol
-        if ispyvar(ex, st, ispy)
+        if ex == :_
+            ispy ? Expr(:PyLHSIgnore) : ex
+        elseif ispyvar(ex, st, ispy)
             Expr(:PyLHSVar, ex)
         else
             ex
@@ -303,7 +321,9 @@ end
 function pydsl_interpret(ex, st::PyDSLInterpretState)
 
     if ex isa Symbol
-        if ispyvar(ex, st)
+        if ex == :_
+            ex
+        elseif ispyvar(ex, st)
             Expr(:PyVar, ex)
         else
             ex
@@ -345,7 +365,7 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
         # if cond; body; end
         elseif ex.head in (:if, :elseif) && length(ex.args) in (2, 3)
             cond, body = ex.args[1:2]
-            ebody = nargs == 3 ? ex.args[3] : nothing
+            ebody = length(ex.args) == 3 ? ex.args[3] : nothing
             cond2 = pydsl_interpret(cond, st)
             body2 = pydsl_interpret(body, st)
             ebody2 = pydsl_interpret(ebody, st)
@@ -385,6 +405,17 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
                 Expr(:PyAssign, lhs2, rhs2)
             else
                 :($lhs2 = $rhs2)
+            end
+
+        # lhs += rhs, etc
+        elseif haskey(PYDSL_IOPS, ex.head) && length(ex.args) == 2
+            lhs, rhs = ex.args
+            lhs2 = pydsl_interpret(lhs, st)
+            rhs2 = pydsl_interpret(rhs, st)
+            if ispyexpr(lhs2)
+                Expr(:PyInPlaceAssign, ex.head, lhs2, rhs2)
+            else
+                Expr(ex.head, lhs2, rhs2)
             end
 
         # x.k
@@ -582,6 +613,9 @@ function pydsl_lower_pyassign(lhs, rhs2::PyExpr, st::PyDSLLowerState)
             end
             $lhs = $takeresult($(PythonCall.PyObject))
         end, rhs2.var, rhs2.tmp)
+    elseif lhs isa Expr && lhs.head == :PyLHSIgnore
+        length(lhs.args) == 0 || error("syntax error: $ex")
+        rhs2
     elseif lhs isa Expr && lhs.head == :PyLHSVar
         length(lhs.args) == 1 || error("syntax error: $ex")
         v, = lhs.args
@@ -591,7 +625,7 @@ function pydsl_lower_pyassign(lhs, rhs2::PyExpr, st::PyDSLLowerState)
             $(rhs2.ex)
             $Py_DecRef($v)
             $v = $(rhs2.var)
-            $Py_INCREF($(rhs2.var))
+            $Py_INCREF($v)
         end, rhs2.var, rhs2.tmp)
     elseif lhs isa Expr && lhs.head == :PyLHSItem
         length(lhs.args) == 2 || error("syntax error: $ex")
@@ -631,6 +665,87 @@ function pydsl_lower_pyassign(lhs, rhs2::PyExpr, st::PyDSLLowerState)
         end, rhs2.var, rhs2.tmp)
     else
         error("pydsl_lower: not implemented: assignment to $lhs")
+    end
+end
+
+function pydsl_lower_pyinplaceassign(op, lhs, rhs2::PyExpr, st::PyDSLLowerState)
+    if lhs isa Expr && lhs.head == :PyVar
+        length(lhs.args) == 1 || error("syntax error: $lhs")
+        v = lhs.args[1]
+        push!(st.pyvars, v)
+        t = pydsl_tmpvar(st)
+        PyExpr(quote
+            # TODO: check v is not NULL
+            $(rhs2.ex)
+            $t = $op($v, $(rhs2.var))
+            $(pydsl_free(st, rhs2))
+            if $isnull($t)
+                $(pydsl_errblock(st, t))
+            end
+            $Py_DECREF($v)
+            $v = $t
+            $Py_INCREF($v)
+        end, t, true)
+    elseif lhs isa Expr && lhs.head == :PyObject_GetItem
+        length(lhs.args) == 2 || error("syntax error: $lhs")
+        x, k = lhs.args
+        x2 = pydsl_lower_inner(aspyexpr(x), st)::PyExpr
+        k2 = pydsl_lower_inner(aspyexpr(k), st)::PyExpr
+        t1 = pydsl_tmpvar(st)
+        t2 = pydsl_tmpvar(st)
+        err = gensym("err")
+        PyExpr(quote
+            $(rhs2.ex)
+            $(x2.ex)
+            $(k2.ex)
+            $t1 = $PyObject_GetItem($(x2.var), $(k2.var))
+            if $isnull($t1)
+                $(pydsl_errblock(st, t1, t2))
+            end
+            $t2 = $op($t1, $(rhs2.var))
+            $(pydsl_free(st, rhs2))
+            $(pydsl_free_tmp(st, t1))
+            if $isnull($t2)
+                $(pydsl_errblock(st, t2))
+            end
+            $err = $PyObject_SetItem($(x2.var), $(k2.var), $t2)
+            $(pydsl_free(st, x2))
+            $(pydsl_free(st, k2))
+            if $err == -1
+                $(pydsl_errblock(st))
+            end
+        end, t2, true)
+    elseif lhs isa Expr && lhs.head == :PyObject_GetAttr
+        length(lhs.args) == 2 || error("syntax error: $lhs")
+        x, k = lhs.args
+        x2 = pydsl_lower_inner(aspyexpr(x), st)::PyExpr
+        k2 = pydsl_lower_inner(aspyexpr(k), st)::PyExpr
+        t1 = pydsl_tmpvar(st)
+        t2 = pydsl_tmpvar(st)
+        err = gensym("err")
+        PyExpr(quote
+            $(rhs2.ex)
+            $(x2.ex)
+            $(k2.ex)
+            $t1 = $PyObject_GetAttr($(x2.var), $(k2.var))
+            if $isnull($t1)
+                $(pydsl_errblock(st, t1, t2))
+            end
+            $t2 = $op($t1, $(rhs2.var))
+            $(pydsl_free(st, rhs2))
+            $(pydsl_free_tmp(st, t1))
+            if $isnull($t2)
+                $(pydsl_errblock(st, t2))
+            end
+            $err = $PyObject_SetAttr($(x2.var), $(k2.var), $t2)
+            $(pydsl_free(st, x2))
+            $(pydsl_free(st, k2))
+            if $err == -1
+                $(pydsl_errblock(st))
+            end
+        end, t2, true)
+    else
+        error("pydsl_lower: not implemented: inplace assignment to $lhs")
     end
 end
 
@@ -891,6 +1006,11 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
             lhs, rhs = args
             rhs2 = pydsl_lower_inner(aspyexpr(rhs), st)::PyExpr
             pydsl_lower_pyassign(lhs, rhs2, st)
+        elseif head == :PyInPlaceAssign
+            nargs == 3 || error("syntax error: $ex")
+            op, lhs, rhs = args
+            rhs2 = pydsl_lower_inner(aspyexpr(rhs), st)::PyExpr
+            pydsl_lower_pyinplaceassign(getproperty(CPython, PYDSL_IOPS[op]), lhs, rhs2, st)
         elseif head == :PyTruth
             nargs == 1 || error("syntax error: $ex")
             inner, = args

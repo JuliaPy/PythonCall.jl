@@ -1,47 +1,69 @@
 using MacroTools
 
-PYDSL_OPS = Dict(
+PYDSL_OPS_O_O = Set([
+    :PyObject_Repr,
+    :PyObject_Str,
+    :PyObject_Bytes,
+    :PyObject_ASCII,
+    :PyObject_Type,
+    :PyObject_Dir,
+    :PyObject_GetIter,
+    :PyNumber_Positive,
+    :PyNumber_Negative,
+    :PyNumber_Absolute,
+    :PyNumber_Invert,
+    :PyNumber_Long,
+    :PyNumber_Float,
+    :PyNumber_Index,
+    :PyImport_Import,
+])
+
+PYDSL_OPS_O_B = Set([
+    :PyObject_IsTrue,
+    :PyObject_Not,
+])
+
+PYDSL_OPS_OO_O = Set([
+    :PyNumber_Add,
+    :PyNumber_Subtract,
+    :PyNumber_Multiply,
+    :PyNumber_TrueDivide,
+    :PyNumber_FloorDivide,
+    :PyNumber_Remainder,
+    :PyNumber_Lshift,
+    :PyNumber_Rshift,
+    :PyNumber_Or,
+    :PyNumber_And,
+    :PyNumber_Xor,
+    :PyNumber_InPlaceAdd,
+    :PyNumber_InPlaceSubtract,
+    :PyNumber_InPlaceMultiply,
+    :PyNumber_InPlaceTrueDivide,
+    :PyNumber_InPlaceFloorDivide,
+    :PyNumber_InPlaceRemainder,
+    :PyNumber_InPlaceLshift,
+    :PyNumber_InPlaceRshift,
+    :PyNumber_InPlaceOr,
+    :PyNumber_InPlaceAnd,
+    :PyNumber_InPlaceXor,
+    :PyObject_Eq,
+    :PyObject_Ne,
+    :PyObject_Lt,
+    :PyObject_Le,
+    :PyObject_Gt,
+    :PyObject_Ge,
+])
+
+PYDSL_OPS_OO_B = Set([
+    :PyObject_Is,
+    :PyObject_IsNot,
+    :PyObject_IsInstance,
+    :PyObject_IsSubclass,
+])
+
+PYDSL_OPS_ALIAS = Dict(
     :PyObject_Length => (:PyObject_Length, 1),
-    :PyObject_IsTrue => (:PyObject_IsTrue, 1),
-    :PyObject_Not => (:PyObject_Not, 1),
-    :PyObject_Repr => (:PyObject_Repr, 1),
-    :PyObject_Str => (:PyObject_Str, 1),
-    :PyObject_Bytes => (:PyObject_Bytes, 1),
-    :PyObject_ASCII => (:PyObject_ASCII, 1),
-    :PyObject_Type => (:PyObject_Type, 1),
-    :PyObject_Dir => (:PyObject_Dir, 1),
-    :PyObject_GetIter => (:PyObject_GetIter, 1),
-    :PyNumber_Positive => (:PyNumber_Positive, 1),
-    :PyNumber_Negative => (:PyNumber_Negative, 1),
-    :PyNumber_Absolute => (:PyNumber_Absolute, 1),
-    :PyNumber_Invert => (:PyNumber_Invert, 1),
-    :PyNumber_Long => (:PyNumber_Long, 1),
-    :PyNumber_Float => (:PyNumber_Float, 1),
-    :PyNumber_Index => (:PyNumber_Index, 1),
-    :PyNumber_Add => (:PyNumber_Add, 2),
-    :PyNumber_Subtract => (:PyNumber_Subtract, 2),
-    :PyNumber_Multiply => (:PyNumber_Multiply, 2),
-    :PyNumber_TrueDivide => (:PyNumber_TrueDivide, 2),
-    :PyNumber_FloorDivide => (:PyNumber_FloorDivide, 2),
-    :PyNumber_Remainder => (:PyNumber_Remainder, 2),
-    :PyNumber_Power => (:PyNumber_Power, 2),
-    :PyNumber_Lshift => (:PyNumber_Lshift, 2),
-    :PyNumber_Rshift => (:PyNumber_Rshift, 2),
-    :PyNumber_Or => (:PyNumber_Or, 2),
-    :PyNumber_And => (:PyNumber_And, 2),
-    :PyNumber_Xor => (:PyNumber_Xor, 2),
-    :PyNumber_InPlaceAdd => (:PyNumber_InPlaceAdd, 2),
-    :PyNumber_InPlaceSubtract => (:PyNumber_InPlaceSubtract, 2),
-    :PyNumber_InPlaceMultiply => (:PyNumber_InPlaceMultiply, 2),
-    :PyNumber_InPlaceTrueDivide => (:PyNumber_InPlaceTrueDivide, 2),
-    :PyNumber_InPlaceFloorDivide => (:PyNumber_InPlaceFloorDivide, 2),
-    :PyNumber_InPlaceRemainder => (:PyNumber_InPlaceRemainder, 2),
-    :PyNumber_InPlacePower => (:PyNumber_InPlacePower, 2),
-    :PyNumber_InPlaceLshift => (:PyNumber_InPlaceLshift, 2),
-    :PyNumber_InPlaceRshift => (:PyNumber_InPlaceRshift, 2),
-    :PyNumber_InPlaceOr => (:PyNumber_InPlaceOr, 2),
-    :PyNumber_InPlaceAnd => (:PyNumber_InPlaceAnd, 2),
-    :PyNumber_InPlaceXor => (:PyNumber_InPlaceXor, 2),
+    :PyNumber_Power => (:PyNumber_Power, 2:3),
     :PyPtr => (:PyPtr, 1),
     :length => (:PyObject_Length, 1),
     :Bool => (:PyObject_IsTrue, 1),
@@ -66,34 +88,21 @@ PYDSL_OPS = Dict(
     :& => (:PyNumber_And, 2),
     :⊻ => (:PyNumber_Xor, 2),
     :xor => (:PyNumber_Xor, 2),
-)
-
-PYDSL_CMPS = Dict(
-    :PyObject_Is => :PyObject_Is,
-    :PyObject_IsNot => :PyObject_IsNot,
-    :PyObject_Eq => :PyObject_Eq,
-    :PyObject_Ne => :PyObject_Ne,
-    :PyObject_Lt => :PyObject_Lt,
-    :PyObject_Le => :PyObject_Le,
-    :PyObject_Gt => :PyObject_Gt,
-    :PyObject_Ge => :PyObject_Ge,
-    :PyObject_IsInstance => :PyObject_IsInstance,
-    :PyObject_IsSubclass => :PyObject_IsSubclass,
-    :(===) => :PyObject_Is,
-    :(≡) => :PyObject_Is,
-    :(!==) => :PyObject_IsNot,
-    :(≢) => :PyObject_IsNot,
-    :(==) => :PyObject_Eq,
-    :(!=) => :PyObject_Ne,
-    :(≠) => :PyObject_Ne,
-    :(<) => :PyObject_Lt,
-    :(<=) => :PyObject_Le,
-    :(≤) => :PyObject_Le,
-    :(>) => :PyObject_Gt,
-    :(>=) => :PyObject_Ge,
-    :(≥) => :PyObject_Ge,
-    :(isa) => :PyObject_IsInstance,
-    :(<:) => :PyObject_IsSubclass,
+    :(===) => (:PyObject_Is, 2),
+    :(≡) => (:PyObject_Is, 2),
+    :(!==) => (:PyObject_IsNot, 2),
+    :(≢) => (:PyObject_IsNot, 2),
+    :(==) => (:PyObject_Eq, 2),
+    :(!=) => (:PyObject_Ne, 2),
+    :(≠) => (:PyObject_Ne, 2),
+    :(<) => (:PyObject_Lt, 2),
+    :(<=) => (:PyObject_Le, 2),
+    :(≤) => (:PyObject_Le, 2),
+    :(>) => (:PyObject_Gt, 2),
+    :(>=) => (:PyObject_Ge, 2),
+    :(≥) => (:PyObject_Ge, 2),
+    :(isa) => (:PyObject_IsInstance, 2),
+    :(<:) => (:PyObject_IsSubclass, 2),
 )
 
 PYEXPR_HEADS = Set([
@@ -106,56 +115,16 @@ PYEXPR_HEADS = Set([
     :PyIf,
     :PyAnd,
     :PyOr,
+    PYDSL_OPS_O_O...,
+    PYDSL_OPS_OO_O...,
     :PyObject_From,
     :PyObject_GetAttr,
     :PyObject_GetItem,
-    :PyObject_Repr,
-    :PyObject_Str,
-    :PyObject_Bytes,
-    :PyObject_ASCII,
-    :PyObject_Type,
-    :PyObject_Dir,
-    :PyObject_GetIter,
-    :PyNumber_Add,
-    :PyNumber_Positive,
-    :PyNumber_Subtract,
-    :PyNumber_Negative,
-    :PyNumber_Multiply,
-    :PyNumber_TrueDivide,
-    :PyNumber_FloorDivide,
-    :PyNumber_Remainder,
-    :PyNumber_Absolute,
-    :PyNumber_Invert,
     :PyNumber_Power,
-    :PyNumber_Lshift,
-    :PyNumber_Rshift,
-    :PyNumber_Or,
-    :PyNumber_And,
-    :PyNumber_Xor,
-    :PyNumber_Long,
-    :PyNumber_Float,
-    :PyNumber_Index,
-    :PyNumber_InPlaceAdd,
-    :PyNumber_InPlaceSubtract,
-    :PyNumber_InPlaceMultiply,
-    :PyNumber_InPlaceTrueDivide,
-    :PyNumber_InPlaceFloorDivide,
-    :PyNumber_InPlaceRemainder,
     :PyNumber_InPlacePower,
-    :PyNumber_InPlaceLshift,
-    :PyNumber_InPlaceRshift,
-    :PyNumber_InPlaceOr,
-    :PyNumber_InPlaceAnd,
-    :PyNumber_InPlaceXor,
     :PyObject_Call,
-    :PyImport_Import,
     :PyImport_ImportModuleLevelObject,
-    :PyObject_Eq,
-    :PyObject_Ne,
-    :PyObject_Lt,
-    :PyObject_Le,
-    :PyObject_Gt,
-    :PyObject_Ge,
+    :PyTypeAssert,
 ])
 
 ispyexpr(ex) = ex isa Expr && ex.head in PYEXPR_HEADS
@@ -194,9 +163,14 @@ function pydsl_interpret_typeassert(x, T, st)
         ispyexpr(x2) || error("pydsl_interpret: not a Python expression: $x")
         x2
     else
-        ispyexpr(x2) || error("pydsl_interpret: is a Python expression: $x")
         T2 = pydsl_interpret(T, st)
-        :($x2 :: $T2)
+        if ispyexpr(T2) && ispyexpr(x2)
+            Expr(:PyTypeAssert, x2, T2)
+        elseif !ispyexpr(T2) && !ispyexpr(x2)
+            :($x2 :: $T2)
+        else
+            error("pydsl_interpret: mixed Python/Julia types: $(:($x::$T))")
+        end
     end
 end
 
@@ -232,14 +206,8 @@ function pydsl_interpret_call(f, args, kwargs, st)
     end
     na = length(args2)
     nk = length(kwargs2)
-    # comparisons
-    if anypy && haskey(PYDSL_CMPS, f)
-        op = PYDSL_CMPS[f]
-        nk == 0 || error("syntax error: `$f` does not accept keyword arguments")
-        na == 2 || error("syntax error: `$f` requires 2 arguments")
-        Expr(op, args2...)
     # addition
-    elseif anypy && f === :+
+    if anypy && f === :+
         nk == 0 || error("syntax error: `$f` does not accept keyword arguments")
         @assert na > 0
         if na == 1
@@ -253,11 +221,19 @@ function pydsl_interpret_call(f, args, kwargs, st)
         na > 1 || error("syntax error: `$f` requires at least 2 arguments")
         foldl((x,y)->Expr(:PyNumber_Multiply, x, y), args2)
     # operators
-    elseif anypy && haskey(PYDSL_OPS, f)
-        op, opna = PYDSL_OPS[f]
+    elseif anypy && haskey(PYDSL_OPS_ALIAS, f)
+        op, opna = PYDSL_OPS_ALIAS[f]
         nk == 0 || error("syntax error: `$f` does not accept keyword arguments")
-        na == opna || error("syntax error: `$f` requires $opna arguments")
+        na in opna || error("syntax error: `$f` requires $opna arguments")
         Expr(op, args2...)
+    elseif anypy && (f in PYDSL_OPS_O_O || f in PYDSL_OPS_O_B)
+        nk == 0 || error("syntax error: `$f` does not accept keyword arguments")
+        na == 1 || error("syntax error: `$f` requires 1 argument")
+        Expr(f, args2...)
+    elseif anypy && (f in PYDSL_OPS_OO_O || f in PYDSL_OPS_OO_B)
+        nk == 0 || error("syntax error: `$f` does not accept keyword arguments")
+        na == 2 || error("syntax error: `$f` requires 2 arguments")
+        Expr(f, args2...)
     # Py(x), PyExt(x), PyExtX(x), PyExtB(x), PyExtBX(x)
     elseif f isa Symbol && f in (:Py, :PyExt, :PyExtX, :PyExtB, :PyExtBX)
         nk == 0 || error("syntax error: `$f` does not accept keyword arguments")
@@ -670,26 +646,6 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                 $(pydsl_steal(st, x2))
                 $t
             end
-        elseif head == :PyObject_GetAttr
-            nargs == 2 || error("syntax error: $ex")
-            x, k = args
-            ispyexpr(x) || error("syntax error: $ex")
-            x2 = pydsl_lower_inner(x, st) :: PyExpr
-            if k isa QuoteNode && k.value isa Symbol
-                k = string(k.value)
-            end
-            k2 = pydsl_lower_inner(aspyexpr(k), st) :: PyExpr
-            t = pydsl_tmpvar(st)
-            PyExpr(quote
-                $(x2.ex)
-                $(k2.ex)
-                $t = $PyObject_GetAttr($(x2.var), $(k2.var))
-                $(pydsl_free(st, x2))
-                $(pydsl_free(st, k2))
-                if $isnull($t)
-                    $(pydsl_errblock(st, t))
-                end
-            end, t, true)
         elseif head == :PyObject_Call
             if nargs == 1
                 f, = args
@@ -769,9 +725,28 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                     ]...)
                 end, t, true)
             end
-
+        elseif head == :PyTypeAssert
+            nargs == 2 || error("syntax error: $ex")
+            x, T = args
+            ispyexpr(x) || error("syntax error: $ex")
+            ispyexpr(x) || error("syntax error: $ex")
+            x2 = pydsl_lower_inner(x, st)::PyExpr
+            T2 = pydsl_lower_inner(T, st)::PyExpr
+            ans = gensym("ans")
+            PyExpr(quote
+                $(x2.ex)
+                $(T2.ex)
+                $ans = $PyObject_IsInstance($(x2.var), $(T2.var))
+                $(pydsl_free(st, T2))
+                if $ans == -1
+                    $(pydsl_errblock(st))
+                elseif $ans == 0
+                    $PyErr_SetString($PyExc_TypeError(), "in type assert, got a '$($PyType_Name($Py_Type($(x2.var))))'")
+                    $(pydsl_errblock(st))
+                end
+            end, x2.var, x2.tmp)
         # (::PyPtr) -> PyPtr
-        elseif head in (:PyNumber_Positive, :PyNumber_Negative, :PyNumber_Absolute, :PyNumber_Invert, :PyNumber_Long, :PyNumber_Float, :PyNumber_Index, :PyImport_Import, :PyObject_Repr, :PyObject_Str, :PyObject_Bytes, :PyObject_ASCII, :PyObject_Type, :PyObject_Dir, :PyObject_GetIter)
+        elseif head in PYDSL_OPS_O_O
             nargs == 1 || error("syntax error: $ex")
             x, = args
             x2 = pydsl_lower_inner(aspyexpr(x), st) :: PyExpr
@@ -784,8 +759,32 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                     $(pydsl_errblock(st, t))
                 end
             end, t, true)
+        elseif head in (:PyObject_Eq, :PyObject_Ne, :PyObject_Le, :PyObject_Lt, :PyObject_Ge, :PyObject_Gt)
+            nargs == 2 || error("syntax error: $ex")
+            x, y = args
+            x2 = pydsl_lower_inner(aspyexpr(x), st)::PyExpr
+            y2 = pydsl_lower_inner(aspyexpr(y), st)::PyExpr
+            op =
+                head == :PyObject_Eq ? Py_EQ :
+                head == :PyObject_Ne ? Py_NE :
+                head == :PyObject_Le ? Py_LE :
+                head == :PyObject_Lt ? Py_LT :
+                head == :PyObject_Ge ? Py_GE :
+                head == :PyObject_Gt ? Py_GT :
+                @assert false
+            t = pydsl_tmpvar(st)
+            PyExpr(quote
+                $(x2.ex)
+                $(y2.ex)
+                $t = $PyObject_RichCompare($(x2.var), $(y2.var), $op)
+                $(pydsl_free(st, x2))
+                $(pydsl_free(st, y2))
+                if $isnull($t)
+                    $(pydsl_errblock(st))
+                end
+            end, t, true)
         # (::PyPtr, ::PyPtr) -> PyPtr
-        elseif head in (:PyNumber_Add, :PyNumber_Subtract, :PyNumber_Multiply, :PyNumber_TrueDivide, :PyNumber_FloorDivide, :PyNumber_Remainder, :PyNumber_Lshift, :PyNumber_Rshift, :PyNumber_Or, :PyNumber_Xor, :PyNumber_And, :PyObject_GetItem, :PyNumber_InPlaceAdd, :PyNumber_InPlaceSubtract, :PyNumber_InPlaceMultiply, :PyNumber_InPlaceTrueDivide, :PyNumber_InPlaceFloorDivide, :PyNumber_InPlaceRemainder, :PyNumber_InPlaceLshift, :PyNumber_InPlaceRshift, :PyNumber_InPlaceOr, :PyNumber_InPlaceAnd, :PyNumber_InPlaceXor, :PyObject_GetItem, :PyObject_GetAttr)
+        elseif head in PYDSL_OPS_OO_O || head in (:PyObject_GetItem, :PyObject_GetAttr)
             nargs == 2 || error("syntax error: $ex")
             x, y = args
             x2 = pydsl_lower_inner(aspyexpr(x), st) :: PyExpr
@@ -852,7 +851,7 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                 end
                 $len
             end
-        elseif head in (:PyObject_IsTrue, :PyObject_Not)
+        elseif head in PYDSL_OPS_O_B
             nargs == 1 || error("syntax error: $ex")
             x, = args
             x2 = pydsl_lower_inner(aspyexpr(x), st) :: PyExpr
@@ -1034,23 +1033,6 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                 end
                 $t = $tmp
             end, t, true)
-        elseif head in (:PyObject_IsInstance, :PyObject_IsSubclass)
-            nargs == 2 || error("syntax error: $ex")
-            x, y = args
-            x2 = pydsl_lower_inner(aspyexpr(x), st)::PyExpr
-            y2 = pydsl_lower_inner(aspyexpr(y), st)::PyExpr
-            t = gensym("ans")
-            quote
-                $(x2.ex)
-                $(y2.ex)
-                $t = $(getproperty(CPython, head))($(x2.var), $(y2.var))
-                $(pydsl_free(st, x2))
-                $(pydsl_free(st, y2))
-                if $t == -1
-                    $(pydsl_errblock(st))
-                end
-                $t != 0
-            end
         elseif head in (:PyObject_Is, :PyObject_IsNot)
             nargs == 2 || error("syntax error: $ex")
             x, y = args
@@ -1069,30 +1051,23 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                 $(pydsl_free(st, y2))
                 $t
             end
-        elseif head in (:PyObject_Eq, :PyObject_Ne, :PyObject_Le, :PyObject_Lt, :PyObject_Ge, :PyObject_Gt)
+        elseif head in PYDSL_OPS_OO_B
             nargs == 2 || error("syntax error: $ex")
             x, y = args
             x2 = pydsl_lower_inner(aspyexpr(x), st)::PyExpr
             y2 = pydsl_lower_inner(aspyexpr(y), st)::PyExpr
-            op =
-                head == :PyObject_Eq ? Py_EQ :
-                head == :PyObject_Ne ? Py_NE :
-                head == :PyObject_Le ? Py_LE :
-                head == :PyObject_Lt ? Py_LT :
-                head == :PyObject_Ge ? Py_GE :
-                head == :PyObject_Gt ? Py_GT :
-                @assert false
-            t = pydsl_tmpvar(st)
-            PyExpr(quote
+            t = gensym("ans")
+            quote
                 $(x2.ex)
                 $(y2.ex)
-                $t = $PyObject_RichCompare($(x2.var), $(y2.var), $op)
+                $t = $(getproperty(CPython, head))($(x2.var), $(y2.var))
                 $(pydsl_free(st, x2))
                 $(pydsl_free(st, y2))
-                if $isnull($t)
+                if $t == -1
                     $(pydsl_errblock(st))
                 end
-            end, t, true)
+                $t != 0
+            end
         elseif head == :block
             args2 = [pydsl_lower_inner(i==nargs ? nopyexpr(arg) : ignorepyexpr(arg), st) for (i,arg) in enumerate(args)]
             Expr(:block, args2...)

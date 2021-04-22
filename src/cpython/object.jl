@@ -7,6 +7,7 @@ PyObject_GetAttr(o, k) = ccall(POINTERS.PyObject_GetAttr, PyPtr, (PyPtr, PyPtr),
 PyObject_GenericGetAttr(o, k) = ccall(POINTERS.PyObject_GenericGetAttr, PyPtr, (PyPtr, PyPtr), o, k)
 PyObject_SetAttrString(o, k, v) = ccall(POINTERS.PyObject_SetAttrString, Cint, (PyPtr, Cstring, PyPtr), o, k, v)
 PyObject_SetAttr(o, k, v) = ccall(POINTERS.PyObject_SetAttr, Cint, (PyPtr, PyPtr, PyPtr), o, k, v)
+PyObject_DelAttr(o, k) = PyObject_SetAttr(o, k, PyNULL)
 PyObject_GenericSetAttr(o, k, v) = ccall(POINTERS.PyObject_GenericSetAttr, Cint, (PyPtr, PyPtr, PyPtr), o, k, v)
 PyObject_RichCompare(x, y, op) = ccall(POINTERS.PyObject_RichCompare, PyPtr, (PyPtr, PyPtr, Cint), x, y, op)
 PyObject_RichCompareBool(x, y, op) = ccall(POINTERS.PyObject_RichCompareBool, Cint, (PyPtr, PyPtr, Cint), x, y, op)
@@ -27,6 +28,25 @@ PyObject_Dir(o) = ccall(POINTERS.PyObject_Dir, PyPtr, (PyPtr,), o)
 PyObject_GetIter(o) = ccall(POINTERS.PyObject_GetIter, PyPtr, (PyPtr,), o)
 PyObject_Call(f, args, kwargs) = ccall(POINTERS.PyObject_Call, PyPtr, (PyPtr, PyPtr, PyPtr), f, args, kwargs)
 PyObject_CallObject(f, args) = ccall(POINTERS.PyObject_CallObject, PyPtr, (PyPtr, PyPtr), f, args)
+
+PyObject_In(x, y) = PySequence_Contains(y, x)
+PyObject_NotIn(x, y) = begin
+    r = PyObject_In(x, y)
+    if r == -1
+        Cint(-1)
+    elseif r == 0
+        Cint(1)
+    else
+        Cint(0)
+    end
+end
+
+PyObject_Eq(x, y) = PyObject_RichCompare(x, y, Py_EQ)
+PyObject_Ne(x, y) = PyObject_RichCompare(x, y, Py_NE)
+PyObject_Ge(x, y) = PyObject_RichCompare(x, y, Py_GE)
+PyObject_Gt(x, y) = PyObject_RichCompare(x, y, Py_GT)
+PyObject_Le(x, y) = PyObject_RichCompare(x, y, Py_LE)
+PyObject_Lt(x, y) = PyObject_RichCompare(x, y, Py_LT)
 
 PyObject_Type() = POINTERS.PyBaseObject_Type
 

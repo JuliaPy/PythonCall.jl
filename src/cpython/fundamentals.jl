@@ -15,12 +15,17 @@ Py_GetVersion() = ccall(POINTERS.Py_GetVersion, Cstring, ())
 _Py_IncRef(o) = ccall(POINTERS.Py_IncRef, Cvoid, (PyPtr,), o)
 _Py_DecRef(o) = ccall(POINTERS.Py_DecRef, Cvoid, (PyPtr,), o)
 const FAST_INCREF = true
-const FAST_DECREF = false
+const FAST_DECREF = true
 if FAST_INCREF
     # This avoids calling the C-API Py_IncRef().
     # It just needs to increase the reference count.
     # Assumes Python is not built for debugging reference counts.
     # Speed up from 2.5ns to 1.3ns.
+    Py_INCREF(o) = GC.@preserve o begin
+        p = UnsafePtr(Base.unsafe_convert(PyPtr, o))
+        p.refcnt[] += 1
+        nothing
+    end
     Py_IncRef(o) = GC.@preserve o begin
         p = UnsafePtr(Base.unsafe_convert(PyPtr, o))
         if p != C_NULL
@@ -29,6 +34,7 @@ if FAST_INCREF
         nothing
     end
 else
+    Py_INCREF(o) = _Py_IncRef(o)
     Py_IncRef(o) = _Py_IncRef(o)
 end
 if FAST_DECREF
@@ -36,6 +42,16 @@ if FAST_DECREF
     # It just needs to decrement the reference count.
     # Assumes Python is not built for debugging reference counts.
     # Speed up from 2.5ns to 1.8ns in non-deallocating case.
+    Py_DECREF(o) = GC.@preserve o begin
+        p = UnsafePtr(Base.unsafe_convert(PyPtr, o))
+        c = p.refcnt[]
+        if c > 1
+            p.refcnt[] = c - 1
+        else
+            _Py_DecRef(o)
+        end
+        nothing
+    end
     Py_DecRef(o) = GC.@preserve o begin
         p = UnsafePtr(Base.unsafe_convert(PyPtr, o))
         if p != C_NULL
@@ -49,6 +65,7 @@ if FAST_DECREF
         nothing
     end
 else
+    Py_DECREF(o) = _Py_DecRef(o)
     Py_DecRef(o) = _Py_DecRef(o)
 end
 Py_RefCnt(o) = GC.@preserve o UnsafePtr(Base.unsafe_convert(PyPtr, o)).refcnt[]

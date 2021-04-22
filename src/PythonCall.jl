@@ -25,8 +25,8 @@ include("cpython/CPython.jl")
 const C = CPython
 const CPyPtr = C.PyPtr
 
-import .CPython: @pydsl, @pydsl_interpret, @pydsl_expand
-export @pydsl, @pydsl_interpret, @pydsl_expand
+import .CPython: @pydsl, @pydsl_nojlerror, @pydsl_interpret, @pydsl_expand
+export @pydsl, @pydsl_nojlerror, @pydsl_interpret, @pydsl_expand
 
 include("gil.jl")
 include("eval.jl")

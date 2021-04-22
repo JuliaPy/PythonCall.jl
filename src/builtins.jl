@@ -306,30 +306,12 @@ pyhash(x) = checkm1(cpyop(C.PyObject_Hash, x))
 export pyhash
 
 """
-    pycompare([T=PyObject,] x, op, y) :: T
-
-Equivalent to `x op y` in Python where `op` is one of: `=`, `≠`, `<`, `≤`, `>`, `≥`.
-"""
-pycompare(::Type{T}, x, ::typeof(==), y) where {T} = _pycompare(T, x, C.Py_EQ, y)
-pycompare(::Type{T}, x, ::typeof(!=), y) where {T} = _pycompare(T, x, C.Py_NE, y)
-pycompare(::Type{T}, x, ::typeof(<), y) where {T} = _pycompare(T, x, C.Py_LT, y)
-pycompare(::Type{T}, x, ::typeof(<=), y) where {T} = _pycompare(T, x, C.Py_LE, y)
-pycompare(::Type{T}, x, ::typeof(>), y) where {T} = _pycompare(T, x, C.Py_GT, y)
-pycompare(::Type{T}, x, ::typeof(>=), y) where {T} = _pycompare(T, x, C.Py_GE, y)
-pycompare(x, op, y) = pycompare(PyObject, x, op, y)
-_pycompare(::Type{T}, x, op::Cint, y) where {T} =
-    cpyop(T, (xo, yo) -> C.PyObject_RichCompare(xo, yo, op), x, y)
-_pycompare(::Type{Bool}, x, op::Cint, y) =
-    checkm1(cpyop((xo, yo) -> C.PyObject_RichCompareBool(xo, yo, op), x, y)) != 0
-export pycompare
-
-"""
     pyeq([T=PyObject,] x, y) :: T
 
 Equivalent to `x == y` in Python.
 """
-pyeq(::Type{T}, x, y) where {T} = pycompare(T, x, ==, y)
-pyeq(x, y) = pycompare(x, ==, y)
+pyeq(::Type{T}, x, y) where {T} = @pydsl_nojlerror convert(T, Py(x) == Py(y))
+pyeq(x, y) = pyeq(PyObject, x, y)
 export pyeq
 
 """
@@ -337,8 +319,8 @@ export pyeq
 
 Equivalent to `x != y` in Python.
 """
-pyne(::Type{T}, x, y) where {T} = pycompare(T, x, !=, y)
-pyne(x, y) = pycompare(x, !=, y)
+pyne(::Type{T}, x, y) where {T} = @pydsl_nojlerror convert(T, Py(x) ≠ Py(y))
+pyne(x, y) = pyne(PyObject, x, y)
 export pyne
 
 """
@@ -346,8 +328,8 @@ export pyne
 
 Equivalent to `x >= y` in Python.
 """
-pyge(::Type{T}, x, y) where {T} = pycompare(T, x, >=, y)
-pyge(x, y) = pycompare(x, >=, y)
+pyge(::Type{T}, x, y) where {T} = @pydsl_nojlerror convert(T, Py(x) ≥ Py(y))
+pyge(x, y) = pyge(PyObject, x, y)
 export pyge
 
 """
@@ -355,8 +337,8 @@ export pyge
 
 Equivalent to `x > y` in Python.
 """
-pygt(::Type{T}, x, y) where {T} = pycompare(T, x, >, y)
-pygt(x, y) = pycompare(x, >, y)
+pygt(::Type{T}, x, y) where {T} = @pydsl_nojlerror convert(T, Py(x) > Py(y))
+pygt(x, y) = pygt(PyObject, x, y)
 export pygt
 
 """
@@ -364,8 +346,8 @@ export pygt
 
 Equivalent to `x <= y` in Python.
 """
-pyle(::Type{T}, x, y) where {T} = pycompare(T, x, <=, y)
-pyle(x, y) = pycompare(x, <=, y)
+pyle(::Type{T}, x, y) where {T} = @pydsl_nojlerror convert(T, Py(x) ≤ Py(y))
+pyle(x, y) = pyle(PyObject, x, y)
 export pyle
 
 """
@@ -373,8 +355,8 @@ export pyle
 
 Equivalent to `x < y` in Python.
 """
-pylt(::Type{T}, x, y) where {T} = pycompare(T, x, <, y)
-pylt(x, y) = pycompare(x, <, y)
+pylt(::Type{T}, x, y) where {T} = @pydsl_nojlerror convert(T, Py(x) < Py(y))
+pylt(x, y) = pylt(PyObject, x, y)
 export pylt
 
 """
@@ -382,7 +364,7 @@ export pylt
 
 Equivalent to `x + y` in Python.
 """
-pyadd(::Type{T}, x, y) where {T} = cpyop(T, C.PyNumber_Add, x, y)
+pyadd(::Type{T}, x, y) where {T} = @pydsl_nojlerror convert(T, Py(x) + Py(y))
 pyadd(x, y) = pyadd(PyObject, x, y)
 export pyadd
 
@@ -391,7 +373,7 @@ export pyadd
 
 `x = pyiadd(x, y)` is equivalent to `x += y` in Python.
 """
-pyiadd(::Type{T}, x, y) where {T} = cpyop(T, C.PyNumber_InPlaceAdd, x, y)
+pyiadd(::Type{T}, x, y) where {T} = @pydsl_nojlerror convert(T, PyNumber_InPlaceAdd(Py(x), Py(y)))
 pyiadd(x, y) = pyiadd(typeof(x), x, y)
 export pyiadd
 

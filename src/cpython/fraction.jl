@@ -6,17 +6,17 @@ PyFraction_Type() = begin
         # ptr = PyObject_GetAttrString(m, "Fraction")
         # Py_DecRef(m)
         # isnull(m) && return ptr
-        POINTERS.PyFraction_Type = ptr = @pydsl begin
+        POINTERS.PyFraction_Type = ptr = @pydsl_nojlerror begin
             @pyimport fractions
-            pyptr(fractions.Fraction)
-        end onjlerror=impossible onpyerror=(return PyNULL)
+            PyPtr(fractions.Fraction)
+        end onpyerror=(return PyNULL)
     end
     ptr
 end
 
-PyFraction_From(x::Union{Rational,Integer}) = @pydsl begin
-    pyptr((PyFraction_Type()::CPyB)(numerator(x), denominator(x)))
-end onjlerror=impossible onpyerror=(return PyNULL)
+PyFraction_From(x::Union{Rational,Integer}) = @pydsl_nojlerror begin
+    PyPtr(PyExtB(PyFraction_Type())(numerator(x), denominator(x)))
+end onpyerror=(return PyNULL)
 # PyFraction_From(x::Union{Rational,Integer}) = begin
 #     t = PyFraction_Type()
 #     isnull(t) && return PyNULL

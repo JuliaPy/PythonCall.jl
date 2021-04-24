@@ -148,6 +148,7 @@ const CAPI_FUNCS = [
     :PyList_New,
     :PyList_Append,
     :PyList_AsTuple,
+    :PyList_SetItem,
     # DICT
     :PyDict_New,
     :PyDict_GetItem,

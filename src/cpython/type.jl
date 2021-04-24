@@ -18,7 +18,7 @@ PyType_HasFeature(s, f) = !iszero(PyType_Flags(s) & f)
 
 PyType_Type() = POINTERS.PyType_Type
 
-PyType_Check(o) = Py_TypeCheck(o, Py_TPFLAGS_TYPE_SUBCLASS)
+PyType_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_TYPE_SUBCLASS)
 
 PyType_CheckExact(o) = Py_TypeCheckExact(o, PyType_Type())
 

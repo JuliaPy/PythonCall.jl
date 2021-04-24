@@ -94,6 +94,15 @@ mutable struct PyLazyObject{T}
 end
 
 """
+    PyLazyBulitinObject(x)
+"""
+mutable struct PyLazyBuiltinObject
+    ptr::Ptr{Cvoid}
+    name::String
+    PyLazyBuiltinObject(name::String) = finalizer(pyref_finalize!, new(C_NULL, name))
+end
+
+"""
     PyInternedString(x::String)
 
 Convert `x` to an interned Python string.

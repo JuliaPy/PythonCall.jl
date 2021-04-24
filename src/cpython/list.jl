@@ -1,6 +1,7 @@
 PyList_New(n) = ccall(POINTERS.PyList_New, PyPtr, (Py_ssize_t,), n)
 PyList_Append(o, v) = ccall(POINTERS.PyList_Append, Cint, (PyPtr, PyPtr), o, v)
 PyList_AsTuple(o) = ccall(POINTERS.PyList_AsTuple, PyPtr, (PyPtr,), o)
+PyList_SetItem(o, i, v) = ccall(POINTERS.PyList_SetItem, Cint, (PyPtr, Py_ssize_t, PyPtr), o, i, v)
 
 PyList_Type() = POINTERS.PyList_Type
 

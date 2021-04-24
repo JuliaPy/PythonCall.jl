@@ -83,6 +83,27 @@ function pythrow end
 function pyref_finalize! end
 
 """
+    PyCode(code::String, filename::String, mode::Symbol)
+
+A Python code object, representing the compiled contents of `code`.
+
+The `filename` is used for exception printing. The mode must be `:exec` or `:eval`.
+
+See also [`@py_cmd`](@ref) and [`@pyv_cmd`](@ref).
+"""
+mutable struct PyCode
+    ptr::Ptr{Cvoid}
+    code::String
+    filename::String
+    mode::Symbol
+    PyCode(code::String, filename::String, mode::Symbol) = begin
+        mode in (:exec, :eval) || error("invalid mode $(repr(mode))")
+        co = new(C_NULL, code, filename, mode)
+        finalizer(pyref_finalize!, co)
+    end
+end
+
+"""
     PyLazyObject(x)
 
 Convert `x` to a Python object lazily, i.e. the conversion happens the first time the object is accessed.

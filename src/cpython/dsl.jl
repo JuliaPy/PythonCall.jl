@@ -403,7 +403,7 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
             ebody2 = pydsl_interpret(ebody, st)
             if ispyexpr(body2) || ispyexpr(ebody2)
                 Expr(:PyIf, cond2, body2, ebody2)
-            elseif nargs == 3
+            elseif length(ex.args) == 3
                 Expr(ex.head, cond2, body2, ebody2)
             else
                 Expr(ex.head, cond2, body2)
@@ -551,6 +551,40 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
             t2 in CAPI_EXCEPTIONS || error("unknown exception: $t")
             v2 = pydsl_interpret(v, st)
             Expr(:PyRaise, getproperty(CPython, t2), v2)
+
+        # @py compile (code) (mode)
+        elseif @capture(ex, @py compile code_String mode_String)
+            Expr(:PyObject_From, PythonCall.PyCode(code, "<unknown>", Symbol(mode)))
+
+        # @py exec (code)
+        elseif @capture(ex, @py exec code_String)
+            Expr(:PyObject_Call, PythonCall.PyLazyBuiltinObject("exec"), Expr(:PyTuple, PythonCall.PyCode(code, "<unknown>", :exec), Expr(:PyDict)))
+
+        # @py exec (code) (globals)
+        elseif @capture(ex, @py exec code_String globals_)
+            globals2 = pydsl_interpret(globals, st)
+            Expr(:PyObject_Call, PythonCall.PyLazyBuiltinObject("exec"), Expr(:PyTuple, PythonCall.PyCode(code, "<unknown>", :exec), globals2))
+
+        # @py exec (code) (globals) (locals)
+        elseif @capture(ex, @py exec code_String globals_ locals_)
+            globals2 = pydsl_interpret(globals, st)
+            locals2 = pydsl_interpret(locals, st)
+            Expr(:PyObject_Call, PythonCall.PyLazyBuiltinObject("exec"), Expr(:PyTuple, PythonCall.PyCode(code, "<unknown>", :exec), globals2, locals2))
+
+        # @py eval (code)
+        elseif @capture(ex, @py eval code_String)
+            Expr(:PyObject_Call, PythonCall.PyLazyBuiltinObject("eval"), Expr(:PyTuple, PythonCall.PyCode(code, "<unknown>", :eval), Expr(:PyDict)))
+
+        # @py eval (code) (globals)
+        elseif @capture(ex, @py eval code_String globals_)
+            globals2 = pydsl_interpret(globals, st)
+            Expr(:PyObject_Call, PythonCall.PyLazyBuiltinObject("eval"), Expr(:PyTuple, PythonCall.PyCode(code, "<unknown>", :eval), globals2))
+
+        # @py eval (code) (globals) (locals)
+        elseif @capture(ex, @py eval code_String globals_ locals_)
+            globals2 = pydsl_interpret(globals, st)
+            locals2 = pydsl_interpret(locals, st)
+            Expr(:PyObject_Call, PythonCall.PyLazyBuiltinObject("eval"), Expr(:PyTuple, PythonCall.PyCode(code, "<unknown>", :eval), globals2, locals2))
 
         # @py (...,)
         elseif @capture(ex, @py (args__,))
@@ -862,7 +896,10 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                 PyExpr(quote
                     $t = $Py_None()
                 end, t, false)
-            elseif x isa PythonCall.PyLazyObject || x isa PythonCall.PyInternedString || x isa PythonCall.PyLazyBuiltinObject
+            elseif x isa PythonCall.PyLazyObject ||
+                    x isa PythonCall.PyInternedString ||
+                    x isa PythonCall.PyLazyBuiltinObject ||
+                    x isa PythonCall.PyCode
                 # putting these into st.lazyobjects means we can assume the object's pointer is valid by the time we execute this code
                 push!(st.lazyobjects, x)
                 t = gensym("pytmp")

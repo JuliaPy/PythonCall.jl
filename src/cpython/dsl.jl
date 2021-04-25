@@ -534,32 +534,6 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
             args2 = [pydsl_interpret(arg, st) for arg in args]
             :([$(args2...),])
 
-        # @pyimport ...
-        elseif @capture(ex, (@pyimport (args__,)) | (@pyimport args__))
-            res = Expr(:block)
-            for arg in args
-                if @capture(arg, mname_:attrs_)
-                    mname = modname(st, mname)
-                    if attrs isa Expr && attrs.head == :tuple
-                        attrs = [modnamevarname(st, attr) for attr in attrs.args]
-                    else
-                        attrs = [modnamevarname(st, attrs)]
-                    end
-                    anames = [a for (a,_,_) in attrs]
-                    vnames = [v for (_,v,_) in attrs]
-                    for v in vnames
-                        addpyvar(v, st)
-                    end
-                    push!(res.args, Expr(:PyAssign, Expr(:tuple, [Expr(:PyVar, v) for v in vnames]...), Expr(:PyImport_ImportModuleLevelObject, mname, nothing, nothing, Expr(:PyTuple, anames...), 0)) )
-                else
-                    mname, vname, named = modnamevarname(st, arg)
-                    addpyvar(vname, st)
-                    push!(res.args, Expr(:PyAssign, Expr(:PyVar, vname), Expr(:PyImport_ImportModuleLevelObject, mname, nothing, nothing, Expr(:PyObject_From, PythonCall.PyLazyObject(named && '.' in mname ? ("*",) : ())), 0)))
-                end
-            end
-            push!(res.args, nothing) # @pyimport(...) evaluates to nothing
-            res
-
         # @py import ...
         elseif @capture(ex, @py imp_) && imp isa Expr && imp.head == :import
             res = Expr(:block)
@@ -600,18 +574,18 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
 
         # @py exec (code)
         elseif @capture(ex, @py exec code_String)
-            Expr(:PyObject_Call, PythonCall.PyLazyBuiltinObject("exec"), Expr(:PyTuple, PythonCall.PyCode(code, pydsl_srcstr(st), :exec), Expr(:PyDict)))
+            Expr(:PyIgnore, Expr(:PyObject_Call, PythonCall.PyLazyBuiltinObject("exec"), Expr(:PyTuple, PythonCall.PyCode(code, pydsl_srcstr(st), :exec), Expr(:PyDict))))
 
         # @py exec (code) (globals)
         elseif @capture(ex, @py exec code_String globals_)
             globals2 = pydsl_interpret(globals, st)
-            Expr(:PyObject_Call, PythonCall.PyLazyBuiltinObject("exec"), Expr(:PyTuple, PythonCall.PyCode(code, pydsl_srcstr(st), :exec), globals2))
+            Expr(:PyIgnore, Expr(:PyObject_Call, PythonCall.PyLazyBuiltinObject("exec"), Expr(:PyTuple, PythonCall.PyCode(code, pydsl_srcstr(st), :exec), globals2)))
 
         # @py exec (code) (globals) (locals)
         elseif @capture(ex, @py exec code_String globals_ locals_)
             globals2 = pydsl_interpret(globals, st)
             locals2 = pydsl_interpret(locals, st)
-            Expr(:PyObject_Call, PythonCall.PyLazyBuiltinObject("exec"), Expr(:PyTuple, PythonCall.PyCode(code, pydsl_srcstr(st), :exec), globals2, locals2))
+            Expr(:PyIgnore, Expr(:PyObject_Call, PythonCall.PyLazyBuiltinObject("exec"), Expr(:PyTuple, PythonCall.PyCode(code, pydsl_srcstr(st), :exec), globals2, locals2)))
 
         # @py eval (code)
         elseif @capture(ex, @py eval code_String)

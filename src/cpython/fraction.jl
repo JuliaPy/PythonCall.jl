@@ -7,7 +7,7 @@ PyFraction_Type() = begin
         # Py_DecRef(m)
         # isnull(m) && return ptr
         POINTERS.PyFraction_Type = ptr = @pydsl_nojlerror begin
-            @pyimport fractions
+            @py import fractions
             PyPtr(fractions.Fraction)
         end onpyerror=(return PyNULL)
     end

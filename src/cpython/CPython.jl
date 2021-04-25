@@ -8,6 +8,8 @@ import ..PythonCall:
     PYERR,
     NOTIMPLEMENTED,
     _typeintersect,
+    _type_lb,
+    _type_ub,
     tryconvert,
     ispyreftype,
     ispyref,

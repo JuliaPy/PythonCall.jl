@@ -137,20 +137,6 @@ PyIterable_Collect(xso::PyPtr, ::Type{T}, skip::Bool = false) where {T} = begin
     xs
 end
 
-eltype_ub(::Type{Vector{T}}) where {T} = T
-eltype_ub(::Type{Set{T}}) where {T} = T
-eltype_ub(::Type{Vector}) = Any
-eltype_ub(::Type{Set}) = Any
-eltype_ub(::Type{V}) where {V<:Vector} = V.var.ub
-eltype_ub(::Type{V}) where {V<:Set} = V.var.ub
-
-eltype_lb(::Type{Vector{T}}) where {T} = T
-eltype_lb(::Type{Set{T}}) where {T} = T
-eltype_lb(::Type{Vector}) = Union{}
-eltype_lb(::Type{Set}) = Union{}
-eltype_lb(::Type{V}) where {V<:Vector} = V.var.lb
-eltype_lb(::Type{V}) where {V<:Set} = V.var.lb
-
 _PyIterable_ConvertRule_vecorset(o, xs, ::Type{T}) where {T} = begin
     r = PyIterable_Map(o) do xo
         r = PyObject_TryConvert(xo, T)
@@ -163,8 +149,7 @@ _PyIterable_ConvertRule_vecorset(o, xs, ::Type{T}) where {T} = begin
     r == 1 && putresult(xs)
     r
 end
-PyIterable_ConvertRule_vecorset(o, ::Type{S}) where {S<:Vector} = _PyIterable_ConvertRule_vecorset(o, Vector{eltype_lb(S)}(), eltype_ub(S))
-PyIterable_ConvertRule_vecorset(o, ::Type{S}) where {S<:Set} = _PyIterable_ConvertRule_vecorset(o, Set{eltype_lb(S)}(), eltype_ub(S))
+PyIterable_ConvertRule_vecorset(o, ::Type{S}) where {S} = _PyIterable_ConvertRule_vecorset(o, _type_lb(S)(), eltype(_type_ub(S)))
 
 PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
     S isa DataType || return 0
@@ -206,40 +191,36 @@ PyIterable_ConvertRule_namedtuple(o, ::Type{NamedTuple{names}}) where {names} = 
 end
 PyIterable_ConvertRule_namedtuple(o, ::Type{S}) where {S<:NamedTuple} = 0
 
-PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V}}) where {K,V} = begin
-    k = Ref{K}()
-    v = Ref{V}()
+_PyIterable_ConvertRule_pair(o, ::Type{Pair{K1,V1}}, ::Type{Pair{K2,V2}}) where {K1,V1,K2,V2} = begin
+    k = Ref{K2}()
+    v = Ref{V2}()
     i = Ref(0)
     r = PyIterable_Map(o) do xo
         if i[] == 0
             # key
-            r = PyObject_TryConvert(xo, eltype(k))
+            r = PyObject_TryConvert(xo, K2)
             r == -1 && return -1
             r == 0 && return 0
             i[] = 1
-            k[] = takeresult(eltype(k))
+            k[] = takeresult(K2)
             return 1
         elseif i[] == 1
             # value
-            r == PyObject_TryConvert(xo, eltype(v))
+            r == PyObject_TryConvert(xo, V2)
             r == -1 && return -1
             r == 0 && return 0
             i[] = 2
-            v[] = takeresult(eltype(v))
+            v[] = takeresult(V2)
             return 1
         else
             return 0
         end
     end
+    K = K1==K2 ? K1 : K1==Union{} ? typeof(k[]) : typeintersect(K2, promote_type(K1, typeof(k[])))
+    V = V1==V2 ? V1 : V1==Union{} ? typeof(v[]) : typeintersect(V2, promote_type(V1, typeof(v[])))
     r == -1 ? -1 : r == 0 ? 0 : i[] == 2 ? putresult(Pair{K,V}(k[], v[])) : 0
 end
-PyIterable_ConvertRule_pair(o, ::Type{Pair{K}}) where {K} =
-    PyIterable_ConvertRule_pair(o, Pair{K,Any})
-PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V} where K}) where {V} =
-    PyIterable_ConvertRule_pair(o, Pair{Any,V})
-PyIterable_ConvertRule_pair(o, ::Type{Pair}) =
-    PyIterable_ConvertRule_pair(o, Pair{Any,Any})
-PyIterable_ConvertRule_pair(o, ::Type{S}) where {S<:Pair} = 0
+PyIterable_ConvertRule_pair(o, ::Type{S}) where {S<:Pair} = _PyIterable_ConvertRule_pair(o, _type_lb(S), _type_ub(S))
 
 _PyMapping_ConvertRule_dict(o, xs, ::Type{K}, ::Type{V}) where {K,V} = begin
     r = PyIterable_Map(o) do ko
@@ -261,8 +242,4 @@ _PyMapping_ConvertRule_dict(o, xs, ::Type{K}, ::Type{V}) where {K,V} = begin
     end
     r == -1 ? -1 : r == 0 ? 0 : putresult(xs)
 end
-PyMapping_ConvertRule_dict(o, ::Type{Dict{K,V}}) where {K,V} = _PyMapping_ConvertRule_dict(o, Dict{K,V}(), K, V)
-PyMapping_ConvertRule_dict(o, ::Type{Dict{K}}) where {K} = _PyMapping_ConvertRule_dict(o, Dict{K,Union{}}(), K, Any)
-PyMapping_ConvertRule_dict(o, ::Type{Dict{K,V} where {K}}) where {V} = _PyMapping_ConvertRule_dict(o, Dict{Union{},K}(), Any, K)
-PyMapping_ConvertRule_dict(o, ::Type{Dict}) = _PyMapping_ConvertRule_dict(o, Dict{Union{},Union{}}(), Any, Any)
-PyMapping_ConvertRule_dict(o, ::Type{S}) where {S} = 0
+PyMapping_ConvertRule_dict(o, ::Type{S}) where {S} = _PyMapping_ConvertRule_dict(o, _type_lb(S)(), keytype(_type_ub(S)), valtype(_type_ub(S)))

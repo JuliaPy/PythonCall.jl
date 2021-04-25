@@ -232,6 +232,21 @@ CTryConvertRule_trywrapref(o, ::Type{S}) where {S} =
     Tuple{[foldr(UnionAll, vars; init = P) for P in S.parameters]...}
 end
 
+@generated _type_ub(::Type{T}) where {T} = begin
+    S = T
+    while S isa UnionAll
+        S = S{S.var.ub}
+    end
+    S
+end
+@generated _type_lb(::Type{T}) where {T} = begin
+    S = T
+    while S isa UnionAll
+        S = S{S.var.lb}
+    end
+    S
+end
+
 function pointer_from_obj(o::T) where {T}
     if T.mutable
         c = o

@@ -511,10 +511,25 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
         elseif @capture(ex, f_(args__) | f_(args__; kwargs__))
             pydsl_interpret_call(f, args, kwargs, st)
 
-        # string interpolation
+        # "x=$(x) ..." (string interpolation)
         elseif ex.head == :string
             args2 = [pydsl_interpret(arg, st) for arg in ex.args]
             Expr(:string, args2...)
+
+        # T{...}
+        elseif @capture(ex, T_{args__})
+            T2 = pydsl_interpret(T, st)
+            args2 = [pydsl_interpret(arg, st) for arg in args]
+            if ispyexpr(T2)
+                pydsl_syntax_error(st, "`T{...}` syntax only for Julia `T`")
+            else
+                :($T2{$(args2...)})
+            end
+
+        # [...,]
+        elseif @capture(ex, [args__])
+            args2 = [pydsl_interpret(arg, st) for arg in args]
+            :([$(args2...),])
 
         # @pyimport ...
         elseif @capture(ex, (@pyimport (args__,)) | (@pyimport args__))
@@ -1536,9 +1551,29 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
             x2 = pydsl_lower_inner(nopyexpr(x), st)
             k2 = pydsl_lower_inner(nopyexpr(k), st)
             Expr(:., x2, k2)
+        elseif head == :(::) && nargs == 2
+            x, T = args
+            ispyexpr(x) && pydsl_syntax_error(st, "$ex")
+            ispyexpr(T) && pydsl_syntax_error(st, "$ex")
+            x2 = pydsl_lower_inner(x, st)
+            T2 = pydsl_lower_inner(T, st)
+            Expr(:(::), x2, T2)
+        elseif head == :curly && nargs ≥ 1
+            T = args[1]
+            xs = args[2:end]
+            ispyexpr(T) && pydsl_syntax_error(st, "$ex")
+            T2 = pydsl_lower_inner(T, st)
+            xs2 = [pydsl_lower_inner(nopyexpr(x), st) for x in xs]
+            Expr(:curly, T2, xs2...)
         elseif head == :string
             args2 = [pydsl_lower_inner(strpyexpr(arg), st) for arg in args]
             Expr(:string, args2...)
+        elseif head == :vect
+            args2 = [pydsl_lower_inner(nopyexpr(arg), st) for arg in args]
+            Expr(:vect, args2...)
+        elseif head == :ref
+            args2 = [pydsl_lower_inner(nopyexpr(arg), st) for arg in args]
+            Expr(:ref, args2...)
         else
             pydsl_syntax_error(st, "not implemented (lower): $head")
         end

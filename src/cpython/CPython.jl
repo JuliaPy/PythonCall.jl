@@ -1,6 +1,6 @@
 module CPython
 
-using Libdl, Dates, Compat, Requires
+using Libdl, Dates, Compat, Requires, BangBang
 import ..PythonCall:
     CONFIG,
     isnull,

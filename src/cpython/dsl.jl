@@ -169,6 +169,8 @@ ignorepyexpr(ex) = ispyexpr(ex) ? Expr(:PyIgnore, ex) : ex
 
 truthpyexpr(ex) = ispyexpr(ex) ? Expr(:PyTruth, ex) : ex
 
+strpyexpr(ex) = ispyexpr(ex) ? Expr(:PyUnicode_AsString, Expr(:PyObject_Str, ex)) : ex
+
 @kwdef mutable struct PyDSLInterpretState
     ispyvar :: Dict{Symbol, Bool} = Dict{Symbol, Bool}()
     __module__ :: Module
@@ -508,6 +510,11 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
         # f(...)
         elseif @capture(ex, f_(args__) | f_(args__; kwargs__))
             pydsl_interpret_call(f, args, kwargs, st)
+
+        # string interpolation
+        elseif ex.head == :string
+            args2 = [pydsl_interpret(arg, st) for arg in ex.args]
+            Expr(:string, args2...)
 
         # @pyimport ...
         elseif @capture(ex, (@pyimport (args__,)) | (@pyimport args__))
@@ -1377,6 +1384,20 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                 $(pydsl_free(st, y2))
                 $t
             end
+        elseif head == :PyUnicode_AsString
+            nargs == 1 || pydsl_syntax_error(st, "$ex")
+            x, = args
+            x2 = pydsl_lower_inner(aspyexpr(x), st)::PyExpr
+            t = gensym("ans")
+            quote
+                $(x2.ex)
+                $t = $PyUnicode_AsString($(x2.var))
+                $(pydsl_free(st, x2))
+                if isempty($t) && $PyErr_IsSet()
+                    $(pydsl_errblock(st))
+                end
+                $t
+            end
         elseif haskey(PYDSL_OPS, head)
             opnargs, _, rettype = PYDSL_OPS[head]
             nargs in opnargs || pydsl_syntax_error(st, "$ex")
@@ -1515,8 +1536,11 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
             x2 = pydsl_lower_inner(nopyexpr(x), st)
             k2 = pydsl_lower_inner(nopyexpr(k), st)
             Expr(:., x2, k2)
+        elseif head == :string
+            args2 = [pydsl_lower_inner(strpyexpr(arg), st) for arg in args]
+            Expr(:string, args2...)
         else
-            pydsl_syntax_error(st, "not implemented: Expr($(repr(head)), ...)")
+            pydsl_syntax_error(st, "not implemented (lower): $head")
         end
     elseif ex isa LineNumberNode
         if pydsl_dropline(ex)

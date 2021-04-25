@@ -136,7 +136,7 @@ export pyrepr
 Equivalent to `str(x)` in Python.
 """
 pystr(::Type{T}, x) where {T} = cpyop(T, C.PyObject_Str, x)
-pystr(::Type{T}, x::Union{String,SubString{String},Vector{Int8},Vector{UInt8}}) where {T} =
+pystr(::Type{T}, x::Union{String,SubString{String}}) where {T} =
     checknullconvert(T, C.PyUnicode_From(x))
 pystr(x) = pystr(PyObject, x)
 export pystr
@@ -149,7 +149,7 @@ Equivalent to `str(x)` in Python.
 pybytes(::Type{T}, x) where {T} = cpyop(T, C.PyObject_Bytes, x)
 pybytes(
     ::Type{T},
-    x::Union{Vector{Int8},Vector{UInt8},String,SubString{String}},
+    x::Union{Vector{Int8},Vector{UInt8},String,SubString{String},Base.CodeUnits{UInt8,String},Base.CodeUnits{UInt8,SubString{String}}},
 ) where {T} = checknullconvert(T, C.PyBytes_From(x))
 pybytes(x) = pybytes(PyObject, x)
 export pybytes

@@ -44,6 +44,7 @@ PyObject_From(
 PyObject_From(x::Union{Float16,Float32,Float64}) = PyFloat_From(x)
 PyObject_From(x::Complex{<:Union{Float16,Float32,Float64}}) = PyComplex_From(x)
 PyObject_From(x::Union{String,SubString{String}}) = PyUnicode_From(x)
+PyObject_From(x::Union{Base.CodeUnits{UInt8,String},Base.CodeUnits{UInt8,SubString{String}}}) = PyBytes_From(x)
 PyObject_From(x::Char) = PyUnicode_From(string(x))
 PyObject_From(x::Tuple) = PyTuple_From(x)
 PyObject_From(

@@ -54,7 +54,7 @@ The following table specifies the conversion rules in place. If the initial Pyth
 | From                                                                                                         | To                                                          |
 | :----------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------- |
 | **Top priority (wrapped values).**                                                                           |                                                             |
-| `juliacall.AnyValue`                                                                                           | `Any`                                                       |
+| `juliacall.AnyValue`                                                                                         | `Any`                                                       |
 | **Very high priority (arrays).**                                                                             |                                                             |
 | Objects satisfying the buffer or array interface (inc. `bytes`, `bytearray`, `array.array`, `numpy.ndarray`) | `PyArray`                                                   |
 | **High priority (canonical conversions).**                                                                   |                                                             |
@@ -90,6 +90,7 @@ The following table specifies the conversion rules in place. If the initial Pyth
 | `ctypes.c_char_p`                                                                                            | `Cstring`, `Ptr{Cchar}`, `Ptr`                              |
 | `ctypes.c_wchar_p`                                                                                           | `Cwstring`, `Ptr{Cwchar}`, `Ptr`                            |
 | `numpy.intXX`/`numpy.uintXX`/`numpy.floatXX`                                                                 | `Integer`, `Rational`, `Real`, `Number`                     |
+| Objects satisfying the buffer or array interface                                                             | `Array`                                                     |
 | **Low priority (fallback to `PyObject`).**                                                                   |                                                             |
 | Anything                                                                                                     | `PyObject`                                                  |
 | **Bottom priority (must be explicitly specified by excluding `PyObject`).**                                  |                                                             |

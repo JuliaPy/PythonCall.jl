@@ -330,3 +330,5 @@ pyarray_offset(x::PyArray{R,1,T,M,true}, i::Int) where {R,T,M} = (i - 1) .* x.by
 
 pyarray_offset(x::PyArray{R,N}, i::Vararg{Int,N}) where {R,N} =
     sum((i .- 1) .* x.bytestrides)
+
+pyarray_offset(x::PyArray{R,0}) where {R} = 0

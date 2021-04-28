@@ -10,6 +10,7 @@ import ..PythonCall:
     _typeintersect,
     _type_lb,
     _type_ub,
+    _type_union_split,
     tryconvert,
     ispyreftype,
     ispyref,

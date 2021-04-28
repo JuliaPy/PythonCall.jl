@@ -267,19 +267,22 @@ PyObject_TryConvert_CompileRule(@nospecialize(T::Type), t::PyPtr) = begin
     # These are the conversion rules of the types found above
 
     # gather rules of the form (priority, order, S, rule) from these types
-    rules = Tuple{Int,Int,Type,Any}[]
+    Rule = Pair{Type,Any}
+    rules = Rule[]
+    priorities = Tuple{Int,Int}[]
     for n in allnames
         for (p, S, r) in PyObject_TryConvert_Rules(n)
-            push!(rules, (p, length(rules) + 1, S, r))
+            push!(rules, Rule(S, r))
+            push!(priorities, (-p, length(rules)))
         end
     end
     # sort by priority
-    sort!(rules, by = x -> (-x[1], x[2]))
-    # intersect S with T
-    rules = [Pair{Type,Any}(typeintersect(S, T), r) for (p, i, S, r) in rules]
+    rules = rules[sortperm(priorities)]
+    # intersect S with T and expand out unions
+    rules = [Rule(S′, r) for (S, r) in rules for S′ in _type_union_split(typeintersect(S, T))]
     # discard rules where S is a subtype of the union of all previous S for rules with the same implementation
     # in particular this removes rules with S==Union{} and removes duplicates
-    rules = [Pair{Type,Any}(S, rule) for (i, (S, rule)) in enumerate(rules) if
+    rules = [Rule(S, rule) for (i, (S, rule)) in enumerate(rules) if
      !(S <: Union{[S′ for (S′, rule′) in rules[1:i-1] if rule == rule′]...})]
 
     @debug "PYTHON CONVERSION FOR '$(PyType_Name(t))' to '$T'" basetypes =

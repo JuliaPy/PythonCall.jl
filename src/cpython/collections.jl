@@ -146,6 +146,14 @@ _PyIterable_ConvertRule_vecorset(o, xs, ::Type{T}) where {T} = begin
         xs = push!!(xs, x)
         return 1
     end
+    # sometimes push!! can make the eltype larger than desired
+    # TODO: we can have S=Vector{<:Union{Integer,Vector{<:Integer}}} and T2=S,
+    #   can we make it be T2=Vector{Union{Int,Vector{Int}}} instead (i.e. only grow the types inside the Union)
+    # TODO: roll our own push!! that does this, instead of shrinking the eltype post-hoc
+    if !(eltype(xs) <: T)
+        T2 = _typeintersect(eltype(xs), T)
+        xs = xs isa Set ? Set{T2}(xs) : Vector{T2}(xs)
+    end
     r == 1 && putresult(xs)
     r
 end
@@ -239,6 +247,13 @@ _PyMapping_ConvertRule_dict(o, xs, ::Type{K}, ::Type{V}) where {K,V} = begin
         v = takeresult(V)
         # done
         xs = push!!(xs, k => v)
+    end
+    # sometimes push!! can make the keytype/valtype larger than desired
+    # TODO: same todo as in vecorset above
+    if !(keytype(xs) <: K && valtype(xs) <: V)
+        K2 = _typeintersect(keytype(xs), K)
+        V2 = _typeintersect(valtype(xs), V)
+        xs = Dict{K2,V2}(xs)
     end
     r == -1 ? -1 : r == 0 ? 0 : putresult(xs)
 end

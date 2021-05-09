@@ -29,21 +29,9 @@ PyDateTime_FromParts(
     second::Integer = 0,
     microsecond::Integer = 0;
     tzinfo = nothing,
-) = begin
-    t = PyDateTime_Type()
-    isnull(t) && return PyNULL
-    PyObject_CallNice(
-        t,
-        year,
-        month,
-        day,
-        hour,
-        minute,
-        second,
-        microsecond,
-        tzinfo,
-    )
-end
+) = @pydsl_nojlerror begin
+    PyPtr((@py externb PyDateTime_Type())(year, month, day, hour, minute, second, microsecond, tzinfo))
+end onpyerror=(return PyNULL)
 
 PyDateTime_From(x::DateTime) = PyDateTime_FromParts(
     year(x),
@@ -56,87 +44,27 @@ PyDateTime_From(x::DateTime) = PyDateTime_FromParts(
 )
 PyDateTime_From(x::Date) = PyDateTime_FromParts(year(x), month(x), day(x))
 
-PyDateTime_IsAware(o::PyPtr) = begin
-    tzinfo = PyObject_GetAttrString(o, "tzinfo")
-    isnull(tzinfo) && return Cint(-1)
-    PyNone_Check(tzinfo) && (Py_DecRef(tzinfo); return Cint(0))
-    utcoffset = PyObject_GetAttrString(tzinfo, "utcoffset")
-    Py_DecRef(tzinfo)
-    isnull(utcoffset) && return Cint(-1)
-    off = PyObject_CallNice(utcoffset, PyObjectRef(o))
-    Py_DecRef(utcoffset)
-    isnull(off) && return Cint(-1)
-    r = PyNone_Check(off)
-    Py_DecRef(off)
-    r ? Cint(0) : Cint(1)
-end
-
-PyDateTime_TryConvertRule_datetime(o::PyPtr, ::Type{S}) where {S<:DateTime} = begin
+PyDateTime_TryConvertRule_datetime(o::PyPtr, ::Type{S}) where {S<:DateTime} = @pydsl_nojlerror begin
     # TODO: worry about fold?
+    oo = @py externbx o
     # can only convert non-aware times
-    aware = PyDateTime_IsAware(o)
-    aware == -1 && return -1
-    aware != 0 && return 0
-    # year
-    p = PyObject_GetAttrString(o, "year")
-    isnull(p) && return -1
-    r = PyObject_TryConvert(p, Int)
-    Py_DecRef(p)
-    r < 1 && return r
-    year = takeresult(Int)
-    # month
-    p = PyObject_GetAttrString(o, "month")
-    isnull(p) && return -1
-    r = PyObject_TryConvert(p, Int)
-    Py_DecRef(p)
-    r < 1 && return r
-    month = takeresult(Int)
-    # day
-    p = PyObject_GetAttrString(o, "day")
-    isnull(p) && return -1
-    r = PyObject_TryConvert(p, Int)
-    Py_DecRef(p)
-    r < 1 && return r
-    day = takeresult(Int)
-    # hour
-    p = PyObject_GetAttrString(o, "hour")
-    isnull(p) && return -1
-    r = PyObject_TryConvert(p, Int)
-    Py_DecRef(p)
-    r < 1 && return r
-    hour = takeresult(Int)
-    # minute
-    p = PyObject_GetAttrString(o, "minute")
-    isnull(p) && return -1
-    r = PyObject_TryConvert(p, Int)
-    Py_DecRef(p)
-    r < 1 && return r
-    min = takeresult(Int)
-    # second
-    p = PyObject_GetAttrString(o, "second")
-    isnull(p) && return -1
-    r = PyObject_TryConvert(p, Int)
-    Py_DecRef(p)
-    r < 1 && return r
-    sec = takeresult(Int)
-    # microsecond
-    p = PyObject_GetAttrString(o, "microsecond")
-    isnull(p) && return -1
-    r = PyObject_TryConvert(p, Int)
-    Py_DecRef(p)
-    r < 1 && return r
-    micro = takeresult(Int)
-    # millisecond resolution
-    mod(micro, 1000) == 0 || return 0
-    # success
-    putresult(DateTime(year, month, day, hour, min, sec, div(micro, 1000)))
-end
+    oo.tzinfo !== nothing && oo.tzinfo.utcoffset(oo) !== nothing && return 0
+    # convert each field to Int
+    year = canconvert(Int, oo.year) ? takeresult(Int) : (return 0)
+    month = canconvert(Int, oo.month) ? takeresult(Int) : (return 0)
+    day = canconvert(Int, oo.day) ? takeresult(Int) : (return 0)
+    hour = canconvert(Int, oo.hour) ? takeresult(Int) : (return 0)
+    minute = canconvert(Int, oo.minute) ? takeresult(Int) : (return 0)
+    second = canconvert(Int, oo.second) ? takeresult(Int) : (return 0)
+    microsecond = canconvert(Int, oo.microsecond) ? takeresult(Int) : (return 0)
+    # DateTime has millisecond resolution
+    mod(microsecond, 1000) == 0 || return 0
+    putresult(DateTime(year, month, day, hour, minute, second, div(microsecond, 1000)))
+end onpyerror=(return -1)
 
-PyDate_FromParts(year::Integer = 1, month::Integer = 1, day::Integer = 1) = begin
-    t = PyDate_Type()
-    isnull(t) && return PyNULL
-    PyObject_CallNice(t, year, month, day)
-end
+PyDate_FromParts(year::Integer = 1, month::Integer = 1, day::Integer = 1) = @pydsl_nojlerror begin
+    PyPtr((@py externb PyDate_Type())(year, month, day))
+end onpyerror=(return PyNULL)
 
 PyDate_From(x::Date) = PyDate_FromParts(year(x), month(x), day(x))
 

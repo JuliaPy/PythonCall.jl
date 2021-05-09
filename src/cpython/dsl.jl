@@ -299,32 +299,50 @@ function pydsl_interpret_call(f, args, kwargs, st; interpret_f=true)
         na in opna || pydsl_syntax_error(st, "`$f` requires $opna arguments")
         match(argispy) || pydsl_syntax_error(st, "`$f` used ambiguously")
         Expr(f, args2...)
-    # Py(x), PyExt(x), PyExtX(x), PyExtB(x), PyExtBX(x)
-    elseif interpret_f && f isa Symbol && f in (:Py, :PyExt, :PyExtX, :PyExtB, :PyExtBX)
+    # Py(x)
+    elseif interpret_f && f === :Py
         nk == 0 || pydsl_syntax_error(st, "`$f` does not accept keyword arguments")
         na == 1 || pydsl_syntax_error(st, "`$f` requires 1 argument")
         x2 = args2[1]
-        if f == :Py
-            if ispyexpr(x2)
-                x2
-            else
-                Expr(:PyObject_From, x2)
-            end
+        if ispyexpr(x2)
+            x2
         else
-            Expr(:PyExternObject, x2, f in (:PyExtB, :PyExtBX), f in (:PyExt, :PyExtB))
+            Expr(:PyObject_From, x2)
         end
-    # convert(T, x::Py)
+    # convert(T, x::Py, dflt=nothing)
     elseif interpret_f && anypy && f === :convert
+        nk == 0 || pydsl_syntax_error(st, "`$f` does not accept keyword arguments")
+        na in 2:3 || pydsl_syntax_error(st, "`$f` requires 2 to 3 arguments")
+        ispyexpr(args2[2]) || pydsl_syntax_error(st, "`$f` used ambiguously")
+        if na == 2
+            Expr(:PyObject_Convert, args2[2], args2[1])
+        else
+            Expr(:PyObject_ConvertElse, args2[2], args2[1], args2[3])
+        end
+    # canconvert(T, x::Py)
+    elseif interpret_f && anypy && f === :canconvert
         nk == 0 || pydsl_syntax_error(st, "`$f` does not accept keyword arguments")
         na == 2 || pydsl_syntax_error(st, "`$f` requires 2 arguments")
         ispyexpr(args2[2]) || pydsl_syntax_error(st, "`$f` used ambiguously")
-        Expr(:PyObject_Convert, args2[2], args2[1])
+        Expr(:PyObject_TryConvert, args2[2], args2[1])
     # PyObject_Convert(x::Py, T)
     elseif interpret_f && anypy && f === :PyObject_Convert
         nk == 0 || pydsl_syntax_error(st, "`$f` does not accept keyword arguments")
         na == 2 || pydsl_syntax_error(st, "`$f` requires 2 arguments")
         ispyexpr(args2[1]) || pydsl_syntax_error(st, "`$f` used ambiguously")
         Expr(:PyObject_Convert, args2[1], args2[2])
+    # PyObject_TryConvert(x::Py, T)
+    elseif interpret_f && anypy && f === :PyObject_TryConvert
+        nk == 0 || pydsl_syntax_error(st, "`$f` does not accept keyword arguments")
+        na == 2 || pydsl_syntax_error(st, "`$f` requires 2 arguments")
+        ispyexpr(args2[1]) || pydsl_syntax_error(st, "`$f` used ambiguously")
+        Expr(:PyObject_TryConvert, args2[1], args2[2])
+    # PyObject_ConvertElse(x::Py, T, dflt)
+    elseif interpret_f && anypy && f === :PyObject_TryConvert
+        nk == 0 || pydsl_syntax_error(st, "`$f` does not accept keyword arguments")
+        na in 3 || pydsl_syntax_error(st, "`$f` requires 3 arguments")
+        ispyexpr(args2[1]) || pydsl_syntax_error(st, "`$f` used ambiguously")
+        Expr(:PyObject_ConvertElse, args2[1], args2[2], args2[3])
     else
         f2 = interpret_f ? pydsl_interpret(f, st) : f
         if ispyexpr(f2)
@@ -438,7 +456,7 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
             if ispyexpr(x2) || ispyexpr(y2)
                 Expr(:PyOr, x2, y2)
             else
-                :($x2 || y2)
+                :($x2 || $y2)
             end
 
         # x && y
@@ -556,6 +574,11 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
             push!(res.args, nothing)
             res
 
+        # @py extern (x) / @py externx (x) / @py externb (x) / @py externbx (x)
+        elseif @capture(ex, @py f_Symbol x_) && f in (:extern, :externx, :externb, :externbx)
+            x2 = pydsl_interpret(x, st)
+            Expr(:PyExternObject, x, f in (:externb, :externbx), f in (:extern, :externb))
+
         # @py raise (value)
         elseif @capture(ex, @py raise v_)
             v2 = pydsl_interpret(v, st)
@@ -656,6 +679,11 @@ function pydsl_interpret(ex, st::PyDSLInterpretState)
         # @m(...)
         elseif ex.head == :macrocall && length(ex.args) ≥ 2
             pydsl_interpret(macroexpand(st.__module__, ex, recursive=false), st)
+
+        # return (x)
+        elseif @capture(ex, return x_)
+            x2 = pydsl_interpret(x, st)
+            :(return $x2)
 
         else
             pydsl_syntax_error(st, "not implemented: $(ex.head)")
@@ -758,8 +786,12 @@ function pydsl_steal(st::PyDSLLowerState, ex::PyExpr)
     end
 end
 
+function pydsl_clear_all_tmp(st::PyDSLLowerState, ignorevars...)
+    Expr(:block, [:($Py_DECREF($v)) for v in st.tmpvars_used if v ∉ ignorevars]...)
+end
+
 function pydsl_errblock(st::PyDSLLowerState, ignorevars...)
-    ex = Expr(:block, [:($Py_DECREF($v)) for v in st.tmpvars_used if v ∉ ignorevars]...)
+    ex = pydsl_clear_all_tmp(st, ignorevars...)
     push!(st.pyerrblocks, ex)
     ex
 end
@@ -1090,12 +1122,13 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                     quote
                         $Tv = $T2
                         $(x2.ex)
-                        $err = $PyObject_Convert($(x2.var), $T2)
+                        $err = $PyObject_Convert($(x2.var), $Tv)
                         $(pydsl_free(st, x2))
                         if $err == -1
                             $(pydsl_errblock(st))
+                        else
+                            $takeresult($Tv)
                         end
-                        $(takeresult)($Tv)
                     end
                 else
                     quote
@@ -1104,8 +1137,81 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                         $(pydsl_free(st, x2))
                         if $err == -1
                             $(pydsl_errblock(st))
+                        else
+                            $takeresult($T2)
                         end
-                        $(takeresult)($T2)
+                    end
+                end
+            elseif head == :PyObject_TryConvert
+                nargs == 2 || pydsl_syntax_error(st, "$ex")
+                x, T = args
+                x2 = pydsl_lower_inner(x, st)
+                T2 = pydsl_lower_inner(T, st)
+                T2 isa PyExpr && pydsl_syntax_error(st, "$ex")
+                x2 isa PyExpr || pydsl_syntax_error(st, "$ex")
+                err = gensym("err")
+                if T2 isa Expr
+                    Tv = gensym("T")
+                    quote
+                        $Tv = $T2
+                        $(x2.ex)
+                        $err = $PyObject_TryConvert($(x2.var), $Tv)
+                        $(pydsl_free(st, x2))
+                        if $err == -1
+                            $(pydsl_errblock(st))
+                        else
+                            $err != 0
+                        end
+                    end
+                else
+                    quote
+                        $(x2.ex)
+                        $err = $PyObject_TryConvert($(x2.var), $T2)
+                        $(pydsl_free(st, x2))
+                        if $err == -1
+                            $(pydsl_errblock(st))
+                        else
+                            $err != 0
+                        end
+                    end
+                end
+            elseif head == :PyObject_ConvertElse
+                nargs == 3 || pydsl_syntax_error(st, "$ex")
+                x, T, d = args
+                x2 = pydsl_lower_inner(x, st)
+                T2 = pydsl_lower_inner(T, st)
+                d2 = pydsl_lower_inner(d, st)
+                T2 isa PyExpr && pydsl_syntax_error(st, "$ex")
+                x2 isa PyExpr || pydsl_syntax_error(st, "$ex")
+                d2 isa PyExpr && pydsl_syntax_error(st, "$ex")
+                err = gensym("err")
+                if T2 isa Expr
+                    Tv = gensym("T")
+                    quote
+                        $Tv = $T2
+                        $(x2.ex)
+                        $err = $PyObject_TryConvert($(x2.var), $Tv)
+                        $(pydsl_free(st, x2))
+                        if $err == -1
+                            $(pydsl_errblock(st))
+                        elseif $err == 0
+                            $d2
+                        else
+                            $takeresult($Tv)
+                        end
+                    end
+                else
+                    quote
+                        $(x2.ex)
+                        $err = $PyObject_TryConvert($(x2.var), $T2)
+                        $(pydsl_free(st, x2))
+                        if $err == -1
+                            $(pydsl_errblock(st))
+                        elseif $err == 0
+                            $d2
+                        else
+                            $takeresult($T2)
+                        end
                     end
                 end
             elseif head == :PyPtr
@@ -1616,6 +1722,11 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                 cond2 = pydsl_lower_inner(truthpyexpr(cond), st)
                 rest2 = [pydsl_lower_inner(nopyexpr(x), st) for x in rest]
                 Expr(head, cond2, rest2...)
+            elseif head in (:(&&), :(||)) && nargs == 2
+                x, y = args
+                x2 = pydsl_lower_inner(truthpyexpr(x), st)
+                y2 = pydsl_lower_inner(nopyexpr(y), st)
+                Expr(head, x2, y2)
             elseif head == :. && nargs == 2
                 x, k = args
                 x2 = pydsl_lower_inner(nopyexpr(x), st)
@@ -1665,6 +1776,25 @@ function pydsl_lower_inner(ex, st::PyDSLLowerState)
                 lhs2 = pydsl_lower_inner(lhs, st)
                 rhs2 = pydsl_lower_inner(nopyexpr(rhs), st)
                 Expr(head, lhs2, rhs2)
+            elseif head == :return && nargs == 1
+                x, = args
+                x2 = pydsl_lower_inner(nopyexpr(x), st)
+                clr = pydsl_clear_all_tmp(st)
+                if clr == Expr(:block)
+                    :(return $x2)
+                elseif x2 isa Expr
+                    t = gensym("tmp")
+                    quote
+                        $t = $x2
+                        $clr
+                        return $t
+                    end
+                else
+                    quote
+                        $clr
+                        return $x2
+                    end
+                end
             else
                 pydsl_syntax_error(st, "not implemented (lower): $head")
             end

@@ -138,14 +138,14 @@ PyIterable_Collect(xso::PyPtr, ::Type{T}, skip::Bool = false) where {T} = begin
 end
 
 _PyIterable_ConvertRule_vecorset(o, xs, ::Type{T}) where {T} = begin
-    r = PyIterable_Map(o) do xo
-        r = PyObject_TryConvert(xo, T)
-        r == -1 && return -1
-        r == 0 && return 0
-        x = takeresult(T)
-        xs = push!!(xs, x)
-        return 1
-    end
+    @pydsl_nojlerror for xo in (@py externbx o)
+        if canconvert(T, xo)
+            x = takeresult(T)
+            xs = push!!(xs, x)
+        else
+            return 0
+        end
+    end onpyerror=(return -1)
     # sometimes push!! can make the eltype larger than desired
     # TODO: we can have S=Vector{<:Union{Integer,Vector{<:Integer}}} and T2=S,
     #   can we make it be T2=Vector{Union{Int,Vector{Int}}} instead (i.e. only grow the types inside the Union)
@@ -154,8 +154,7 @@ _PyIterable_ConvertRule_vecorset(o, xs, ::Type{T}) where {T} = begin
         T2 = _typeintersect(eltype(xs), T)
         xs = xs isa Set ? Set{T2}(xs) : Vector{T2}(xs)
     end
-    r == 1 && putresult(xs)
-    r
+    putresult(xs)
 end
 PyIterable_ConvertRule_vecorset(o, ::Type{S}) where {S} = _PyIterable_ConvertRule_vecorset(o, _type_lb(S)(), eltype(_type_ub(S)))
 
@@ -169,23 +168,23 @@ PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
     else
         isvararg = false
     end
-    xs = Union{ts...,isvararg ? vartype : Union{}}[]
-    r = PyIterable_Map(o) do xo
+    xs = Any[]
+    @pydsl_nojlerror for xo in (@py externbx o)
         if length(xs) < length(ts)
-            t = ts[length(xs)+1]
+            t = ts[length(xs) + 1]
         elseif isvararg
             t = vartype
         else
             return 0
         end
-        r = PyObject_TryConvert(xo, t)
-        r == -1 && return -1
-        r == 0 && return 0
-        x = takeresult(t)
-        push!(xs, x)
-        return 1
-    end
-    r == -1 ? -1 : r == 0 ? 0 : length(xs) ≥ length(ts) ? putresult(S(xs)) : 0
+        if canconvert(t, xo)
+            x = takeresult(t)
+            push!(xs, x)
+        else
+            return 0
+        end
+    end onpyerror=(return -1)
+    length(xs) < length(ts) ? 0 : putresult(S(xs))
 end
 
 PyIterable_ConvertRule_namedtuple(o, ::Type{NamedTuple{names, types}}) where {names, types<:Tuple} = begin
@@ -200,52 +199,56 @@ end
 PyIterable_ConvertRule_namedtuple(o, ::Type{S}) where {S<:NamedTuple} = 0
 
 _PyIterable_ConvertRule_pair(o, ::Type{Pair{K1,V1}}, ::Type{Pair{K2,V2}}) where {K1,V1,K2,V2} = begin
-    k = Ref{K2}()
-    v = Ref{V2}()
-    i = Ref(0)
-    r = PyIterable_Map(o) do xo
-        if i[] == 0
+    k = nothing
+    v = nothing
+    i = 0
+    @pydsl_nojlerror for xo in (@py externbx o)
+        i += 1
+        if i == 1
             # key
-            r = PyObject_TryConvert(xo, K2)
-            r == -1 && return -1
-            r == 0 && return 0
-            i[] = 1
-            k[] = takeresult(K2)
-            return 1
-        elseif i[] == 1
+            if canconvert(K2, xo)
+                k = takeresult(K2)
+            else
+                return 0
+            end
+        elseif i == 2
             # value
-            r == PyObject_TryConvert(xo, V2)
-            r == -1 && return -1
-            r == 0 && return 0
-            i[] = 2
-            v[] = takeresult(V2)
-            return 1
+            if canconvert(V2, xo)
+                v = takeresult(V2)
+            else
+                return 0
+            end
         else
+            # too many items
             return 0
         end
+    end onpyerror=(return -1)
+    if i == 2
+        k::K2
+        v::V2
+        K = K1==K2 ? K1 : K1==Union{} ? typeof(k) : typeintersect(K2, promote_type(K1, typeof(k)))
+        V = V1==V2 ? V1 : V1==Union{} ? typeof(v) : typeintersect(V2, promote_type(V1, typeof(v)))
+        putresult(Pair{K,V}(k, v))
+    else
+        return 0
     end
-    K = K1==K2 ? K1 : K1==Union{} ? typeof(k[]) : typeintersect(K2, promote_type(K1, typeof(k[])))
-    V = V1==V2 ? V1 : V1==Union{} ? typeof(v[]) : typeintersect(V2, promote_type(V1, typeof(v[])))
-    r == -1 ? -1 : r == 0 ? 0 : i[] == 2 ? putresult(Pair{K,V}(k[], v[])) : 0
 end
 PyIterable_ConvertRule_pair(o, ::Type{S}) where {S<:Pair} = _PyIterable_ConvertRule_pair(o, _type_lb(S), _type_ub(S))
 
 _PyMapping_ConvertRule_dict(o, xs, ::Type{K}, ::Type{V}) where {K,V} = begin
-    r = PyIterable_Map(o) do ko
-        # get the key
-        r = PyObject_TryConvert(ko, K)
-        r == -1 && return -1
-        r == 0 && return 0
-        k = takeresult(K)
-        # get the value
-        vo = PyObject_GetItem(o, ko)
-        isnull(vo) && return -1
-        r = PyObject_TryConvert(vo, V)
-        Py_DecRef(vo)
-        r == -1 && return -1
-        r == 0 && return 0
-        v = takeresult(V)
-        # done
+    @pydsl_nojlerror for ko in (@py externbx o)
+        # key
+        if canconvert(K, ko)
+            k = takeresult(K)
+        else
+            return 0
+        end
+        # value
+        if canconvert(V, (@py externbx o)[ko])
+            v = takeresult(V)
+        else
+            return 0
+        end
         xs = push!!(xs, k => v)
     end
     # sometimes push!! can make the keytype/valtype larger than desired
@@ -255,6 +258,6 @@ _PyMapping_ConvertRule_dict(o, xs, ::Type{K}, ::Type{V}) where {K,V} = begin
         V2 = _typeintersect(valtype(xs), V)
         xs = Dict{K2,V2}(xs)
     end
-    r == -1 ? -1 : r == 0 ? 0 : putresult(xs)
+    putresult(xs)
 end
 PyMapping_ConvertRule_dict(o, ::Type{S}) where {S} = _PyMapping_ConvertRule_dict(o, _type_lb(S)(), keytype(_type_ub(S)), valtype(_type_ub(S)))

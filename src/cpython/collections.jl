@@ -137,23 +137,27 @@ PyIterable_Collect(xso::PyPtr, ::Type{T}, skip::Bool = false) where {T} = begin
     xs
 end
 
-PyIterable_ConvertRule_vecorset(o, ::Type{S}) where {S<:Union{Vector,Set}} = begin
-    xs = S()
+_PyIterable_ConvertRule_vecorset(o, xs, ::Type{T}) where {T} = begin
     r = PyIterable_Map(o) do xo
-        r = PyObject_TryConvert(xo, eltype(xs))
+        r = PyObject_TryConvert(xo, T)
         r == -1 && return -1
         r == 0 && return 0
-        x = takeresult(eltype(xs))
-        push!(xs, x)
+        x = takeresult(T)
+        xs = push!!(xs, x)
         return 1
+    end
+    # sometimes push!! can make the eltype larger than desired
+    # TODO: we can have S=Vector{<:Union{Integer,Vector{<:Integer}}} and T2=S,
+    #   can we make it be T2=Vector{Union{Int,Vector{Int}}} instead (i.e. only grow the types inside the Union)
+    # TODO: roll our own push!! that does this, instead of shrinking the eltype post-hoc
+    if !(eltype(xs) <: T)
+        T2 = _typeintersect(eltype(xs), T)
+        xs = xs isa Set ? Set{T2}(xs) : Vector{T2}(xs)
     end
     r == 1 && putresult(xs)
     r
 end
-PyIterable_ConvertRule_vecorset(o, ::Type{Vector}) =
-    PyIterable_ConvertRule_vecorset(o, Vector{PythonCall.PyObject})
-PyIterable_ConvertRule_vecorset(o, ::Type{Set}) =
-    PyIterable_ConvertRule_vecorset(o, Set{PythonCall.PyObject})
+PyIterable_ConvertRule_vecorset(o, ::Type{S}) where {S} = _PyIterable_ConvertRule_vecorset(o, _type_lb(S)(), eltype(_type_ub(S)))
 
 PyIterable_ConvertRule_tuple(o, ::Type{S}) where {S<:Tuple} = begin
     S isa DataType || return 0
@@ -189,77 +193,68 @@ PyIterable_ConvertRule_namedtuple(o, ::Type{NamedTuple{names, types}}) where {na
     r == 1 ? putresult(NamedTuple{names, types}(takeresult(types))) : r
 end
 PyIterable_ConvertRule_namedtuple(o, ::Type{NamedTuple{names}}) where {names} = begin
-    types = NTuple{length(names), PythonCall.PyObject}
+    types = NTuple{length(names), Any}
     r = PyIterable_ConvertRule_tuple(o, types)
     r == 1 ? putresult(NamedTuple{names}(takeresult(types))) : r
 end
 PyIterable_ConvertRule_namedtuple(o, ::Type{S}) where {S<:NamedTuple} = 0
 
-PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V}}) where {K,V} = begin
-    k = Ref{K}()
-    v = Ref{V}()
+_PyIterable_ConvertRule_pair(o, ::Type{Pair{K1,V1}}, ::Type{Pair{K2,V2}}) where {K1,V1,K2,V2} = begin
+    k = Ref{K2}()
+    v = Ref{V2}()
     i = Ref(0)
     r = PyIterable_Map(o) do xo
         if i[] == 0
             # key
-            r = PyObject_TryConvert(xo, eltype(k))
+            r = PyObject_TryConvert(xo, K2)
             r == -1 && return -1
             r == 0 && return 0
             i[] = 1
-            k[] = takeresult(eltype(k))
+            k[] = takeresult(K2)
             return 1
         elseif i[] == 1
             # value
-            r == PyObject_TryConvert(xo, eltype(v))
+            r == PyObject_TryConvert(xo, V2)
             r == -1 && return -1
             r == 0 && return 0
             i[] = 2
-            v[] = takeresult(eltype(v))
+            v[] = takeresult(V2)
             return 1
         else
             return 0
         end
     end
+    K = K1==K2 ? K1 : K1==Union{} ? typeof(k[]) : typeintersect(K2, promote_type(K1, typeof(k[])))
+    V = V1==V2 ? V1 : V1==Union{} ? typeof(v[]) : typeintersect(V2, promote_type(V1, typeof(v[])))
     r == -1 ? -1 : r == 0 ? 0 : i[] == 2 ? putresult(Pair{K,V}(k[], v[])) : 0
 end
-PyIterable_ConvertRule_pair(o, ::Type{Pair{K}}) where {K} =
-    PyIterable_ConvertRule_pair(o, Pair{K,PythonCall.PyObject})
-PyIterable_ConvertRule_pair(o, ::Type{Pair{K,V} where K}) where {V} =
-    PyIterable_ConvertRule_pair(o, Pair{PythonCall.PyObject,V})
-PyIterable_ConvertRule_pair(o, ::Type{Pair}) =
-    PyIterable_ConvertRule_pair(o, Pair{PythonCall.PyObject,PythonCall.PyObject})
-PyIterable_ConvertRule_pair(o, ::Type{S}) where {S<:Pair} = begin
-    PyErr_SetString(
-        PyExc_Exception(),
-        "When converting Python iterable to Julia 'Pair', the destination type cannot be too complicated: the two types must either be fully specified or left unspecified. Got '$S'.",
-    )
-    return -1
-end
+PyIterable_ConvertRule_pair(o, ::Type{S}) where {S<:Pair} = _PyIterable_ConvertRule_pair(o, _type_lb(S), _type_ub(S))
 
-PyMapping_ConvertRule_dict(o, ::Type{S}) where {S<:Dict} = begin
-    xs = S()
+_PyMapping_ConvertRule_dict(o, xs, ::Type{K}, ::Type{V}) where {K,V} = begin
     r = PyIterable_Map(o) do ko
         # get the key
-        r = PyObject_TryConvert(ko, keytype(xs))
+        r = PyObject_TryConvert(ko, K)
         r == -1 && return -1
         r == 0 && return 0
-        k = takeresult(keytype(xs))
+        k = takeresult(K)
         # get the value
         vo = PyObject_GetItem(o, ko)
         isnull(vo) && return -1
-        r = PyObject_TryConvert(vo, valtype(xs))
+        r = PyObject_TryConvert(vo, V)
         Py_DecRef(vo)
         r == -1 && return -1
         r == 0 && return 0
-        v = takeresult(valtype(xs))
+        v = takeresult(V)
         # done
-        xs[k] = v
+        xs = push!!(xs, k => v)
+    end
+    # sometimes push!! can make the keytype/valtype larger than desired
+    # TODO: same todo as in vecorset above
+    if !(keytype(xs) <: K && valtype(xs) <: V)
+        K2 = _typeintersect(keytype(xs), K)
+        V2 = _typeintersect(valtype(xs), V)
+        xs = Dict{K2,V2}(xs)
     end
     r == -1 ? -1 : r == 0 ? 0 : putresult(xs)
 end
-PyMapping_ConvertRule_dict(o, ::Type{Dict{K}}) where {K} =
-    PyMapping_ConvertRule_dict(o, Dict{K,PythonCall.PyObject})
-PyMapping_ConvertRule_dict(o, ::Type{Dict{K,V} where K}) where {V} =
-    PyMapping_ConvertRule_dict(o, Dict{PythonCall.PyObject,V})
-PyMapping_ConvertRule_dict(o, ::Type{Dict}) =
-    PyMapping_ConvertRule_dict(o, Dict{PythonCall.PyObject,PythonCall.PyObject})
+PyMapping_ConvertRule_dict(o, ::Type{S}) where {S} = _PyMapping_ConvertRule_dict(o, _type_lb(S)(), keytype(_type_ub(S)), valtype(_type_ub(S)))

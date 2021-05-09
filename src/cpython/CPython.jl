@@ -1,6 +1,6 @@
 module CPython
 
-using Libdl, Dates, Compat, Requires
+using Libdl, Dates, Compat, Requires, BangBang
 import ..PythonCall:
     CONFIG,
     isnull,
@@ -8,6 +8,9 @@ import ..PythonCall:
     PYERR,
     NOTIMPLEMENTED,
     _typeintersect,
+    _type_lb,
+    _type_ub,
+    _type_union_split,
     tryconvert,
     ispyreftype,
     ispyref,

@@ -64,7 +64,7 @@ end
 # If obuf is non-empty, write it to the underlying stream.
 function putobuf(io::PyIO)
     if !isempty(io.obuf)
-        @py `$io.write($(io.text ? pystr(io.obuf) : pybytes(io.obuf)))`
+        @py `$io.write($(io.text ? pystr(String(io.obuf)) : pybytes(io.obuf)))`
         empty!(io.obuf)
     end
     nothing

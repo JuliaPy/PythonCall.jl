@@ -222,14 +222,48 @@ CTryConvertRule_trywrapref(o, ::Type{S}) where {S} =
 
 @generated _typeintersect(::Type{T1}, ::Type{T2}) where {T1,T2} = typeintersect(T1, T2)
 
-@generated function _type_flatten_tuple(::Type{T}) where {T<:Tuple}
+@generated _type_union_split(::Type{T}) where {T} = Vector{Type}(__type_union_split(T))
+
+__type_union_split(T) = begin
     S = T
     vars = []
-    while !isa(S, DataType)
-        push!(vars, S.var)
+    while S isa UnionAll
+        pushfirst!(vars, S.var)
         S = S.body
     end
-    Tuple{[foldr(UnionAll, vars; init = P) for P in S.parameters]...}
+    if S isa DataType || S isa TypeVar
+        return [T]
+    elseif S isa Union
+        return [foldl((S,v)->UnionAll(v,S), vars, init=S) for S in [__type_union_split(S.a)..., __type_union_split(S.b)...]]
+    elseif S == Union{}
+        return []
+    else
+        @show S typeof(S)
+        @assert false
+    end
+end
+
+@generated _type_ub(::Type{T}) where {T} = begin
+    S = T
+    while S isa UnionAll
+        S = S{S.var.ub}
+    end
+    S
+end
+@generated _type_lb(::Type{T}) where {T} = begin
+    R = T
+    while R isa UnionAll
+        R = R.body
+    end
+    if R isa DataType
+        S = T
+        while S isa UnionAll
+            S = S{S.var in R.parameters ? S.var.lb : S.var.ub}
+        end
+        S
+    else
+        _type_ub(T)
+    end
 end
 
 function pointer_from_obj(o::T) where {T}

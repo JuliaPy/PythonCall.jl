@@ -6,7 +6,7 @@ PyBytes_Type() = POINTERS.PyBytes_Type
 PyBytes_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_BYTES_SUBCLASS)
 PyBytes_CheckExact(o) = Py_TypeCheckExact(o, PyBytes_Type())
 
-PyBytes_From(s::Union{Vector{Cuchar},Vector{Cchar},String,SubString{String}}) =
+PyBytes_From(s::Union{Vector{UInt8},Vector{Int8},String,SubString{String},Base.CodeUnits{UInt8,String},Base.CodeUnits{UInt8,SubString{String}}}) =
     PyBytes_FromStringAndSize(pointer(s), sizeof(s))
 
 PyBytes_AsString(o) = begin

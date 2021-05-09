@@ -4,6 +4,7 @@ authors = ["Christopher Doris <github.com/cjdoris>"]
 version = "0.2.1"
 
 [deps]
+BangBang = "198e06fe-97b7-11e9-32a5-e1d131e6ad66"
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"

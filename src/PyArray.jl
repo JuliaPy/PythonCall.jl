@@ -47,6 +47,11 @@ Base.unsafe_convert(::Type{CPyPtr}, x::PyArray) = pyptr(x)
 C.PyObject_TryConvert__initial(o, ::Type{T}) where {T<:PyArray} =
     CTryConvertRule_trywrapref(o, T)
 
+CTryConvertRule_PyArray_tryconvert(o, ::Type{S}) where {S} = begin
+    r = CTryConvertRule_trywrapref(o, PyArray)
+    r == 1 ? putresult(tryconvert(S, takeresult(PyArray))) : r
+end
+
 (::Type{A})(o; opts...) where {A<:PyArray} = begin
     ref = o isa C.PyObjectRef ? PyRef(o) : ispyref(o) ? o : PyRef(o)
     info = pyarray_info(ref; opts...)
@@ -325,3 +330,5 @@ pyarray_offset(x::PyArray{R,1,T,M,true}, i::Int) where {R,T,M} = (i - 1) .* x.by
 
 pyarray_offset(x::PyArray{R,N}, i::Vararg{Int,N}) where {R,N} =
     sum((i .- 1) .* x.bytestrides)
+
+pyarray_offset(x::PyArray{R,0}) where {R} = 0

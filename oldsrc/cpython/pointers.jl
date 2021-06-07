@@ -264,20 +264,22 @@ const CAPI_OBJECTS_NOINIT = Set([
 
 @eval @kwdef mutable struct CAPIPointers
     $([:($name :: Ptr{Cvoid} = C_NULL) for name in CAPI_FUNCS]...)
-    $([:($name :: PyPtr = C_NULL) for name in CAPI_EXCEPTIONS]...)
-    $([:($name :: PyPtr = C_NULL) for name in CAPI_OBJECTS]...)
-    $([:($name :: PyPtr = C_NULL) for name in CAPI_OBJECTS_NOINIT]...)
+    $([:($name :: PyPtr = C_NULL) for name in [CAPI_EXCEPTIONS; CAPI_OBJECTS; CAPI_OBJECTS_NOINIT]]...)
 end
 
-@eval init!(p::CAPIPointers, lib::Ptr) = begin
-    $([
-        if name == :Py_FinalizeEx
-            :(p.$name = dlsym_e(lib, $(QuoteNode(name))))
-        else
-            :(p.$name = dlsym(lib, $(QuoteNode(name))))
-        end
-        for name in CAPI_FUNCS
-    ]...)
-    $([:(p.$name = Base.unsafe_load(Ptr{PyPtr}(dlsym(lib, $(QuoteNode(name)))))) for name in CAPI_EXCEPTIONS]...)
-    $([:(p.$name = dlsym(lib, $(QuoteNode(name)))) for name in CAPI_OBJECTS]...)
-end
+# const POINTERS = CAPIPointers()
+
+# @eval init!(p::CAPIPointers) = begin
+#     $([
+#         if name == :Py_FinalizeEx
+#             :(p.$name = dlsym_e(CONFIG.libptr, $(QuoteNode(name))))
+#         else
+#             :(p.$name = dlsym(CONFIG.libptr, $(QuoteNode(name))))
+#         end
+#         for name in CAPI_FUNCS
+#     ]...)
+#     $([:(p.$name = pyloadglobal(PyPtr, $(QuoteNode(name)))) for name in CAPI_EXCEPTIONS]...)
+#     $([:(p.$name = pyglobal($(QuoteNode(name)))) for name in CAPI_OBJECTS]...)
+# end
+
+# init_pointers() = init!(POINTERS)

@@ -9,16 +9,18 @@ This may need a `try-finally` block to ensure the GIL is released again. If you 
     if !ctx.is_embedded
         f()
     elseif c
-        g = ccall(ctx.pointers.PyGILState_Ensure, Cint, ())
+        g = ctx.PyGILState_Ensure()
         try
             f()
         finally
-            ccall(ctx.pointers.PyGILState_Release, Cvoid, (Cint,), g)
+            ctx.PyGILState_Release(g)
         end
     else
-        g = ccall(ctx.pointers.PyGILState_Ensure, Cint, ())
+        g = ctx.Py_GILState_Ensure()
         r = f()
-        ccall(ctx.pointers.PyGILState_Release, Cvoid, (Cint,), g)
+        ctx.Py_GILState_Release(g)
         r
     end
 end
+
+@inline (x::Func{:with_gil})(f, c::Bool=true) = with_gil(f, x.ctx, c)

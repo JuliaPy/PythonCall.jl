@@ -14,4 +14,19 @@ checking.
 """
 module HPython
 
+import ..CPython
+const C = CPython
+
+const DEBUG = true # get(ENV, "JULIA_PYTHONCALL_DEBUG", "no") == "yes"
+
+include("forwarddefs.jl")
+include("context.jl")
+include("handle.jl")
+include("err.jl")
+include("object.jl")
+include("builtins.jl")
+include("str.jl")
+include("bytes.jl")
+include("tuple.jl")
+
 end

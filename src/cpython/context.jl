@@ -45,10 +45,10 @@ function Context(;
         end
         init!(ctx.pointers, ctx.lib_ptr)
         # Check Python is initialized
-        ccall(ctx.pointers.Py_IsInitialized, Cint, ()) == 0 && error("Python is not already initialized.")
+        ctx.Py_IsInitialized() == 0 && error("Python is not already initialized.")
         ctx.is_initialized = ctx.is_preinitialized = true
     elseif get(ENV, "JULIA_PYTHONCALL_EXE", "") == "PYCALL"
-        error("not implemented")
+        error("not implemented: PyCall compatability mode")
 #         # Import PyCall and use its choices for libpython
 #         PyCall = get(Base.loaded_modules, PYCALL_PKGID, nothing)
 #         if PyCall === nothing
@@ -158,7 +158,7 @@ function Context(;
 
         # Initialize
         with_gil(ctx) do
-            if ccall(ctx.pointers.Py_IsInitialized, Cint, ()) != 0
+            if ctx.Py_IsInitialized() != 0
                 # Already initialized (maybe you're using PyCall as well)
             else
                 # Find ProgramName and PythonHome
@@ -189,14 +189,14 @@ function Context(;
 
                 # Set PythonHome
                 ctx.pyhome_w = Base.cconvert(Cwstring, ctx.pyhome)
-                ccall(ctx.pointers.Py_SetPythonHome, Cvoid, (Cwstring,), pointer(ctx.pyhome_w))
+                ctx.Py_SetPythonHome(pointer(ctx.pyhome_w))
 
                 # Set ProgramName
                 ctx.pyprogname_w = Base.cconvert(Cwstring, ctx.pyprogname)
-                ccall(ctx.pointers.Py_SetProgramName, Cvoid, (Cwstring,), pointer(ctx.pyprogname_w))
+                ctx.Py_SetProgramName(pointer(ctx.pyprogname_w))
 
                 # Start the interpreter and register exit hooks
-                ccall(ctx.pointers.Py_InitializeEx, Cvoid, (Cint,), 0)
+                ctx.Py_InitializeEx(0)
                 # atexit() do
                 #     ctx.is_initialized = false
                 #     ctx.version < v"3.6" ? C.Py_Finalize() : checkm1(C.Py_FinalizeEx())
@@ -263,7 +263,7 @@ function Context(;
         # end
 
         # Get the python version
-        ctx.version = VersionNumber(split(Base.unsafe_string(ccall(ctx.pointers.Py_GetVersion, Cstring, ())), isspace)[1])
+        ctx.version = VersionNumber(split(Base.unsafe_string(ctx.Py_GetVersion()), isspace)[1])
         v"3" ≤ ctx.version < v"4" || error(
             "Only Python 3 is supported, this is Python $(ctx.version) at $(ctx.exe_path===missing ? "unknown location" : ctx.exe_path).",
         )
@@ -380,4 +380,21 @@ check_libpath(PyCall, ctx) = begin
     else
         @warn "PythonCall and PyCall are using different versions of libpython. This will probably go badly." ctx.lib_path PyCall.libpython
     end
+end
+
+struct Func{name}
+    ctx :: Context
+end
+
+Base.getproperty(ctx::Context, k::Symbol) = hasfield(Context, k) ? getfield(ctx, k) : Func{k}(ctx)
+
+const CONTEXT_PROPERTYNAMES = (fieldnames(Context)..., CAPI_FUNCS..., :with_gil)
+
+Base.propertynames(ctx::Context, private::Bool=false) = CONTEXT_PROPERTYNAMES
+
+for (name, (argtypes, rettype)) in CAPI_FUNC_SIGS
+    args = [Symbol("x", i) for (i,_) in enumerate(argtypes)]
+    functype = Func{name}
+    @eval $name(ctx::Context, $(args...)) = ccall(ctx.pointers.$name, $rettype, ($(argtypes...),), $(args...))
+    @eval (f::$functype)($(args...)) = $name(f.ctx, $(args...))
 end

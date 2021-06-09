@@ -11,7 +11,6 @@ using Conda, Libdl
 include("consts.jl")
 include("pointers.jl")
 include("context.jl")
-include("properties.jl")
 include("gil.jl")
 
 end

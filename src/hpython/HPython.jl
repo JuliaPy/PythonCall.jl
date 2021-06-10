@@ -23,6 +23,7 @@ include("forwarddefs.jl")
 include("context.jl")
 include("handle.jl")
 include("autohandle.jl")
+include("handledict.jl")
 include("orerr.jl")
 include("err.jl")
 # abstract interfaces

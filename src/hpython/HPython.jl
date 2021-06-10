@@ -25,8 +25,11 @@ include("handle.jl")
 include("autohandle.jl")
 include("orerr.jl")
 include("err.jl")
+# abstract interfaces
 include("object.jl")
+include("iter.jl")
 include("builtins.jl")
+# concrete types
 include("str.jl")
 include("bytes.jl")
 include("tuple.jl")

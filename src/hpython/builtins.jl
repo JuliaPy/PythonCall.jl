@@ -39,3 +39,17 @@ function pycallargs(py::Context, f, args, kwargs)
     return ans
 end
 (b::Builtin{:callargs})(args...) = pycallargs(b.ctx, args...)
+
+function pyprint(py::Context, args...)
+    res = py.call(py.print, args...)
+    if py.iserr(res)
+        return VoidOrErr()
+    else
+        py.closehdl(res)
+        return VoidOrErr(0)
+    end
+end
+(b::Builtin{:print})(args...) = pyprint(b.ctx, args...)
+
+pyenumerate(py::Context, x) = py.call(py.enumerate, x)
+(b::Builtin{:enumerate})(x) = pyenumerate(b.ctx, x)

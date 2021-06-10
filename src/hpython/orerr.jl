@@ -5,12 +5,12 @@ struct VoidOrErr
     val :: Cint
 end
 VoidOrErr() = VoidOrErr(-1)
-iserr(::Context, x::VoidOrErr) = c.val == -1
+iserr(::Context, x::VoidOrErr) = x.val == -1
 value(::Context, x::VoidOrErr) = nothing
 
 struct BoolOrErr
     val :: Cint
 end
 BoolOrErr() = BoolOrErr(-1)
-iserr(::Context, x::BoolOrErr) = c.val == -1
-value(::Context, x::BoolOrErr) = c.val != 0
+iserr(::Context, x::BoolOrErr) = x.val == -1
+value(::Context, x::BoolOrErr) = x.val != 0

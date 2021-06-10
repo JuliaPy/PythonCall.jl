@@ -19,13 +19,16 @@ Base.@kwdef mutable struct Builtins
     bytes :: PyHdl = PyNULL
     complex :: PyHdl = PyNULL
     dict :: PyHdl = PyNULL
+    enumerate :: PyHdl = PyNULL
     float :: PyHdl = PyNULL
     int :: PyHdl = PyNULL
     list :: PyHdl = PyNULL
     object :: PyHdl = PyNULL
+    print :: PyHdl = PyNULL
     set :: PyHdl = PyNULL
     frozenset :: PyHdl = PyNULL
     slice :: PyHdl = PyNULL
+    super :: PyHdl = PyNULL
     str :: PyHdl = PyNULL
     tuple :: PyHdl = PyNULL
     type :: PyHdl = PyNULL

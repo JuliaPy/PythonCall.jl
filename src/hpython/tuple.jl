@@ -4,6 +4,7 @@ function pytuple(py::Context, xs)
     ans = py.newhdl(py._c.PyTuple_New(length(xs)))
     py.iserr(ans) && return PyNULL
     for (i,x) in enumerate(xs)
+        x isa PyAutoHdl && error("cannot convert tuples containing PyAutoHdl to Python tuples")
         xh = py(x)
         if py.iserr(xh)
             py.closehdl(ans)

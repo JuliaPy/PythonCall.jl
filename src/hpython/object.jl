@@ -3,6 +3,11 @@ pyobject(py::Context, x::Builtin) = py.duphdl(py.autohdl(x))
 pyobject(py::Context, x::Nothing) = pyobject(py, py.None)
 pyobject(py::Context, x::Bool) = x ? pyobject(py, py.True) : pyobject(py, py.False)
 pyobject(py::Context, x::Union{String,SubString{String}}) = py.str(x)
+pyobject(py::Context, x::Tuple) = py.tuple(x)
+function pyobject(py::Context, x)
+    py.errset(py.TypeError, "cannot convert this Julia '$(typeof(x))' to a Python object")
+    PyNULL
+end
 (py::Context)(x) = pyobject(py, x)
 
 function pyhasattr(py::Context, x, k)

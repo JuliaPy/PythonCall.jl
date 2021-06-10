@@ -20,17 +20,29 @@ function _autohdl(py::Context, ::Builtin{name}, ::Val{cname}) where {name, cname
     return h.autocheck
 end
 
+function _autohdl(py::Context, ::Builtin{name}) where {name}
+    h = getproperty(py._builtins, name)
+    if py.iserr(h)
+        h = py.getattr(py.import("builtins").auto, string(name))
+        setproperty!(py._builtins, name, h)
+    end
+    return h.autocheck
+end
+
 autohdl(py::Context, x::PyAnyHdl) = x
 autohdl(py::Context, x::Builtin{name}) where {name} = (py.errset(py.TypeError, "this builtin does not correspond to a python object: $name"); PyNULL.autocheck)
 autohdl(py::Context, x::Builtin{:bool}) = _autohdl(py, x, Val(:PyBool_Type))
 autohdl(py::Context, x::Builtin{:bytes}) = _autohdl(py, x, Val(:PyBytes_Type))
 autohdl(py::Context, x::Builtin{:complex}) = _autohdl(py, x, Val(:PyComplex_Type))
 autohdl(py::Context, x::Builtin{:dict}) = _autohdl(py, x, Val(:PyDict_Type))
+autohdl(py::Context, x::Builtin{:enumerate}) = _autohdl(py, x)
 autohdl(py::Context, x::Builtin{:float}) = _autohdl(py, x, Val(:PyFloat_Type))
 autohdl(py::Context, x::Builtin{:int}) = _autohdl(py, x, Val(:PyLong_Type))
 autohdl(py::Context, x::Builtin{:list}) = _autohdl(py, x, Val(:PyList_Type))
 autohdl(py::Context, x::Builtin{:object}) = _autohdl(py, x, Val(:PyBaseObject_Type))
+autohdl(py::Context, x::Builtin{:print}) = _autohdl(py, x)
 autohdl(py::Context, x::Builtin{:set}) = _autohdl(py, x, Val(:PySet_Type))
+autohdl(py::Context, x::Builtin{:super}) = _autohdl(py, x)
 autohdl(py::Context, x::Builtin{:frozenset}) = _autohdl(py, x, Val(:PyFrozenSet_Type))
 autohdl(py::Context, x::Builtin{:slice}) = _autohdl(py, x, Val(:PySlice_Type))
 autohdl(py::Context, x::Builtin{:str}) = _autohdl(py, x, Val(:PyUnicode_Type))

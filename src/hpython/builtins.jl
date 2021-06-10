@@ -1,41 +1,41 @@
-function pyimport(ctx::Context, m)
+function pyimport(py::Context, m)
     ans = PyNULL
-    @autohdl ctx m
-    ans = ctx.newhdl(ctx._c.PyImport_Import(ctx.cptr(m)))
-    @autoclosehdl ctx m
+    @autohdl py m
+    ans = py.newhdl(py._c.PyImport_Import(py.cptr(m)))
+    @autoclosehdl py m
     return ans
 end
 (f::Builtin{:import})(m) = pyimport(f.ctx, m)
 
-pycall(ctx::Context, f, args...; kwargs...) =
+pycall(py::Context, f, args...; kwargs...) =
     if !isempty(kwargs)
         error("not implemented: keyword arguments")
     elseif !isempty(args)
-        pycallargs(ctx, f, ctx.tuple(args).auto)
+        pycallargs(py, f, py.tuple(args).auto)
     else
-        pycallargs(ctx, f)
+        pycallargs(py, f)
     end
 (b::Builtin{:call})(f, args...; kwargs...) = pycall(b.ctx, f, args...; kwargs...)
 
-function pycallargs(ctx::Context, f)
+function pycallargs(py::Context, f)
     ans = PyNULL
-    @autohdl ctx f
-    ans = ctx.newhdl(ctx._c.PyObject_CallObject(ctx.cptr(f), C.PyNULL))
-    @autoclosehdl ctx f
+    @autohdl py f
+    ans = py.newhdl(py._c.PyObject_CallObject(py.cptr(f), C.PyNULL))
+    @autoclosehdl py f
     return ans
 end
-function pycallargs(ctx::Context, f, args)
+function pycallargs(py::Context, f, args)
     ans = PyNULL
-    @autohdl ctx f args
-    ans = ctx.newhdl(ctx._c.PyObject_CallObject(ctx.cptr(f), ctx.cptr(args)))
-    @autoclosehdl ctx f args
+    @autohdl py f args
+    ans = py.newhdl(py._c.PyObject_CallObject(py.cptr(f), py.cptr(args)))
+    @autoclosehdl py f args
     return ans
 end
-function pycallargs(ctx::Context, f, args, kwargs)
+function pycallargs(py::Context, f, args, kwargs)
     ans = PyNULL
-    @autohdl ctx f args kwargs
-    ans = ctx.newhdl(ctx._c.PyObject_Call(ctx.cptr(f), ctx.cptr(args), ctx.cptr(kwargs)))
-    @autoclosehdl ctx f args kwargs
+    @autohdl py f args kwargs
+    ans = py.newhdl(py._c.PyObject_Call(py.cptr(f), py.cptr(args), py.cptr(kwargs)))
+    @autoclosehdl py f args kwargs
     return ans
 end
 (b::Builtin{:callargs})(args...) = pycallargs(b.ctx, args...)

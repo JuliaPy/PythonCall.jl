@@ -1,17 +1,17 @@
-pytuple(ctx::Context) = ctx.newhdl(ctx._c.PyTuple_New(0))
-pytuple(ctx::Context, xs::PyAnyHdl) = ctx.call(ctx.tuple, xs)
-function pytuple(ctx::Context, xs)
-    ans = ctx.newhdl(ctx._c.PyTuple_New(length(xs)))
-    ctx.iserr(ans) && return PyNULL
+pytuple(py::Context) = py.newhdl(py._c.PyTuple_New(0))
+pytuple(py::Context, xs::PyAnyHdl) = py.call(py.tuple, xs)
+function pytuple(py::Context, xs)
+    ans = py.newhdl(py._c.PyTuple_New(length(xs)))
+    py.iserr(ans) && return PyNULL
     for (i,x) in enumerate(xs)
-        xh = ctx(x)
-        if ctx.iserr(xh)
-            ctx.closehdl(ans)
+        xh = py(x)
+        if py.iserr(xh)
+            py.closehdl(ans)
             return PyNULL
         end
-        err = ctx._c.PyTuple_SetItem(ctx.cptr(ans), i-1, ctx.stealcptr(xh))
+        err = py._c.PyTuple_SetItem(py.cptr(ans), i-1, py.stealcptr(xh))
         if err == -1
-            ctx.closehdl(ans)
+            py.closehdl(ans)
             return PyNULL
         end
     end

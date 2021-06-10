@@ -1,33 +1,33 @@
-iserr(ctx::Context) = ctx._c.PyErr_Occurred() != C.PyNULL
+iserr(py::Context) = py._c.PyErr_Occurred() != C.PyNULL
 
-errclear(ctx::Context) = ctx._c.PyErr_Clear()
+errclear(py::Context) = py._c.PyErr_Clear()
 (b::Builtin{:errclear})() = errclear(b.ctx)
 
-function errset(ctx::Context, t)
-    @autohdl ctx t
-    ctx._c.PyErr_SetNone(ctx.cptr(t))
-    @autoclosehdl ctx t
+function errset(py::Context, t)
+    @autohdl py t
+    py._c.PyErr_SetNone(py.cptr(t))
+    @autoclosehdl py t
 end
-function errset(ctx::Context, t, v)
-    @autohdl ctx t v
-    ctx._c.PyErr_SetObject(ctx.cptr(t), ctx.cptr(v))
-    @autoclosehdl ctx t v
+function errset(py::Context, t, v)
+    @autohdl py t v
+    py._c.PyErr_SetObject(py.cptr(t), py.cptr(v))
+    @autoclosehdl py t v
 end
-function errset(ctx::Context, t, v::String)
-    @autohdl ctx t
-    ctx._c.PyErr_SetString(ctx.cptr(t), v)
-    @autoclosehdl ctx t
+function errset(py::Context, t, v::String)
+    @autohdl py t
+    py._c.PyErr_SetString(py.cptr(t), v)
+    @autoclosehdl py t
 end
 (b::Builtin{:errset})(args...) = errset(b.ctx, args...)
 
-function errget(ctx::Context, normalize::Bool=false)
+function errget(py::Context, normalize::Bool=false)
     t = Ref(C.PyNULL)
     v = Ref(C.PyNULL)
     b = Ref(C.PyNULL)
-    ctx._c.PyErr_Fetch(t, v, b)
+    py._c.PyErr_Fetch(t, v, b)
     if normalize
-        ctx._c.PyErr_NormalizeException(t, v, b)
+        py._c.PyErr_NormalizeException(t, v, b)
     end
-    (ctx.newhdl(t[]), ctx.newhdl(v[]), ctx.newhdl(b[]))
+    (py.newhdl(t[]), py.newhdl(v[]), py.newhdl(b[]))
 end
 (b::Builtin{:errget})(args...) = errget(b.ctx, args...)

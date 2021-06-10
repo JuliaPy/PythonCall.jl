@@ -22,6 +22,8 @@ const DEBUG = true # get(ENV, "JULIA_PYTHONCALL_DEBUG", "no") == "yes"
 include("forwarddefs.jl")
 include("context.jl")
 include("handle.jl")
+include("autohandle.jl")
+include("orerr.jl")
 include("err.jl")
 include("object.jl")
 include("builtins.jl")

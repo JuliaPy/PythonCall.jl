@@ -6,12 +6,12 @@ end
 
 Context(; params...) = Context(C.Context(; params...))
 
-@inline Base.getproperty(ctx::Context, k::Symbol) = hasfield(Context, k) ? getfield(ctx, k) : Builtin{k}(ctx)
+@inline Base.getproperty(py::Context, k::Symbol) = hasfield(Context, k) ? getfield(py, k) : Builtin{k}(py)
 
-function Base.show(io::IO, ctx::Context)
-    show(io, typeof(ctx))
+function Base.show(io::IO, py::Context)
+    show(io, typeof(py))
     print(io, "(")
-    show(io, ctx._c)
+    show(io, py._c)
     print(io, ", ...)")
 end
 

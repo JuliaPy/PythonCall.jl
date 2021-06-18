@@ -82,44 +82,44 @@ const CAPI_FUNC_SIGS = Dict{Symbol, Pair{Tuple, Type}}(
     :PySequence_GetItem => (PyPtr, Py_ssize_t) => PyPtr,
     :PySequence_SetItem => (PyPtr, Py_ssize_t, PyPtr) => Cint,
     :PySequence_Contains => (PyPtr, PyPtr) => Cint,
-    # # NUMBER
-    # :PyNumber_Add,
-    # :PyNumber_Subtract,
-    # :PyNumber_Multiply,
-    # :PyNumber_MatrixMultiply,
-    # :PyNumber_FloorDivide,
-    # :PyNumber_TrueDivide,
-    # :PyNumber_Remainder,
-    # :PyNumber_Divmod,
-    # :PyNumber_Power,
-    # :PyNumber_Negative,
-    # :PyNumber_Positive,
-    # :PyNumber_Absolute,
-    # :PyNumber_Invert,
-    # :PyNumber_Lshift,
-    # :PyNumber_Rshift,
-    # :PyNumber_And,
-    # :PyNumber_Xor,
-    # :PyNumber_Or,
-    # :PyNumber_InPlaceAdd,
-    # :PyNumber_InPlaceSubtract,
-    # :PyNumber_InPlaceMultiply,
-    # :PyNumber_InPlaceMatrixMultiply,
-    # :PyNumber_InPlaceFloorDivide,
-    # :PyNumber_InPlaceTrueDivide,
-    # :PyNumber_InPlaceRemainder,
-    # :PyNumber_InPlacePower,
-    # :PyNumber_InPlaceLshift,
-    # :PyNumber_InPlaceRshift,
-    # :PyNumber_InPlaceAnd,
-    # :PyNumber_InPlaceXor,
-    # :PyNumber_InPlaceOr,
-    # :PyNumber_Long,
-    # :PyNumber_Float,
-    # :PyNumber_Index,
+    # NUMBER
+    :PyNumber_Add => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_Subtract => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_Multiply => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_MatrixMultiply => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_FloorDivide => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_TrueDivide => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_Remainder => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_Divmod => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_Power => (PyPtr, PyPtr, PyPtr) => PyPtr,
+    :PyNumber_Negative => (PyPtr,) => PyPtr,
+    :PyNumber_Positive => (PyPtr,) => PyPtr,
+    :PyNumber_Absolute => (PyPtr,) => PyPtr,
+    :PyNumber_Invert => (PyPtr,) => PyPtr,
+    :PyNumber_Lshift => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_Rshift => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_And => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_Xor => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_Or => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_InPlaceAdd => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_InPlaceSubtract => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_InPlaceMultiply => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_InPlaceMatrixMultiply => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_InPlaceFloorDivide => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_InPlaceTrueDivide => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_InPlaceRemainder => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_InPlacePower => (PyPtr, PyPtr, PyPtr) => PyPtr,
+    :PyNumber_InPlaceLshift => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_InPlaceRshift => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_InPlaceAnd => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_InPlaceXor => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_InPlaceOr => (PyPtr, PyPtr) => PyPtr,
+    :PyNumber_Long => (PyPtr,) => PyPtr,
+    :PyNumber_Float => (PyPtr,) => PyPtr,
+    :PyNumber_Index => (PyPtr,) => PyPtr,
     # ITERATION
     :PyIter_Next => (PyPtr,) => PyPtr,
-    # # INT
+    # INT
     :PyLong_FromLongLong => (Clonglong,) => PyPtr,
     :PyLong_FromUnsignedLongLong => (Culonglong,) => PyPtr,
     :PyLong_FromString => (Ptr{Cchar}, Ptr{Ptr{Cchar}}, Cint) => PyPtr,
@@ -139,7 +139,7 @@ const CAPI_FUNC_SIGS = Dict{Symbol, Pair{Tuple, Type}}(
     :PyUnicode_InternInPlace => (Ptr{PyPtr},) => Cvoid,
     # BYTES
     :PyBytes_FromStringAndSize => (Ptr{Cchar}, Py_ssize_t) => PyPtr,
-    :PyBytes_AsStringAndSize => (PyPtr, Ptr{Ptr{Cvoid}}, Ptr{Py_ssize_t}) => Cint,
+    :PyBytes_AsStringAndSize => (PyPtr, Ptr{Ptr{Cchar}}, Ptr{Py_ssize_t}) => Cint,
     # TUPLE
     :PyTuple_New => (Py_ssize_t,) => PyPtr,
     :PyTuple_Size => (PyPtr,) => Py_ssize_t,
@@ -260,19 +260,15 @@ const CAPI_OBJECTS = Set([
     :_Py_EllipsisObject,
 ])
 
-const CAPI_OBJECTS_NOINIT = Set([
-    :PyFraction_Type,
-    :PyRange_Type,
-])
-
 @eval @kwdef mutable struct CAPIPointers
     $([:($name :: Ptr{Cvoid} = C_NULL) for name in CAPI_FUNCS]...)
     $([:($name :: PyPtr = C_NULL) for name in CAPI_EXCEPTIONS]...)
     $([:($name :: PyPtr = C_NULL) for name in CAPI_OBJECTS]...)
-    $([:($name :: PyPtr = C_NULL) for name in CAPI_OBJECTS_NOINIT]...)
 end
 
-@eval init!(p::CAPIPointers, lib::Ptr) = begin
+const POINTERS = CAPIPointers()
+
+@eval init_pointers(p::CAPIPointers=POINTERS, lib::Ptr=CTX.lib_ptr) = begin
     $([
         if name == :Py_FinalizeEx
             :(p.$name = dlsym_e(lib, $(QuoteNode(name))))
@@ -283,4 +279,9 @@ end
     ]...)
     $([:(p.$name = Base.unsafe_load(Ptr{PyPtr}(dlsym(lib, $(QuoteNode(name)))))) for name in CAPI_EXCEPTIONS]...)
     $([:(p.$name = dlsym(lib, $(QuoteNode(name)))) for name in CAPI_OBJECTS]...)
+end
+
+for (name, (argtypes, rettype)) in CAPI_FUNC_SIGS
+    args = [Symbol("x", i) for (i,_) in enumerate(argtypes)]
+    @eval $name($(args...)) = ccall(POINTERS.$name, $rettype, ($(argtypes...),), $(args...))
 end

@@ -3,50 +3,38 @@
 
 A handle to a loaded instance of libpython, its interpreter, function pointers, etc.
 """
-mutable struct Context
-    is_embedded :: Bool
-    is_initialized :: Bool
-    is_preinitialized :: Bool
-    lib_ptr :: Ptr{Cvoid}
-    exe_path :: Union{String, Missing}
-    lib_path :: Union{String, Missing}
-    dlopen_flags :: UInt32
-    pyprogname :: Union{String, Missing}
-    pyprogname_w :: Any
-    pyhome :: Union{String, Missing}
-    pyhome_w :: Any
-    is_conda :: Bool
-    conda_env :: Union{String, Missing}
-    pointers :: CAPIPointers
-    version :: Union{VersionNumber, Missing}
+@kwdef mutable struct Context
+    is_embedded :: Bool = false
+    is_initialized :: Bool = false
+    is_preinitialized :: Bool = false
+    lib_ptr :: Ptr{Cvoid} = C_NULL
+    exe_path :: Union{String, Missing} = missing
+    lib_path :: Union{String, Missing} = missing
+    dlopen_flags :: UInt32 = RTLD_LAZY | RTLD_DEEPBIND | RTLD_GLOBAL
+    pyprogname :: Union{String, Missing} = missing
+    pyprogname_w :: Any = missing
+    pyhome :: Union{String, Missing} = missing
+    pyhome_w :: Any = missing
+    is_conda :: Bool = false
+    conda_env :: Union{String, Missing} = missing
+    version :: Union{VersionNumber, Missing} = missing
 end
 
-function Context(;
-    is_embedded :: Union{Bool, Missing} = missing,
-    lib_ptr :: Ptr{Cvoid} = C_NULL,
-    exe_path :: Union{AbstractString, Missing} = missing,
-    lib_path :: Union{AbstractString, Missing} = missing,
-    dlopen_flags :: Integer = RTLD_LAZY | RTLD_DEEPBIND | RTLD_GLOBAL,
-    pyprogname :: Union{AbstractString, Missing} = missing,
-    pyhome :: Union{AbstractString, Missing} = missing,
-    is_conda :: Union{Bool, Missing} = missing,
-    conda_env :: Union{AbstractString, Missing} = missing,
-)
-    if is_embedded === missing
-        is_embedded = haskey(ENV, "JULIA_PYTHONCALL_LIBPTR")
-    end
+const CTX = Context()
 
-    py = Context(is_embedded, false, false, lib_ptr, exe_path, lib_path, dlopen_flags, pyprogname, nothing, pyhome, nothing, false, conda_env, CAPIPointers(), missing)
+function init_context()
 
-    if py.is_embedded
+    CTX.is_embedded = haskey(ENV, "JULIA_PYTHONCALL_LIBPTR")
+
+    if CTX.is_embedded
         # In this case, getting a handle to libpython is easy
-        if py.lib_ptr == C_NULL
-            py.lib_ptr = Ptr{Cvoid}(parse(UInt, ENV["JULIA_PYTHONCALL_LIBPTR"]))
+        if CTX.lib_ptr == C_NULL
+            CTX.lib_ptr = Ptr{Cvoid}(parse(UInt, ENV["JULIA_PYTHONCALL_LIBPTR"]))
         end
-        init!(py.pointers, py.lib_ptr)
+        init_pointers()
         # Check Python is initialized
-        py.Py_IsInitialized() == 0 && error("Python is not already initialized.")
-        py.is_initialized = py.is_preinitialized = true
+        Py_IsInitialized() == 0 && error("Python is not already initialized.")
+        CTX.is_initialized = CTX.is_preinitialized = true
     elseif get(ENV, "JULIA_PYTHONCALL_EXE", "") == "PYCALL"
         error("not implemented: PyCall compatability mode")
 #         # Import PyCall and use its choices for libpython
@@ -69,7 +57,7 @@ function Context(;
     else
         # Find Python executable
         exe_path = something(
-            py.exe_path===missing ? nothing : py.exe_path,
+            CTX.exe_path===missing ? nothing : CTX.exe_path,
             get(ENV, "JULIA_PYTHONCALL_EXE", nothing),
             Sys.which("python3"),
             Sys.which("python"),
@@ -86,17 +74,17 @@ function Context(;
               """,
             )
         end
-        if py.is_conda !== false && (exe_path == "CONDA" || startswith(exe_path, "CONDA:"))
-            py.is_conda = true
-            py.conda_env = exepath == "CONDA" ? Conda.ROOTENV : exe_path[7:end]
-            Conda._install_conda(py.conda_env)
+        if CTX.is_conda !== false && (exe_path == "CONDA" || startswith(exe_path, "CONDA:"))
+            CTX.is_conda = true
+            CTX.conda_env = exepath == "CONDA" ? Conda.ROOTENV : exe_path[7:end]
+            Conda._install_conda(CTX.conda_env)
             exe_path = joinpath(
-                Conda.python_dir(py.condaenv),
+                Conda.python_dir(CTX.condaenv),
                 Sys.iswindows() ? "python.exe" : "python",
             )
         end
         if isfile(exe_path)
-            py.exe_path = exe_path
+            CTX.exe_path = exe_path
         else
             error("""
                 Python executable $(repr(exe_path)) does not exist.
@@ -112,53 +100,53 @@ function Context(;
         function python_cmd(args)
             env = copy(ENV)
             env["PYTHONIOENCODING"] = "UTF-8"
-            setenv(`$(py.exe_path) $args`, env)
+            setenv(`$(CTX.exe_path) $args`, env)
         end
 
         # Find Python library
         lib_path = something(
-            py.lib_path===missing ? nothing : py.lib_path,
+            CTX.lib_path===missing ? nothing : CTX.lib_path,
             get(ENV, "JULIA_PYTHONCALL_LIB", nothing),
             Some(nothing)
         )
         if lib_path !== nothing
-            lib_ptr = dlopen_e(lib_path, py.dlopen_flags)
+            lib_ptr = dlopen_e(lib_path, CTX.dlopen_flags)
             if lib_ptr == C_NULL
                 error("Python library $(repr(lib_path)) could not be opened.")
             else
-                py.lib_path = lib_path
-                py.lib_ptr = lib_ptr
+                CTX.lib_path = lib_path
+                CTX.lib_ptr = lib_ptr
             end
         else
             for lib_path in readlines(python_cmd([joinpath(@__DIR__, "find_libpython.py"), "--list-all"]))
-                lib_ptr = dlopen_e(lib_path, py.dlopen_flags)
+                lib_ptr = dlopen_e(lib_path, CTX.dlopen_flags)
                 if lib_ptr == C_NULL
                     @warn "Python library $(repr(lib_path)) could not be opened."
                 else
-                    py.lib_path = lib_path
-                    py.lib_ptr = lib_ptr
+                    CTX.lib_path = lib_path
+                    CTX.lib_ptr = lib_ptr
                     break
                 end
             end
-            py.lib_path === nothing && error("""
-                Could not find Python library for Python executable $(repr(py.exe_path)).
+            CTX.lib_path === nothing && error("""
+                Could not find Python library for Python executable $(repr(CTX.exe_path)).
 
                 If you know where the library is, set environment variable 'JULIA_PYTHONCALL_LIB' to its path.
                 """)
         end
-        init!(py.pointers, py.lib_ptr)
+        init_pointers()
 
-        # # Compare libpath with PyCall
-        # PyCall = get(Base.loaded_modules, PYCALL_PKGID, nothing)
-        # if PyCall === nothing
-        #     @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" check_libpath(PyCall)
-        # else
-        #     check_libpath(PyCall)
-        # end
+        # Compare libpath with PyCall
+        PyCall = get(Base.loaded_modules, PYCALL_PKGID, nothing)
+        if PyCall === nothing
+            @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" check_libpath(PyCall)
+        else
+            check_libpath(PyCall)
+        end
 
         # Initialize
-        with_gil(py) do
-            if py.Py_IsInitialized() != 0
+        with_gil() do
+            if Py_IsInitialized() != 0
                 # Already initialized (maybe you're using PyCall as well)
             else
                 # Find ProgramName and PythonHome
@@ -185,29 +173,33 @@ function Context(;
                         sys.stdout.write(sys.exec_prefix)
                     """
                 end
-                py.pyprogname, py.pyhome = readlines(python_cmd(["-c", script]))
+                CTX.pyprogname, CTX.pyhome = readlines(python_cmd(["-c", script]))
 
                 # Set PythonHome
-                py.pyhome_w = Base.cconvert(Cwstring, py.pyhome)
-                py.Py_SetPythonHome(pointer(py.pyhome_w))
+                CTX.pyhome_w = Base.cconvert(Cwstring, CTX.pyhome)
+                Py_SetPythonHome(pointer(CTX.pyhome_w))
 
                 # Set ProgramName
-                py.pyprogname_w = Base.cconvert(Cwstring, py.pyprogname)
-                py.Py_SetProgramName(pointer(py.pyprogname_w))
+                CTX.pyprogname_w = Base.cconvert(Cwstring, CTX.pyprogname)
+                Py_SetProgramName(pointer(CTX.pyprogname_w))
 
                 # Start the interpreter and register exit hooks
-                py.Py_InitializeEx(0)
-                # atexit() do
-                #     py.is_initialized = false
-                #     py.version < v"3.6" ? C.Py_Finalize() : checkm1(C.Py_FinalizeEx())
-                # end
+                Py_InitializeEx(0)
+                atexit() do
+                    CTX.is_initialized = false
+                    if CTX.version === missing || CTX.version < v"3.6"
+                        Py_Finalize()
+                    else
+                        if Py_FinalizeEx() == -1
+                            @warn "Py_FinalizeEx() error"
+                        end
+                    end
+                end
             end
-            py.is_initialized = true
-            # check(
-            #     C.Py_AtExit(
-            #         @cfunction(() -> (py.is_initialized = false; nothing), Cvoid, ())
-            #     ),
-            # )
+            CTX.is_initialized = true
+            if Py_AtExit(@cfunction(() -> (CTX.is_initialized = false; nothing), Cvoid, ())) == -1
+                @warn "Py_AtExit() error"
+            end
         end
     end
 
@@ -228,7 +220,7 @@ function Context(;
 #     C.PyObject_TryConvert_AddRule("<array>", PyArray, CTryConvertRule_trywrapref, 0)
 #     C.PyObject_TryConvert_AddRule("<array>", Array, CTryConvertRule_PyArray_tryconvert, 0)
 
-    with_gil(py) do
+    with_gil() do
 
 #         @pyg `import sys, os`
 
@@ -248,24 +240,29 @@ function Context(;
 #         end
 
         # # Is this the same Python as in Conda?
-        # if py.is_conda &&
+        # if CTX.is_conda &&
         #    haskey(ENV, "CONDA_PREFIX") &&
         #    isdir(ENV["CONDA_PREFIX"]) &&
         #    haskey(ENV, "CONDA_PYTHON_EXE") &&
         #    isfile(ENV["CONDA_PYTHON_EXE"]) &&
         #    realpath(ENV["CONDA_PYTHON_EXE"]) == realpath(
-        #        py.exe_path === nothing ? @pyv(`sys.executable`::String) : py.exe_path,
+        #        CTX.exe_path === nothing ? @pyv(`sys.executable`::String) : CTX.exe_path,
         #    )
 
-        #     py.isconda = true
-        #     py.condaenv = ENV["CONDA_PREFIX"]
-        #     py.exepath === nothing && (py.exepath = @pyv(`sys.executable`::String))
+        #     CTX.isconda = true
+        #     CTX.condaenv = ENV["CONDA_PREFIX"]
+        #     CTX.exepath === nothing && (CTX.exepath = @pyv(`sys.executable`::String))
         # end
 
         # Get the python version
-        py.version = VersionNumber(split(Base.unsafe_string(py.Py_GetVersion()), isspace)[1])
-        v"3" ≤ py.version < v"4" || error(
-            "Only Python 3 is supported, this is Python $(py.version) at $(py.exe_path===missing ? "unknown location" : py.exe_path).",
+        verstr = Base.unsafe_string(Py_GetVersion())
+        vermatch = match(r"^[0-9.]+", verstr)
+        if vermatch === nothing
+            error("Cannot parse version from version string: $(repr(verstr))")
+        end
+        CTX.version = VersionNumber(vermatch.match)
+        v"3" ≤ CTX.version < v"4" || error(
+            "Only Python 3 is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
         )
 
 #         # set up the 'juliacall' module
@@ -358,43 +355,28 @@ function Context(;
 #         end
     end
 
-    @debug "Initialized PythonCall.jl" py.is_embedded py.is_initialized py.exe_path py.lib_path py.lib_ptr py.pyprogname py.pyhome py.version, py.is_conda py.conda_env
-    return py
+    @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version, CTX.is_conda CTX.conda_env
+
+    return
 end
 
-function Base.show(io::IO, py::Context)
-    show(io, typeof(py))
-    print(io, "(exe_path=")
-    show(io, py.exe_path)
-    print(io, ", lib_path=")
-    show(io, py.lib_path)
-    print(io, ", ...)")
+function Base.show(io::IO, ::MIME"text/plain", ctx::Context)
+    show(io, typeof(io))
+    print(io, ":")
+    for k in fieldnames(Context)
+        println(io)
+        print(io, "  ", k, " = ")
+        show(io, getfield(ctx, k))
+    end
 end
 
 const PYCALL_UUID = Base.UUID("438e738f-606a-5dbb-bf0a-cddfbfd45ab0")
 const PYCALL_PKGID = Base.PkgId(PYCALL_UUID, "PyCall")
 
-check_libpath(PyCall, py) = begin
-    if realpath(PyCall.libpython) == realpath(py.lib_path)
+check_libpath(PyCall) = begin
+    if realpath(PyCall.libpython) == realpath(CTX.lib_path)
         # @info "libpython path agrees between PythonCall and PyCall" PythonCall.CONFIG.libpath PyCall.libpython
     else
-        @warn "PythonCall and PyCall are using different versions of libpython. This will probably go badly." py.lib_path PyCall.libpython
+        @warn "PythonCall and PyCall are using different versions of libpython. This will probably go badly." CTX.lib_path PyCall.libpython
     end
-end
-
-struct Func{name}
-    ctx :: Context
-end
-
-Base.getproperty(py::Context, k::Symbol) = hasfield(Context, k) ? getfield(py, k) : Func{k}(py)
-
-const CONTEXT_PROPERTYNAMES = (fieldnames(Context)..., CAPI_FUNCS..., :with_gil)
-
-Base.propertynames(::Context, private::Bool=false) = CONTEXT_PROPERTYNAMES
-
-for (name, (argtypes, rettype)) in CAPI_FUNC_SIGS
-    args = [Symbol("x", i) for (i,_) in enumerate(argtypes)]
-    functype = Func{name}
-    @eval $name(py::Context, $(args...)) = ccall(py.pointers.$name, $rettype, ($(argtypes...),), $(args...))
-    @eval (f::$functype)($(args...)) = $name(f.ctx, $(args...))
 end

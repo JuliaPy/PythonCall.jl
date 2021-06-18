@@ -1,0 +1,13 @@
+pystr_fromUTF8(x::Ptr, n::Integer) = setptr!(pynew(), errcheck(C.PyUnicode_DecodeUTF8(x, n, C_NULL)))
+pystr_fromUTF8(x) = pystr_fromUTF8(pointer(x), sizeof(x))
+
+pystr(x) = setptr!(pynew(), errcheck(@autopy x C.PyObject_Str(getptr(x_))))
+pystr(x::String) = pystr_fromUTF8(x)
+pystr(x::SubString{String}) = pystr_fromUTF8(x)
+pystr(x::Char) = pystr(string(x))
+pystr(::Type{String}, x) = (s=pystr(x); ans=pystr_asstring(s); pydone!(s); ans)
+export pystr
+
+pystr_asUTF8bytes(x::Py) = setptr!(pynew(), errcheck(C.PyUnicode_AsUTF8String(getptr(x))))
+pystr_asUTF8vector(x::Py) = (b=pystr_asUTF8bytes(x); ans=pybytes_asvector(b); pydone!(b); ans)
+pystr_asstring(x::Py) = (b=pystr_asUTF8bytes(x); ans=pybytes_asUTF8string(b); pydone!(b); ans)

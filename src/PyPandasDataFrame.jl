@@ -150,7 +150,7 @@ Base.get(x::PyPandasDataFrame, c::AbstractString, d) = haskey(x, c) ? x[c] : d
 Tables.istable(::Type{PyPandasDataFrame}) = true
 Tables.columnaccess(::Type{PyPandasDataFrame}) = true
 function Tables.columns(x::PyPandasDataFrame)
-    names = keys(x)
+    names = collect(keys(x))
     columns = [x[c] for c in names]
     return NamedTuple{Tuple(map(Symbol, names))}(Tuple(columns))
 end

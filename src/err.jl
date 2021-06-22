@@ -10,7 +10,7 @@ function errget()
     v = Ref(C.PyNULL)
     b = Ref(C.PyNULL)
     C.PyErr_Fetch(t, v, b)
-    (setptr!(pynew(), t[]), setptr!(pynew(), v[]), setptr!(pynew(), b[]))
+    (pynew(t[]), pynew(v[]), pynew(b[]))
 end
 
 errset(t::Py) = C.PyErr_SetNone(getptr(t))
@@ -41,9 +41,9 @@ end
 function Base.getproperty(exc::PyException, k::Symbol)
     if k in (:t, :v, :b) && !exc.isnormalized
         errnormalize!(exc._t, exc._v, exc._b)
-        ispynull(exc._t) && setptr!(exc._t, incref(getptr(pyNone)))
-        ispynull(exc._v) && setptr!(exc._v, incref(getptr(pyNone)))
-        ispynull(exc._b) && setptr!(exc._b, incref(getptr(pyNone)))
+        ispynull(exc._t) && setptr!(exc._t, incref(getptr(pybuiltins.None)))
+        ispynull(exc._v) && setptr!(exc._v, incref(getptr(pybuiltins.None)))
+        ispynull(exc._b) && setptr!(exc._b, incref(getptr(pybuiltins.None)))
         exc.isnormalized = true
     end
     k == :t ? exc._t : k == :v ? exc._v : k == :b ? exc._b : getfield(exc, k)
@@ -67,7 +67,7 @@ end
 function Base.showerror(io::IO, e::PyException)
     print(io, "Python: ")
 
-    if pyis(e.t, pyNone)
+    if pyis(e.t, pybuiltins.None)
         print(io, "mysterious error (no error was actually set)")
         return
     end
@@ -134,7 +134,7 @@ function Base.showerror(io::IO, e::PyException)
     end
 
     # print the error message
-    if !pyis(e.v, pyNone)
+    if !pyis(e.v, pybuiltins.None)
         print(io, ": ")
         try
             print(io, e.v)
@@ -144,7 +144,7 @@ function Base.showerror(io::IO, e::PyException)
     end
 
     # print the stacktrace
-    if !pyis(e.b, pyNone)
+    if !pyis(e.b, pybuiltins.None)
         @label pystacktrace
         println(io)
         printstyled(io, "Python stacktrace:")

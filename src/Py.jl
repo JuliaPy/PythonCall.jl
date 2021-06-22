@@ -12,7 +12,14 @@ Convert `x` to a Python object.
 """
 mutable struct Py
     ptr :: C.PyPtr
-    Py(::Val{:new}, ptr::C.PyPtr) = new(ptr)
+    Py(::Val{:new}, ptr::C.PyPtr) = finalizer(new(ptr)) do x
+        if C.CTX.is_initialized
+            C.with_gil() do
+                ptr = getptr(x)
+                C.Py_DecRef(ptr)
+            end
+        end
+    end
 end
 export Py
 
@@ -24,24 +31,23 @@ setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, ptr); x)
 
 const PYNULL_CACHE = Py[]
 
-pynull() = Py(Val(:new), C.PyNULL)
-setfinalizer!(x::Py) = finalizer(x) do x
-    C.with_gil() do
-        ptr = getptr(x)
-        if ptr != C.PyNULL
-            C.Py_DecRef(ptr)
-        end
-    end
-end
-setnewptr!(x::Py, ptr::C.PyPtr) = setptr!(setfinalizer!(x), ptr)
-
 function pynew()
     if isempty(PYNULL_CACHE)
-        setfinalizer!(pynull())
+        Py(Val(:new), C.PyNULL)
     else
         pop!(PYNULL_CACHE)
     end
 end
+
+function pynew(ptr::C.PyPtr)
+    setptr!(pynew(), ptr)
+end
+
+function pycopy!(dst, src)
+    # assumes dst is NULL
+    setptr!(dst, incref(getptr(src)))
+end
+
 function pydone!(x::Py)
     ptr = getptr(x)
     if ptr != C.PyNULL
@@ -49,10 +55,12 @@ function pydone!(x::Py)
     end
     pystolen!(x)
 end
+
 function pystolen!(x::Py)
     setptr!(x, C.PyNULL)
     push!(PYNULL_CACHE, x)
 end
+
 export pynull, pynew, pydone!, pystolen!
 
 macro autopy(args...)
@@ -68,8 +76,8 @@ macro autopy(args...)
     end)
 end
 
-Py(x::Py) = (ptr=getptr(x); C.Py_IncRef(ptr); setptr!(pynew(), ptr)) # copy, because Py must always return a new object
-Py(x::Nothing) = Py(pyNone)
+Py(x::Py) = pynew(incref(getptr(x))) # copy, because Py must always return a new object
+Py(x::Nothing) = Py(pybuiltins.None)
 Py(x::Bool) = pybool(x)
 Py(x::Union{String, SubString{String}, Char}) = pystr(x)
 Py(x::Base.CodeUnits{UInt8, String}) = pybytes(x)
@@ -91,7 +99,7 @@ function Base.repr(x::Py)
     else
         s = pyrepr(String, x)
         if startswith(s, "<") && endswith(s, ">")
-            return "<py $(SubString(s, 1))"
+            return "<py $(SubString(s, 2))"
         else
             return "<py $s>"
         end
@@ -111,7 +119,7 @@ function Base.show(io::IO, x::Py)
 end
 
 Base.show(io::IO, mime::MIME, o::Py) = py_mime_show(io, mime, o)
-Base.show(io::IO, mime::MIME"text/plain", o::Py) = py_mime_show(io, mime, o)
+Base.show(io::IO, mime::MIME"text/plain", o::Py) = show(io, o)
 Base.show(io::IO, mime::MIME"text/csv", o::Py) = py_mime_show(io, mime, o)
 Base.show(io::IO, mime::MIME"text/tab-separated-values", o::Py) = py_mime_show(io, mime, o)
 Base.showable(mime::MIME, o::Py) = py_mime_showable(mime, o)
@@ -142,7 +150,7 @@ function Base.propertynames(x::Py, private::Bool=false)
     map(Symbol, words)
 end
 
-Bool(x::Py) = pytruth(x)
+Base.Bool(x::Py) = pytruth(x)
 
 Base.length(x::Py) = pylen(x)
 

@@ -11,10 +11,10 @@ end
 pyset_fromiter(xs) = pyset_update_fromiter!(pyset(), xs)
 pyfrozenset_fromiter(xs) = pyset_update_fromiter!(pyfrozenset(), xs)
 
-pyset() = setptr!(pynew(), errcheck(C.PySet_New(C.PyNULL)))
-pyset(x) = ispy(x) ? pysettype(x) : pyset_fromiter(x)
+pyset() = pynew(errcheck(C.PySet_New(C.PyNULL)))
+pyset(x) = ispy(x) ? pybulitins.set(x) : pyset_fromiter(x)
 export pyset
 
-pyfrozenset() = setptr!(pynew(), errcheck(C.PyFrozenSet_New(C.PyNULL)))
-pyfrozenset(x) = ispy(x) ? pyfrozensettype(x) : pyfrozenset_fromiter(x)
+pyfrozenset() = pynew(errcheck(C.PyFrozenSet_New(C.PyNULL)))
+pyfrozenset(x) = ispy(x) ? pybuiltins.frozenset(x) : pyfrozenset_fromiter(x)
 export pyfrozenset

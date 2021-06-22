@@ -1,18 +1,18 @@
 pyis(x, y) = @autopy x y getptr(x_) == getptr(y_)
 export pyis
 
-pyrepr(x) = setptr!(pynew(), errcheck(@autopy x C.PyObject_Repr(getptr(x_))))
+pyrepr(x) = pynew(errcheck(@autopy x C.PyObject_Repr(getptr(x_))))
 pyrepr(::Type{String}, x) = (s=pyrepr(x); ans=pystr_asstring(s); pydone!(s); ans)
 export pyrepr
 
-pyascii(x) = setptr!(pynew(), errcheck(@autopy x C.PyObject_ASCII(getptr(x_))))
+pyascii(x) = pynew(errcheck(@autopy x C.PyObject_ASCII(getptr(x_))))
 pyascii(::Type{String}, x) = (s=pyascii(x); ans=pystr_asstring(s); pydone!(s); ans)
 export pyascii
 
 pyhasattr(x, k) = errcheck(@autopy x k C.PyObject_HasAttr(getptr(x_), getptr(k_))) == 1
 export pyhasattr
 
-pygetattr(x, k) = setptr!(pynew(), errcheck(@autopy x k C.PyObject_GetAttr(getptr(x_), getptr(k_))))
+pygetattr(x, k) = pynew(errcheck(@autopy x k C.PyObject_GetAttr(getptr(x_), getptr(k_))))
 export pygetattr
 
 pysetattr(x, k, v) = (errcheck(@autopy x k v C.PyObject_SetAttr(getptr(x_), getptr(k_), getptr(v_))); nothing)
@@ -39,7 +39,7 @@ export pynot
 pylen(x) = errcheck(@autopy x C.PyObject_Length(getptr(x_)))
 export pylen
 
-pygetitem(x, k) = setptr!(pynew(), errcheck(@autopy x k C.PyObject_GetItem(getptr(x_), getptr(k_))))
+pygetitem(x, k) = pynew(errcheck(@autopy x k C.PyObject_GetItem(getptr(x_), getptr(k_))))
 export pygetitem
 
 pysetitem(x, k, v) = (errcheck(@autopy x k v C.PyObject_SetItem(getptr(x_), getptr(k_), getptr(v_))); nothing)
@@ -48,12 +48,12 @@ export pysetitem
 pydelitem(x, k) = (errcheck(@autopy x k C.PyObject_DelItem(getptr(x_), getptr(k_))); nothing)
 export pydelitem
 
-pydir(x) = setptr!(pynew(), errcheck(@autopy x C.PyObject_Dir(getptr(x_))))
+pydir(x) = pynew(errcheck(@autopy x C.PyObject_Dir(getptr(x_))))
 export pydir
 
-pycallargs(f) = setptr!(pynew(), errcheck(@autopy f C.PyObject_CallObject(getptr(f_), C.PyNULL)))
-pycallargs(f, args) = setptr!(pynew(), errcheck(@autopy f args C.PyObject_CallObject(getptr(f_), getptr(args_))))
-pycallargs(f, args, kwargs) = setptr!(pynew(), errcheck(@autopy f args kwargs C.PyObject_Call(getptr(f_), getptr(args_), getptr(kwargs_))))
+pycallargs(f) = pynew(errcheck(@autopy f C.PyObject_CallObject(getptr(f_), C.PyNULL)))
+pycallargs(f, args) = pynew(errcheck(@autopy f args C.PyObject_CallObject(getptr(f_), getptr(args_))))
+pycallargs(f, args, kwargs) = pynew(errcheck(@autopy f args kwargs C.PyObject_Call(getptr(f_), getptr(args_), getptr(kwargs_))))
 
 pycall(f, args...; kwargs...) =
     if !isempty(kwargs)
@@ -73,12 +73,12 @@ pycall(f, args...; kwargs...) =
     end
 export pycall
 
-pyeq(x, y) = setptr!(pynew(), errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_EQ)))
-pyne(x, y) = setptr!(pynew(), errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_NE)))
-pyle(x, y) = setptr!(pynew(), errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_LE)))
-pylt(x, y) = setptr!(pynew(), errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_LT)))
-pyge(x, y) = setptr!(pynew(), errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_GE)))
-pygt(x, y) = setptr!(pynew(), errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_GT)))
+pyeq(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_EQ)))
+pyne(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_NE)))
+pyle(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_LE)))
+pylt(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_LT)))
+pyge(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_GE)))
+pygt(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_GT)))
 pyeq(::Type{Bool}, x, y) = errcheck(@autopy x y C.PyObject_RichCompareBool(getptr(x_), getptr(y_), C.Py_EQ)) == 1
 pyne(::Type{Bool}, x, y) = errcheck(@autopy x y C.PyObject_RichCompareBool(getptr(x_), getptr(y_), C.Py_NE)) == 1
 pyle(::Type{Bool}, x, y) = errcheck(@autopy x y C.PyObject_RichCompareBool(getptr(x_), getptr(y_), C.Py_LE)) == 1

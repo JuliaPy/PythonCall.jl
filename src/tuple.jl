@@ -2,7 +2,7 @@ function pytuple_fromiter(xs)
     sz = Base.IteratorSize(typeof(xs))
     if sz isa Base.HasLength || sz isa Base.HasShape
         # length known
-        ans = setptr!(pynew(), errcheck(C.PyTuple_New(length(xs))))
+        ans = pynew(errcheck(C.PyTuple_New(length(xs))))
         for (i, x) in enumerate(xs)
             t = Py(x)
             err = C.PyTuple_SetItem(getptr(ans), i-1, getptr(t))
@@ -19,6 +19,6 @@ function pytuple_fromiter(xs)
     end
 end
 
-pytuple() = setptr!(pynew(), errcheck(C.PyTuple_New(0)))
-pytuple(x) = ispy(x) ? pytupletype(x) : pytuple_fromiter(x)
+pytuple() = pynew(errcheck(C.PyTuple_New(0)))
+pytuple(x) = ispy(x) ? pybulitins.tuple(x) : pytuple_fromiter(x)
 export pytuple

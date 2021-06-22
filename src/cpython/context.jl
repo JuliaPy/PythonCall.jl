@@ -197,7 +197,7 @@ function init_context()
                 end
             end
             CTX.is_initialized = true
-            if Py_AtExit(@cfunction(() -> (CTX.is_initialized = false; nothing), Cvoid, ())) == -1
+            if Py_AtExit(@cfunction(() -> (CTX.is_initialized && @warn("Python exited unexpectedly"); CTX.is_initialized = false; nothing), Cvoid, ())) == -1
                 @warn "Py_AtExit() error"
             end
         end

@@ -17,24 +17,26 @@ py_mime_data(m::MIME, o) = begin
     meta = nothing
     try
         x = o.__class__._repr_mimebundle_(o, include=pylist((string(m),)))
-        if pyisinstance(x, pytupletype)
+        if pyisinstance(x, pybuiltins.tuple)
             data = x[0][string(m)]
             meta = x[1].get(string(m))
         else
             data = x[m]
         end
-    catch
+    catch exc
+        exc isa PyException || rethrow()
     end
     if data === nothing && r !== nothing
         try
             x = pygetattr(o.__class__, r)(o)
-            if pyisinstance(x, pytupletype)
+            if pyisinstance(x, pybuiltins.tuple)
                 data = x[0]
                 meta = x[1]
             else
                 data = x
             end
-        catch
+        catch exc
+            exc isa PyException || rethrow()
         end
     end
     data, meta

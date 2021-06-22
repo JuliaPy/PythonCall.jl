@@ -27,7 +27,7 @@ function pywith(f, o, d = nothing)
             rethrow()
         end
     finally
-        exited || exit(o, pyNone, pyNone, pyNone)
+        exited || exit(o, pybuiltins.None, pybuiltins.None, pybuiltins.None)
     end
 end
 export pywith

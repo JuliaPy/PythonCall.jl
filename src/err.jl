@@ -1,7 +1,8 @@
 errcheck() = C.PyErr_Occurred() == C.PyNULL ? nothing : pythrow()
 errcheck(ptr::C.PyPtr) = ptr == C.PyNULL ? pythrow() : ptr
 errcheck(val::Number) = val == (zero(val) - one(val)) ? pythrow() : val
-errcheck_nullable(ptr::C.PyPtr) = (ptr == C.PyNULL && errcheck(); ptr)
+errcheck_ambig(ptr::C.PyPtr) = (ptr == C.PyNULL && errcheck(); ptr)
+errcheck_ambig(val::Number) = (val == (zero(val) - one(val)) && errcheck(); val)
 
 errclear() = C.PyErr_Clear()
 

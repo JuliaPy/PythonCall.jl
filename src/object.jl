@@ -86,3 +86,5 @@ pylt(::Type{Bool}, x, y) = errcheck(@autopy x y C.PyObject_RichCompareBool(getpt
 pyge(::Type{Bool}, x, y) = errcheck(@autopy x y C.PyObject_RichCompareBool(getptr(x_), getptr(y_), C.Py_GE)) == 1
 pygt(::Type{Bool}, x, y) = errcheck(@autopy x y C.PyObject_RichCompareBool(getptr(x_), getptr(y_), C.Py_GT)) == 1
 export pyeq, pyne, pyle, pylt, pyge, pygt
+
+pyconvert_rule_object(::Type{Py}, x::Py) = x

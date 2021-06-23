@@ -32,6 +32,7 @@ include("type.jl")
 # misc
 include("with.jl")
 include("multimedia.jl")
+include("pyconst_macro.jl")
 
 function __init__()
     init_consts()

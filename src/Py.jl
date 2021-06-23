@@ -31,22 +31,17 @@ setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, ptr); x)
 
 const PYNULL_CACHE = Py[]
 
-function pynew()
+pynew() =
     if isempty(PYNULL_CACHE)
         Py(Val(:new), C.PyNULL)
     else
         pop!(PYNULL_CACHE)
     end
-end
 
-function pynew(ptr::C.PyPtr)
-    setptr!(pynew(), ptr)
-end
+pynew(ptr::C.PyPtr) = setptr!(pynew(), ptr)
 
-function pycopy!(dst, src)
-    # assumes dst is NULL
-    setptr!(dst, incref(getptr(src)))
-end
+# assumes dst is NULL
+pycopy!(dst, src) = setptr!(dst, incref(getptr(src)))
 
 function pydel!(x::Py)
     ptr = getptr(x)

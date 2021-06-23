@@ -48,7 +48,7 @@ function pycopy!(dst, src)
     setptr!(dst, incref(getptr(src)))
 end
 
-function pydone!(x::Py)
+function pydel!(x::Py)
     ptr = getptr(x)
     if ptr != C.PyNULL
         C.Py_DecRef(ptr)
@@ -61,7 +61,7 @@ function pystolen!(x::Py)
     push!(PYNULL_CACHE, x)
 end
 
-export pynull, pynew, pydone!, pystolen!
+export pynull, pynew, pydel!, pystolen!
 
 macro autopy(args...)
     vs = args[1:end-1]
@@ -71,7 +71,7 @@ macro autopy(args...)
     esc(quote
         $([:($t = $ispy($v) ? $v : $Py($v)) for (t, v) in zip(ts, vs)]...)
         $ans = $body
-        $([:($ispy($v) || $pydone!($t)) for (t, v) in zip(ts, vs)]...)
+        $([:($ispy($v) || $pydel!($t)) for (t, v) in zip(ts, vs)]...)
         $ans
     end)
 end
@@ -169,7 +169,7 @@ Base.IteratorSize(::Type{Py}) = Base.SizeUnknown()
 function Base.iterate(x::Py, it::Py=pyiter(x))
     v = pynext(it)
     if ispynull(v)
-        pydone!(it)
+        pydel!(it)
         nothing
     else
         (v, it)

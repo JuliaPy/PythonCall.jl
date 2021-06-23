@@ -14,7 +14,7 @@ function pytuple_fromiter(xs)
         # length unknown
         list = pylist_fromiter(xs)
         ans = pylist_astuple(list)
-        pydone!(list)
+        pydel!(list)
         return ans
     end
 end

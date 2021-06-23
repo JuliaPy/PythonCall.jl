@@ -2,11 +2,11 @@ pyis(x, y) = @autopy x y getptr(x_) == getptr(y_)
 export pyis
 
 pyrepr(x) = pynew(errcheck(@autopy x C.PyObject_Repr(getptr(x_))))
-pyrepr(::Type{String}, x) = (s=pyrepr(x); ans=pystr_asstring(s); pydone!(s); ans)
+pyrepr(::Type{String}, x) = (s=pyrepr(x); ans=pystr_asstring(s); pydel!(s); ans)
 export pyrepr
 
 pyascii(x) = pynew(errcheck(@autopy x C.PyObject_ASCII(getptr(x_))))
-pyascii(::Type{String}, x) = (s=pyascii(x); ans=pystr_asstring(s); pydone!(s); ans)
+pyascii(::Type{String}, x) = (s=pyascii(x); ans=pystr_asstring(s); pydel!(s); ans)
 export pyascii
 
 pyhasattr(x, k) = errcheck(@autopy x k C.PyObject_HasAttr(getptr(x_), getptr(k_))) == 1
@@ -60,13 +60,13 @@ pycall(f, args...; kwargs...) =
         args_ = pytuple_fromiter(args)
         kwargs_ = pystrdict_fromiter(kwargs)
         ans = pycallargs(f, args_, kwargs_)
-        pydone!(args_)
-        pydone!(kwargs_)
+        pydel!(args_)
+        pydel!(kwargs_)
         ans
     elseif !isempty(args)
         args_ = pytuple_fromiter(args)
         ans = pycallargs(f, args_)
-        pydone!(args_)
+        pydel!(args_)
         ans
     else
         pycallargs(f)

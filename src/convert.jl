@@ -77,7 +77,7 @@ pytryconvert(::Type{T}, x) where {T} = @autopy x begin
     if !haskey(trules, T)
         t = pynew(incref(tptr))
         trules[T] = pyconvert_get_rules(T, t)
-        pydone!(t)
+        pydel!(t)
     end
     rules = trules[T]
     # apply the rules

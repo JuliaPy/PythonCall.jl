@@ -1,5 +1,7 @@
 module PythonCall
 
+using MacroTools
+
 include("utils.jl")
 
 include("cpython/CPython.jl")
@@ -33,6 +35,7 @@ include("type.jl")
 include("with.jl")
 include("multimedia.jl")
 include("pyconst_macro.jl")
+include("py_macro.jl")
 
 function __init__()
     init_consts()

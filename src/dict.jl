@@ -1,7 +1,9 @@
+pydict_setitem(x::Py, k, v) = errcheck(@autopy k v C.PyDict_SetItem(getptr(x), getptr(k_), getptr(v_)))
+
 function pydict_fromiter(kvs)
     ans = pydict()
     for (k, v) in kvs
-        errcheck(@autopy k v C.PyDict_SetItem(getptr(ans), getptr(k_), getptr(v_)))
+        pydict_setitem(ans, k, v)
     end
     return ans
 end
@@ -9,8 +11,7 @@ end
 function pystrdict_fromiter(kvs)
     ans = pydict()
     for (k, v) in kvs
-        k2 = string(k)
-        errcheck(@autopy k2 v C.PyDict_SetItem(getptr(ans), getptr(k2_), getptr(v_)))
+        pydict_setitem(ans, string(k), v)
     end
     return ans
 end

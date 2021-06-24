@@ -2,17 +2,19 @@
 # :PyFrozenSet_New => (PyPtr,) => PyPtr,
 # :PySet_Add => (PyPtr, PyPtr) => Cint,
 
-function pyset_update_fromiter!(set::Py, xs)
+pyset_add(set::Py, x) = (errcheck(@autopy x C.PySet_Add(getptr(set), getptr(x_))); set)
+
+function pyset_update_fromiter(set::Py, xs)
     for x in xs
-        errcheck(@autopy x C.PySet_Add(getptr(set), getptr(x_)))
+        pyset_add(set, x)
     end
     return set
 end
-pyset_fromiter(xs) = pyset_update_fromiter!(pyset(), xs)
-pyfrozenset_fromiter(xs) = pyset_update_fromiter!(pyfrozenset(), xs)
+pyset_fromiter(xs) = pyset_update_fromiter(pyset(), xs)
+pyfrozenset_fromiter(xs) = pyset_update_fromiter(pyfrozenset(), xs)
 
 pyset() = pynew(errcheck(C.PySet_New(C.PyNULL)))
-pyset(x) = ispy(x) ? pybulitins.set(x) : pyset_fromiter(x)
+pyset(x) = ispy(x) ? pybuiltins.set(x) : pyset_fromiter(x)
 export pyset
 
 pyfrozenset() = pynew(errcheck(C.PyFrozenSet_New(C.PyNULL)))

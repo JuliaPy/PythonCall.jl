@@ -12,16 +12,17 @@ Convert `x` to a Python object.
 """
 mutable struct Py
     ptr :: C.PyPtr
-    Py(::Val{:new}, ptr::C.PyPtr) = finalizer(new(ptr)) do x
-        if C.CTX.is_initialized
-            C.with_gil() do
-                ptr = getptr(x)
-                C.Py_DecRef(ptr)
-            end
+    Py(::Val{:new}, ptr::C.PyPtr) = finalizer(py_finalizer, new(ptr))
+end
+export Py
+
+function py_finalizer(x::Py)
+    if C.CTX.is_initialized
+        C.with_gil(false) do
+            C.Py_DecRef(getptr(x))
         end
     end
 end
-export Py
 
 ispy(::Py) = true
 getpy(x::Py) = x

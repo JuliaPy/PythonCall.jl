@@ -1,6 +1,6 @@
 pybool(x::Bool=false) = Py(x ? pybuiltins.True : pybuiltins.False)
 pybool(x::Number) = pybool(!iszero(x))
-pybool(x) = pybulitins.bool(x)
+pybool(x) = pybuiltins.bool(x)
 export pybool
 
 pybool_asbool(x) = @autopy x (getptr(x_) == C.POINTERS._Py_TrueStruct ? true : getptr(x_) == C.POINTERS._Py_FalseStruct ? false : error("not a bool"))

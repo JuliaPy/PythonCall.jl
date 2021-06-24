@@ -55,6 +55,7 @@ end
 function pystolen!(x::Py)
     setptr!(x, C.PyNULL)
     push!(PYNULL_CACHE, x)
+    nothing
 end
 
 export pynull, pynew, pydel!, pystolen!
@@ -150,8 +151,8 @@ Base.Bool(x::Py) = pytruth(x)
 
 Base.length(x::Py) = pylen(x)
 
-Base.getindex(x, i) = pygetitem(x, i)
-Base.getindex(x, i...) = pygetitem(x, i)
+Base.getindex(x::Py, i) = pygetitem(x, i)
+Base.getindex(x::Py, i...) = pygetitem(x, i)
 
 Base.setindex!(x::Py, v, i) = (pysetitem(x, i, v); x)
 Base.setindex!(x::Py, v, i...) = (pysetitem(x, i, v); x)

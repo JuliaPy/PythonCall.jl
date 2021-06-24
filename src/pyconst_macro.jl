@@ -7,10 +7,18 @@ That is, if `foo() = @pyconst ex` then `foo() === foo()`.
 
 The expression `ex` is evaluated the first time the code is run.
 
+If `ex` is a string literal, the string is interned.
+
 Do not use this macro at the top level of a module. Instead, use `pynew()` and `pycopy!()`.
 """
 macro pyconst(ex)
     x = pynew()
-    :(ispynull($x) ? pycopy!($x, Py($(esc(ex)))) : $x)
+    val = esc(ex)
+    if ex isa String
+        val = :($pystr_intern!($pystr($val)))
+    else
+        val = :($Py($val))
+    end
+    :(ispynull($x) ? pycopy!($x, $val) : $x)
 end
 export @pyconst

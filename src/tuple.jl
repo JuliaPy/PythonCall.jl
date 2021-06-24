@@ -1,3 +1,5 @@
+pynulltuple(len) = pynew(errcheck(C.PyTuple_New(len)))
+
 function pytuple_setitem(xs::Py, i, x)
     x_ = Py(x)
     err = C.PyTuple_SetItem(getptr(xs), i, getptr(x_))
@@ -23,8 +25,6 @@ function pytuple_fromiter(xs)
         return ans
     end
 end
-
-pynulltuple(len=0) = pynew(errcheck(C.PyTuple_New(len)))
 
 pytuple() = pynulltuple(0)
 pytuple(x) = ispy(x) ? pybuiltins.tuple(x) : pytuple_fromiter(x)

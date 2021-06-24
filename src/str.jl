@@ -11,3 +11,9 @@ export pystr
 pystr_asUTF8bytes(x::Py) = pynew(errcheck(C.PyUnicode_AsUTF8String(getptr(x))))
 pystr_asUTF8vector(x::Py) = (b=pystr_asUTF8bytes(x); ans=pybytes_asvector(b); pydel!(b); ans)
 pystr_asstring(x::Py) = (b=pystr_asUTF8bytes(x); ans=pybytes_asUTF8string(b); pydel!(b); ans)
+
+function pystr_intern!(x::Py)
+    ptr = Ref(getptr(x))
+    C.PyUnicode_InternInPlace(ptr)
+    setptr!(x, ptr[])
+end

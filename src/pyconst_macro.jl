@@ -11,6 +11,6 @@ Do not use this macro at the top level of a module. Instead, use `pynew()` and `
 """
 macro pyconst(ex)
     x = pynew()
-    :(ispynull($x) ? pycopy!($x, Py($ex)) : $x)
+    :(ispynull($x) ? pycopy!($x, Py($(esc(ex)))) : $x)
 end
 export @pyconst

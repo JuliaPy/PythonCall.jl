@@ -78,10 +78,10 @@ const PY_MACRO_TERNOPS = Dict(
     :slice => (pyslice, true),
 )
 
-mutable struct PyMacroState
+Base.@kwdef mutable struct PyMacroState
     mod :: Module
     src :: LineNumberNode
-    consts :: Vector{Any}
+    consts :: IdDict{Any,Py} = IdDict{Any,Py}()
 end
 
 function py_macro_err(st, ex, msg=nothing)
@@ -100,17 +100,9 @@ py_macro_del(body, var, tmp) = if tmp; push!(body, :($pydel!($var))); end
 
 function py_macro_lower(st, body, ans, ex; flavour=:expr)
 
-    # string literal
-    if ex isa String
-        x = pynew()
-        push!(st.consts, :($pycopy!($x, $pystr_intern!($pystr($ex)))))
-        py_macro_assign(body, ans, x)
-        return false
-
     # scalar literals
-    elseif ex isa Union{Nothing, String, Bool, Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128, BigInt, Float16, Float32, Float64}
-        x = pynew()
-        push!(st.consts, :($pycopy!($x, $Py($ex))))
+    if ex isa Union{Nothing, String, Bool, Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128, BigInt, Float16, Float32, Float64}
+        x = get!(pynew, st.consts, ex)
         py_macro_assign(body, ans, x)
         return false
 
@@ -621,11 +613,20 @@ end
 function py_macro(ex, mod, src)
     body = []
     @gensym ans
-    st = PyMacroState(mod, src, [])
+    st = PyMacroState(mod=mod, src=src)
     py_macro_lower(st, body, ans, ex)
     if !isempty(st.consts)
-        initconsts = Ref(true)
-        pushfirst!(body, Expr(:if, :($initconsts[]), Expr(:block, st.consts..., :($initconsts[] = false))))
+        doinit = Ref(true)
+        inits = []
+        for (v, x) in st.consts
+            if v isa String
+                push!(inits, :($pycopy!($x, $pystr_intern!($pystr($v)))))
+            else
+                push!(inits, :($pycopy!($x, $Py($v))))
+            end
+        end
+        push!(inits, :($doinit[] = false))
+        pushfirst!(body, Expr(:if, :($doinit[]), Expr(:block, inits...)))
     end
     pushfirst!(body, src)
     Expr(:block, body..., ans)

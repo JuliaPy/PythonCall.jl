@@ -24,5 +24,5 @@ function pyint(x::Unsigned)
         pyint_fallback(x)
     end
 end
-pyint(x) = ispy(x) ? pynew(errcheck(C.PyNumber_Long(getptr(x)))) : pyint(convert(Integer, x))
+pyint(x) = @autopy x pynew(errcheck(C.PyNumber_Long(getptr(x_))))
 export pyint

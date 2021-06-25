@@ -70,12 +70,20 @@ pyconvert_fix(::Type{T}, func) where {T} = x -> func(T, x)
 
 const PYCONVERT_RULES_CACHE = Dict{C.PyPtr, Dict{Type, Vector{Function}}}()
 
-pyconvert_rule_fast(::Type{T}, x) where {T} = pyconvert_unconverted()
+function pyconvert_rule_fast(::Type{T}, x::Py) where {T}
+    if T isa Union
+        a = pyconvert_rule_fast(T.a, x) :: pyconvert_returntype(T.a)
+        pyconvert_isunconverted(a) || return a
+        b = pyconvert_rule_fast(T.b, x) :: pyconvert_returntype(T.b)
+        pyconvert_isunconverted(b) || return b
+    end
+    pyconvert_unconverted()
+end
 
 pytryconvert(::Type{T}, x) where {T} = @autopy x begin
     # We can optimize the conversion for some types by overloading pytryconvert_fast.
     # It MUST give the same results as via the slower route using rules.
-    ans = pyconvert_rule_fast(T, x) :: pyconvert_returntype(T)
+    ans = pyconvert_rule_fast(T, getpy(x_)) :: pyconvert_returntype(T)
     pyconvert_isunconverted(ans) || return ans
     # get rules from the cache
     # TODO: we should hold weak references and clear the cache if types get deleted
@@ -89,7 +97,7 @@ pytryconvert(::Type{T}, x) where {T} = @autopy x begin
     rules = trules[T]
     # apply the rules
     for rule in rules
-        ans = rule(x_) :: pyconvert_returntype(T)
+        ans = rule(getpy(x_)) :: pyconvert_returntype(T)
         pyconvert_isunconverted(ans) || return ans
     end
     return pyconvert_unconverted()
@@ -120,10 +128,14 @@ function init_pyconvert()
     pyconvert_add_rule("builtins/NoneType", Nothing, pyconvert_rule_none, 100)
     pyconvert_add_rule("builtins/bool", Bool, pyconvert_rule_bool, 100)
     pyconvert_add_rule("builtins/float", Float64, pyconvert_rule_float, 100)
+    pyconvert_add_rule("builtins/complex", Float64, pyconvert_rule_complex, 100)
     # priority 0: reasonable
     pyconvert_add_rule("builtins/NoneType", Missing, pyconvert_rule_none)
     pyconvert_add_rule("builtins/bool", Number, pyconvert_rule_bool)
     pyconvert_add_rule("builtins/float", Number, pyconvert_rule_float)
+    pyconvert_add_rule("builtins/float", Nothing, pyconvert_rule_float)
+    pyconvert_add_rule("builtins/float", Missing, pyconvert_rule_float)
+    pyconvert_add_rule("builtins/complex", Number, pyconvert_rule_complex)
     # priority -100: fallbacks
     pyconvert_add_rule("builtins/object", Py, pyconvert_rule_object, -100)
     # priority -200: explicit

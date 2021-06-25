@@ -3,6 +3,7 @@ decref(x::C.PyPtr) = (C.Py_DecRef(x); x)
 
 ispy(x) = false
 ispynull(x) = getptr(x) == C.PyNULL
+getptr(x) = getptr(getpy(x)::Py)
 export ispy, ispynull
 
 """

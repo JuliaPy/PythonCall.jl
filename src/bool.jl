@@ -3,7 +3,18 @@ pybool(x::Number) = pybool(!iszero(x))
 pybool(x) = pybuiltins.bool(x)
 export pybool
 
-pybool_asbool(x) = @autopy x (getptr(x_) == C.POINTERS._Py_TrueStruct ? true : getptr(x_) == C.POINTERS._Py_FalseStruct ? false : error("not a bool"))
+pyisTrue(x) = pyis(x, pybuiltins.True)
+pyisFalse(x) = pyis(x, pybulitins.False)
+pyisbool(x) = pyisTrue(x) || pyisFalse(x)
+
+pybool_asbool(x) =
+    @autopy x if pyisTrue(x_)
+        true
+    elseif pyisFalse(x_)
+        false
+    else
+        error("not a bool")
+    end
 
 function pyconvert_rule_bool(::Type{T}, x::Py) where {T<:Number}
     val = pybool_asbool(x)
@@ -14,4 +25,11 @@ function pyconvert_rule_bool(::Type{T}, x::Py) where {T<:Number}
     end
 end
 
-pyconvert_rule_fast(::Type{Bool}, x) = @autopy x (getptr(x_) == C.POINTERS._Py_TrueStruct ? pyconvert_return(true) : getptr(x_) == C.POINTERS._Py_FalseStruct ? pyconvert_return(false) : pyconvert_unconverted())
+pyconvert_rule_fast(::Type{Bool}, x::Py) =
+    if pyisTrue(x)
+        pyconvert_return(true)
+    elseif pyisFalse(x)
+        pyconvert_return(false)
+    else
+        pyconvert_unconverted()
+    end

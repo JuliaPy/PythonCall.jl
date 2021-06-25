@@ -70,8 +70,15 @@ pyconvert_fix(::Type{T}, func) where {T} = x -> func(T, x)
 
 const PYCONVERT_RULES_CACHE = Dict{C.PyPtr, Dict{Type, Vector{Function}}}()
 
+pyconvert_rule_fast(::Type{T}, x) where {T} = pyconvert_unconverted()
+
 pytryconvert(::Type{T}, x) where {T} = @autopy x begin
+    # We can optimize the conversion for some types by overloading pytryconvert_fast.
+    # It MUST give the same results as via the slower route using rules.
+    ans = pyconvert_rule_fast(T, x) :: pyconvert_returntype(T)
+    pyconvert_isunconverted(ans) || return ans
     # get rules from the cache
+    # TODO: we should hold weak references and clear the cache if types get deleted
     tptr = C.Py_Type(getptr(x_))
     trules = get!(Dict{Type, Vector{PyConvertRule}}, PYCONVERT_RULES_CACHE, tptr)
     if !haskey(trules, T)

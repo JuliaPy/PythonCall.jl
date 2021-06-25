@@ -13,3 +13,5 @@ function pyconvert_rule_bool(::Type{T}, x::Py) where {T<:Number}
         pyconvert_tryconvert(T, val)
     end
 end
+
+pyconvert_rule_fast(::Type{Bool}, x) = @autopy x (getptr(x_) == C.POINTERS._Py_TrueStruct ? pyconvert_return(true) : getptr(x_) == C.POINTERS._Py_FalseStruct ? pyconvert_return(false) : pyconvert_unconverted())

@@ -1,10 +1,21 @@
-errcheck() = C.PyErr_Occurred() == C.PyNULL ? nothing : pythrow()
-errcheck(ptr::C.PyPtr) = ptr == C.PyNULL ? pythrow() : ptr
-errcheck(val::Number) = val == (zero(val) - one(val)) ? pythrow() : val
-errcheck_ambig(ptr::C.PyPtr) = (ptr == C.PyNULL && errcheck(); ptr)
-errcheck_ambig(val::Number) = (val == (zero(val) - one(val)) && errcheck(); val)
+errval(::C.PyPtr) = C.PyNULL
+errval(::T) where {T<:Number} = zero(T) - one(T)
+
+iserrval(val) = val == errval(val)
+
+iserrset() = C.PyErr_Occurred() != C.PyNULL
+iserrset(val) = val == errval(val)
+
+errcheck() = iserrset() ? pythrow() : nothing
+errcheck(val) = iserrset(val) ? pythrow() : val
+
+iserrset_ambig(val) = iserrset(val) && iserrset()
+
+errcheck_ambig(val) = iserrset_ambig(val) ? pythrow() : val
 
 errclear() = C.PyErr_Clear()
+
+errmatches(t) = (@autopy t C.PyErr_ExceptionMatches(getptr(t_))) == 1
 
 function errget()
     t = Ref(C.PyNULL)

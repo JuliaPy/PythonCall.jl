@@ -25,7 +25,7 @@ else
     pyconvert_unconverted() = false
     pyconvert_returntype(::Type{T}) where {T} = Bool
     pyconvert_isunconverted(r::Bool) = !r
-    pyconvert_result(r::Bool) = PYCONVERT_RESULT[]
+    pyconvert_result(r::Bool) = (ans = PYCONVERT_RESULT[]; PYCONVERT_RESULT[] = nothing; ans)
 end
 
 pyconvert_tryconvert(::Type{T}, x::T) where {T} = pyconvert_return(x)
@@ -128,7 +128,8 @@ function init_pyconvert()
     pyconvert_add_rule("builtins/NoneType", Nothing, pyconvert_rule_none, 100)
     pyconvert_add_rule("builtins/bool", Bool, pyconvert_rule_bool, 100)
     pyconvert_add_rule("builtins/float", Float64, pyconvert_rule_float, 100)
-    pyconvert_add_rule("builtins/complex", Float64, pyconvert_rule_complex, 100)
+    pyconvert_add_rule("builtins/complex", Complex{Float64}, pyconvert_rule_complex, 100)
+    pyconvert_add_rule("builtins/int", Integer, pyconvert_rule_int, 100)
     # priority 0: reasonable
     pyconvert_add_rule("builtins/NoneType", Missing, pyconvert_rule_none)
     pyconvert_add_rule("builtins/bool", Number, pyconvert_rule_bool)
@@ -136,6 +137,7 @@ function init_pyconvert()
     pyconvert_add_rule("builtins/float", Nothing, pyconvert_rule_float)
     pyconvert_add_rule("builtins/float", Missing, pyconvert_rule_float)
     pyconvert_add_rule("builtins/complex", Number, pyconvert_rule_complex)
+    pyconvert_add_rule("builtins/int", Number, pyconvert_rule_int)
     # priority -100: fallbacks
     pyconvert_add_rule("builtins/object", Py, pyconvert_rule_object, -100)
     # priority -200: explicit

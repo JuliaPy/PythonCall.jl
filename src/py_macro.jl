@@ -106,6 +106,14 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         py_macro_assign(body, ans, x)
         return false
 
+    # __file__
+    elseif ex === :__file__
+        return py_macro_lower(st, body, ans, string(st.src.file))
+
+    # __line__
+    elseif ex === :__line__
+        return py_macro_lower(st, body, ans, st.src.line)
+
     # x
     elseif ex isa Symbol
         if ex in BUILTINS

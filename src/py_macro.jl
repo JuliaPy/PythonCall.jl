@@ -539,6 +539,12 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         end
         py_macro_assign(body, ans, nothing)
         return false
+
+    # "...$foo..."
+    elseif isexpr(ex, :string)
+        args = [a isa String ? a : :(str($a)) for a in ex.args]
+        return py_macro_lower(st, body, ans, :("".join(($(args...),))))
+
     end
 
     py_macro_err(st, ex)

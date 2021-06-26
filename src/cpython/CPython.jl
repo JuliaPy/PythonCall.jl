@@ -6,14 +6,18 @@ This module provides a direct interface to the Python C API.
 module C
 
 import Base: @kwdef
-using Conda, Libdl, Requires, UnsafePointers
+using Conda, Libdl, Requires, UnsafePointers, ..Utils
 
 include("consts.jl")
 include("pointers.jl")
 include("extras.jl")
 include("context.jl")
 include("gil.jl")
+include("jlwrap.jl")
 
-__init__() = init_context()
+function __init__()
+    init_context()
+    init_jlwrap()
+end
 
 end

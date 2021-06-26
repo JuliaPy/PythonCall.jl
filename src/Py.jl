@@ -174,6 +174,8 @@ function Base.iterate(x::Py, it::Py=pyiter(x))
     end
 end
 
+Base.in(v, x::Py) = pycontains(x, v)
+
 (f::Py)(args...; kwargs...) = pycall(f, args...; kwargs...)
 
 # comparisons

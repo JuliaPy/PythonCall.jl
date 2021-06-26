@@ -265,35 +265,6 @@ function init_context()
             "Only Python 3 is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
         )
 
-#         # set up the 'juliacall' module
-#         @py ```
-#         import sys
-#         if $(CONFIG.isembedded):
-#             jl = sys.modules["juliacall"]
-#         elif "juliacall" in sys.modules:
-#             raise ImportError("'juliacall' module already exists")
-#         else:
-#             jl = sys.modules["juliacall"] = type(sys)("juliacall")
-#             jl.CONFIG = dict()
-#         jl.Main = $(pyjl(Main))
-#         jl.Base = $(pyjl(Base))
-#         jl.Core = $(pyjl(Core))
-#         code = """
-#         def newmodule(name):
-#             "A new module with the given name."
-#             return Base.Module(Base.Symbol(name))
-#         class As:
-#             "Interpret 'value' as type 'type' when converting to Julia."
-#             __slots__ = ("value", "type")
-#             def __init__(self, value, type):
-#                 self.value = value
-#                 self.type = type
-#             def __repr__(self):
-#                 return "juliacall.As({!r}, {!r})".format(self.value, self.type)
-#         """
-#         exec(code, jl.__dict__)
-#         ```
-
 #         # EXPERIMENTAL: hooks to perform actions when certain modules are loaded
 #         if !CONFIG.isembedded
 #             @py ```

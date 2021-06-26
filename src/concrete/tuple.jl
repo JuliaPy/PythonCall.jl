@@ -29,3 +29,5 @@ end
 pytuple() = pynulltuple(0)
 pytuple(x) = ispy(x) ? pybuiltins.tuple(x) : pytuple_fromiter(x)
 export pytuple
+
+pyistuple(x) = pytypecheckfast(x, C.Py_TPFLAGS_TUPLE_SUBCLASS)

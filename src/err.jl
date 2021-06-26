@@ -79,7 +79,7 @@ end
 function Base.showerror(io::IO, e::PyException)
     print(io, "Python: ")
 
-    if pyis(e.t, pybuiltins.None)
+    if pyisnone(e.t)
         print(io, "mysterious error (no error was actually set)")
         return
     end
@@ -95,48 +95,48 @@ function Base.showerror(io::IO, e::PyException)
         end
     end
 
-    # # if this is a Julia exception then recursively print it and its stacktrace
-    # if C.PyErr_GivenExceptionMatches(e.tref, C.PyExc_JuliaError()) != 0
-    #     try
-    #         # Extract error value
-    #         vo = @pyv `$(e.vref).args[0]`::Any
-    #         if vo isa Tuple{Exception,Any}
-    #             je, jb = vo
-    #         else
-    #             je = vo
-    #             jb = nothing
-    #         end
-    #         print(io, "Julia: ")
-    #         # Show exception
-    #         if je isa Exception
-    #             showerror(io, je)
-    #         else
-    #             print(io, je)
-    #         end
-    #         # Show backtrace
-    #         if jb === nothing
-    #             println(io)
-    #             printstyled(io, "Stacktrace: none")
-    #         else
-    #             io2 = IOBuffer()
-    #             Base.show_backtrace(
-    #                 IOContext(io2, io),
-    #                 jb,
-    #             )
-    #             printstyled(io, String(take!(io2)))
-    #         end
-    #         # Show Python backtrace
-    #         if isnull(e.bref)
-    #             println(io)
-    #             printstyled(io, "Python stacktrace: none")
-    #             return
-    #         else
-    #             @goto pystacktrace
-    #         end
-    #     catch err
-    #         println("<error while printing Julia exception inside Python exception: $err>")
-    #     end
-    # end
+    # if this is a Julia exception then recursively print it and its stacktrace
+    if pyissubclass(e.t, pyJuliaError)
+        try
+            # Extract error value
+            vo = pyconvert(Any, e.v.args[0])
+            if vo isa Tuple{Exception,Any}
+                je, jb = vo
+            else
+                je = vo
+                jb = nothing
+            end
+            print(io, "Julia: ")
+            # Show exception
+            if je isa Exception
+                showerror(io, je)
+            else
+                print(io, je)
+            end
+            # Show backtrace
+            if jb === nothing
+                println(io)
+                printstyled(io, "Stacktrace: none")
+            else
+                io2 = IOBuffer()
+                Base.show_backtrace(
+                    IOContext(io2, io),
+                    jb,
+                )
+                printstyled(io, String(take!(io2)))
+            end
+            # Show Python backtrace
+            if pyisnone(e.b)
+                println(io)
+                printstyled(io, "Python stacktrace: none")
+                return
+            else
+                @goto pystacktrace
+            end
+        catch err
+            println("<error while printing Julia exception inside Python exception: $err>")
+        end
+    end
 
     # print the type name
     try
@@ -146,7 +146,7 @@ function Base.showerror(io::IO, e::PyException)
     end
 
     # print the error message
-    if !pyis(e.v, pybuiltins.None)
+    if !pyisnone(e.v)
         print(io, ": ")
         try
             print(io, e.v)
@@ -156,7 +156,7 @@ function Base.showerror(io::IO, e::PyException)
     end
 
     # print the stacktrace
-    if !pyis(e.b, pybuiltins.None)
+    if !pyisnone(e.b)
         @label pystacktrace
         println(io)
         printstyled(io, "Python stacktrace:")

@@ -309,15 +309,13 @@ end
 
 const PyTypePtr = Ptr{PyTypeObject}
 
-struct PySimpleObject{T}
-    ob_base::PyObject
+@kwdef struct PySimpleObject{T}
+    ob_base::PyObject = PyObject()
     value::T
 end
 
-PySimpleObject_GetValue(__o, ::Type{T}) where {T} = begin
-    _o = Base.cconvert(PyPtr, __o)
-    GC.@preserve _o begin
-        o = Base.unsafe_convert(PyPtr, _o)
-        UnsafePtr{PySimpleObject{T}}(o).value[!]::T
-    end
+@kwdef struct PyJuliaValueObject
+    ob_base::PyObject = PyObject()
+    value::Ptr{Cvoid} = C_NULL
+    weaklist::PyPtr = C_NULL
 end

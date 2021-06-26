@@ -30,6 +30,7 @@ const CAPI_FUNC_SIGS = Dict{Symbol, Pair{Tuple, Type}}(
     # MODULE
     :PyModule_GetDict => (PyPtr,) => PyPtr, # borrowed
     # ERRORS
+    :PyErr_Print => () => Cvoid,
     :PyErr_Occurred => () => PyPtr, # borrowed
     :PyErr_ExceptionMatches => (PyPtr,) => Cint,
     :PyErr_GivenExceptionMatches => (PyPtr, PyPtr) => Cint,
@@ -264,6 +265,7 @@ const CAPI_OBJECTS = Set([
     $([:($name :: Ptr{Cvoid} = C_NULL) for name in CAPI_FUNCS]...)
     $([:($name :: PyPtr = C_NULL) for name in CAPI_EXCEPTIONS]...)
     $([:($name :: PyPtr = C_NULL) for name in CAPI_OBJECTS]...)
+    PyJuliaBase_Type :: PyPtr = C_NULL
 end
 
 const POINTERS = CAPIPointers()

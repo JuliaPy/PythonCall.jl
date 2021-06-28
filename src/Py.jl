@@ -88,7 +88,7 @@ Py(x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,Big
 Py(x::Union{Float16,Float32,Float64}) = pyfloat(x)
 Py(x::Complex{<:Union{Float16,Float32,Float64}}) = pycomplex(x)
 Py(x::AbstractRange{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = pyrange_fromrange(x)
-Py(x) = ispy(x) ? Py(getpy(x)) : error("cannot convert this $(typeof(x)) to a Python object")
+Py(x) = ispy(x) ? Py(getpy(x)) : pyjl(x)
 
 Base.string(x::Py) = ispynull(x) ? "<py NULL>" : pystr(String, x)
 Base.print(io::IO, x::Py) = print(io, string(x))

@@ -1,5 +1,6 @@
 module PythonCall
 
+using Base: Core
 using MacroTools
 
 include("utils.jl")
@@ -34,6 +35,10 @@ include("concrete/type.jl")
 # jlwrap
 include("jlwrap/base.jl")
 include("jlwrap/raw.jl")
+include("jlwrap/any.jl")
+include("jlwrap/module.jl")
+include("jlwrap/type.jl")
+include("jlwrap/iter.jl")
 # misc
 include("with.jl")
 include("multimedia.jl")
@@ -47,6 +52,11 @@ function __init__()
     init_juliacall()
     init_jlwrap_base()
     init_jlwrap_raw()
+    init_jlwrap_any()
+    init_jlwrap_module()
+    init_jlwrap_type()
+    init_jlwrap_iter()
+    init_juliacall_2()
 end
 
 end

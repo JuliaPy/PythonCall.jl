@@ -43,7 +43,7 @@ end
 
 pyjlraw_len(self) = Py(length(self))
 
-pyjlraw_getitem(self, k_::Py) =
+function pyjlraw_getitem(self, k_::Py)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
         pyjlraw(self[k...])
@@ -51,6 +51,7 @@ pyjlraw_getitem(self, k_::Py) =
         k = pyconvert(Any, k_)
         pyjlraw(self[k])
     end
+end
 
 function pyjlraw_setitem(self, k_::Py, v_::Py)
     v = pyconvert(Any, v_)
@@ -60,6 +61,17 @@ function pyjlraw_setitem(self, k_::Py, v_::Py)
     else
         k = pyconvert(Any, k_)
         self[k] = v
+    end
+    Py(nothing)
+end
+
+function pyjlraw_delitem(self, k_::Py)
+    if pyistuple(k_)
+        k = pyconvert(Vector{Any}, k_)
+        delete!(self, k...)
+    else
+        k = pyconvert(Any, k_)
+        delete!(self, k)
     end
     Py(nothing)
 end
@@ -107,8 +119,12 @@ function init_jlwrap_raw()
             return self._jl_callmethod($(pyjl_methodnum(pyjlraw_getitem)), k)
         def __setitem__(self, k, v):
             self._jl_callmethod($(pyjl_methodnum(pyjlraw_setitem)), k, v)
+        def __delitem__(self, k):
+            self._jl_callmethod($(pyjl_methodnum(pyjlraw_delitem)), k)
         def __bool__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlraw_bool)))
+        def _jl_any(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjl)))
     """, filename, "exec"), jl.__dict__)
     pycopy!(pyjlrawtype, jl.RawValue)
 end

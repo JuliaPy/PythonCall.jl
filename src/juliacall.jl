@@ -19,20 +19,23 @@ function init_juliacall()
         jl.CONFIG = pydict()
         sys.modules["juliacall"] = jl
     end
+end
 
-    # TODO: assign Main, Base and Core julia modules
-    # jl.Main = pyjl(Main)
-    # jl.Base = pyjl(Base)
-    # jl.Core = pyjl(Core)
+function init_juliacall_2()
+    jl = pyjuliacallmodule
+    jl.Main = Main
+    jl.Core = Core
+    jl.Base = Base
 
-    # define a few more things
-    pybuiltins.exec("""
+    filename = "$(@__FILE__):$(1+@__LINE__)"
+    pybuiltins.exec(pybuiltins.compile("""
     def newmodule(name):
         "A new module with the given name."
         return Base.Module(Base.Symbol(name))
     class As:
         "Interpret 'value' as type 'type' when converting to Julia."
         __slots__ = ("value", "type")
+        __module__ = "juliacall"
         def __init__(self, value, type):
             self.value = value
             self.type = type
@@ -40,8 +43,9 @@ function init_juliacall()
             return "juliacall.As({!r}, {!r})".format(self.value, self.type)
     class JuliaError(Exception):
         "An error arising in Julia code."
+        __module__ = "juliacall"
         pass
-    """, jl.__dict__)
+    """, filename, "exec"), jl.__dict__)
     pycopy!(pyJuliaError, jl.JuliaError)
 end
 

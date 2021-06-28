@@ -10,11 +10,19 @@ export pyjl
 pyisjl(x) = pytypecheck(x, pyjlbasetype)
 export pyisjl
 
-pyjlvalue(x) = @autopy x begin
+pyjlisnull(x) = @autopy x begin
     if pyisjl(x_)
-        _pyjl_getvalue(x_)
+        C.PyJuliaValue_IsNull(getptr(x_))
     else
         error("Expecting a 'juliacall.ValueBase', got a '$(pytype(x_).__name__)'")
+    end
+end
+
+pyjlvalue(x) = @autopy x begin
+    if pyjlisnull(x_)
+        error("Julia value is NULL")
+    else
+        _pyjl_getvalue(x_)
     end
 end
 export pyjlvalue
@@ -28,24 +36,28 @@ pyconvert_rule_jlvalue(::Type{T}, x::Py) where {T} = pyconvert_tryconvert(T, _py
 
 function C._pyjl_callmethod(f::Function, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssize_t)
     @nospecialize f
+    if C.PyJuliaValue_IsNull(self_)
+        errset(pybuiltins.TypeError, "Julia object is NULL")
+        return C.PyNULL
+    end
     in_f = false
     self = C.PyJuliaValue_GetValue(self_)
     try
         if nargs == 1
             in_f = true
-            ans = f(self)
+            ans = f(self)::Py
             in_f = false
         elseif nargs == 2
             arg1 = pynew(incref(C.PyTuple_GetItem(args_, 1)))
             in_f = true
-            ans = f(self, arg1)
+            ans = f(self, arg1)::Py
             in_f = false
             pydel!(arg1)
         elseif nargs == 3
             arg1 = pynew(incref(C.PyTuple_GetItem(args_, 1)))
             arg2 = pynew(incref(C.PyTuple_GetItem(args_, 2)))
             in_f = true
-            ans = f(self, arg1, arg2)
+            ans = f(self, arg1, arg2)::Py
             in_f = false
             pydel!(arg1)
             pydel!(arg2)
@@ -54,7 +66,7 @@ function C._pyjl_callmethod(f::Function, self_::C.PyPtr, args_::C.PyPtr, nargs::
             arg2 = pynew(incref(C.PyTuple_GetItem(args_, 2)))
             arg3 = pynew(incref(C.PyTuple_GetItem(args_, 3)))
             in_f = true
-            ans = f(self, arg1, arg2, arg3)
+            ans = f(self, arg1, arg2, arg3)::Py
             in_f = false
             pydel!(arg1)
             pydel!(arg2)
@@ -62,7 +74,7 @@ function C._pyjl_callmethod(f::Function, self_::C.PyPtr, args_::C.PyPtr, nargs::
         else
             errset(pybuiltins.NotImplementedError, "__jl_callmethod not implemented for this many arguments")
         end
-        ptr = getptr(ans::Py)
+        ptr = getptr(ans)
         pystolen!(ans)
         return ptr
     catch exc
@@ -71,9 +83,9 @@ function C._pyjl_callmethod(f::Function, self_::C.PyPtr, args_::C.PyPtr, nargs::
         else
             try
                 if in_f
-                    pyjl_handle(f, self, exc)
+                    pyjl_handle_error(f, self, exc)
                 else
-                    errset(pyJuliaError, Py(pyjlraw((exc, catch_backtrace()))))
+                    errset(pyJuliaError, pyjlraw((exc, catch_backtrace())))
                 end
             catch
                 errset(pyJuliaError, "an error occurred while setting an error")
@@ -83,11 +95,11 @@ function C._pyjl_callmethod(f::Function, self_::C.PyPtr, args_::C.PyPtr, nargs::
     end
 end
 
-function pyjl_handle(f, self, exc)
+function pyjl_handle_error(f, self, exc)
     @nospecialize f self exc
-    t = pyjl_handle_type(f, self, exc)
+    t = pyjl_handle_error_type(f, self, exc)
     if ispynull(t)
-        errset(pyJuliaError, Py(pyjlraw((exc, catch_backtrace()))))
+        errset(pyJuliaError, pyjlraw((exc, catch_backtrace())))
     else
         errset(t, Py(sprint(showerror, exc)))
     end
@@ -95,8 +107,4 @@ end
 
 pyjl_methodnum(@nospecialize(f)) = C.PyJulia_MethodNum(f)
 
-macro pyjlmethods_str(s)
-    replace(s, r"\$[a-zA-Z0-9_]+\(" => x -> string("_jl_callmethod(", pyjl_methodnum(__module__.eval(Symbol(x[2:end-1]))), ", "))
-end
-
-pyjl_handle_type(f, self, exc) = pynew()
+pyjl_handle_error_type(f, self, exc) = PyNULL

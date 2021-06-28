@@ -40,6 +40,8 @@ pynew() =
         pop!(PYNULL_CACHE)
     end
 
+const PyNULL = pynew()
+
 pynew(ptr::C.PyPtr) = setptr!(pynew(), ptr)
 
 # assumes dst is NULL
@@ -144,7 +146,7 @@ function Base.propertynames(x::Py, private::Bool=false)
         words.update(classmembers(x.__class__))
     end
     words = map(pystr_asstring, words)
-    private || filter!(w->!startswith(w, "_"), words)
+    # private || filter!(w->!startswith(w, "_"), words)
     map(Symbol, words)
 end
 

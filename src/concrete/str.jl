@@ -28,3 +28,5 @@ pyconvert_rule_str(::Type{Char}, x::Py) = begin
         pyconvert_unconverted()
     end
 end
+
+pyisstr(x) = pytypecheckfast(x, C.Py_TPFLAGS_UNICODE_SUBCLASS)

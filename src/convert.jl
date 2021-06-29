@@ -121,6 +121,16 @@ pyconvert(::Type{T}, x, d) where {T} = @autopy x begin
 end
 export pyconvert
 
+pyconvertarg(::Type{T}, x, name) where {T} = @autopy x begin
+    ans = pytryconvert(T, x_)
+    if pyconvert_isunconverted(ans)
+        errset(pybuiltins.TypeError, "Cannot convert argument '$name' to a Julia '$T', got a '$(pytype(x_).__name__)'")
+        pythrow()
+    else
+        pyconvert_result(ans)::T
+    end
+end
+
 function init_pyconvert()
     # priority 300: jlwrap
     pyconvert_add_rule("juliacall/ValueBase", Any, pyconvert_rule_jlvalue, 300)

@@ -101,7 +101,7 @@ function pyjl_handle_error(f, self, exc)
     if ispynull(t)
         errset(pyJuliaError, pyjlraw((exc, catch_backtrace())))
     else
-        errset(t, Py(sprint(showerror, exc)))
+        errset(t, string("Julia: ", Py(sprint(showerror, exc))))
     end
 end
 

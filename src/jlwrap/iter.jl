@@ -29,7 +29,7 @@ function init_jlwrap_iter()
     jl = pyjuliacallmodule
     filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
-    class IteratorValue(ValueBase):
+    class IteratorValue(AnyValue):
         __slots__ = ()
         __module__ = "juliacall"
         def __iter__(self):

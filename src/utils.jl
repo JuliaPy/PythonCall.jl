@@ -96,4 +96,30 @@ module Utils
         return mimes
     end
 
+    @generated _typeintersect(::Type{T1}, ::Type{T2}) where {T1,T2} = typeintersect(T1, T2)
+
+    @generated _type_ub(::Type{T}) where {T} = begin
+        S = T
+        while S isa UnionAll
+            S = S{S.var.ub}
+        end
+        S
+    end
+
+    @generated _type_lb(::Type{T}) where {T} = begin
+        R = T
+        while R isa UnionAll
+            R = R.body
+        end
+        if R isa DataType
+            S = T
+            while S isa UnionAll
+                S = S{S.var in R.parameters ? S.var.lb : S.var.ub}
+            end
+            S
+        else
+            _type_ub(T)
+        end
+    end
+
 end

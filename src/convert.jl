@@ -132,9 +132,9 @@ pyconvertarg(::Type{T}, x, name) where {T} = @autopy x begin
 end
 
 function init_pyconvert()
-    # priority 300: jlwrap
-    pyconvert_add_rule("juliacall/ValueBase", Any, pyconvert_rule_jlvalue, 300)
+    # priority 300: wrapped julia values
     pyconvert_add_rule("juliacall/As", Any, pyconvert_rule_jlas, 300)
+    pyconvert_add_rule("juliacall/ValueBase", Any, pyconvert_rule_jlvalue, 300)
     # priority 200: arrays
     # priority 100: canonical
     pyconvert_add_rule("builtins/NoneType", Nothing, pyconvert_rule_none, 100)
@@ -143,6 +143,8 @@ function init_pyconvert()
     pyconvert_add_rule("builtins/complex", Complex{Float64}, pyconvert_rule_complex, 100)
     pyconvert_add_rule("builtins/int", Integer, pyconvert_rule_int, 100)
     pyconvert_add_rule("builtins/str", String, pyconvert_rule_str, 100)
+    pyconvert_add_rule("builtins/bytes", Base.CodeUnits{UInt8,String}, pyconvert_rule_bytes, 100)
+    pyconvert_add_rule("builtins/range", StepRange{<:Integer,<:Integer}, pyconvert_rule_range, 100)
     # priority 0: reasonable
     pyconvert_add_rule("builtins/NoneType", Missing, pyconvert_rule_none)
     pyconvert_add_rule("builtins/bool", Number, pyconvert_rule_bool)
@@ -153,6 +155,8 @@ function init_pyconvert()
     pyconvert_add_rule("builtins/int", Number, pyconvert_rule_int)
     pyconvert_add_rule("builtins/str", Symbol, pyconvert_rule_str)
     pyconvert_add_rule("builtins/str", Char, pyconvert_rule_str)
+    pyconvert_add_rule("builtins/bytes", Vector{UInt8}, pyconvert_rule_bytes)
+    pyconvert_add_rule("builtins/range", UnitRange{<:Integer}, pyconvert_rule_range)
     # priority -100: fallbacks
     pyconvert_add_rule("builtins/object", Py, pyconvert_rule_object, -100)
     # priority -200: explicit

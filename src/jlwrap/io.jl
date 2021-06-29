@@ -54,14 +54,79 @@ pyjl_handle_error_type(::typeof(pyjlio_truncate), io, exc) = exc isa MethodError
 pyjlio_writable(io::IO) = Py(iswritable(io))
 pyjl_handle_error_type(::typeof(pyjlio_writable), io, exc) = exc isa MethodError && exc.f === iswritable ? pybuiltins.ValueError : PyNULL
 
-function pyjltextio_read(io::IO, size_::Py)
+function pyjlbinaryio_read(io::IO, size_::Py)
     size = pyconvertarg(Union{Int,Nothing}, size_, "size")
     if size === nothing || size < 0
-        size = nothing
+        buf = read(io)
+    else
+        buf = read(io, size)
+    end
+    pybytes(buf)
+end
+pyjl_handle_error_type(::typeof(pyjlbinaryio_read), io, exc) = exc isa MethodError && exc.f === read ? pybuiltins.ValueError : PyNULL
+
+function pyjlbinaryio_readline(io::IO, size_::Py)
+    size = pyconvertarg(Union{Int,Nothing}, size_, "size")
+    if size === nothing
+        size = -1
+    end
+    buf = UInt8[]
+    while !eof(io) && (size < 0 || length(buf) < size)
+        c = read(io, UInt8)
+        push!(buf, c)
+        c == 0x0A && break
+    end
+    pybytes(buf)
+end
+pyjl_handle_error_type(::typeof(pyjlbinaryio_readline), io, exc) = exc isa MethodError && exc.f === read ? pybuiltins.ValueError : PyNULL
+
+function pyjlbinaryio_readinto(io::IO, b::Py)
+    m = pybuiltins.memoryview(b)
+    c = m.c_contiguous
+    if !pytruth(c)
+        pydel!(c)
+        errset(pybuiltins.ValueError, "input buffer is not contiguous")
+        return pynew()
+    end
+    pydel!(c)
+    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(getptr(m)))
+    if buf.readonly != 0
+        pydel!(m)
+        errset(pybuiltins.ValueError, "output buffer is read-only")
+        return pynew()
+    end
+    data = unsafe_wrap(Array, Ptr{UInt8}(buf.buf), buf.len)
+    nb = readbytes!(io, data)
+    pydel!(m)
+    return Py(nb)
+end
+pyjl_handle_error_type(::typeof(pyjlbinaryio_readinto), io, exc) = exc isa MethodError && exc.f === readbytes! ? pybuiltins.ValueError : PyNULL
+
+function pyjlbinaryio_write(io::IO, b::Py)
+    m = pybuiltins.memoryview(b)
+    c = m.c_contiguous
+    if !pytruth(c)
+        pydel!(c)
+        errset(pybuiltins.ValueError, "input buffer is not contiguous")
+        return pynew()
+    end
+    pydel!(c)
+    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(getptr(m)))
+    data = unsafe_wrap(Array, Ptr{UInt8}(buf.buf), buf.len)
+    write(io, data)
+    pydel!(m)
+    return Py(buf.len)
+end
+pyjl_handle_error_type(::typeof(pyjlbinaryio_write), io, exc) = exc isa MethodError && exc.f === write ? pybuiltins.ValueError : PyNULL
+
+function pyjltextio_read(io::IO, size_::Py)
+    size = pyconvertarg(Union{Int,Nothing}, size_, "size")
+    if size === nothing
+        size = -1
     end
     buf = IOBuffer()
     total = 0
-    while !eof(io) && (size === nothing || total < size)
+    while !eof(io) && (size < 0 || total < size)
         c = read(io, Char)
         # translate "\n", "\r" and "\r\n" to "\n"
         if c == '\r'
@@ -78,12 +143,12 @@ pyjl_handle_error_type(::typeof(pyjltextio_read), io, exc) = exc isa MethodError
 
 function pyjltextio_readline(io::IO, size_::Py)
     size = pyconvertarg(Union{Int,Nothing}, size_, "size")
-    if size === nothing || size < 0
-        size = nothing
+    if size === nothing
+        size = -1
     end
     buf = IOBuffer()
     total = 0
-    while !eof(io) && (size === nothing || total < size)
+    while !eof(io) && (size < 0 || total < size)
         c = read(io, Char)
         # translate "\n", "\r" and "\r\n" to "\n"
         if c == '\n'
@@ -187,24 +252,28 @@ function init_jlwrap_io()
         def __iter__(self):
             return self
         def __next__(self):
-            return self.readline()
+            line = self.readline()
+            if line:
+                return line
+            else:
+                raise StopIteration
     class BinaryIOValue(IOValueBase):
         __slots__ = ()
         __module__ = "juliacall"
         def detach(self):
             raise ValueError("Cannot detach '{}'.".format(type(self)))
         def read(self, size=-1):
-            raise NotImplementedError("read")
+            return self._jl_callmethod($(pyjl_methodnum(pyjlbinaryio_read)), size)
         def read1(self, size=-1):
             return self.read(size)
         def readline(self, size=-1):
-            raise NotImplementedError("readline")
+            return self._jl_callmethod($(pyjl_methodnum(pyjlbinaryio_readline)), size)
         def readinto(self, b):
-            raise NotImplementedError("readinto")
+            return self._jl_callmethod($(pyjl_methodnum(pyjlbinaryio_readinto)), b)
         def readinto1(self, b):
             return self.readinto(b)
         def write(self, b):
-            raise NotImplementedError("write")
+            return self._jl_callmethod($(pyjl_methodnum(pyjlbinaryio_write)), b)
     class TextIOValue(IOValueBase):
         __slots__ = ()
         __module__ = "juliacall"

@@ -239,6 +239,16 @@ end
     internal::Ptr{Cvoid} = C_NULL
 end
 
+@kwdef struct PyMemoryViewObject
+    ob_base::PyVarObject = PyVarObject()
+    mbuf::PyPtr = PyNULL
+    hash::Py_hash_t = 0
+    flags::Cint = 0
+    exports::Py_ssize_t = 0
+    view::Py_buffer = Py_buffer()
+    weakreflist::PyPtr = PyNULL
+end
+
 @kwdef struct PyTypeObject
     ob_base::PyVarObject = PyVarObject()
     name::Cstring = C_NULL

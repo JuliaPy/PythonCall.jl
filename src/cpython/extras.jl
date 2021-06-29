@@ -6,3 +6,5 @@ Py_TypeCheck(o::PyPtr, t::PyPtr) = PyType_IsSubtype(Py_Type(o), t)
 Py_TypeCheckFast(o::PyPtr, f::Integer) = PyType_IsSubtypeFast(Py_Type(o), f)
 
 PyType_IsSubtypeFast(t::PyPtr, f::Integer) = Cint(!iszero(UnsafePtr{PyTypeObject}(t).flags[] & f))
+
+PyMemoryView_GET_BUFFER(m::PyPtr) = Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(m).view)

@@ -1,6 +1,5 @@
 module PythonCall
 
-using Base: Core
 using MacroTools
 
 include("utils.jl")

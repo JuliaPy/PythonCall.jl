@@ -30,3 +30,7 @@ pyconvert_rule_str(::Type{Char}, x::Py) = begin
 end
 
 pyisstr(x) = pytypecheckfast(x, C.Py_TPFLAGS_UNICODE_SUBCLASS)
+
+pyconvert_rule_fast(::Type{String}, x::Py) = pyisstr(x) ? pyconvert_rule_str(String, x) : pyconvert_unconverted()
+pyconvert_rule_fast(::Type{Symbol}, x::Py) = pyisstr(x) ? pyconvert_rule_str(Symbol, x) : pyconvert_unconverted()
+pyconvert_rule_fast(::Type{Char}, x::Py) = pyisstr(x) ? pyconvert_rule_str(Char, x) : pyconvert_unconverted()

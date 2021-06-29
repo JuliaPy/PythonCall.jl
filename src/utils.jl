@@ -37,4 +37,63 @@ module Utils
         p, c
     end
 
+    """
+        ExtraNewline(x)
+
+    An object that displays the same as `x` but with an extra newline in text/plain.
+    """
+    struct ExtraNewline{T}
+        value :: T
+    end
+    Base.show(io::IO, m::MIME, x::ExtraNewline) = show(io, m, x.value)
+    Base.show(io::IO, m::MIME"text/csv", x::ExtraNewline) = show(io, m, x.value)
+    Base.show(io::IO, m::MIME"text/tab-separated-values", x::ExtraNewline) = show(io, m, x.value)
+    Base.show(io::IO, m::MIME"text/plain", x::ExtraNewline) = (show(io, m, x.value); println(io))
+    Base.showable(m::MIME, x::ExtraNewline) = showable(m, x.value)
+
+    const ALL_MIMES = [
+        "text/plain",
+        "text/html",
+        "text/markdown",
+        "text/json",
+        "text/latex",
+        "text/xml",
+        "text/csv",
+        "application/javascript",
+        "application/pdf",
+        "application/ogg",
+        "image/jpeg",
+        "image/png",
+        "image/svg+xml",
+        "image/gif",
+        "image/webp",
+        "image/tiff",
+        "image/bmp",
+        "audio/aac",
+        "audio/mpeg",
+        "audio/ogg",
+        "audio/opus",
+        "audio/webm",
+        "audio/wav",
+        "audio/midi",
+        "audio/x-midi",
+        "video/mpeg",
+        "video/ogg",
+        "video/webm",
+    ]
+
+    function mimes_for(x)
+        @nospecialize x
+        # default mimes we always try
+        mimes = copy(ALL_MIMES)
+        # look for mimes on show methods for this type
+        for meth in methods(show, Tuple{IO, MIME, typeof(x)}).ms
+            mimetype = meth.sig.parameters[3]
+            mimetype isa DataType || continue
+            mime = string(mimetype.parameters[1])
+            push!(mimes, mime)
+        end
+        return mimes
+    end
+
 end

@@ -15,9 +15,9 @@ function _pyjl_dealloc(o::PyPtr)
     nothing
 end
 
-const PYJLMETHODS = Vector{Function}()
+const PYJLMETHODS = Vector{Any}()
 
-function PyJulia_MethodNum(f::Function)
+function PyJulia_MethodNum(f)
     @nospecialize f
     push!(PYJLMETHODS, f)
     return length(PYJLMETHODS)

@@ -34,7 +34,7 @@ end
 
 pyconvert_rule_jlvalue(::Type{T}, x::Py) where {T} = pyconvert_tryconvert(T, _pyjl_getvalue(x))
 
-function C._pyjl_callmethod(f::Function, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssize_t)
+function C._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssize_t)
     @nospecialize f
     if C.PyJuliaValue_IsNull(self_)
         errset(pybuiltins.TypeError, "Julia object is NULL")
@@ -80,18 +80,20 @@ function C._pyjl_callmethod(f::Function, self_::C.PyPtr, args_::C.PyPtr, nargs::
     catch exc
         if exc isa PyException
             C.PyErr_Restore(incref(getptr(exc._t)), incref(getptr(exc._v)), incref(getptr(exc._b)))
+            return C.PyNULL
         else
             try
                 if in_f
-                    pyjl_handle_error(f, self, exc)
+                    return pyjl_handle_error(f, self, exc)
                 else
                     errset(pyJuliaError, pyjlraw((exc, catch_backtrace())))
+                    return C.PyNULL
                 end
             catch
                 errset(pyJuliaError, "an error occurred while setting an error")
+                return C.PyNULL
             end
         end
-        return C.PyNULL
     end
 end
 
@@ -99,9 +101,16 @@ function pyjl_handle_error(f, self, exc)
     @nospecialize f self exc
     t = pyjl_handle_error_type(f, self, exc)::Py
     if ispynull(t)
+        # NULL => raise JuliaError
         errset(pyJuliaError, pyjlraw((exc, catch_backtrace())))
-    else
+        return C.PyNULL
+    elseif pyistype(t)
+        # Exception type => raise this type of error
         errset(t, string("Julia: ", Py(sprint(showerror, exc))))
+        return C.PyNULL
+    else
+        # Otherwise, return the given object (e.g. NotImplemented)
+        return incref(getptr(t))
     end
 end
 

@@ -1,19 +1,30 @@
 const INIT_CONSTS_CODE = []
 
-const MODULES = Set([
-    "builtins",
-    "sys",
-    "os",
-    "numbers",
-    "datetime",
-    "collections.abc",
-])
+const INIT_MODULES = Dict(
+    :pybuiltinsmodule => "builtins",
+    :pysysmodule => "sys",
+    :pyosmodule => "os",
+    :pynumbersmodule => "numbers",
+    :pydatetimemodule => "datetime",
+    :pycollectionsabcmodule => "collections.abc",
+)
 
-for k in MODULES
-    n = Symbol("py", replace(k, "."=>""), "module")
-    @eval const $n = pynew()
-    @eval export $n
-    push!(INIT_CONSTS_CODE, :(pycopy!($n, pyimport($k))))
+for (j,m) in INIT_MODULES
+    @eval const $j = pynew()
+    push!(INIT_CONSTS_CODE, :(pycopy!($j, pyimport($m))))
+end
+
+const INIT_ATTRS = Dict(
+    :pyfractiontype => "fractions" => "Fraction",
+    :pydatetype => "datetime" => "date",
+    :pytimetype => "datetime" => "time",
+    :pydatetimetype => "datetime" => "datetime",
+    :pytimedeltatype => "datetime" => "timedelta",
+)
+
+for (j,k) in INIT_ATTRS
+    @eval const $j = pynew()
+    push!(INIT_CONSTS_CODE, :(pycopy!($j, pyimport($k))))
 end
 
 const BUILTINS = Set([

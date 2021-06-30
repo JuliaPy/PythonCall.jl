@@ -5,6 +5,7 @@ struct PyConvertRule
 end
 
 const PYCONVERT_RULES = Dict{String, Vector{PyConvertRule}}()
+const PYCONVERT_EXTRATYPES = Py[]
 
 function pyconvert_add_rule(pytypename::String, type::Type, func::Function, priority::Int=0)
     @nospecialize type func
@@ -40,8 +41,64 @@ pyconvert_tryconvert(::Type{T}, x) where {T} =
 function pyconvert_get_rules(type::Type, pytype::Py)
     @nospecialize type
 
+    pyisin(x, ys) = any(pyis(x, y) for y in ys)
+
+    # get the MROs of all base types we are considering
+    omro = collect(pytype.__mro__)
+    basetypes = Py[pytype]
+    basemros = Vector{Py}[omro]
+    for xtype in PYCONVERT_EXTRATYPES
+        # find the topmost supertype of
+        xbase = PyNULL
+        for base in omro
+            if pyissubclass(base, xtype)
+                xbase = base
+            end
+        end
+        if !ispynull(xbase)
+            push!(basetypes, xtype)
+            xmro = collect(xtype.__mro__)
+            pyisin(xbase, xmro) || pushfirst!(xmro, xbase)
+            push!(basemros, xmro)
+        end
+    end
+    for xbase in basetypes[2:end]
+        push!(basemros, [xbase])
+    end
+
+    # merge the MROs
+    # this is a port of the merge() function at the bottom of:
+    # https://www.python.org/download/releases/2.3/mro/
+    mro = Py[]
+    while !isempty(basemros)
+        # find the first head not contained in any tail
+        ok = false
+        b = PyNULL
+        for bmro in basemros
+            b = bmro[1]
+            if all(bmro -> !pyisin(b, bmro[2:end]), basemros)
+                ok = true
+                break
+            end
+        end
+        ok || error("Fatal inheritence error: could not merge MROs (mro=$mro, basemros=$basemros)")
+        # add it to the list
+        push!(mro, b)
+        # remove it from consideration
+        for bmro in basemros
+            filter!(t -> !pyis(t, b), bmro)
+        end
+        # remove empty lists
+        filter!(x -> !isempty(x), basemros)
+    end
+    # check the original MRO is preserved
+    omro_ = filter(t -> pyisin(t, omro), mro)
+    @assert length(omro) == length(omro_)
+    @assert all(pyis(x,y) for (x,y) in zip(omro, omro_))
+    # TODO: special cases (buffer protocol, etc.)
+
     # get the names of the types in the MRO of pytype
-    mro = String["$(t.__module__)/$(t.__qualname__)" for t in pytype.__mro__]
+    mro = String["$(t.__module__)/$(t.__qualname__)" for t in mro]
 
     # get corresponding rules
     rules = PyConvertRule[rule for tname in mro for rule in get!(Vector{PyConvertRule}, PYCONVERT_RULES, tname)]
@@ -49,6 +106,8 @@ function pyconvert_get_rules(type::Type, pytype::Py)
     # order the rules by priority, then by original order
     order = sort(axes(rules, 1), by = i -> (-rules[i].priority, i))
     rules = rules[order]
+
+    # TODO: everything up to here does not depend on the julia type and could be cached
 
     # intersect rules with type
     rules = PyConvertRule[PyConvertRule(typeintersect(rule.type, type), rule.func, rule.priority) for rule in rules]
@@ -132,6 +191,9 @@ pyconvertarg(::Type{T}, x, name) where {T} = @autopy x begin
 end
 
 function init_pyconvert()
+    push!(PYCONVERT_EXTRATYPES, pyimport("numbers"=>("Number", "Complex", "Real", "Rational", "Integral"))...)
+    push!(PYCONVERT_EXTRATYPES, pyimport("collections.abc" => "Iterable"))
+
     # priority 300: wrapped julia values
     pyconvert_add_rule("juliacall/As", Any, pyconvert_rule_jlas, 300)
     pyconvert_add_rule("juliacall/ValueBase", Any, pyconvert_rule_jlvalue, 300)
@@ -141,22 +203,25 @@ function init_pyconvert()
     pyconvert_add_rule("builtins/bool", Bool, pyconvert_rule_bool, 100)
     pyconvert_add_rule("builtins/float", Float64, pyconvert_rule_float, 100)
     pyconvert_add_rule("builtins/complex", Complex{Float64}, pyconvert_rule_complex, 100)
-    pyconvert_add_rule("builtins/int", Integer, pyconvert_rule_int, 100)
+    pyconvert_add_rule("numbers/Integral", Integer, pyconvert_rule_int, 100)
     pyconvert_add_rule("builtins/str", String, pyconvert_rule_str, 100)
     pyconvert_add_rule("builtins/bytes", Base.CodeUnits{UInt8,String}, pyconvert_rule_bytes, 100)
     pyconvert_add_rule("builtins/range", StepRange{<:Integer,<:Integer}, pyconvert_rule_range, 100)
+    pyconvert_add_rule("numbers/Rational", Rational{<:Integer}, pyconvert_rule_fraction, 100)
     # priority 0: reasonable
     pyconvert_add_rule("builtins/NoneType", Missing, pyconvert_rule_none)
     pyconvert_add_rule("builtins/bool", Number, pyconvert_rule_bool)
-    pyconvert_add_rule("builtins/float", Number, pyconvert_rule_float)
+    pyconvert_add_rule("numbers/Real", Number, pyconvert_rule_float)
     pyconvert_add_rule("builtins/float", Nothing, pyconvert_rule_float)
     pyconvert_add_rule("builtins/float", Missing, pyconvert_rule_float)
-    pyconvert_add_rule("builtins/complex", Number, pyconvert_rule_complex)
-    pyconvert_add_rule("builtins/int", Number, pyconvert_rule_int)
+    pyconvert_add_rule("numbers/Complex", Number, pyconvert_rule_complex)
+    pyconvert_add_rule("numbers/Integral", Number, pyconvert_rule_int)
     pyconvert_add_rule("builtins/str", Symbol, pyconvert_rule_str)
     pyconvert_add_rule("builtins/str", Char, pyconvert_rule_str)
     pyconvert_add_rule("builtins/bytes", Vector{UInt8}, pyconvert_rule_bytes)
     pyconvert_add_rule("builtins/range", UnitRange{<:Integer}, pyconvert_rule_range)
+    pyconvert_add_rule("numbers/Rational", Number, pyconvert_rule_fraction)
+    pyconvert_add_rule("collections.abc/Iterable", Vector, pyconvert_rule_iterable)
     # priority -100: fallbacks
     pyconvert_add_rule("builtins/object", Py, pyconvert_rule_object, -100)
     # priority -200: explicit

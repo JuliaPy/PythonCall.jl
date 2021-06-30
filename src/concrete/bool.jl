@@ -4,7 +4,7 @@ pybool(x) = pybuiltins.bool(x)
 export pybool
 
 pyisTrue(x) = pyis(x, pybuiltins.True)
-pyisFalse(x) = pyis(x, pybulitins.False)
+pyisFalse(x) = pyis(x, pybuiltins.False)
 pyisbool(x) = pyisTrue(x) || pyisFalse(x)
 
 pybool_asbool(x) =

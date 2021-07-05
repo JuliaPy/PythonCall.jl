@@ -1,5 +1,6 @@
 module PythonCall
 
+using Base: @propagate_inbounds
 using MacroTools, Dates
 
 include("utils.jl")
@@ -33,6 +34,9 @@ include("concrete/range.jl")
 include("concrete/none.jl")
 include("concrete/type.jl")
 include("concrete/fraction.jl")
+# @py
+# anything below can depend on @py, anything above cannot
+include("py_macro.jl")
 # jlwrap
 include("jlwrap/base.jl")
 include("jlwrap/raw.jl")
@@ -48,11 +52,12 @@ include("jlwrap/number.jl")
 include("jlwrap/io.jl")
 # pywrap
 include("pywrap/PyIterable.jl")
+include("pywrap/PyList.jl")
+include("pywrap/PySet.jl")
 # misc
 include("with.jl")
 include("multimedia.jl")
 include("pyconst_macro.jl")
-include("py_macro.jl")
 include("juliacall.jl")
 
 function __init__()

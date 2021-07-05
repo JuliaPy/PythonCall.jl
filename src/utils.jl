@@ -1,6 +1,7 @@
 module Utils
 
-    function explode_union(T)
+    using Base: _promote_typesubtract
+function explode_union(T)
         @nospecialize T
 
         # unpack unionall
@@ -119,6 +120,26 @@ module Utils
             S
         else
             _type_ub(T)
+        end
+    end
+
+    @generated _promote_type_bounded(::Type{S}, ::Type{T}, ::Type{B}) where {S,T,B} = begin
+        S <: B || error("require S <: B")
+        T <: B || error("require T <: B")
+        if B isa Union
+            return Union{_promote_type_bounded(typeintersect(S, B.a), typeintersect(T, B.a), B.a), _promote_type_bounded(typeintersect(S, B.b), typeintersect(T, B.b), B.b)}
+        else
+            R = promote_type(S, T)
+            if R <: B
+                return R
+            else
+                R = typeintersect(typejoin(S, T), B)
+                if R <: B
+                    return R
+                else
+                    return B
+                end
+            end
         end
     end
 

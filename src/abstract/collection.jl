@@ -15,10 +15,7 @@ function _pyconvert_rule_iterable(ans::Vector{T0}, it::Py, ::Type{T1}) where {T0
         push!(ans, x)
         @goto again
     end
-    T2 = typejoin(T0, typeof(x))
-    if !(T2 <: T1)
-        T2 = Union{T0, typeof(x)}
-    end
+    T2 = Utils._promote_type_bounded(T0, typeof(x), T1)
     ans2 = Vector{T2}(ans)
     push!(ans2, x)
     return _pyconvert_rule_iterable(ans2, it, T1)

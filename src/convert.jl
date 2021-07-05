@@ -190,9 +190,15 @@ pyconvertarg(::Type{T}, x, name) where {T} = @autopy x begin
     end
 end
 
+pyconvert_and_del(::Type{T}, x) where {T} = begin
+    ans = pyconvert(T, x)
+    pydel!(x)
+    ans
+end
+
 function init_pyconvert()
     push!(PYCONVERT_EXTRATYPES, pyimport("numbers"=>("Number", "Complex", "Real", "Rational", "Integral"))...)
-    push!(PYCONVERT_EXTRATYPES, pyimport("collections.abc" => "Iterable"))
+    push!(PYCONVERT_EXTRATYPES, pyimport("collections.abc" => ("Iterable", "Sequence", "Set", "Mapping"))...)
 
     # priority 300: wrapped julia values
     pyconvert_add_rule("juliacall/As", Any, pyconvert_rule_jlas, 300)
@@ -208,7 +214,9 @@ function init_pyconvert()
     pyconvert_add_rule("builtins/bytes", Base.CodeUnits{UInt8,String}, pyconvert_rule_bytes, 100)
     pyconvert_add_rule("builtins/range", StepRange{<:Integer,<:Integer}, pyconvert_rule_range, 100)
     pyconvert_add_rule("numbers/Rational", Rational{<:Integer}, pyconvert_rule_fraction, 100)
-    pyconvert_add_rule("collections.abc/Iterable", PyIterable, pyconvert_rule_iterable)
+    pyconvert_add_rule("collections.abc/Iterable", PyIterable, pyconvert_rule_iterable, 100)
+    pyconvert_add_rule("collections.abc/Sequence", PyList, pyconvert_rule_sequence, 100)
+    pyconvert_add_rule("collections.abc/Set", PySet, pyconvert_rule_set, 100)
     # priority 0: reasonable
     pyconvert_add_rule("builtins/NoneType", Missing, pyconvert_rule_none)
     pyconvert_add_rule("builtins/bool", Number, pyconvert_rule_bool)

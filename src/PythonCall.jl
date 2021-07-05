@@ -46,6 +46,8 @@ include("jlwrap/dict.jl")
 include("jlwrap/set.jl")
 include("jlwrap/number.jl")
 include("jlwrap/io.jl")
+# pywrap
+include("pywrap/PyIterable.jl")
 # misc
 include("with.jl")
 include("multimedia.jl")

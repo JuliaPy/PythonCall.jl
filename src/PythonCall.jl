@@ -1,7 +1,6 @@
 module PythonCall
 
-using Base: @propagate_inbounds
-using MacroTools, Dates
+using MacroTools, Dates, Tables
 
 include("utils.jl")
 
@@ -56,6 +55,8 @@ include("pywrap/PyList.jl")
 include("pywrap/PySet.jl")
 include("pywrap/PyDict.jl")
 include("pywrap/PyIO.jl")
+include("pywrap/PyTable.jl")
+include("pywrap/PyPandasDataFrame.jl")
 # misc
 include("with.jl")
 include("multimedia.jl")

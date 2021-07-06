@@ -25,7 +25,7 @@ pyconvert_rule_set(::Type{T}, x::Py, ::Type{PySet{V}}=Utils._type_ub(T)) where {
         pyconvert_return(PySet{V}(x))
     end
 
-Base.length(x::PySet) = Int(pylen(x.py))
+Base.length(x::PySet) = Int(pylen(x))
 
 Base.isempty(x::PySet) = length(x) == 0
 

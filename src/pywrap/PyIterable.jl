@@ -19,7 +19,7 @@ pydel!(x::PyIterable) = pydel!(x.py)
 Base.IteratorSize(::Type{PyIterable{T}}) where {T} = Base.SizeUnknown()
 Base.eltype(::Type{PyIterable{T}}) where {T} = T
 
-function Base.iterate(x::PyIterable{T}, it::Py=pyiter(x.py)) where {T}
+function Base.iterate(x::PyIterable{T}, it::Py=pyiter(x)) where {T}
     y = pynext(it)
     if ispynull(y)
         pydel!(it)

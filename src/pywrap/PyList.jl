@@ -25,7 +25,7 @@ pyconvert_rule_sequence(::Type{T}, x::Py, ::Type{PyList{V}}=Utils._type_ub(T)) w
         pyconvert_return(PyList{V}(x))
     end
 
-Base.length(x::PyList) = Int(pylen(x.py))
+Base.length(x::PyList) = Int(pylen(x))
 
 Base.size(x::PyList) = (length(x),)
 
@@ -36,7 +36,7 @@ end
 
 Base.@propagate_inbounds function Base.setindex!(x::PyList{T}, v, i::Int) where {T}
     @boundscheck checkbounds(x, i)
-    x.py[i-1] = convert(T, v)
+    pysetitem(x, i-1, convert(T, v))
     return x
 end
 

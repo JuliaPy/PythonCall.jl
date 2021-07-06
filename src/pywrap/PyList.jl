@@ -18,7 +18,12 @@ ispy(::PyList) = true
 getpy(x::PyList) = x.py
 pydel!(x::PyList) = pydel!(x.py)
 
-pyconvert_rule_sequence(::Type{T}, x::Py) where {T<:PyList} = pyconvert_return(Utils._type_ub(T)(x))
+pyconvert_rule_sequence(::Type{T}, x::Py, ::Type{PyList{V}}=Utils._type_ub(T)) where {T<:PyList,V} =
+    if PyList{Py} <: T
+        pyconvert_return(PyList{Py}(x))
+    else
+        pyconvert_return(PyList{V}(x))
+    end
 
 Base.length(x::PyList) = Int(pylen(x.py))
 

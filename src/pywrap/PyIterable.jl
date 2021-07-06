@@ -29,4 +29,9 @@ function Base.iterate(x::PyIterable{T}, it::Py=pyiter(x.py)) where {T}
     end
 end
 
-pyconvert_rule_iterable(::Type{T}, x::Py) where {T<:PyIterable} = pyconvert_return(Utils._type_ub(T)(x))
+pyconvert_rule_iterable(::Type{T}, x::Py, ::Type{PyIterable{V}}=Utils._type_ub(T)) where {T<:PyIterable,V} =
+    if PyIterable{Py} <: T
+        pyconvert_return(PyIterable{Py}(x))
+    else
+        pyconvert_return(PyIterable{V}(x))
+    end

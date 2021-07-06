@@ -18,7 +18,12 @@ ispy(::PySet) = true
 getpy(x::PySet) = x.py
 pydel!(x::PySet) = pydel!(x.py)
 
-pyconvert_rule_set(::Type{T}, x::Py) where {T<:PySet} = pyconvert_return(Utils._type_ub(T)(x))
+pyconvert_rule_set(::Type{T}, x::Py, ::Type{PySet{V}}=Utils._type_ub(T)) where {T<:PySet,V} =
+    if PySet{Py} <: T
+        pyconvert_return(PySet{Py}(x))
+    else
+        pyconvert_return(PySet{V}(x))
+    end
 
 Base.length(x::PySet) = Int(pylen(x.py))
 

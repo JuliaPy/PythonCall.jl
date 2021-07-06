@@ -12,19 +12,19 @@ function pyconvert_rule_range(::Type{R}, x::Py, ::Type{StepRange{T0,S0}}=Utils._
     a_ = x.start
     r = pytryconvert(Utils._typeintersect(Integer, T1), a_)
     pyconvert_isunconverted(r) && return r
-    a = pyconvert_result(r)
+    a = pyconvert_result(T1, r)
     pydel!(a_)
     # step
     b_ = x.step
     r = pytryconvert(Utils._typeintersect(Integer, S1), b_)
     pyconvert_isunconverted(r) && return r
-    b = pyconvert_result(r)
+    b = pyconvert_result(S1, r)
     pydel!(b_)
     # stop
     c_ = x.stop
     r = pytryconvert(Utils._typeintersect(Integer, T1), c_)
     pyconvert_isunconverted(r) && return r
-    c = pyconvert_result(r)
+    c = pyconvert_result(T1, r)
     pydel!(c_)
     # success
     a′, c′ = promote(a, c - oftype(c, sign(b)))
@@ -36,20 +36,20 @@ function pyconvert_rule_range(::Type{R}, x::Py, ::Type{UnitRange{T0}}=Utils._typ
     a_ = x.start
     r = pytryconvert(Utils._typeintersect(Integer, T1), a_)
     pyconvert_isunconverted(r) && return r
-    a = pyconvert_result(r)
+    a = pyconvert_result(T1, r)
     pydel!(a_)
     # step
     b_ = x.step
     r = pytryconvert(Utils._typeintersect(Integer, T1), b_)
     pyconvert_isunconverted(r) && return r
-    b = pyconvert_result(r)
+    b = pyconvert_result(T1, r)
     pydel!(b_)
     b == 1 || return pyconvert_unconverted()
     # stop
     c_ = x.stop
     r = pytryconvert(Utils._typeintersect(Integer, T1), c_)
     pyconvert_isunconverted(r) && return r
-    c = pyconvert_result(r)
+    c = pyconvert_result(T1, r)
     pydel!(c_)
     # success
     a′, c′ = promote(a, c - oftype(c, 1))

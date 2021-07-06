@@ -19,15 +19,17 @@ if false
     pyconvert_unconverted() = Unconverted()
     pyconvert_returntype(::Type{T}) where {T} = Union{T,Unconverted}
     pyconvert_isunconverted(r) = r === Unconverted()
-    pyconvert_result(r) = r
+    pyconvert_result(::Type{T}, r) where {T} = r::T
 else
     const PYCONVERT_RESULT = Ref{Any}(nothing)
     pyconvert_return(x) = (PYCONVERT_RESULT[] = x; true)
     pyconvert_unconverted() = false
     pyconvert_returntype(::Type{T}) where {T} = Bool
     pyconvert_isunconverted(r::Bool) = !r
-    pyconvert_result(r::Bool) = (ans = PYCONVERT_RESULT[]; PYCONVERT_RESULT[] = nothing; ans)
+    pyconvert_result(::Type{T}, r::Bool) where {T} = (ans = PYCONVERT_RESULT[]::T; PYCONVERT_RESULT[] = nothing; ans)
 end
+
+pyconvert_result(r) = pyconvert_result(Any, r)
 
 pyconvert_tryconvert(::Type{T}, x::T) where {T} = pyconvert_return(x)
 pyconvert_tryconvert(::Type{T}, x) where {T} =
@@ -167,7 +169,7 @@ pyconvert(::Type{T}, x) where {T} = @autopy x begin
     if pyconvert_isunconverted(ans)
         error("cannot convert this Python '$(pytype(x_).__name__)' to a Julia '$T'")
     else
-        pyconvert_result(ans)::T
+        pyconvert_result(T, ans)
     end
 end
 pyconvert(::Type{T}, x, d) where {T} = @autopy x begin
@@ -175,7 +177,7 @@ pyconvert(::Type{T}, x, d) where {T} = @autopy x begin
     if pyconvert_isunconverted(ans)
         d
     else
-        pyconvert_result(ans)::T
+        pyconvert_result(T, ans)
     end
 end
 export pyconvert
@@ -186,7 +188,7 @@ pyconvertarg(::Type{T}, x, name) where {T} = @autopy x begin
         errset(pybuiltins.TypeError, "Cannot convert argument '$name' to a Julia '$T', got a '$(pytype(x_).__name__)'")
         pythrow()
     else
-        pyconvert_result(ans)::T
+        pyconvert_result(T, ans)
     end
 end
 
@@ -217,6 +219,7 @@ function init_pyconvert()
     pyconvert_add_rule("collections.abc/Iterable", PyIterable, pyconvert_rule_iterable, 100)
     pyconvert_add_rule("collections.abc/Sequence", PyList, pyconvert_rule_sequence, 100)
     pyconvert_add_rule("collections.abc/Set", PySet, pyconvert_rule_set, 100)
+    pyconvert_add_rule("collections.abc/Mapping", PyDict, pyconvert_rule_mapping, 100)
     # priority 0: reasonable
     pyconvert_add_rule("builtins/NoneType", Missing, pyconvert_rule_none)
     pyconvert_add_rule("builtins/bool", Number, pyconvert_rule_bool)

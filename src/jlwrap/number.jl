@@ -13,7 +13,7 @@ function (op::pyjlnumber_op)(self, other_::Py)
     else
         r = pytryconvert(Number, other_)
         pyconvert_isunconverted(r) && return Py(pybuiltins.NotImplemented)
-        other = pyconvert_result(r)
+        other = pyconvert_result(Number, r)
     end
     Py(op.op(self, other))
 end
@@ -23,14 +23,14 @@ function (op::pyjlnumber_op)(self, other_::Py, other2_::Py)
     else
         r = pytryconvert(Number, other_)
         pyconvert_isunconverted(r) && return Py(pybuiltins.NotImplemented)
-        other = pyconvert_result(r)
+        other = pyconvert_result(Number, r)
     end
     if pyisjl(other2_)
         other2 = pyjlvalue(other2_)
     else
         r = pytryconvert(Number, other2_)
         pyconvert_isunconverted(r) && return Py(pybuiltins.NotImplemented)
-        other2 = pyconvert_result(r)
+        other2 = pyconvert_result(Number, r)
     end
     Py(op.op(self, other, other2))
 end
@@ -45,7 +45,7 @@ function (op::pyjlnumber_rev_op)(self, other_::Py)
     else
         r = pytryconvert(Number, other_)
         pyconvert_isunconverted(r) && return Py(pybuiltins.NotImplemented)
-        other = pyconvert_result(r)
+        other = pyconvert_result(Number, r)
     end
     Py(op.op(other, self))
 end
@@ -55,14 +55,14 @@ function (op::pyjlnumber_rev_op)(self, other_::Py, other2_::Py)
     else
         r = pytryconvert(Number, other_)
         pyconvert_isunconverted(r) && return Py(pybuiltins.NotImplemented)
-        other = pyconvert_result(r)
+        other = pyconvert_result(Number, r)
     end
     if pyisjl(other2_)
         other2 = pyjlvalue(other2_)
     else
         r = pytryconvert(Number, other2_)
         pyconvert_isunconverted(r) && return Py(pybuiltins.NotImplemented)
-        other2 = pyconvert_result(r)
+        other2 = pyconvert_result(Number, r)
     end
     Py(op.op(other, self, other2))
 end

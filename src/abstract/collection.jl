@@ -10,7 +10,7 @@ function _pyconvert_rule_iterable(ans::Vector{T0}, it::Py, ::Type{T1}) where {T0
     if pyconvert_isunconverted(r)
         return r
     end
-    x = pyconvert_result(r)
+    x = pyconvert_result(T1, r)
     if x isa T0
         push!(ans, x)
         @goto again

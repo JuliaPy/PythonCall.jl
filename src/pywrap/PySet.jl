@@ -39,9 +39,17 @@ function Base.iterate(x::PySet{T}, it::Py=pyiter(x)) where {T}
     end
 end
 
-function Base.in(v::T, x::PySet{T}) where {T}
-    # TODO: how to handle general v?
-    pycontains(x, v)
+function Base.in(v, x::PySet{T}) where {T}
+    if v isa T
+        return pycontains(x, v)
+    else
+        r = pyconvert_tryconvert(T, v)
+        if pyconvert_isunconverted(r)
+            return false
+        else
+            return pycontains(x, pyconvert_result(T, r))
+        end
+    end
 end
 
 function Base.push!(x::PySet{T}, v) where {T}
@@ -49,9 +57,15 @@ function Base.push!(x::PySet{T}, v) where {T}
     return x
 end
 
-function Base.delete!(x::PySet{T}, v::T) where {T}
-    # TODO: how to handle general v?
-    pydel!(@py x.discard(v))
+function Base.delete!(x::PySet{T}, v) where {T}
+    if v isa T
+        pydel!(@py x.discard(v))
+    else
+        r = pyconvert_tryconvert(T, v)
+        if !pyconvert_isunconverted(r)
+            pydel!(@py x.discard(@jl pyconvert_result(T, r)))
+        end
+    end
     return x
 end
 
@@ -60,8 +74,7 @@ Base.@propagate_inbounds function Base.pop!(x::PySet{T}) where {T}
     return pyconvert_and_del(T, @py x.pop())
 end
 
-function Base.pop!(x::PySet{T}, v::T) where {T}
-    # TODO: how to handle general v?
+function Base.pop!(x::PySet, v)
     if v in x
         delete!(x, v)
         return v
@@ -70,8 +83,7 @@ function Base.pop!(x::PySet{T}, v::T) where {T}
     end
 end
 
-function Base.pop!(x::PySet{T}, v::T, d) where {T}
-    # TODO: how to handle general v?
+function Base.pop!(x::PySet, v::T, d)
     if v in x
         delete!(x, v)
         return v

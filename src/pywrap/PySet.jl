@@ -83,7 +83,7 @@ function Base.pop!(x::PySet, v)
     end
 end
 
-function Base.pop!(x::PySet, v::T, d)
+function Base.pop!(x::PySet, v, d)
     if v in x
         delete!(x, v)
         return v

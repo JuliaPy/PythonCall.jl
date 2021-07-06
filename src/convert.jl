@@ -209,7 +209,7 @@ end
 macro pyconvert_and_del(T, x, onfail=:(return $pyconvert_unconverted()))
     quote
         ans = pytryconvert($(esc(T)), $(esc(x)))
-        pydel!($(exc(x)))
+        pydel!($(esc(x)))
         if pyconvert_isunconverted(ans)
             $(esc(onfail))
         else

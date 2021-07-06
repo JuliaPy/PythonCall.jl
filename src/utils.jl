@@ -143,4 +143,7 @@ function explode_union(T)
         end
     end
 
+    @generated _promote_type_bounded(::Type{T1}, ::Type{T2}, ::Type{T3}, ::Type{B}) where {T1,T2,T3,B} =
+        _promote_type_bounded(_promote_type_bounded(T1, T2, B), T3, B)
+
 end

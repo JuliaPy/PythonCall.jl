@@ -164,31 +164,57 @@ pytryconvert(::Type{T}, x) where {T} = @autopy x begin
     return pyconvert_unconverted()
 end
 
-pyconvert(::Type{T}, x) where {T} = @autopy x begin
-    ans = pytryconvert(T, x_)
-    if pyconvert_isunconverted(ans)
-        error("cannot convert this Python '$(pytype(x_).__name__)' to a Julia '$T'")
-    else
-        pyconvert_result(T, ans)
+"""
+    @pyconvert(T, x, [onfail])
+
+Convert the Python object `x` to a `T`.
+
+On failure, evaluates to `onfail`, which defaults to `return pyconvert_unconverted()` (mainly useful for writing conversion rules).
+"""
+macro pyconvert(T, x, onfail=:(return $pyconvert_unconverted()))
+    quote
+        ans = pytryconvert($(esc(T)), $(esc(x)))
+        if pyconvert_isunconverted(ans)
+            $(esc(onfail))
+        else
+            pyconvert_result($(esc(T)), ans)
+        end
     end
 end
-pyconvert(::Type{T}, x, d) where {T} = @autopy x begin
-    ans = pytryconvert(T, x_)
-    if pyconvert_isunconverted(ans)
-        d
-    else
-        pyconvert_result(T, ans)
-    end
-end
+export @pyconvert
+
+"""
+    pyconvert(T, x, [d])
+
+Convert the Python object `x` to a `T`.
+
+If `d` is specified, it is returned on failure instead of throwing an error.
+"""
+pyconvert(::Type{T}, x) where {T} = @autopy x @pyconvert T x_ error("cannot convert this Python '$(pytype(x_).__name__)' to a Julia '$T'")
+pyconvert(::Type{T}, x, d) where {T} = @autopy x @pyconvert T x_ d
 export pyconvert
 
-pyconvertarg(::Type{T}, x, name) where {T} = @autopy x begin
-    ans = pytryconvert(T, x_)
-    if pyconvert_isunconverted(ans)
-        errset(pybuiltins.TypeError, "Cannot convert argument '$name' to a Julia '$T', got a '$(pytype(x_).__name__)'")
-        pythrow()
-    else
-        pyconvert_result(T, ans)
+"""
+    pyconvertarg(T, x, name)
+
+Convert the Python object `x` to a `T`.
+
+On failure, throws a Python `TypeError` saying that the argument `name` could not be converted.
+"""
+pyconvertarg(::Type{T}, x, name) where {T} = @autopy x @pyconvert T x_ begin
+    errset(pybuiltins.TypeError, "Cannot convert argument '$name' to a Julia '$T', got a '$(pytype(x_).__name__)'")
+    pythrow()
+end
+
+macro pyconvert_and_del(T, x, onfail=:(return $pyconvert_unconverted()))
+    quote
+        ans = pytryconvert($(esc(T)), $(esc(x)))
+        pydel!($(exc(x)))
+        if pyconvert_isunconverted(ans)
+            $(esc(onfail))
+        else
+            pyconvert_result($(esc(T)), ans)
+        end
     end
 end
 

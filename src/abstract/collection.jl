@@ -5,12 +5,7 @@ function _pyconvert_rule_iterable(ans::Vector{T0}, it::Py, ::Type{T1}) where {T0
         pydel!(it)
         return pyconvert_return(ans)
     end
-    r = pytryconvert(T1, x_)
-    pydel!(x_)
-    if pyconvert_isunconverted(r)
-        return r
-    end
-    x = pyconvert_result(T1, r)
+    x = @pyconvert_and_del(T1, x_)
     if x isa T0
         push!(ans, x)
         @goto again

@@ -6,26 +6,14 @@ export pyfraction
 
 # works for any collections.abc.Rational
 function pyconvert_rule_fraction(::Type{R}, x::Py, ::Type{Rational{T0}}=Utils._type_lb(R), ::Type{Rational{T1}}=Utils._type_ub(R)) where {R<:Rational,T0,T1}
-    # numerator
-    a_ = x.numerator
-    r = pytryconvert(Utils._typeintersect(Integer,T1), a_)
-    pydel!(a_)
-    pyconvert_isunconverted(r) && return r
-    a = pyconvert_result(T1, r)
-    # numerator
-    b_ = x.denominator
-    r = pytryconvert(Utils._typeintersect(Integer,T1), b_)
-    pydel!(b_)
-    pyconvert_isunconverted(r) && return r
-    b = pyconvert_result(T1, r)
-    # success
+    a = @pyconvert_and_del(Utils._typeintersect(Integer, T1), x.numerator)
+    b = @pyconvert_and_del(Utils._typeintersect(Integer, T2), x.denominator)
     a, b = promote(a, b)
-    pyconvert_return(Rational{Union{T0,typeof(a),typeof(b)}}(a, b))
+    T2 = Utils._promote_type_bounded(T0, typeof(a), typeof(b), T1)
+    pyconvert_return(Rational{T2}(a, b))
 end
 
 # works for any collections.abc.Rational
 function pyconvert_rule_fraction(::Type{T}, x::Py) where {T<:Number}
-    r = pyconvert_rule_fraction(Rational{<:Integer}, x)
-    pyconvert_isunconverted(r) && return r
-    pyconvert_tryconvert(T, pyconvert_result(Rational{<:Integer}, r))
+    pyconvert_tryconvert(T, @pyconvert(Rational{<:Integer}, x))
 end

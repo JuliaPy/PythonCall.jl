@@ -225,6 +225,7 @@ pyconvert_and_del(::Type{T}, x) where {T} = begin
 end
 
 function init_pyconvert()
+    push!(PYCONVERT_EXTRATYPES, pyimport("io"=>"IOBase"))
     push!(PYCONVERT_EXTRATYPES, pyimport("numbers"=>("Number", "Complex", "Real", "Rational", "Integral"))...)
     push!(PYCONVERT_EXTRATYPES, pyimport("collections.abc" => ("Iterable", "Sequence", "Set", "Mapping"))...)
 
@@ -246,6 +247,7 @@ function init_pyconvert()
     pyconvert_add_rule("collections.abc/Sequence", PyList, pyconvert_rule_sequence, 100)
     pyconvert_add_rule("collections.abc/Set", PySet, pyconvert_rule_set, 100)
     pyconvert_add_rule("collections.abc/Mapping", PyDict, pyconvert_rule_mapping, 100)
+    pyconvert_add_rule("io/IOBase", PyIO, pyconvert_rule_io, 100)
     # priority 0: reasonable
     pyconvert_add_rule("builtins/NoneType", Missing, pyconvert_rule_none)
     pyconvert_add_rule("builtins/bool", Number, pyconvert_rule_bool)

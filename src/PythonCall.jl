@@ -55,6 +55,7 @@ include("pywrap/PyIterable.jl")
 include("pywrap/PyList.jl")
 include("pywrap/PySet.jl")
 include("pywrap/PyDict.jl")
+include("pywrap/PyIO.jl")
 # misc
 include("with.jl")
 include("multimedia.jl")

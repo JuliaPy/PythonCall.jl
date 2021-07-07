@@ -91,3 +91,6 @@ pyconvert_rule_object(::Type{Py}, x) = pyconvert_return(Py(x))
 
 pycontains(x, v) = errcheck(@autopy x v C.PySequence_Contains(getptr(x_), getptr(v_))) == 1
 export pycontains
+
+pyin(v, x) = pycontains(x, v)
+export pyin

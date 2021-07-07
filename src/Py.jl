@@ -126,8 +126,10 @@ Base.show(io::IO, mime::MIME"text/tab-separated-values", o::Py) = py_mime_show(i
 Base.showable(mime::MIME, o::Py) = py_mime_showable(mime, o)
 
 Base.getproperty(x::Py, k::Symbol) = pygetattr(x, string(k))
+Base.getproperty(x::Py, k::String) = pygetattr(x, k)
 
 Base.setproperty!(x::Py, k::Symbol, v) = pysetattr(x, string(k), v)
+Base.setproperty!(x::Py, k::String, v) = pysetattr(x, k, v)
 
 function Base.propertynames(x::Py, private::Bool=false)
     # this follows the logic of rlcompleter.py

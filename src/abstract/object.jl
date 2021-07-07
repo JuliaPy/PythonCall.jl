@@ -1,6 +1,8 @@
 pyis(x, y) = @autopy x y getptr(x_) == getptr(y_)
 export pyis
 
+pyisnot(x, y) = !pyis(x, y)
+
 pyrepr(x) = pynew(errcheck(@autopy x C.PyObject_Repr(getptr(x_))))
 pyrepr(::Type{String}, x) = (s=pyrepr(x); ans=pystr_asstring(s); pydel!(s); ans)
 export pyrepr
@@ -94,3 +96,5 @@ export pycontains
 
 pyin(v, x) = pycontains(x, v)
 export pyin
+
+pynotin(v, x) = !pyin(v, x)

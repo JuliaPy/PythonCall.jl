@@ -55,8 +55,10 @@ const PY_MACRO_BINOPS = Dict(
     :(>=) => (pyge, true),
     :(> ) => (pygt, true),
     :(===) => (pyis, false),
-    :(!==) => ((!) ∘ pyis, false),
+    :(!==) => (pyisnot, false),
     :in => (pyin, false),
+    :∈ => (pyin, false),
+    :∉ => (pynotin, false),
     # builtins
     :pow => (pypow, true),
     :complex => (pycomplex, true),

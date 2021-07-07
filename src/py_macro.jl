@@ -85,6 +85,7 @@ Base.@kwdef mutable struct PyMacroState
     mod :: Module
     src :: LineNumberNode
     consts :: IdDict{Any,Py} = IdDict{Any,Py}()
+    inits :: Vector{Any} = []
 end
 
 function py_macro_err(st, ex, msg=nothing)
@@ -429,6 +430,33 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         py_macro_assign(body, ans, y)
         return false
 
+    # @compile code mode=mode ...
+    elseif @capture(ex, @compile code_String mode=mode_String args__)
+        x = pynew()
+        args = [isexpr(arg, :(=)) ? Expr(:kw, arg.args...) : arg for arg in args]
+        filename = "$(st.src.file):$(st.src.line)"
+        push!(st.inits, :($pycopy!($x, $pybuiltins.compile($code, filename=$filename, mode=$mode, $(args...)))))
+        py_macro_assign(body, ans, x)
+        return false
+
+    # @exec code ...
+    elseif @capture(ex, @exec code_String args__)
+        args = [isexpr(arg, :(=)) ? Expr(:kw, arg.args...) : arg for arg in args]
+        ex2 = Expr(:macrocall, Symbol("@compile"), st.src, code, :(mode = "exec"))
+        ex2 = Expr(:call, :exec, ex2, args...)
+        @gensym a
+        ta = py_macro_lower(st, body, a, ex2)
+        py_macro_del(body, a, ta)
+        py_macro_assign(body, ans, nothing)
+        return false
+
+    # @eval code ...
+    elseif @capture(ex, @eval code_String args__)
+        args = [isexpr(arg, :(=)) ? Expr(:kw, arg.args...) : arg for arg in args]
+        ex2 = Expr(:macrocall, Symbol("@compile"), st.src, code, :(mode = "eval"))
+        ex2 = Expr(:call, :eval, ex2, args...)
+        return py_macro_lower(st, body, ans, ex2)
+
     # begin; ...; end
     elseif isexpr(ex, :block)
         if isempty(ex.args)
@@ -632,9 +660,9 @@ function py_macro(ex, mod, src)
     @gensym ans
     st = PyMacroState(mod=mod, src=src)
     py_macro_lower(st, body, ans, ex)
-    if !isempty(st.consts)
+    if !isempty(st.consts) || !isempty(st.inits)
         doinit = Ref(true)
-        inits = []
+        inits = copy(st.inits)
         for (v, x) in st.consts
             if v isa String
                 push!(inits, :($pycopy!($x, $pystr_intern!($pystr($v)))))

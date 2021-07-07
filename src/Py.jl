@@ -119,8 +119,87 @@ function Base.show(io::IO, x::Py)
     end
 end
 
+function Base.show(io::IO, mime::MIME"text/plain", o::Py)
+    if ispynull(o)
+        printstyled(io, "Python NULL", bold=true)
+        return
+    elseif pyisnone(o)
+        printstyled(io, "Python None", bold=true)
+        return
+    end
+    h, w = displaysize(io)
+    compact = get(io, :compact, false)
+    hasprefix = get(io, :typeinfo, Any) != Py
+    str = pyrepr(String, o)
+    multiline = '\n' in str
+    prefix = hasprefix ? compact ? "Py:$(multiline ? '\n' : ' ')" : "Python $(pytype(o).__name__):$(multiline ? '\n' : ' ')" : ""
+    printstyled(io, prefix, bold=true)
+    if get(io, :limit, true)
+        h, w = displaysize(io)
+        h = max(h-3, 5) # use 3 fewer lines to allow for the prompt, but always allow at least 5 lines
+        if multiline
+            h -= 1 # for the prefix
+            lines = split(str, '\n')
+            function printlines(io, lines, w)
+                for (i, line) in enumerate(lines)
+                    if i > 1
+                        println(io)
+                    end
+                    if length(line) > w
+                        print(io, line[1:nextind(line, 0, w-1)], '…')
+                    else
+                        print(io, line)
+                    end
+                end
+            end
+            if length(lines) ≤ h
+                printlines(io, lines, w)
+            else
+                h0 = cld(h-1, 2)
+                h1 = h-1-h0
+                i0 = h0
+                i1 = length(lines) - h1 + 1
+                # this indent computation tries to center the "more lines" message near the
+                # middle of the span of non-whitespace in lines
+                indent = 0
+                for (c0, c1) in zip(lines[i0], lines[i1])
+                    if c0 == c1 && isspace(c0)
+                        indent += 1
+                    else
+                        break
+                    end
+                end
+                maxlen = min(w, max(length(lines[i0]), length(lines[i1])))
+                msg = "... $(length(lines)-h0-h1) more lines ..."
+                indent = max(0, fld(maxlen + indent - length(msg), 2))
+                printlines(io, lines[1:h0], w)
+                println(io)
+                printstyled(io, " "^indent, msg, color=:light_black)
+                println(io)
+                printlines(io, lines[end-h1+1:end], w)
+            end
+        else
+            maxlen = h*w - length(prefix)
+            if length(str) ≤ maxlen
+                print(io, str)
+            else
+                h0 = cld(h-1, 2)
+                i0 = nextind(str, 0, h0*w-length(prefix))
+                h1 = h-1-h0
+                i1 = prevind(str, ncodeunits(str)+1, h1*w)
+                println(io, str[1:i0])
+                msg = "... $(length(str[nextind(str,i0):prevind(str,i1)])) more chars ..."
+                printstyled(io, " "^max(0, fld(w-length(msg), 2)), msg, color=:light_black)
+                println(io)
+                print(io, str[i1:end])
+            end
+        end
+    else
+        print(io, str)
+    end
+end
+
 Base.show(io::IO, mime::MIME, o::Py) = py_mime_show(io, mime, o)
-Base.show(io::IO, mime::MIME"text/plain", o::Py) = show(io, o)
 Base.show(io::IO, mime::MIME"text/csv", o::Py) = py_mime_show(io, mime, o)
 Base.show(io::IO, mime::MIME"text/tab-separated-values", o::Py) = py_mime_show(io, mime, o)
 Base.showable(mime::MIME, o::Py) = py_mime_showable(mime, o)

@@ -33,6 +33,7 @@ include("concrete/range.jl")
 include("concrete/none.jl")
 include("concrete/type.jl")
 include("concrete/fraction.jl")
+include("concrete/method.jl")
 # @py
 # anything below can depend on @py, anything above cannot
 include("py_macro.jl")

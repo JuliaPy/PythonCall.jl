@@ -8,6 +8,10 @@ function pytuple_setitem(xs::Py, i, x)
     return xs
 end
 
+function pytuple_getitem(xs::Py, i)
+    pynew(incref(errcheck(C.PyTuple_GetItem(getptr(xs), i))))
+end
+
 function pytuple_fromiter(xs)
     sz = Base.IteratorSize(typeof(xs))
     if sz isa Base.HasLength || sz isa Base.HasShape

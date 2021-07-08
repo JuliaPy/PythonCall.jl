@@ -14,19 +14,62 @@ function pyconvert_add_rule(pytypename::String, type::Type, func::Function, prio
 end
 
 if false
+    # this scheme returns either the result or Unconverted()
     struct Unconverted end
     pyconvert_return(x) = x
     pyconvert_unconverted() = Unconverted()
     pyconvert_returntype(::Type{T}) where {T} = Union{T,Unconverted}
     pyconvert_isunconverted(r) = r === Unconverted()
     pyconvert_result(::Type{T}, r) where {T} = r::T
-else
+elseif true
+    # this scheme stores the result in PYCONVERT_RESULT
     const PYCONVERT_RESULT = Ref{Any}(nothing)
     pyconvert_return(x) = (PYCONVERT_RESULT[] = x; true)
     pyconvert_unconverted() = false
     pyconvert_returntype(::Type{T}) where {T} = Bool
     pyconvert_isunconverted(r::Bool) = !r
     pyconvert_result(::Type{T}, r::Bool) where {T} = (ans = PYCONVERT_RESULT[]::T; PYCONVERT_RESULT[] = nothing; ans)
+else
+    # same as the previous scheme, but with special handling for bits types
+    const PYCONVERT_RESULT = Ref{Any}(nothing)
+    const PYCONVERT_RESULT_ISBITS = Ref{Bool}(false)
+    const PYCONVERT_RESULT_TYPE = Ref{Type}(Union{})
+    const PYCONVERT_RESULT_BITSLEN = 1024
+    const PYCONVERT_RESULT_BITS = fill(0x00, PYCONVERT_RESULT_BITSLEN)
+    function pyconvert_return(x::T) where {T}
+        if isbitstype(T) && sizeof(T) ≤ PYCONVERT_RESULT_BITSLEN
+            unsafe_store!(Ptr{T}(pointer(PYCONVERT_RESULT_BITS)), x)
+            PYCONVERT_RESULT_ISBITS[] = true
+            PYCONVERT_RESULT_TYPE[] = T
+        else
+            PYCONVERT_RESULT[] = x
+            PYCONVERT_RESULT_ISBITS[] = false
+        end
+        return true
+    end
+    pyconvert_unconverted() = false
+    pyconvert_returntype(::Type{T}) where {T} = Bool
+    pyconvert_isunconverted(r::Bool) = !r
+    function pyconvert_result(::Type{T}, r::Bool) where {T}
+        if isbitstype(T)
+            if sizeof(T) ≤ PYCONVERT_RESULT_BITSLEN
+                @assert PYCONVERT_RESULT_ISBITS[]
+                @assert PYCONVERT_RESULT_TYPE[] == T
+                return unsafe_load(Ptr{T}(pointer(PYCONVERT_RESULT_BITS)))::T
+            end
+        elseif PYCONVERT_RESULT_ISBITS[]
+            t = PYCONVERT_RESULT_TYPE[]
+            @assert isbitstype(t)
+            @assert sizeof(t) ≤ PYCONVERT_RESULT_BITSLEN
+            @assert t <: T
+            @assert isconcretetype(t)
+            return unsafe_load(Ptr{t}(pointer(PYCONVERT_RESULT_BITS)))::T
+        end
+        # general case
+        ans = PYCONVERT_RESULT[]::T
+        PYCONVERT_RESULT[] = nothing
+        return ans::T
+    end
 end
 
 pyconvert_result(r) = pyconvert_result(Any, r)

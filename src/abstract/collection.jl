@@ -81,7 +81,7 @@ end
 
 # Tuple
 
-pyconvert_rule_iterable(::Type{T}, xs::Py) where {T<:Tuple} = begin
+function pyconvert_rule_iterable(::Type{T}, xs::Py) where {T<:Tuple}
     T isa DataType || return pyconvert_unconverted()
     ts = collect(T.parameters)
     if !isempty(ts) && Base.isvarargtype(ts[end])
@@ -105,6 +105,22 @@ pyconvert_rule_iterable(::Type{T}, xs::Py) where {T<:Tuple} = begin
         push!(zs, z)
     end
     return length(zs) < length(ts) ? pyconvert_unconverted() : pyconvert_return(T(zs))
+end
+
+# N-Tuple for N up to 16
+# TODO: Vararg
+
+for N in 0:16
+    Ts = [Symbol("T", n) for n in 1:N]
+    zs = [Symbol("z", n) for n in 1:N]
+    @eval function pyconvert_rule_iterable(::Type{Tuple{$(Ts...)}}, xs::Py) where {$(Ts...)}
+        pylen(xs) == $N || return pyconvert_unconverted()
+        $((
+            :($z = @pyconvert_and_del($T, pytuple_getitem(xs, $(i-1))))
+            for (i, T, z) in zip(1:N, Ts, zs)
+        )...)
+        return pyconvert_return(($(zs...),))
+    end
 end
 
 # Pair

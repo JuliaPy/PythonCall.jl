@@ -30,13 +30,6 @@ size_to_cstrides(elsz::Integer, sz::Integer...) =
 isfcontiguous(o::AbstractArray) = strides(o) == size_to_fstrides(1, size(o)...)
 isccontiguous(o::AbstractArray) = strides(o) == size_to_cstrides(1, size(o)...)
 
-# TODO: what is the best way?
-ismutablearray(x::Array) = true
-ismutablearray(x::AbstractArray) = begin
-    p = parent(x)
-    p === x ? false : ismutablearray(p)
-end
-
 pybufferformat(::Type{T}) where {T} =
     T == Int8 ? "=b" :
     T == UInt8 ? "=B" :
@@ -92,51 +85,6 @@ pybufferformat_to_type(fmt::AbstractString) =
     fmt == "O" ? C.PyObjectRef :
     fmt == "=e" ? Float16 :
     fmt == "=f" ? Float32 : fmt == "=d" ? Float64 : error("not implemented: $(repr(fmt))")
-
-islittleendian() =
-    Base.ENDIAN_BOM == 0x04030201 ? true : Base.ENDIAN_BOM == 0x01020304 ? false : error()
-
-pytypestrdescr(::Type{T}) where {T} = begin
-    c = islittleendian() ? '<' : '>'
-    T == Bool ? ("$(c)b$(sizeof(Bool))", nothing) :
-    T == Int8 ? ("$(c)i1", nothing) :
-    T == UInt8 ? ("$(c)u1", nothing) :
-    T == Int16 ? ("$(c)i2", nothing) :
-    T == UInt16 ? ("$(c)u2", nothing) :
-    T == Int32 ? ("$(c)i4", nothing) :
-    T == UInt32 ? ("$(c)u4", nothing) :
-    T == Int64 ? ("$(c)i8", nothing) :
-    T == UInt64 ? ("$(c)u8", nothing) :
-    T == Float16 ? ("$(c)f2", nothing) :
-    T == Float32 ? ("$(c)f4", nothing) :
-    T == Float64 ? ("$(c)f8", nothing) :
-    T == Complex{Float16} ? ("$(c)c4", nothing) :
-    T == Complex{Float32} ? ("$(c)c8", nothing) :
-    T == Complex{Float64} ? ("$(c)c16", nothing) :
-    T == C.PyObjectRef ? ("|O", nothing) :
-    if isstructtype(T) && isconcretetype(T) && allocatedinline(T)
-        n = fieldcount(T)
-        flds = []
-        for i = 1:n
-            nm = fieldname(T, i)
-            tp = fieldtype(T, i)
-            ts, ds = pytypestrdescr(tp)
-            isempty(ts) && return ("", nothing)
-            push!(
-                flds,
-                (nm isa Integer ? "f$(nm-1)" : string(nm), ds === nothing ? ts : ds),
-            )
-            d =
-                (i == n ? sizeof(T) : fieldoffset(T, i + 1)) -
-                (fieldoffset(T, i) + sizeof(tp))
-            @assert d ≥ 0
-            d > 0 && push!(flds, ("", "|V$(d)"))
-        end
-        ("|$(sizeof(T))V", flds)
-    else
-        ("", nothing)
-    end
-end
 
 pytypestrdescr_to_type(ts::String, descr) = begin
     # byte swapped?

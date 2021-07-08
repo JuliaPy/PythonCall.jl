@@ -146,4 +146,13 @@ function explode_union(T)
     @generated _promote_type_bounded(::Type{T1}, ::Type{T2}, ::Type{T3}, ::Type{B}) where {T1,T2,T3,B} =
         _promote_type_bounded(_promote_type_bounded(T1, T2, B), T3, B)
 
+    # TODO: what is the best way?
+    ismutablearray(x::Array) = true
+    ismutablearray(x::AbstractArray) = begin
+        p = parent(x)
+        p === x ? false : ismutablearray(p)
+    end
+
+    islittleendian() = Base.ENDIAN_BOM == 0x04030201 ? true : Base.ENDIAN_BOM == 0x01020304 ? false : error()
+
 end

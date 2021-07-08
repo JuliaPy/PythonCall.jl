@@ -1,5 +1,6 @@
 module PythonCall
 
+using Base: @propagate_inbounds
 using MacroTools, Dates, Tables, Markdown
 
 include("utils.jl")
@@ -44,6 +45,7 @@ include("jlwrap/any.jl")
 include("jlwrap/module.jl")
 include("jlwrap/type.jl")
 include("jlwrap/iter.jl")
+include("jlwrap/objectarray.jl")
 include("jlwrap/array.jl")
 include("jlwrap/vector.jl")
 include("jlwrap/dict.jl")

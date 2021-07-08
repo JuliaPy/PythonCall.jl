@@ -120,16 +120,24 @@ function Base.show(io::IO, x::Py)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", o::Py)
+    hasprefix = get(io, :typeinfo, Any) != Py
     if ispynull(o)
-        printstyled(io, "Python NULL", bold=true)
+        if hasprefix
+            printstyled(io, "Python NULL", bold=true)
+        else
+            print(io, "NULL")
+        end
         return
     elseif pyisnone(o)
-        printstyled(io, "Python None", bold=true)
+        if hasprefix
+            printstyled(io, "Python None", bold=true)
+        else
+            print(io, "None")
+        end
         return
     end
     h, w = displaysize(io)
     compact = get(io, :compact, false)
-    hasprefix = get(io, :typeinfo, Any) != Py
     str = pyrepr(String, o)
     multiline = '\n' in str
     prefix = hasprefix ? compact ? "Py:$(multiline ? '\n' : ' ')" : "Python $(pytype(o).__name__):$(multiline ? '\n' : ' ')" : ""

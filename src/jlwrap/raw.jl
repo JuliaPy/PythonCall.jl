@@ -23,22 +23,16 @@ end
 pyjlraw_dir(self) = pylist(pyjl_attr_jl2py(string(k)) for k in propertynames(self, true))
 
 function pyjlraw_call(self, args_::Py, kwargs_::Py)
-    # TODO:
-    # args = pyconvert(Vector{Any}, args_)
-    # kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
-    args = Any[]
-    for a in args_
-        push!(args, pyconvert(Any, a))
-        pydel!(a)
+    if pylen(kwargs_) > 0
+        args = pyconvert(Vector{Any}, args_)
+        kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
+        pyjlraw(self(args...; kwargs...))
+    elseif pylen(args_) > 0
+        args = pyconvert(Vector{Any}, args_)
+        pyjlraw(self(args...))
+    else
+        pyjlraw(self())
     end
-    kwargs = Dict{Symbol,Any}()
-    for k in kwargs_
-        v = kwargs_[k]
-        push!(kwargs, pyconvert(Symbol, k) => pyconvert(Any, v))
-        pydel!(k)
-        pydel!(v)
-    end
-    pyjlraw(self(args...; kwargs...))
 end
 
 pyjlraw_len(self) = Py(length(self))

@@ -21,22 +21,16 @@ pyjl_handle_error_type(::typeof(pyjlany_setattr), self, exc) = pybuiltins.Attrib
 pyjlany_dir(self) = pylist(pyjl_attr_jl2py(string(k)) for k in propertynames(self, true))
 
 function pyjlany_call(self, args_::Py, kwargs_::Py)
-    # TODO:
-    # args = pyconvert(Vector{Any}, args_)
-    # kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
-    args = Any[]
-    for a in args_
-        push!(args, pyconvert(Any, a))
-        pydel!(a)
+    if pylen(kwargs_) > 0
+        args = pyconvert(Vector{Any}, args_)
+        kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
+        Py(self(args...; kwargs...))
+    elseif pylen(args_) > 0
+        args = pyconvert(Vector{Any}, args_)
+        Py(self(args...))
+    else
+        Py(self())
     end
-    kwargs = Dict{Symbol,Any}()
-    for k in kwargs_
-        v = kwargs_[k]
-        push!(kwargs, pyconvert(Symbol, k) => pyconvert(Any, v))
-        pydel!(k)
-        pydel!(v)
-    end
-    Py(self(args...; kwargs...))
 end
 pyjl_handle_error_type(::typeof(pyjlany_call), self, exc) = exc isa MethodError && exc.f === self ? pybuiltins.TypeError : PyNULL
 

@@ -34,3 +34,41 @@ end
 pylist() = pynulllist(0)
 pylist(x) = ispy(x) ? pybuiltins.list(x) : pylist_fromiter(x)
 export pylist
+
+"""
+    pycollist([T=PyObject,] x::AbstractArray) :: T
+
+Create a nested Python `list`-of-`list`s from the elements of `x`. For matrices, this is a list of columns.
+"""
+function pycollist(x::AbstractArray{T,N}) where {T,N}
+    ndims(x) == 0 && return Py(x[])
+    d = N
+    ax = axes(x, d)
+    ans = pynulllist(length(ax))
+    for (i, j) in enumerate(ax)
+        y = pycollist(selectdim(x, d, j))
+        pylist_setitem(ans, i-1, y)
+        pydel!(y)
+    end
+    return ans
+end
+export pycollist
+
+"""
+    pyrowlist([T=PyObject,] x::AbstractArray) :: T
+
+Create a nested Python `list`-of-`list`s from the elements of `x`. For matrices, this is a list of rows.
+"""
+function pyrowlist(x::AbstractArray{T,N}) where {T,N}
+    ndims(x) == 0 && return Py(x[])
+    d = 1
+    ax = axes(x, d)
+    ans = pynulllist(length(ax))
+    for (i, j) in enumerate(ax)
+        y = pyrowlist(selectdim(x, d, j))
+        pylist_setitem(ans, i-1, y)
+        pydel!(y)
+    end
+    return ans
+end
+export pyrowlist

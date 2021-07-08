@@ -40,3 +40,76 @@ PyBuffer_Release(_b) = begin
     Py_DecRef(o)
     return
 end
+
+function PyOS_RunInputHook()
+    hook = Base.unsafe_load(Ptr{Ptr{Cvoid}}(dlsym(CTX.lib_ptr, :PyOS_InputHook)))
+    if hook == C_NULL
+        return false
+    else
+        ccall(hook, Cint, ())
+        return true
+    end
+end
+
+# FAST REFCOUNTING
+#
+# _Py_IncRef(o) = ccall(POINTERS.Py_IncRef, Cvoid, (PyPtr,), o)
+# _Py_DecRef(o) = ccall(POINTERS.Py_DecRef, Cvoid, (PyPtr,), o)
+# const FAST_INCREF = true
+# const FAST_DECREF = true
+# if FAST_INCREF
+#     # This avoids calling the C-API Py_IncRef().
+#     # It just needs to increase the reference count.
+#     # Assumes Python is not built for debugging reference counts.
+#     # Speed up from 2.5ns to 1.3ns.
+#     Py_INCREF(o) = GC.@preserve o begin
+#         p = UnsafePtr(Base.unsafe_convert(PyPtr, o))
+#         p.refcnt[] += 1
+#         nothing
+#     end
+#     Py_IncRef(o) = GC.@preserve o begin
+#         p = UnsafePtr(Base.unsafe_convert(PyPtr, o))
+#         if p != C_NULL
+#             p.refcnt[] += 1
+#         end
+#         nothing
+#     end
+# else
+#     Py_INCREF(o) = _Py_IncRef(o)
+#     Py_IncRef(o) = _Py_IncRef(o)
+# end
+# if FAST_DECREF
+#     # This avoids calling the C-API Py_IncRef() unless the object is about to be deallocated.
+#     # It just needs to decrement the reference count.
+#     # Assumes Python is not built for debugging reference counts.
+#     # Speed up from 2.5ns to 1.8ns in non-deallocating case.
+#     Py_DECREF(o) = GC.@preserve o begin
+#         p = UnsafePtr(Base.unsafe_convert(PyPtr, o))
+#         c = p.refcnt[]
+#         if c > 1
+#             p.refcnt[] = c - 1
+#         else
+#             _Py_DecRef(o)
+#         end
+#         nothing
+#     end
+#     Py_DecRef(o) = GC.@preserve o begin
+#         p = UnsafePtr(Base.unsafe_convert(PyPtr, o))
+#         if p != C_NULL
+#             c = p.refcnt[]
+#             if c > 1
+#                 p.refcnt[] = c - 1
+#             else
+#                 _Py_DecRef(o)
+#             end
+#         end
+#         nothing
+#     end
+# else
+#     Py_DECREF(o) = _Py_DecRef(o)
+#     Py_DecRef(o) = _Py_DecRef(o)
+# end
+# Py_RefCnt(o) = GC.@preserve o UnsafePtr(Base.unsafe_convert(PyPtr, o)).refcnt[]
+
+# Py_DecRef(f::Function, o::Ptr, dflt = PYERR()) =
+#     isnull(o) ? dflt : (r = f(o); Py_DecRef(o); r)

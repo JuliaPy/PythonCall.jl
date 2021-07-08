@@ -1,6 +1,6 @@
 module PythonCall
 
-using MacroTools, Dates, Tables
+using MacroTools, Dates, Tables, Markdown
 
 include("utils.jl")
 

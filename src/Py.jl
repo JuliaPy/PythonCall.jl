@@ -260,6 +260,8 @@ end
 
 Base.in(v, x::Py) = pycontains(x, v)
 
+Base.hash(x::Py) = reinterpret(UInt, Int(pyhash(x)))
+
 (f::Py)(args...; kwargs...) = pycall(f, args...; kwargs...)
 
 # comparisons
@@ -290,6 +292,9 @@ Base.:(>=)(x::Number, y::Py) = pyge(x, y)
 Base.:(> )(x::Number, y::Py) = pygt(x, y)
 Base.isless(x::Number, y::Py) = pylt(Bool, x, y)
 Base.isequal(x::Number, y::Py) = pyeq(Bool, x, y)
+
+Base.zero(::Type{Py}) = pyint(0)
+Base.one(::Type{Py}) = pyint(1)
 
 # unary arithmetic
 Base.:(+)(x::Py) = pypos(x)
@@ -351,3 +356,40 @@ Base.powermod(x::Py, y::Py, z::Number) = pypow(x, y, z)
 Base.powermod(x::Number, y::Number, z::Py) = pypow(x, y, z)
 Base.powermod(x::Number, y::Py, z::Number) = pypow(x, y, z)
 Base.powermod(x::Py, y::Number, z::Number) = pypow(x, y, z)
+
+# documentation
+function Base.Docs.getdoc(x::Py)
+    parts = []
+    inspect = pyimport("inspect")
+    # head line
+    if pytruth(inspect.ismodule(x))
+        desc = pyhasattr(x, "__path__") ? "package" : "module"
+        name = "$(x.__name__)"
+    elseif pytruth(inspect.isgetsetdescriptor(x))
+        desc = "getset descriptor"
+        name = "$(x.__objclass__.__name__).$(x.__name__)"
+    elseif pytruth(inspect.ismemberdescriptor(x))
+        desc = "member descriptor"
+        name = "$(x.__objclass__.__name__).$(x.__name__)"
+    elseif pytruth(inspect.isclass(x))
+        desc = "class"
+        name = "$(x.__name__)"
+    elseif pytruth(inspect.isfunction(x)) || pytruth(inspect.isbuiltin(x))
+        desc = "function"
+        name = "$(x.__name__)"
+    elseif pytruth(inspect.ismethod(x))
+        desc = "method"
+        name = "$(x.__name__)"
+    else
+        desc = "object of type"
+        name = "$(pytype(x).__name__)"
+    end
+    push!(parts, Markdown.Paragraph(["Python $desc ", Markdown.Code(name), "."]))
+    # docstring
+    doc = pyimport("inspect").getdoc(x)
+    if !pyisnone(doc)
+        push!(parts, Text(pystr_asstring(doc)))
+    end
+    return Markdown.MD(parts)
+end
+Base.Docs.Binding(x::Py, k::Symbol) = getproperty(x, k)

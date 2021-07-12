@@ -89,6 +89,9 @@ Py(x::Rational{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,
 Py(x::Union{Float16,Float32,Float64}) = pyfloat(x)
 Py(x::Complex{<:Union{Float16,Float32,Float64}}) = pycomplex(x)
 Py(x::AbstractRange{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = pyrange_fromrange(x)
+Py(x::Date) = pydate(x)
+Py(x::Time) = pytime(x)
+Py(x::DateTime) = pydatetime(x)
 Py(x) = ispy(x) ? Py(getpy(x)) : pyjl(x)
 
 Base.string(x::Py) = ispynull(x) ? "<py NULL>" : pystr(String, x)

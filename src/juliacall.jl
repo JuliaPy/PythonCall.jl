@@ -47,6 +47,7 @@ function init_juliacall_2()
         pass
     """, filename, "exec"), jl.__dict__)
     pycopy!(pyJuliaError, jl.JuliaError)
+    C.POINTERS.PyExc_JuliaError = incref(getptr(pyJuliaError))
 end
 
 function pyconvert_rule_jlas(::Type{T}, x::Py) where {T}

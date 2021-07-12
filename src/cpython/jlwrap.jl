@@ -39,11 +39,145 @@ function _pyjl_callmethod(o::PyPtr, args::PyPtr)
     return _pyjl_callmethod(f, o, args, nargs)::PyPtr
 end
 
+const PYJLBUFCACHE = Dict{Ptr{Cvoid},Any}()
+
+@kwdef struct PyBufferInfo{N}
+    # data
+    ptr::Ptr{Cvoid}
+    readonly::Bool
+    # items
+    itemsize::Int
+    format::String
+    # layout
+    shape::NTuple{N,Int}
+    strides::NTuple{N,Int}
+    suboffsets::NTuple{N,Int} = ntuple(i -> -1, N)
+end
+
+_pyjl_get_buffer_impl(obj::PyPtr, buf::Ptr{Py_buffer}, flags::Cint, x, f) = _pyjl_get_buffer_impl(obj, buf, flags, f(x)::PyBufferInfo)
+
+function _pyjl_get_buffer_impl(obj::PyPtr, buf::Ptr{Py_buffer}, flags::Cint, info::PyBufferInfo{N}) where {N}
+    b = UnsafePtr(buf)
+    c = []
+
+    # not influenced by flags: obj, buf, len, itemsize, ndim
+    b.obj[] = C_NULL
+    b.buf[] = info.ptr
+    b.itemsize[] = info.itemsize
+    b.len[] = info.itemsize * prod(info.shape)
+    b.ndim[] = N
+
+    # readonly
+    if !info.readonly
+        b.readonly[] = 0
+    elseif Utils.isflagset(flags, PyBUF_WRITABLE)
+        PyErr_SetString(POINTERS.PyExc_BufferError, "not writable")
+        return Cint(-1)
+    else
+        b.readonly[] = 1
+    end
+
+    # format
+    if Utils.isflagset(flags, PyBUF_FORMAT)
+        push!(c, info.format)
+        b.format[] = pointer(info.format)
+    else
+        b.format[] = C_NULL
+    end
+
+    # shape
+    if Utils.isflagset(flags, PyBUF_ND)
+        shape = Py_ssize_t[info.shape...]
+        push!(c, shape)
+        b.shape[] = pointer(shape)
+    else
+        b.shape[] = C_NULL
+    end
+
+    # strides
+    if Utils.isflagset(flags, PyBUF_STRIDES)
+        strides = Py_ssize_t[info.strides...]
+        push!(c, strides)
+        b.strides[] = pointer(strides)
+    elseif Utils.size_to_cstrides(info.itemsize, info.shape) == info.strides
+        b.strides[] = C_NULL
+    else
+        PyErr_SetString(POINTERS.PyExc_BufferError, "not C contiguous and strides not requested")
+        return Cint(-1)
+    end
+
+    # suboffsets
+    if all(==(-1), info.suboffsets)
+        b.suboffsets[] = C_NULL
+    elseif Utils.isflagset(flags, PyBUF_INDIRECT)
+        suboffsets = Py_ssize_t[info.suboffsets...]
+        push!(c, suboffsets)
+        b.suboffsets[] = pointer(suboffsets)
+    else
+        PyErr_SetString(POINTERS.PyExc_BufferError, "indirect array and suboffsets not requested")
+        return Cint(-1)
+    end
+
+    # check contiguity
+    if Utils.isflagset(flags, PyBUF_C_CONTIGUOUS)
+        if Utils.size_to_cstrides(info.itemsize, info.shape) != info.strides
+            PyErr_SetString(POINTERS.PyExc_BufferError, "not C contiguous")
+            return Cint(-1)
+        end
+    end
+    if Utils.isflagset(flags, PyBUF_F_CONTIGUOUS)
+        if Utils.size_to_fstrides(info.itemsize, info.shape) != info.strides
+            PyErr_SetString(POINTERS.PyExc_BufferError, "not Fortran contiguous")
+            return Cint(-1)
+        end
+    end
+    if Utils.isflagset(flags, PyBUF_ANY_CONTIGUOUS)
+        if Utils.size_to_cstrides(info.itemsize, info.shape) != info.strides &&
+           Utils.size_to_fstrides(info.itemsize, info.shape) != info.strides
+            PyErr_SetString(POINTERS.PyExc_BufferError, "not contiguous")
+            return Cint(-1)
+        end
+    end
+
+    # internal
+    cptr = Base.pointer_from_objref(c)
+    PYJLBUFCACHE[cptr] = c
+    b.internal[] = cptr
+
+    # obj
+    Py_IncRef(obj)
+    b.obj[] = obj
+    Cint(0)
+end
+
+function _pyjl_get_buffer(o::PyPtr, buf::Ptr{Py_buffer}, flags::Cint)
+    num_ = PyObject_GetAttrString(o, "_jl_buffer_info")
+    num_ == C_NULL && (PyErr_Clear(); PyErr_SetString(POINTERS.PyExc_BufferError, "not a buffer"); return Cint(-1))
+    num = PyLong_AsLongLong(num_)
+    Py_DecRef(num_)
+    num == -1 && return Cint(-1)
+    try
+        f = PYJLMETHODS[num]
+        x = PyJuliaValue_GetValue(o)
+        return _pyjl_get_buffer_impl(o, buf, flags, x, f)::Cint
+    catch exc
+        @show exc
+        PyErr_SetString(POINTERS.PyExc_BufferError, "some error occurred getting the buffer")
+        return Cint(-1)
+    end
+end
+
+function _pyjl_release_buffer(xo::PyPtr, buf::Ptr{Py_buffer})
+    delete!(PYJLBUFCACHE, UnsafePtr(buf).internal[!])
+    nothing
+end
+
 const _pyjlbase_name = "juliacall.ValueBase"
 const _pyjlbase_type = fill(C.PyTypeObject())
 const _pyjlbase_isnull_name = "_jl_isnull"
 const _pyjlbase_callmethod_name = "_jl_callmethod"
 const _pyjlbase_methods = Vector{PyMethodDef}()
+const _pyjlbase_as_buffer = fill(PyBufferProcs())
 
 function init_jlwrap()
     empty!(_pyjlbase_methods)
@@ -60,6 +194,10 @@ function init_jlwrap()
         ),
         PyMethodDef(),
     )
+    _pyjlbase_as_buffer[] = PyBufferProcs(
+        get = @cfunction(_pyjl_get_buffer, Cint, (PyPtr, Ptr{Py_buffer}, Cint)),
+        release = @cfunction(_pyjl_release_buffer, Cvoid, (PyPtr, Ptr{Py_buffer})),
+    )
     _pyjlbase_type[] = PyTypeObject(
         name = pointer(_pyjlbase_name),
         basicsize = sizeof(PyJuliaValueObject),
@@ -70,7 +208,8 @@ function init_jlwrap()
         weaklistoffset = fieldoffset(PyJuliaValueObject, 3),
         # getattro = POINTERS.PyObject_GenericGetAttr,
         # setattro = POINTERS.PyObject_GenericSetAttr,
-        methods = pointer(_pyjlbase_methods)
+        methods = pointer(_pyjlbase_methods),
+        as_buffer = pointer(_pyjlbase_as_buffer),
     )
     o = POINTERS.PyJuliaBase_Type = PyPtr(pointer(_pyjlbase_type))
     if PyType_Ready(o) == -1

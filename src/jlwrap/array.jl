@@ -117,6 +117,86 @@ function pyjlarray_reshape(x::AbstractArray, shape_::Py)
     return Py(reshape(x, shape...))
 end
 
+pyjlarray_isbufferabletype(::Type{T}) where {T} = T in (
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+    Float16,
+    Float32,
+    Float64,
+    Complex{Float16},
+    Complex{Float32},
+    Complex{Float64},
+    Bool,
+    Ptr{Cvoid},
+)
+pyjlarray_isbufferabletype(::Type{T}) where {T<:Tuple} =
+    isconcretetype(T) &&
+    PythonCall.allocatedinline(T) &&
+    all(pyjlarray_isbufferabletype, fieldtypes(T))
+pyjlarray_isbufferabletype(::Type{NamedTuple{names,T}}) where {names,T} =
+    pyjlarray_isbufferabletype(T)
+
+function pyjlarray_buffer_info(x::AbstractArray{T,N}) where {T,N}
+    if pyjlarray_isbufferabletype(T)
+        C.PyBufferInfo{N}(
+            ptr = Base.unsafe_convert(Ptr{T}, x),
+            readonly = !Utils.ismutablearray(x),
+            itemsize = sizeof(T),
+            format = pybufferformat(T),
+            shape = size(x),
+            strides = strides(x) .* Base.aligned_sizeof(T),
+        )
+    else
+        error("element type is not bufferable")
+    end
+end
+
+const PYBUFFERFORMAT = IdDict{Type,String}()
+
+pybufferformat(::Type{T}) where {T} = get!(PYBUFFERFORMAT, T) do
+    T == Cchar ? "b" :
+    T == Cuchar ? "B" :
+    T == Cshort ? "h" :
+    T == Cushort ? "H" :
+    T == Cint ? "i" :
+    T == Cuint ? "I" :
+    T == Clong ? "l" :
+    T == Culong ? "L" :
+    T == Clonglong ? "q" :
+    T == Culonglong ? "Q" :
+    T == Float16 ? "e" :
+    T == Cfloat ? "f" :
+    T == Cdouble ? "d" :
+    T == Complex{Float16} ? "Ze" :
+    T == Complex{Cfloat} ? "Zf" :
+    T == Complex{Cdouble} ? "Zd" :
+    T == Bool ? "?" :
+    T == Ptr{Cvoid} ? "P" :
+    if isstructtype(T) && isconcretetype(T) && allocatedinline(T)
+        n = fieldcount(T)
+        flds = []
+        for i = 1:n
+            nm = fieldname(T, i)
+            tp = fieldtype(T, i)
+            push!(flds, string(pybufferformat(tp), nm isa Symbol ? ":$nm:" : ""))
+            d =
+                (i == n ? sizeof(T) : fieldoffset(T, i + 1)) -
+                (fieldoffset(T, i) + sizeof(tp))
+            @assert d ≥ 0
+            d > 0 && push!(flds, "$(d)x")
+        end
+        string("T{", join(flds, " "), "}")
+    else
+        "$(sizeof(T))x"
+    end
+end
+
 pyjlarray_isarrayabletype(::Type{T}) where {T} = T in (
     UInt8,
     Int8,
@@ -141,7 +221,9 @@ pyjlarray_isarrayabletype(::Type{T}) where {T<:Tuple} =
 pyjlarray_isarrayabletype(::Type{NamedTuple{names,types}}) where {names,types} =
     pyjlarray_isarrayabletype(types)
 
-function pytypestrdescr(::Type{T}) where {T}
+const PYTYPESTRDESCR = IdDict{Type,Tuple{String,Py}}()
+
+pytypestrdescr(::Type{T}) where {T} = get!(PYTYPESTRDESCR, T) do
     c = Utils.islittleendian() ? '<' : '>'
     T == Bool ? ("$(c)b$(sizeof(Bool))", PyNULL) :
     T == Int8 ? ("$(c)i1", PyNULL) :
@@ -158,7 +240,6 @@ function pytypestrdescr(::Type{T}) where {T}
     T == Complex{Float16} ? ("$(c)c4", PyNULL) :
     T == Complex{Float32} ? ("$(c)c8", PyNULL) :
     T == Complex{Float64} ? ("$(c)c16", PyNULL) :
-    # T == C.PyObjectRef ? ("|O", PyNULL) :
     if isstructtype(T) && isconcretetype(T) && Base.allocatedinline(T)
         n = fieldcount(T)
         flds = []
@@ -213,6 +294,7 @@ function init_jlwrap_array()
     class ArrayValue(AnyValue):
         __slots__ = ()
         __module__ = "juliacall"
+        _jl_buffer_info = $(pyjl_methodnum(pyjlarray_buffer_info))
         @property
         def ndim(self):
             return self._jl_callmethod($(pyjl_methodnum(Py ∘ ndims)))

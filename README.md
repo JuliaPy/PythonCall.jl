@@ -5,6 +5,8 @@
 [![Test Status](https://github.com/cjdoris/PythonCall.jl/workflows/Tests/badge.svg)](https://github.com/cjdoris/PythonCall.jl/actions?query=workflow%3ATests)
 [![Codecov](https://codecov.io/gh/cjdoris/PythonCall.jl/branch/master/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/cjdoris/PythonCall.jl)
 
+**Note: This package is currently being re-written from scratch. See the 'rewrite' branch. The API may change a little.**
+
 Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://julialang.org/) together in seamless harmony:
 - Call Python code from Julia and Julia code from Python via a symmetric interface.
 - Simple syntax, so the Python code looks like Python and the Julia code looks like Julia.

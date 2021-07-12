@@ -16,9 +16,9 @@ This may need a `try-finally` block to ensure the GIL is released again. If you 
             PyGILState_Release(g)
         end
     else
-        g = Py_GILState_Ensure()
+        g = PyGILState_Ensure()
         r = f()
-        Py_GILState_Release(g)
+        PyGILState_Release(g)
         r
     end
 end

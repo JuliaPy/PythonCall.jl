@@ -17,7 +17,9 @@ include("jlwrap.jl")
 
 function __init__()
     init_context()
-    init_jlwrap()
+    with_gil() do
+        init_jlwrap()
+    end
 end
 
 end

@@ -80,8 +80,7 @@ function pyjlvector_pop(x::AbstractVector, k_::Py)
 end
 
 function pyjlvector_remove(x::AbstractVector, v_::Py)
-    r = pytryconvert(eltype(x), v_)
-    if pyconvert_isunconverted(r)
+    v = @pyconvert eltype(x) v_ begin
         errset(pybuiltins.ValueError, "value not in array")
         return pynew()
     end
@@ -96,12 +95,10 @@ function pyjlvector_remove(x::AbstractVector, v_::Py)
 end
 
 function pyjlvector_index(x::AbstractVector, v_::Py)
-    r = pytryconvert(eltype(x), v_)
-    if pyconvert_isunconverted(r)
+    v = @pyconvert eltype(x) v_ begin
         errset(pybuiltins.ValueError, "value not in array")
         return pynew()
     end
-    v = pyconvert_result(r)
     k = findfirst(==(v), x)
     if k === nothing
         errset(pybuiltins.ValueError, "value not in array")
@@ -111,11 +108,7 @@ function pyjlvector_index(x::AbstractVector, v_::Py)
 end
 
 function pyjlvector_count(x::AbstractVector, v_::Py)
-    r = pytryconvert(eltype(x), v_)
-    if pyconvert_isunconverted(r)
-        return Py(0)
-    end
-    v = pyconvert_result(r)
+    v = @pyconvert(eltype(x), v_, (return Py(0)))
     Py(count(==(v), x))
 end
 

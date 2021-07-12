@@ -7,6 +7,7 @@ const pyjlintegertype = pynew()
 struct pyjlnumber_op{OP}
     op :: OP
 end
+(op::pyjlnumber_op)(self) = Py(op.op(self))
 function (op::pyjlnumber_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
@@ -56,6 +57,25 @@ function (op::pyjlnumber_rev_op)(self, other_::Py, other2_::Py)
 end
 pyjl_handle_error_type(op::pyjlnumber_rev_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
 
+pyjlreal_trunc(self::Real) = Py(trunc(Integer, self))
+pyjl_handle_error_type(::typeof(pyjlreal_trunc), self, exc::MethodError) = exc.f === trunc ? pybuiltins.TypeError : PyNULL
+
+pyjlreal_floor(self::Real) = Py(floor(Integer, self))
+pyjl_handle_error_type(::typeof(pyjlreal_floor), self, exc::MethodError) = exc.f === floor ? pybuiltins.TypeError : PyNULL
+
+pyjlreal_ceil(self::Real) = Py(ceil(Integer, self))
+pyjl_handle_error_type(::typeof(pyjlreal_ceil), self, exc::MethodError) = exc.f === ceil ? pybuiltins.TypeError : PyNULL
+
+function pyjlreal_round(self::Real, ndigits_::Py)
+    ndigits = pyconvertarg(Union{Int,Nothing}, ndigits_, "ndigits")
+    if ndigits === nothing
+        Py(round(Integer, self))
+    else
+        Py(round(self; digits = ndigits))
+    end
+end
+pyjl_handle_error_type(::typeof(pyjlreal_round), self, exc::MethodError) = exc.f === round ? pybuiltins.TypeError : PyNULL
+
 function init_jlwrap_number()
     jl = pyjuliacallmodule
     filename = "$(@__FILE__):$(1+@__LINE__)"
@@ -63,6 +83,8 @@ function init_jlwrap_number()
     class NumberValue(AnyValue):
         __slots__ = ()
         __module__ = "juliacall"
+        def __bool__(self):
+            return not self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(iszero))))
         def __add__(self, other):
             return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(+))), other)
         def __sub__(self, other):
@@ -117,19 +139,63 @@ function init_jlwrap_number()
             return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(⊻))), other)
         def __ror__(self, other):
             return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(|))), other)
+        def __eq__(self, other):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(==))), other)
+        def __ne__(self, other):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(!=))), other)
+        def __le__(self, other):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(≤))), other)
+        def __lt__(self, other):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(<))), other)
+        def __ge__(self, other):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(≥))), other)
+        def __gt__(self, other):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(>))), other)
     class ComplexValue(NumberValue):
         __slots__ = ()
         __module__ = "juliacall"
         def __complex__(self):
             return self._jl_callmethod($(pyjl_methodnum(pycomplex)))
+        @property
+        def real(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(real))))
+        @property
+        def imag(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(imag))))
+        def conjugate(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(conj))))
     class RealValue(ComplexValue):
         __slots__ = ()
         __module__ = "juliacall"
         def __float__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyfloat)))
+        @property
+        def real(self):
+            return self
+        @property
+        def imag(self):
+            return 0
+        def conjugate(self):
+            return self
+        def __complex__(self):
+            return complex(float(self))
+        def __trunc__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlreal_trunc)))
+        def __floor__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlreal_floor)))
+        def __ceil__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlreal_ceil)))
+        def __round__(self, ndigits=None):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlreal_round)), ndigits)
     class RationalValue(RealValue):
         __slots__ = ()
         __module__ = "juliacall"
+        @property
+        def numerator(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(numerator))))
+        @property
+        def denominator(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(denominator))))
     class IntegerValue(RationalValue):
         __slots__ = ()
         __module__ = "juliacall"
@@ -137,6 +203,12 @@ function init_jlwrap_number()
             return self._jl_callmethod($(pyjl_methodnum(pyint)))
         def __index__(self):
             return self.__int__()
+        @property
+        def numerator(self):
+            return self
+        @property
+        def denominator(self):
+            return 1
     import numbers
     numbers.Number.register(NumberValue)
     numbers.Complex.register(ComplexValue)

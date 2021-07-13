@@ -42,54 +42,6 @@ pybufferformat_to_type(fmt::AbstractString) =
     fmt == "=e" ? Float16 :
     fmt == "=f" ? Float32 : fmt == "=d" ? Float64 : error("not implemented: $(repr(fmt))")
 
-pytypestrdescr_to_type(ts::String, descr) = begin
-    # byte swapped?
-    bsc = ts[1]
-    bs =
-        bsc == '<' ? !islittleendian() :
-        bsc == '>' ? islittleendian() :
-        bsc == '|' ? false : error("endianness character not supported: $ts")
-    bs && error("byte-swapping not supported: $ts")
-    # element type
-    etc = ts[2]
-    if etc == 'b'
-        sz = parse(Int, ts[3:end])
-        sz == sizeof(Bool) && return Bool
-        error("bool of this size not supported: $ts")
-    elseif etc == 'i'
-        sz = parse(Int, ts[3:end])
-        sz == 1 && return Int8
-        sz == 2 && return Int16
-        sz == 4 && return Int32
-        sz == 8 && return Int64
-        sz == 16 && return Int128
-        error("signed int of this size not supported: $ts")
-    elseif etc == 'u'
-        sz = parse(Int, ts[3:end])
-        sz == 1 && return UInt8
-        sz == 2 && return UInt16
-        sz == 4 && return UInt32
-        sz == 8 && return UInt64
-        sz == 16 && return UInt128
-        error("unsigned int of this size not supported: $ts")
-    elseif etc == 'f'
-        sz = parse(Int, ts[3:end])
-        sz == 2 && return Float16
-        sz == 4 && return Float32
-        sz == 8 && return Float64
-        error("float of this size not supported: $ts")
-    elseif etc == 'c'
-        sz = parse(Int, ts[3:end])
-        sz == 4 && return Complex{Float16}
-        sz == 8 && return Complex{Float32}
-        sz == 16 && return Complex{Float64}
-        error("complex of this size not supported: $ts")
-    elseif etc == 'O'
-        return C.PyObjectRef
-    else
-        error("type not supported: $ts")
-    end
-end
 
 ### TYPE UTILITIES
 

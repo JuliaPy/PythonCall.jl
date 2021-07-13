@@ -1,6 +1,9 @@
 pytype(x) = pynew(errcheck(@autopy x C.PyObject_Type(getptr(x_))))
-pytype(name, bases, dict) = pybuiltins.type(name, pytuple(bases), pydict(dict))
+pytype(name, bases, dict) = pybuiltins.type(name, ispy(bases) && pyistype(bases) ? pytuple((bases,)) : pytuple(bases), pydict(dict))
 export pytype
+
+pyclass(name, bases=(); dict...) = pytype(name, bases, pystrdict_fromiter(dict))
+export pyclass
 
 pyistype(x) = pytypecheckfast(x, C.Py_TPFLAGS_TYPE_SUBCLASS)
 

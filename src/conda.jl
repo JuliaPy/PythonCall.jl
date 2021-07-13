@@ -8,6 +8,8 @@ available() = !isempty(_env[])
 
 env() = (env=_env[]; isempty(env) ? error("conda is not available") : env)
 
+create() = _Conda.runconda(`create -y -p $(env())`)
+
 function activate()
     newenv = _Conda._get_conda_env(env())
     for k in collect(keys(ENV))

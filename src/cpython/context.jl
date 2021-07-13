@@ -44,7 +44,7 @@ function init_context()
             # ensure the environment exists
             if !isdir(conda_env)
                 @info "Creating conda environment" conda_env
-                Conda.run(`create -y -p $conda_env`)
+                Conda.create()
             end
             # activate the environment
             Conda.activate()
@@ -52,7 +52,7 @@ function init_context()
             exe_path = Conda.python_exe()
             if !isfile(exe_path)
                 @info "Installing Python"
-                conda_add("python")
+                Conda.add("python")
                 isfile(exe_path) || error("installed python but still can't find it")
             end
         end

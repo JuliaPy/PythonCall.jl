@@ -19,7 +19,7 @@ def init():
             except:
                 raise Exception('PYTHON_JULIACALL_EXE=%s does not exist' % repr(exepath))
         CONFIG['exepath'] = exepath
-        libpath = subprocess.run([exepath, '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))'], stdout=(subprocess.PIPE)).stdout.decode('utf8')
+        libpath = subprocess.run([exepath, '--startup-file=no', '-O0', '--compile=min', '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))'], stdout=(subprocess.PIPE)).stdout.decode('utf8')
     else:
         if not os.path.isfile(libpath):
             raise Exception('PYTHON_JULIACALL_LIB=%s does not exist' % repr(libpath))

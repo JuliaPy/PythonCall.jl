@@ -4,6 +4,7 @@ using Base: @propagate_inbounds
 using MacroTools, Dates, Tables, Markdown, Serialization
 
 include("utils.jl")
+include("conda.jl")
 
 include("cpython/CPython.jl")
 

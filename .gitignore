@@ -3,3 +3,4 @@ deps/deps.jl
 deps/build.log
 .ipynb_checkpoints
 __pycache__
+.conda_env

@@ -15,8 +15,6 @@ A handle to a loaded instance of libpython, its interpreter, function pointers, 
     pyprogname_w :: Any = missing
     pyhome :: Union{String, Missing} = missing
     pyhome_w :: Any = missing
-    is_conda :: Bool = false
-    conda_env :: Union{String, Missing} = missing
     version :: Union{VersionNumber, Missing} = missing
 end
 
@@ -35,66 +33,37 @@ function init_context()
         # Check Python is initialized
         Py_IsInitialized() == 0 && error("Python is not already initialized.")
         CTX.is_initialized = CTX.is_preinitialized = true
-    elseif get(ENV, "JULIA_PYTHONCALL_EXE", "") == "PYCALL"
-        error("not implemented: PyCall compatability mode")
-#         # Import PyCall and use its choices for libpython
-#         PyCall = get(Base.loaded_modules, PYCALL_PKGID, nothing)
-#         if PyCall === nothing
-#             PyCall = Base.require(PYCALL_PKGID)
-#         end
-#         CONFIG.exepath = PyCall.python
-#         CONFIG.libpath = PyCall.libpython
-#         CONFIG.libptr = dlopen_e(CONFIG.libpath, CONFIG.dlopenflags)
-#         if CONFIG.libptr == C_NULL
-#             error("Python library $(repr(CONFIG.libpath)) (from PyCall) could not be opened.")
-#         end
-#         CONFIG.pyprogname = PyCall.pyprogramname
-#         CONFIG.pyhome = PyCall.PYTHONHOME
-#         C.init_pointers()
-#         # Check Python is initialized
-#         C.Py_IsInitialized() == 0 && error("Python is not already initialized.")
-#         CONFIG.isinitialized = CONFIG.preinitialized = true
     else
         # Find Python executable
-        exe_path = something(
-            CTX.exe_path===missing ? nothing : CTX.exe_path,
-            get(ENV, "JULIA_PYTHONCALL_EXE", nothing),
-            Sys.which("python3"),
-            Sys.which("python"),
-            get(ENV, "JULIA_PKGEVAL", "") == "true" ? "CONDA" : nothing,
-            Some(nothing),
-        )
-        if exe_path === nothing
-            error(
-                """
-              Could not find Python executable.
+        # TODO: PyCall compatibility mode
+        # TODO: when JULIA_PYTHONCALL_EXE is given, determine if we are in a conda environment
+        exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
+        if exe_path == ""
+            # by default, we use a conda environment inside the current Julia project
+            conda_env = Conda._env[] = joinpath(dirname(Pkg.project().path), ".conda_env")
+            # ensure the environment exists
+            if !isdir(conda_env)
+                @info "Creating conda environment" conda_env
+                Conda.run(`create -y -p $conda_env`)
+            end
+            # activate the environment
+            Conda.activate()
+            # ensure python exists
+            exe_path = Conda.python_exe()
+            if !isfile(exe_path)
+                @info "Installing Python"
+                conda_add("python")
+                isfile(exe_path) || error("installed python but still can't find it")
+            end
+        end
 
-              Ensure 'python3' or 'python' is in your PATH or set environment variable 'JULIA_PYTHONCALL_EXE'
-              to the path to the Python executable.
-              """,
-            )
+        # Ensure Python us runnable
+        try
+            run(pipeline(`$exe_path --version`, devnull))
+        catch
+            error("Python executable $(repr(exe_path)) is not executable.")
         end
-        if CTX.is_conda !== false && (exe_path == "CONDA" || startswith(exe_path, "CONDA:"))
-            CTX.is_conda = true
-            CTX.conda_env = exepath == "CONDA" ? Conda.ROOTENV : exe_path[7:end]
-            Conda._install_conda(CTX.conda_env)
-            exe_path = joinpath(
-                Conda.python_dir(CTX.condaenv),
-                Sys.iswindows() ? "python.exe" : "python",
-            )
-        end
-        if isfile(exe_path)
-            CTX.exe_path = exe_path
-        else
-            error("""
-                Python executable $(repr(exe_path)) does not exist.
-
-                Ensure either:
-                - python3 or python is in your PATH
-                - JULIA_PYTHONCALL_EXE is "CONDA", "CONDA:<env>" or "PYCALL"
-                - JULIA_PYTHONCALL_EXE is the path to the Python executable
-                """)
-        end
+        CTX.exe_path = exe_path
 
         # For calling Python with UTF-8 IO
         function python_cmd(args)
@@ -238,21 +207,6 @@ function init_context()
 #                 sys.ps1 = ">>> "
 #             ```
 #         end
-
-        # # Is this the same Python as in Conda?
-        # if CTX.is_conda &&
-        #    haskey(ENV, "CONDA_PREFIX") &&
-        #    isdir(ENV["CONDA_PREFIX"]) &&
-        #    haskey(ENV, "CONDA_PYTHON_EXE") &&
-        #    isfile(ENV["CONDA_PYTHON_EXE"]) &&
-        #    realpath(ENV["CONDA_PYTHON_EXE"]) == realpath(
-        #        CTX.exe_path === nothing ? @pyv(`sys.executable`::String) : CTX.exe_path,
-        #    )
-
-        #     CTX.isconda = true
-        #     CTX.condaenv = ENV["CONDA_PREFIX"]
-        #     CTX.exepath === nothing && (CTX.exepath = @pyv(`sys.executable`::String))
-        # end
 
         # Get the python version
         verstr = Base.unsafe_string(Py_GetVersion())

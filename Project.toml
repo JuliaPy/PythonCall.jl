@@ -13,6 +13,7 @@ Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 TableTraits = "3783bdb8-4a98-5b6b-af9a-565f29a5fe9c"
@@ -21,12 +22,12 @@ UnsafePointers = "e17b2a0c-0bdf-430a-bd0c-3a23cae4ff39"
 
 [compat]
 Compat = "2.0.0, 3"
-Conda = "1"
+Conda = "1.5"
 IteratorInterfaceExtensions = "1"
 Requires = "1"
 TableTraits = "1"
 Tables = "1"
-UnsafePointers = "0.3"
+UnsafePointers = "1"
 julia = "1"
 
 [extras]

@@ -172,10 +172,58 @@ function _pyjl_release_buffer(xo::PyPtr, buf::Ptr{Py_buffer})
     nothing
 end
 
+function _pyjl_reduce(self::PyPtr, ::PyPtr)
+    v = _pyjl_serialize(self, PyNULL)
+    v == PyNULL && return PyNULL
+    args = PyTuple_New(1)
+    args == PyNULL && (Py_DecRef(v); return PyNULL)
+    err = PyTuple_SetItem(args, 0, v)
+    err == -1 && (Py_DecRef(args); return PyNULL)
+    red = PyTuple_New(2)
+    red == PyNULL && (Py_DecRef(args); return PyNULL)
+    err = PyTuple_SetItem(red, 1, args)
+    err == -1 && (Py_DecRef(red); return PyNULL)
+    f = PyObject_GetAttrString(self, "_jl_deserialize")
+    f == PyNULL && (Py_DecRef(red); return PyNULL)
+    err = PyTuple_SetItem(red, 0, f)
+    err == -1 && (Py_DecRef(red); return PyNULL)
+    return red
+end
+
+function _pyjl_serialize(self::PyPtr, ::PyPtr)
+    try
+        io = IOBuffer()
+        serialize(io, PyJuliaValue_GetValue(self))
+        b = take!(io)
+        return PyBytes_FromStringAndSize(pointer(b), sizeof(b))
+    catch
+        errset(POINTERS.PyExc_Exception, "error serializing this value")
+        return PyNULL
+    end
+end
+
+function _pyjl_deserialize(t::PyPtr, v::PyPtr)
+    try
+        ptr = Ref{Ptr{Cchar}}()
+        len = Ref{Py_ssize_t}()
+        err = PyBytes_AsStringAndSize(v, ptr, len)
+        err == -1 && return PyNULL
+        io = IOBuffer(unsafe_wrap(Array, Ptr{UInt8}(ptr[]), Int(len[])))
+        x = deserialize(io)
+        return PyJuliaValue_New(t, x)
+    catch
+        errset(POINTERS.PyExc_Exception, "error deserializing this value")
+        return PyNULL
+    end
+end
+
 const _pyjlbase_name = "juliacall.ValueBase"
 const _pyjlbase_type = fill(C.PyTypeObject())
 const _pyjlbase_isnull_name = "_jl_isnull"
 const _pyjlbase_callmethod_name = "_jl_callmethod"
+const _pyjlbase_reduce_name = "__reduce__"
+const _pyjlbase_serialize_name = "_jl_serialize"
+const _pyjlbase_deserialize_name = "_jl_deserialize"
 const _pyjlbase_methods = Vector{PyMethodDef}()
 const _pyjlbase_as_buffer = fill(PyBufferProcs())
 
@@ -191,6 +239,21 @@ function init_jlwrap()
             name = pointer(_pyjlbase_isnull_name),
             meth = @cfunction(_pyjl_isnull, PyPtr, (PyPtr, PyPtr)),
             flags = Py_METH_NOARGS,
+        ),
+        PyMethodDef(
+            name = pointer(_pyjlbase_reduce_name),
+            meth = @cfunction(_pyjl_reduce, PyPtr, (PyPtr, PyPtr)),
+            flags = Py_METH_NOARGS,
+        ),
+        PyMethodDef(
+            name = pointer(_pyjlbase_serialize_name),
+            meth = @cfunction(_pyjl_serialize, PyPtr, (PyPtr, PyPtr)),
+            flags = Py_METH_NOARGS,
+        ),
+        PyMethodDef(
+            name = pointer(_pyjlbase_deserialize_name),
+            meth = @cfunction(_pyjl_deserialize, PyPtr, (PyPtr, PyPtr)),
+            flags = Py_METH_O | Py_METH_CLASS,
         ),
         PyMethodDef(),
     )

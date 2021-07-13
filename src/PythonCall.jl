@@ -1,7 +1,7 @@
 module PythonCall
 
 using Base: @propagate_inbounds
-using MacroTools, Dates, Tables, Markdown
+using MacroTools, Dates, Tables, Markdown, Serialization
 
 include("utils.jl")
 
@@ -68,6 +68,7 @@ include("with.jl")
 include("multimedia.jl")
 include("pyconst_macro.jl")
 include("juliacall.jl")
+include("serialization.jl")
 
 function __init__()
     C.with_gil() do

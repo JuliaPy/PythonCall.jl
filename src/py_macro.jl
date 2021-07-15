@@ -7,6 +7,9 @@
 # - raw string literals (`r"..."` or raw"..."?)
 # - regex literals (`re"..."` or `r"..."`?)
 # - formatted string literals (`f"..."`)
+# - comprehensions (tuples, lists, dicts, sets, generators)
+# - generator functions??
+# - splatting
 
 const PY_MACRO_UNOPS = Dict(
     # operators

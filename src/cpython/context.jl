@@ -40,6 +40,16 @@ function init_context()
         exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
         if exe_path == ""
             # by default, we use a conda environment inside the current Julia project
+            # TODO: is this the right place?
+            #   Julia environments are stacked, so PythonCall might not be installed in
+            #   the current project. It might be installed in several places in LOAD_PATH.
+            #   Python environments are not stacked, so we need to pick one place to put
+            #   this environment. I think the best place is probably the topmost env in the
+            #   LOAD_PATH with PythonCall in its manifest. We *could* use whichever env
+            #   PythonCall is actually loaded from, but I don't know how to determine that
+            #   and anyway PythonCall could be loaded from any place in the LOAD_PATH in
+            #   which it is in the manifest, so this choice would be non-canonical (e.g.
+            #   it can depend on the order packages are loaded).
             conda_env = Conda._env[] = joinpath(dirname(Pkg.project().path), ".conda_env")
             # ensure the environment exists
             if !isdir(conda_env)

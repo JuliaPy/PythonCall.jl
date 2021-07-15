@@ -39,18 +39,26 @@ function init_context()
         # TODO: when JULIA_PYTHONCALL_EXE is given, determine if we are in a conda environment
         exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
         if exe_path == ""
-            # by default, we use a conda environment inside the current Julia project
-            # TODO: is this the right place?
-            #   Julia environments are stacked, so PythonCall might not be installed in
-            #   the current project. It might be installed in several places in LOAD_PATH.
-            #   Python environments are not stacked, so we need to pick one place to put
-            #   this environment. I think the best place is probably the topmost env in the
-            #   LOAD_PATH with PythonCall in its manifest. We *could* use whichever env
-            #   PythonCall is actually loaded from, but I don't know how to determine that
-            #   and anyway PythonCall could be loaded from any place in the LOAD_PATH in
-            #   which it is in the manifest, so this choice would be non-canonical (e.g.
-            #   it can depend on the order packages are loaded).
-            conda_env = Conda._env[] = joinpath(dirname(Pkg.project().path), ".conda_env")
+            # By default, we use a conda environment inside the first Julia environment in
+            # the LOAD_PATH in which PythonCall is installed (in the manifest as an
+            # indirect dependency).
+            #
+            # Note that while Julia environments are stacked, Python environments are not,
+            # so it is possible that two Julia environments contain two different packages
+            # depending on PythonCall which install into this one conda environment.
+            #
+            # Regarding the LOAD_PATH as getting "less specific" as we go through, this
+            # choice of location is the "most specific" place which actually depends on
+            # PythonCall.
+            conda_env = nothing
+            for env in Base.load_path()
+                if Base.manifest_uuid_path(env, PYTHONCALL_PKGID) !== nothing
+                    proj = Base.env_project_file(env)
+                    envdir = proj isa String ? dirname(proj) : env
+                    conda_env = Conda._env[] = joinpath(envdir, ".conda_env")
+                end
+            end
+            conda_env isa String || error("could not find the environment containing PythonCall (this is a bug, please report it)")
             # ensure the environment exists
             if !isdir(conda_env)
                 @info "Creating conda environment" conda_env
@@ -304,6 +312,9 @@ function Base.show(io::IO, ::MIME"text/plain", ctx::Context)
         show(io, getfield(ctx, k))
     end
 end
+
+const PYTHONCALL_UUID = Base.UUID("6099a3de-0909-46bc-b1f4-468b9a2dfc0d")
+const PYTHONCALL_PKGID = Base.PkgId(PYTHONCALL_UUID, "PythonCall")
 
 const PYCALL_UUID = Base.UUID("438e738f-606a-5dbb-bf0a-cddfbfd45ab0")
 const PYCALL_PKGID = Base.PkgId(PYCALL_UUID, "PyCall")

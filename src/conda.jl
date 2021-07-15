@@ -1,6 +1,6 @@
 module Conda
 
-import ..Utils
+import ..External
 
 const _env = Ref("")
 
@@ -8,9 +8,12 @@ available() = !isempty(_env[])
 
 env() = (env=_env[]; isempty(env) ? error("conda is not available") : env)
 
-create() = Utils.Conda.runconda(`create -y -p $(env())`)
+create() = External.Conda.runconda(`create -y -p $(env())`)
+
+const ENV_STACK = Vector{Dict{String,String}}()
 
 function activate()
+    push!(ENV_STACK, copy(ENV))
     e = env()
     # these steps imitate a minimal "conda activate"
     # TODO: run "conda shell.posix activate ..." or "conda shell.cmd.exe activate ...", capture the resulting environment, and set that here
@@ -27,22 +30,31 @@ function activate()
     ENV["CONDA_PYTHON_EXE"] = python_exe()
     oldpath = get(ENV, "PATH", "")
     pathsep = Sys.iswindows() ? ";" : ":"
-    ENV["PATH"] = oldpath == "" ? Utils.Conda.bin_dir(e) : (Utils.Conda.bin_dir(e) * pathsep * oldpath)
+    ENV["PATH"] = oldpath == "" ? External.Conda.bin_dir(e) : (External.Conda.bin_dir(e) * pathsep * oldpath)
     return
 end
 
-python_dir() = Utils.Conda.python_dir(env())
+function deactivate()
+    env = pop!(ENV_STACK)
+    for k in collect(keys(ENV))
+        delete!(ENV, k)
+    end
+    merge!(ENV, env)
+    return
+end
+
+python_dir() = External.Conda.python_dir(env())
 
 python_exe() = joinpath(python_dir(), Sys.iswindows() ? "python.exe" : "python")
 
-run(args) = Utils.Conda.runconda(args, env())
+run(args) = External.Conda.runconda(args, env())
 
-add(pkg; channel="") = Utils.Conda.add(pkg, env(), channel=channel)
+add(pkg; channel="") = External.Conda.add(pkg, env(), channel=channel)
 
-pip_interop(value::Bool) = Utils.Conda.pip_interop(value, env())
+pip_interop(value::Bool) = External.Conda.pip_interop(value, env())
 
-pip_interop() = Utils.Conda.pip_interop(env())
+pip_interop() = External.Conda.pip_interop(env())
 
-pip(cmd, pkg=String[]) = Utils.Conda.pip(cmd, pkg, env())
+pip(cmd, pkg=String[]) = External.Conda.pip(cmd, pkg, env())
 
 end

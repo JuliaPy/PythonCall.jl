@@ -1,5 +1,9 @@
 module PythonCall
 
+module External
+    import Conda
+end
+
 using Base: @propagate_inbounds
 using MacroTools, Dates, Tables, Markdown, Serialization
 

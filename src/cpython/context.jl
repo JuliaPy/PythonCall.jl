@@ -52,10 +52,13 @@ function init_context()
             # PythonCall.
             conda_env = nothing
             for env in Base.load_path()
-                if Base.manifest_uuid_path(env, PYTHONCALL_PKGID) !== nothing
-                    proj = Base.env_project_file(env)
+                proj = Base.env_project_file(env)
+                is_pythoncall = Base.project_file_name_uuid(proj, "").uuid == PYTHONCALL_UUID
+                depends_on_pythoncall = Base.manifest_uuid_path(env, PYTHONCALL_PKGID) !== nothing
+                if is_pythoncall || depends_on_pythoncall
                     envdir = proj isa String ? dirname(proj) : env
                     conda_env = Conda._env[] = joinpath(envdir, ".conda_env")
+                    break
                 end
             end
             conda_env isa String || error("could not find the environment containing PythonCall (this is a bug, please report it)")
@@ -64,7 +67,7 @@ function init_context()
                 @info "Creating conda environment" conda_env
                 Conda.create()
             end
-            # activate the environment
+            # activate
             Conda.activate()
             # ensure python exists
             exe_path = Conda.python_exe()

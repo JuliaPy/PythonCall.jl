@@ -26,9 +26,7 @@ function init_context()
 
     if CTX.is_embedded
         # In this case, getting a handle to libpython is easy
-        if CTX.lib_ptr == C_NULL
-            CTX.lib_ptr = Ptr{Cvoid}(parse(UInt, ENV["JULIA_PYTHONCALL_LIBPTR"]))
-        end
+        CTX.lib_ptr = Ptr{Cvoid}(parse(UInt, ENV["JULIA_PYTHONCALL_LIBPTR"]))
         init_pointers()
         # Check Python is initialized
         Py_IsInitialized() == 0 && error("Python is not already initialized.")

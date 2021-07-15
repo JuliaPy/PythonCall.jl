@@ -1,5 +1,7 @@
 module Utils
 
+    import Conda
+
     function explode_union(T)
         @nospecialize T
 

@@ -1,3 +1,9 @@
+# TODO:
+# - function definition (wrap the function like a pycallback)
+# - class definition (e.g. `struct User <: BaseModel; id::int=0; name::str=""; end`)
+# - property syntax (e.g. `classmethod |> function foo(cls); cls(); end`)
+# - with syntax (`@with`)
+
 const PY_MACRO_UNOPS = Dict(
     # operators
     :(+) => (pypos, true),
@@ -50,12 +56,17 @@ const PY_MACRO_BINOPS = Dict(
     :(⊻) => (pyxor, true),
     :(==) => (pyeq, true),
     :(!=) => (pyne, true),
+    :(≠ ) => (pyne, true),
     :(<=) => (pyle, true),
+    :(≤ ) => (pyle, true),
     :(< ) => (pylt, true),
     :(>=) => (pyge, true),
+    :(≥ ) => (pyge, true),
     :(> ) => (pygt, true),
     :(===) => (pyis, false),
+    :(≡) => (pyis, false),
     :(!==) => (pyisnot, false),
+    :(≢) => (pyisnot, false),
     :in => (pyin, false),
     :∈ => (pyin, false),
     :∉ => (pynotin, false),

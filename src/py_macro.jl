@@ -3,6 +3,10 @@
 # - class definition (e.g. `struct User <: BaseModel; id::int=0; name::str=""; end`)
 # - property syntax (e.g. `classmethod |> function foo(cls); cls(); end`)
 # - with syntax (`@with`)
+# - bytes literals (`b"..."`)
+# - raw string literals (`r"..."` or raw"..."?)
+# - regex literals (`re"..."` or `r"..."`?)
+# - formatted string literals (`f"..."`)
 
 const PY_MACRO_UNOPS = Dict(
     # operators
@@ -118,6 +122,27 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
     # scalar literals
     if ex isa Union{Nothing, String, Bool, Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128, BigInt, Float16, Float32, Float64}
         x = get!(pynew, st.consts, ex)
+        py_macro_assign(body, ans, x)
+        return false
+
+    # Int128 literals
+    elseif isexpr(ex, :macrocall) && ex.args[1] === GlobalRef(Core, Symbol("@int128_str"))
+        value = parse(Int128, ex.args[3])
+        x = get!(pynew, st.consts, value)
+        py_macro_assign(body, ans, x)
+        return false
+
+    # UInt128 literals
+    elseif isexpr(ex, :macrocall) && ex.args[1] === GlobalRef(Core, Symbol("@uint128_str"))
+        value = parse(UInt128, ex.args[3])
+        x = get!(pynew, st.consts, value)
+        py_macro_assign(body, ans, x)
+        return false
+
+    # big integer literals
+    elseif isexpr(ex, :macrocall) && ex.args[1] === GlobalRef(Core, Symbol("@big_str"))
+        value = parse(BigInt, ex.args[3])
+        x = get!(pynew, st.consts, value)
         py_macro_assign(body, ans, x)
         return false
 

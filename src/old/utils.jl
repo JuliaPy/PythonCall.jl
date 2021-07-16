@@ -22,25 +22,6 @@ else
 end
 
 
-pybufferformat_to_type(fmt::AbstractString) =
-    fmt == "b" ? Cchar :
-    fmt == "B" ? Cuchar :
-    fmt == "h" ? Cshort :
-    fmt == "H" ? Cushort :
-    fmt == "i" ? Cint :
-    fmt == "I" ? Cuint :
-    fmt == "l" ? Clong :
-    fmt == "L" ? Culong :
-    fmt == "q" ? Clonglong :
-    fmt == "Q" ? Culonglong :
-    fmt == "e" ? Float16 :
-    fmt == "f" ? Cfloat :
-    fmt == "d" ? Cdouble :
-    fmt == "?" ? Bool :
-    fmt == "P" ? Ptr{Cvoid} :
-    fmt == "O" ? C.PyObjectRef :
-    fmt == "=e" ? Float16 :
-    fmt == "=f" ? Float32 : fmt == "=d" ? Float64 : error("not implemented: $(repr(fmt))")
 
 
 ### TYPE UTILITIES

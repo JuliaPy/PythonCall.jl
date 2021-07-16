@@ -165,4 +165,44 @@ module Utils
     isfcontiguous(o::AbstractArray) = strides(o) == size_to_fstrides(1, size(o)...)
     isccontiguous(o::AbstractArray) = strides(o) == size_to_cstrides(1, size(o)...)
 
+    struct StaticString{T,N} <: AbstractString
+        codeunits :: NTuple{N,T}
+    end
+
+    function Base.convert(::Type{String}, x::StaticString)
+        cs = collect(x.codeunits)
+        i = findfirst(==(0), cs)
+        transcode(String, i===nothing ? cs : cs[1:i-1])
+    end
+
+    Base.String(x::StaticString) = convert(String, x)
+
+    function Base.convert(::Type{StaticString{T,N}}, x::String) where {T,N}
+        cs = transcode(T, x)
+        length(cs) > N && throw(InexactError(:convert, StaticString{T,N}, x))
+        while length(cs) < N
+            push!(cs, 0)
+        end
+        StaticString{T,N}(NTuple{N,T}(cs))
+    end
+
+    Base.convert(::Type{T}, x::AbstractString) where {T<:StaticString} = convert(T, convert(String, x))
+
+    (::Type{T})(x::AbstractString) where {T<:StaticString} = convert(T, x)
+
+    function Base.iterate(x::StaticString, st=nothing)
+        if st === nothing
+            s = String(x)
+            z = iterate(s)
+        else
+            s, st0 = st
+            z = iterate(s, st0)
+        end
+        if z === nothing
+            nothing
+        else
+            c, newst0 = z
+            (c, (s, newst0))
+        end
+    end
 end

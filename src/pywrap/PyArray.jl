@@ -1,3 +1,7 @@
+struct UnsafePyObject
+    ptr :: C.PyPtr
+end
+
 """
     PyArray{T,N,M,L,R}(x; copy=true, array=true, buffer=true)
 
@@ -62,56 +66,20 @@ pyconvert_rule_array(::Type{A}, x::Py) where {A<:PyArray} = pyarray_make(A, x, c
 
 abstract type PyArraySource end
 
-struct PyArraySource_ArrayInterface <: PyArraySource
-    obj :: Py
-    dict :: PyDict{String, Py}
-    ptr :: Ptr{Cvoid}
-    readonly :: Bool
-    handle :: Py
-end
-function PyArraySource_ArrayInterface(x::Py)
-    dict = PyDict{String, Py}(x.__array_interface__)
-    data = get(dict, "data", pybuiltins.None)
-    if pyistuple(data)
-        ptr = Ptr{Cvoid}(pyconvert_and_del(UInt, pytuple_getitem(data, 0)))
-        readonly = pyconvert_and_del(Bool, pytuple_getitem(data, 1))
-        handle = Py((x, dict))
-    else
-        memview = pybuiltins.memoryview(pyisnone(data) ? x : data)
-        buf = UnsafePtr(C.PyMemoryView_GET_BUFFER(getptr(memview)))
-        ptr = buf.buf[!]
-        readonly = buf.readonly[] != 0
-        handle = Py((x, memview))
-    end
-    PyArraySource_ArrayInterface(x, dict, ptr, readonly, handle)
-end
-
-struct PyArraySource_ArrayStruct <: PyArraySource
-    obj :: Py
-    capsule :: Py
-end
-PyArraySource_ArrayStruct(x::Py) = PyArraySource_ArrayStruct(x, x.__array_struct__)
-
-struct PyArraySource_Buffer <: PyArraySource
-    obj :: Py
-    memview :: Py
-end
-PyArraySource_Buffer(x::Py) = PyArraySource_Buffer(x, pybuiltins.memoryview(x))
-
 function pyarray_make(::Type{A}, x::Py; array::Bool=true, buffer::Bool=true, copy::Bool=true) where {A<:PyArray}
     A == Union{} && return pyconvert_unconverted()
-    if array && pyhasattr(x, "__array_interface__")
-        try
-            return pyarray_make(A, x, PyArraySource_ArrayInterface(x))
-        catch exc
-            @debug "failed to make PyArray from __array_interface__" exc=exc
-        end
-    end
     if array && pyhasattr(x, "__array_struct__")
         try
             return pyarray_make(A, x, PyArraySource_ArrayStruct(x))
         catch exc
             @debug "failed to make PyArray from __array_struct__" exc=exc
+        end
+    end
+    if array && pyhasattr(x, "__array_interface__")
+        try
+            return pyarray_make(A, x, PyArraySource_ArrayInterface(x))
+        catch exc
+            @debug "failed to make PyArray from __array_interface__" exc=exc
         end
     end
     if buffer && C.PyObject_CheckBuffer(getptr(x))
@@ -123,18 +91,18 @@ function pyarray_make(::Type{A}, x::Py; array::Bool=true, buffer::Bool=true, cop
     end
     if copy && array && pyhasattr(x, "__array__")
         y = x.__array__()
-        if pyhasattr(y, "__array_interface__")
-            try
-                return pyarray_make(A, y, PyArraySource_ArrayInterface(y))
-            catch exc
-                @debug "failed to make PyArray from __array__().__array_interface__" exc=exc
-            end
-        end
         if pyhasattr(y, "__array_struct__")
             try
                 return pyarray_make(A, y, PyArraySource_ArrayStruct(y))
             catch exc
                 @debug "failed to make PyArray from __array__().__array_struct__" exc=exc
+            end
+        end
+        if pyhasattr(y, "__array_interface__")
+            try
+                return pyarray_make(A, y, PyArraySource_ArrayInterface(y))
+            catch exc
+                @debug "failed to make PyArray from __array__().__array_interface__" exc=exc
             end
         end
     end
@@ -205,6 +173,39 @@ end
 
 # array interface
 
+struct PyArraySource_ArrayInterface <: PyArraySource
+    obj :: Py
+    dict :: Py
+    ptr :: Ptr{Cvoid}
+    readonly :: Bool
+    handle :: Py
+end
+function PyArraySource_ArrayInterface(x::Py)
+    d = x.__array_interface__
+    # offset
+    # TODO: how is the offset measured?
+    offset = pyconvert_and_del(Int, @py d.get("offset", 0))
+    offset == 0 || error("not supported: non-zero offset")
+    # mask
+    @py("mask" in d) && error("not supported: mask")
+    # data
+    data = @py d.get("data")
+    if pyistuple(data)
+        ptr = Ptr{Cvoid}(pyconvert_and_del(UInt, data[0]))
+        readonly = pyconvert_and_del(Bool, data[1])
+        pydel!(data)
+        handle = Py((x, d))
+    else
+        memview = @py memoryview(data === None ? x : data)
+        pydel!(data)
+        buf = UnsafePtr(C.PyMemoryView_GET_BUFFER(getptr(memview)))
+        ptr = buf.buf[!]
+        readonly = buf.readonly[] != 0
+        handle = Py((x, memview))
+    end
+    PyArraySource_ArrayInterface(x, d, ptr, readonly, handle)
+end
+
 pyarray_typestrdescr_to_type(ts::String, descr::Py) = begin
     # byte swapped?
     bsc = ts[1]
@@ -247,8 +248,11 @@ pyarray_typestrdescr_to_type(ts::String, descr::Py) = begin
         sz == 8 && return Complex{Float32}
         sz == 16 && return Complex{Float64}
         error("complex of this size not supported: $ts")
+    elseif etc == 'U'
+        sz = parse(Int, ts[3:end])
+        return Utils.StaticString{UInt32,sz}
     elseif etc == 'O'
-        return C.PyObjectRef
+        return UnsafePyObject
     else
         error("type not supported: $ts")
     end
@@ -256,19 +260,20 @@ end
 
 function pyarray_get_R(src::PyArraySource_ArrayInterface)
     typestr = pyconvert_and_del(String, src.dict["typestr"])
-    descr = get(pynew, src.dict, "descr")
+    descr = @py @jl(src.dict).get("descr")
     R = pyarray_typestrdescr_to_type(typestr, descr)::DataType
+    pydel!(descr)
     return R
 end
 
 pyarray_get_ptr(src::PyArraySource_ArrayInterface, ::Type{R}) where {R} = Ptr{R}(src.ptr)
 
-pyarray_get_N(src::PyArraySource_ArrayInterface) = Int(pylen(src.dict["shape"]))
+pyarray_get_N(src::PyArraySource_ArrayInterface) = Int(@py jllen(@jl(src.dict)["shape"]))
 
 pyarray_get_size(src::PyArraySource_ArrayInterface, ::Val{N}) where {N} = pyconvert_and_del(NTuple{N,Int}, src.dict["shape"])
 
 function pyarray_get_strides(src::PyArraySource_ArrayInterface, ::Val{N}, ::Type{R}, size::NTuple{N,Int}) where {R,N}
-    strides = get(src.dict, "strides", pybuiltins.None)
+    @py strides = @jl(src.dict).get("strides")
     if pyisnone(strides)
         pydel!(strides)
         return Utils.size_to_cstrides(sizeof(R), size)
@@ -283,7 +288,78 @@ pyarray_get_handle(src::PyArraySource_ArrayInterface) = src.handle
 
 # TODO: array struct
 
+struct PyArraySource_ArrayStruct <: PyArraySource
+    obj :: Py
+    capsule :: Py
+end
+PyArraySource_ArrayStruct(x::Py) = PyArraySource_ArrayStruct(x, x.__array_struct__)
+
 # TODO: buffer protocol
+
+struct PyArraySource_Buffer <: PyArraySource
+    obj :: Py
+    memview :: Py
+    buf :: C.UnsafePtr{C.Py_buffer}
+end
+function PyArraySource_Buffer(x::Py)
+    memview = pybuiltins.memoryview(x)
+    buf = C.UnsafePtr(C.PyMemoryView_GET_BUFFER(getptr(memview)))
+    PyArraySource_Buffer(x, memview, buf)
+end
+
+pyarray_bufferformat_to_type(fmt::String) =
+    fmt == "b" ? Cchar :
+    fmt == "B" ? Cuchar :
+    fmt == "h" ? Cshort :
+    fmt == "H" ? Cushort :
+    fmt == "i" ? Cint :
+    fmt == "I" ? Cuint :
+    fmt == "l" ? Clong :
+    fmt == "L" ? Culong :
+    fmt == "q" ? Clonglong :
+    fmt == "Q" ? Culonglong :
+    fmt == "e" ? Float16 :
+    fmt == "f" ? Cfloat :
+    fmt == "d" ? Cdouble :
+    fmt == "?" ? Bool :
+    fmt == "P" ? Ptr{Cvoid} :
+    fmt == "O" ? UnsafePyObject :
+    fmt == "=e" ? Float16 :
+    fmt == "=f" ? Float32 :
+    fmt == "=d" ? Float64 :
+    error("not implemented: $(repr(fmt))")
+
+function pyarray_get_R(src::PyArraySource_Buffer)
+    ptr = src.buf.format[]
+    return ptr == C_NULL ? UInt8 : pyarray_bufferformat_to_type(String(ptr))
+end
+
+pyarray_get_ptr(src::PyArraySource_Buffer, ::Type{R}) where {R} = Ptr{R}(src.buf.buf[!])
+
+pyarray_get_N(src::PyArraySource_Buffer) = Int(src.buf.ndim[])
+
+function pyarray_get_size(src::PyArraySource_Buffer, ::Val{N}) where {N}
+    size = src.buf.shape[]
+    if size == C_NULL
+        N == 0 ? () : N == 1 ? (Int(src.buf.len[]),) : @assert false
+    else
+        ntuple(i->Int(size[i]), N)
+    end
+end
+
+function pyarray_get_strides(src::PyArraySource_Buffer, ::Val{N}, ::Type{R}, size::NTuple{N,Int}) where {N,R}
+    strides = src.buf.strides[]
+    if strides == C_NULL
+        itemsize = src.buf.shape[] == C_NULL ? 1 : src.buf.itemsize[]
+        Utils.size_to_cstrides(itemsize, size)
+    else
+        ntuple(i->Int(strides[i]), N)
+    end
+end
+
+pyarray_get_M(src::PyArraySource_Buffer) = src.buf.readonly[] == 0
+
+pyarray_get_handle(src::PyArraySource_Buffer) = src.memview
 
 # AbstractArray methods
 
@@ -319,10 +395,20 @@ pyarray_offset(x::PyArray{T,1,M,true}, i::Int) where {T,M} = (i - 1) .* x.stride
 pyarray_offset(x::PyArray{T,N}, i::Vararg{Int,N}) where {T,N} = sum((i .- 1) .* x.strides)
 pyarray_offset(x::PyArray{T,0}) where {T} = 0
 
-pyarray_load(::Type{T}, p::Ptr{T}) where {T} = unsafe_load(p)
+pyarray_load(::Type{R}, p::Ptr{R}) where {R} = unsafe_load(p)
+pyarray_load(::Type{Py}, p::Ptr{UnsafePyObject}) = begin
+    o = unsafe_load(p)
+    o.ptr == C_NULL ? Py(nothing) : pynew(incref(o.ptr))
+end
 
-pyarray_store!(p::Ptr{T}, x::T) where {T} = unsafe_store!(p, x)
+pyarray_store!(p::Ptr{R}, x::R) where {R} = unsafe_store!(p, x)
+pyarray_store!(p::Ptr{UnsafePyObject}, x::Py) = begin
+    decref(unsafe_load(p).ptr)
+    unsafe_store!(p, UnsafePyObject(incref(getptr(x))))
+end
 
 pyarray_get_T(::Type{R}, ::Type{T0}, ::Type{T1}) where {R,T0,T1} = T0 <: R <: T1 ? R : error("not possible")
+pyarray_get_T(::Type{UnsafePyObject}, ::Type{T0}, ::Type{T1}) where {T0,T1} = T0 <: Py <: T1 ? Py : T0 <: UnsafePyObject <: T1 ? UnsafePyObject : error("not possible")
 
 pyarray_check_T(::Type{T}, ::Type{R}) where {T,R} = T == R ? nothing : error("invalid eltype T=$T for raw eltype R=$R")
+pyarray_check_T(::Type{Py}, ::Type{UnsafePyObject}) = nothing

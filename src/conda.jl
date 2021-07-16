@@ -1,6 +1,6 @@
 module Conda
 
-import ..External
+import ..External, JSON
 
 const _env = Ref("")
 
@@ -15,22 +15,20 @@ const ENV_STACK = Vector{Dict{String,String}}()
 function activate()
     push!(ENV_STACK, copy(ENV))
     e = env()
-    # these steps imitate a minimal "conda activate"
-    # TODO: run "conda shell.posix activate ..." or "conda shell.cmd.exe activate ...", capture the resulting environment, and set that here
-    oldlvl = parse(Int, get(ENV, "CONDA_SHLVL", "0"))
-    if oldlvl > 0
-        ENV["CONDA_PREFIX_$oldlvl"] = ENV["CONDA_PREFIX"]
-    end
-    ENV["CONDA_SHLVL"] = string(oldlvl+1)
-    ENV["CONDA_PREFIX"] = e
-    ENV["CONDA_DEFAULT_ENV"] = e
-    ENV["CONDA_PROMPT_MODIFIER"] = "($e) "
-    ENV["_CE_M"] = ""
-    ENV["_CE_CONDA"] = ""
-    ENV["CONDA_PYTHON_EXE"] = python_exe()
-    oldpath = get(ENV, "PATH", "")
+    shell = Sys.iswindows() ? "cmd.exe" : "posix"
     pathsep = Sys.iswindows() ? ";" : ":"
-    ENV["PATH"] = oldpath == "" ? External.Conda.bin_dir(e) : (External.Conda.bin_dir(e) * pathsep * oldpath)
+    # ask conda for a JSON description of how it would activate the environment
+    info = JSON.parse(read(External.Conda._set_conda_env(`$(External.Conda.conda) shell.$shell+json activate $e`), String))
+    # make these changes
+    # TODO: we currently ignore info["scripts"]["activate"]
+    #   run these in a subshell, print the resulting environment vars, and merge into ENV
+    #   (or just run the full `conda shell.* activate *` script)
+    ENV["PATH"] = join(info["path"]["PATH"], pathsep)
+    for k in info["vars"]["unset"]
+        delete!(ENV, k)
+    end
+    ENV["CONDA_PREFIX"] = e
+    merge!(ENV, info["vars"]["export"])
     return
 end
 

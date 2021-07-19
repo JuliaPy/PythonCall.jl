@@ -1,5 +1,6 @@
 module PythonCall
 
+using Tables: rows
 module External
     import Conda
 end
@@ -78,6 +79,7 @@ include("compat/serialization.jl")
 include("compat/gui.jl")
 include("compat/matplotlib.jl")
 include("compat/ipython.jl")
+include("compat/tables.jl")
 
 function __init__()
     C.with_gil() do
@@ -105,6 +107,7 @@ function __init__()
         init_gui()
         init_matplotlib()
         init_ipython()
+        init_tables()
     end
 end
 

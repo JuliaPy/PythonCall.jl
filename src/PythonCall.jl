@@ -77,12 +77,14 @@ include("compat/multimedia.jl")
 include("compat/serialization.jl")
 include("compat/gui.jl")
 include("compat/matplotlib.jl")
+include("compat/ipython.jl")
 
 function __init__()
     C.with_gil() do
         init_consts()
         init_pyconvert()
         init_datetime()
+        # juliacall/jlwrap
         init_juliacall()
         init_jlwrap_base()
         init_jlwrap_raw()
@@ -98,9 +100,11 @@ function __init__()
         init_jlwrap_number()
         init_jlwrap_io()
         init_juliacall_2()
+        # compat
         init_stdlib()
         init_gui()
         init_matplotlib()
+        init_ipython()
     end
 end
 

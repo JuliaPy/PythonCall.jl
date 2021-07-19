@@ -40,12 +40,6 @@ function init_stdlib()
         sys.meta_path.insert(0, JULIA_COMPAT_HOOKS)
         """ g
         pycopy!(pymodulehooks, g["JULIA_COMPAT_HOOKS"])
-
-        # @require IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a" begin
-        #     IJulia.push_postexecute_hook() do
-        #         CONFIG.pyplotautoshow && pyplotshow()
-        #     end
-        # end
     end
 
 end

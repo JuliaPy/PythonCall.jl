@@ -5,7 +5,7 @@ module External
 end
 
 using Base: @propagate_inbounds
-using MacroTools, Dates, Tables, Markdown, Serialization
+using MacroTools, Dates, Tables, Markdown, Serialization, Requires
 
 include("utils.jl")
 include("conda.jl")
@@ -76,6 +76,7 @@ include("compat/with.jl")
 include("compat/multimedia.jl")
 include("compat/serialization.jl")
 include("compat/gui.jl")
+include("compat/matplotlib.jl")
 
 function __init__()
     C.with_gil() do
@@ -99,6 +100,7 @@ function __init__()
         init_juliacall_2()
         init_stdlib()
         init_gui()
+        init_matplotlib()
     end
 end
 

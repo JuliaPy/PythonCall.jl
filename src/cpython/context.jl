@@ -210,23 +210,6 @@ function init_context()
 
     with_gil() do
 
-#         @pyg `import sys, os`
-
-#         pywordsize = (@pyv `sys.maxsize > 2**32`::Bool) ? 64 : 32
-#         pywordsize == Sys.WORD_SIZE || error("Julia is $(Sys.WORD_SIZE)-bit but Python is $(pywordsize)-bit (at $(CONFIG.exepath ? "unknown location" : CONFIG.exepath))")
-
-#         if !CONFIG.isembedded
-#             @py ```
-#             # Some modules expect sys.argv to be set
-#             sys.argv = [""]
-#             sys.argv.extend($ARGS)
-
-#             # Some modules test for interactivity by checking if sys.ps1 exists
-#             if $(isinteractive()) and not hasattr(sys, "ps1"):
-#                 sys.ps1 = ">>> "
-#             ```
-#         end
-
         # Get the python version
         verstr = Base.unsafe_string(Py_GetVersion())
         vermatch = match(r"^[0-9.]+", verstr)
@@ -237,43 +220,6 @@ function init_context()
         v"3" ≤ CTX.version < v"4" || error(
             "Only Python 3 is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
         )
-
-#         # EXPERIMENTAL: hooks to perform actions when certain modules are loaded
-#         if !CONFIG.isembedded
-#             @py ```
-#             import sys
-#             class JuliaCompatHooks:
-#                 def __init__(self):
-#                     self.hooks = {}
-#                 def find_module(self, name, path=None):
-#                     hs = self.hooks.get(name)
-#                     if hs is not None:
-#                         for h in hs:
-#                             h()
-#                 def add_hook(self, name, h):
-#                     if name not in self.hooks:
-#                         self.hooks[name] = [h]
-#                     else:
-#                         self.hooks[name].append(h)
-#                     if name in sys.modules:
-#                         h()
-#             JULIA_COMPAT_HOOKS = JuliaCompatHooks()
-#             sys.meta_path.insert(0, JULIA_COMPAT_HOOKS)
-
-#             # Before Qt is loaded, fix the path used to look up its plugins
-#             qtfix_hook = $(() -> (CONFIG.qtfix && fix_qt_plugin_path(); nothing))
-#             JULIA_COMPAT_HOOKS.add_hook("PyQt4", qtfix_hook)
-#             JULIA_COMPAT_HOOKS.add_hook("PyQt5", qtfix_hook)
-#             JULIA_COMPAT_HOOKS.add_hook("PySide", qtfix_hook)
-#             JULIA_COMPAT_HOOKS.add_hook("PySide2", qtfix_hook)
-#             ```
-
-#             @require IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a" begin
-#                 IJulia.push_postexecute_hook() do
-#                     CONFIG.pyplotautoshow && pyplotshow()
-#                 end
-#             end
-#         end
 
 #         # EXPERIMENTAL: IPython integration
 #         if CONFIG.isembedded && CONFIG.ipythonintegration

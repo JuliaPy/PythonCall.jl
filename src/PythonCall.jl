@@ -69,11 +69,13 @@ include("pywrap/PyIO.jl")
 include("pywrap/PyTable.jl")
 include("pywrap/PyPandasDataFrame.jl")
 # misc
-include("with.jl")
-include("multimedia.jl")
 include("pyconst_macro.jl")
 include("juliacall.jl")
-include("serialization.jl")
+include("compat/stdlib.jl")
+include("compat/with.jl")
+include("compat/multimedia.jl")
+include("compat/serialization.jl")
+include("compat/gui.jl")
 
 function __init__()
     C.with_gil() do
@@ -95,6 +97,8 @@ function __init__()
         init_jlwrap_number()
         init_jlwrap_io()
         init_juliacall_2()
+        init_stdlib()
+        init_gui()
     end
 end
 

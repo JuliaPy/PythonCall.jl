@@ -10,10 +10,10 @@ one when using this package.
 If `CONFIG.qtfix` is true, then this is run automatically before `PyQt4`, `PyQt5`, `PySide` or `PySide2` are imported.
 """
 function fix_qt_plugin_path()
-    CONFIG.exepath === nothing && return false
-    e = pyosmodule().environ
+    C.CTX.exe_path === nothing && return false
+    e = pyosmodule.environ
     "QT_PLUGIN_PATH" in e && return false
-    qtconf = joinpath(dirname(CONFIG.exepath), "qt.conf")
+    qtconf = joinpath(dirname(C.CTX.exe_path), "qt.conf")
     isfile(qtconf) || return false
     for line in eachline(qtconf)
         m = match(r"^\s*prefix\s*=(.*)$"i, line)
@@ -30,58 +30,39 @@ function fix_qt_plugin_path()
     return false
 end
 
-"""
-    pyinteract(; force=false, sleep=0.1)
+# """
+#     pyinteract(; force=false, sleep=0.1)
 
-Some Python GUIs can work interactively, meaning the GUI is available but the interactive prompt is returned (e.g. after calling `matplotlib.pyplot.ion()`).
-To use these from Julia, currently you must manually call `pyinteract()` each time you want to interact.
+# Some Python GUIs can work interactively, meaning the GUI is available but the interactive prompt is returned (e.g. after calling `matplotlib.pyplot.ion()`).
+# To use these from Julia, currently you must manually call `pyinteract()` each time you want to interact.
 
-Internally, this is calling the `PyOS_InputHook` asynchronously. Only one copy is run at a time unless `force` is true.
+# Internally, this is calling the `PyOS_InputHook` asynchronously. Only one copy is run at a time unless `force` is true.
 
-The asynchronous task waits for `sleep` seconds before calling the hook function.
-This gives time for the next prompt to be printed and waiting for input.
-As a result, there will be a small delay before the GUI becomes interactive.
-"""
-pyinteract(; force::Bool = false, sleep::Real = 0.1) =
-    if !CONFIG.inputhookrunning || force
-        CONFIG.inputhookrunning = true
-        @async begin
-            sleep > 0 && Base.sleep(sleep)
-            C.PyOS_RunInputHook()
-            CONFIG.inputhookrunning = false
-        end
-        nothing
-    end
-export pyinteract
+# The asynchronous task waits for `sleep` seconds before calling the hook function.
+# This gives time for the next prompt to be printed and waiting for input.
+# As a result, there will be a small delay before the GUI becomes interactive.
+# """
+# pyinteract(; force::Bool = false, sleep::Real = 0.1) =
+#     if !CONFIG.inputhookrunning || force
+#         CONFIG.inputhookrunning = true
+#         @async begin
+#             sleep > 0 && Base.sleep(sleep)
+#             C.PyOS_RunInputHook()
+#             CONFIG.inputhookrunning = false
+#         end
+#         nothing
+#     end
+# export pyinteract
 
 const EVENT_LOOPS = Dict{Symbol,Base.Timer}()
 
-"""
-    event_loop_off(g::Symbol)
+const new_event_loop_callback = pynew()
 
-Terminate the event loop `g` if it is running.
-"""
-function event_loop_off(g::Symbol)
-    if haskey(EVENT_LOOPS, g)
-        Base.close(pop!(EVENT_LOOPS, g))
-    end
-    return
-end
-
-"""
-    event_loop_on(g::Symbol; interval=40e-3, fix=false)
-
-Activate an event loop for the GUI framework `g`, so that the framework can run in the background of a Julia session.
-
-The event loop runs every `interval` seconds. If `fix` is true and `g` is a Qt framework, then [`fix_qt_plugin_path`](@ref) is called.
-
-Supported values of `g` (and the Python module they relate to) are: `:pyqt4` (PyQt4), `:pyqt5` (PyQt5), `:pyside` (PySide), `:pyside2` (PySide2), `:gtk` (gtk), `:gtk3` (gi), `:wx` (wx), `:tkinter` (tkinter).
-"""
-function event_loop_on(g::Symbol; interval::Real = 40e-3, fix::Bool = false)
-    haskey(EVENT_LOOPS, g) && return EVENT_LOOPS[g]
-    fix && g in (:pyqt4, :pyqt5, :pyside, :pyside2) && fix_qt_plugin_path()
-    @py ```
-    def make_event_loop(g, interval):
+function init_gui()
+    # define callbacks
+    @py g = {}
+    @py @exec """
+    def new_event_loop_callback(g, interval=0.04):
         if g in ("pyqt4","pyqt5","pyside","pyside2"):
             if g == "pyqt4":
                 import PyQt4.QtCore as QtCore
@@ -95,7 +76,7 @@ function event_loop_on(g::Symbol; interval::Real = 40e-3, fix::Bool = false)
             AllEvents = QtCore.QEventLoop.AllEvents
             processEvents = QtCore.QCoreApplication.processEvents
             maxtime = interval * 1000
-            def event_loop():
+            def callback():
                 app = instance()
                 if app is not None:
                     app._in_event_loop = True
@@ -110,7 +91,7 @@ function event_loop_on(g::Symbol; interval::Real = 40e-3, fix::Bool = false)
                 import gtk
             events_pending = gtk.events_pending
             main_iteration = gtk.main_iteration
-            def event_loop():
+            def callback():
                 while events_pending():
                     main_iteration()
         elif g == "wx":
@@ -118,7 +99,7 @@ function event_loop_on(g::Symbol; interval::Real = 40e-3, fix::Bool = false)
             GetApp = wx.GetApp
             EventLoop = wx.EventLoop
             EventLoopActivator = wx.EventLoopActivator
-            def event_loop():
+            def callback():
                 app = GetApp()
                 if app is not None:
                     app._in_event_loop = True
@@ -133,7 +114,7 @@ function event_loop_on(g::Symbol; interval::Real = 40e-3, fix::Bool = false)
             import tkinter, _tkinter
             flag = _tkinter.ALL_EVENTS | _tkinter.DONT_WAIT
             root = None
-            def event_loop():
+            def callback():
                 global root
                 new_root = tkinter._default_root
                 if new_root is not None:
@@ -143,8 +124,42 @@ function event_loop_on(g::Symbol; interval::Real = 40e-3, fix::Bool = false)
                         pass
         else:
             raise ValueError("invalid event loop name: {}".format(g))
-        return event_loop
-    $event_loop = make_event_loop($(string(g)), $interval)
-    ```
-    EVENT_LOOPS[g] = Timer(t -> event_loop(), 0; interval = interval)
+        return callback
+    """ g
+    pycopy!(new_event_loop_callback, g["new_event_loop_callback"])
+
+    # add a hook to automatically call fix_qt_plugin_path()
+    fixqthook = Py(() -> (fix_qt_plugin_path(); nothing))
+    pymodulehooks.add_hook("PyQt4", fixqthook)
+    pymodulehooks.add_hook("PyQt5", fixqthook)
+    pymodulehooks.add_hook("PySide", fixqthook)
+    pymodulehooks.add_hook("PySide2", fixqthook)
+end
+
+"""
+    event_loop_off(g::Symbol)
+
+Terminate the event loop `g` if it is running.
+"""
+function event_loop_off(g::Symbol)
+    if haskey(EVENT_LOOPS, g)
+        Base.close(pop!(EVENT_LOOPS, g))
+    end
+    return
+end
+
+"""
+    event_loop_on(g::Symbol; interval=0.04, fix=false)
+
+Activate an event loop for the GUI framework `g`, so that the framework can run in the background of a Julia session.
+
+The event loop runs every `interval` seconds. If `fix` is true and `g` is a Qt framework, then [`fix_qt_plugin_path`](@ref) is called.
+
+Supported values of `g` (and the Python module they relate to) are: `:pyqt4` (PyQt4), `:pyqt5` (PyQt5), `:pyside` (PySide), `:pyside2` (PySide2), `:gtk` (gtk), `:gtk3` (gi), `:wx` (wx), `:tkinter` (tkinter).
+"""
+function event_loop_on(g::Symbol; interval::Real = 0.04, fix::Bool = false)
+    haskey(EVENT_LOOPS, g) && return EVENT_LOOPS[g]
+    fix && g in (:pyqt4, :pyqt5, :pyside, :pyside2) && fix_qt_plugin_path()
+    callback = new_event_loop_callback(string(g), Float64(interval))
+    EVENT_LOOPS[g] = Timer(t -> callback(), 0; interval = interval)
 end

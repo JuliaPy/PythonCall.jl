@@ -7,7 +7,7 @@ This fixes the problem that Qt does not know where to find its `qt.conf` file, b
 always looks relative to `sys.executable`, which can be the Julia executable not the Python
 one when using this package.
 
-If `CONFIG.qtfix` is true, then this is run automatically before `PyQt4`, `PyQt5`, `PySide` or `PySide2` are imported.
+If `CONFIG.auto_fix_qt_plugin_path` is true, then this is run automatically before `PyQt4`, `PyQt5`, `PySide` or `PySide2` are imported.
 """
 function fix_qt_plugin_path()
     C.CTX.exe_path === nothing && return false
@@ -129,7 +129,7 @@ function init_gui()
     pycopy!(new_event_loop_callback, g["new_event_loop_callback"])
 
     # add a hook to automatically call fix_qt_plugin_path()
-    fixqthook = Py(() -> (fix_qt_plugin_path(); nothing))
+    fixqthook = Py(() -> (CONFIG.auto_fix_qt_plugin_path && fix_qt_plugin_path(); nothing))
     pymodulehooks.add_hook("PyQt4", fixqthook)
     pymodulehooks.add_hook("PyQt5", fixqthook)
     pymodulehooks.add_hook("PySide", fixqthook)

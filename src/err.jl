@@ -84,7 +84,7 @@ function Base.showerror(io::IO, e::PyException)
         return
     end
 
-    if CONFIG.sysautolasttraceback
+    if CONFIG.auto_sys_last_traceback
         try
             sys = pyimport("sys")
             sys.last_type = e.t

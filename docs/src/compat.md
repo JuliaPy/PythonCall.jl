@@ -6,7 +6,7 @@ Some of these are "fixes" that are silently applied for you, and some are just e
 
 ## Stdlib
 
-Whenever a Python exception is displayed by Julia, `sys.last_traceback` and friends are set. This allows the post-mortem debugger `pdb.pm()` to work. Disable by setting `PythonCall.CONFIG.sysautolasttraceback = false`.
+Whenever a Python exception is displayed by Julia, `sys.last_traceback` and friends are set. This allows the post-mortem debugger `pdb.pm()` to work. Disable by setting `PythonCall.CONFIG.auto_sys_last_traceback = false`.
 
 ## Tabular data & Pandas
 

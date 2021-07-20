@@ -1,15 +1,23 @@
-const PYJLGCCACHE = Dict{PyPtr, Base.RefValue{Any}}()
+# we store the actual julia values here
+# the `value` field of `PyJuliaValueObject` indexes into here
+const PYJLVALUES = []
+# unused indices in PYJLVALUES
+const PYJLFREEVALUES = Int[]
 
 function _pyjl_new(t::PyPtr, ::PyPtr, ::PyPtr)
     o = ccall(UnsafePtr{PyTypeObject}(t).alloc[!], PyPtr, (PyPtr, Py_ssize_t), t, 0)
     o == PyNULL && return PyNULL
     UnsafePtr{PyJuliaValueObject}(o).weaklist[] = PyNULL
-    UnsafePtr{PyJuliaValueObject}(o).value[] = C_NULL
+    UnsafePtr{PyJuliaValueObject}(o).value[] = 0
     return o
 end
 
 function _pyjl_dealloc(o::PyPtr)
-    delete!(PYJLGCCACHE, o)
+    idx = UnsafePtr{PyJuliaValueObject}(o).value[]
+    if idx != 0
+        PYJLVALUES[idx] = nothing
+        push!(PYJLFREEVALUES, idx)
+    end
     UnsafePtr{PyJuliaValueObject}(o).weaklist[!] == PyNULL || PyObject_ClearWeakRefs(o)
     ccall(UnsafePtr{PyTypeObject}(Py_Type(o)).free[!], Cvoid, (PyPtr,), o)
     nothing
@@ -281,18 +289,28 @@ function init_jlwrap()
     end
 end
 
-PyJuliaValue_IsNull(o::PyPtr) = UnsafePtr{PyJuliaValueObject}(o).value[!] == C_NULL
+PyJuliaValue_IsNull(o::PyPtr) = UnsafePtr{PyJuliaValueObject}(o).value[] == 0
 
-PyJuliaValue_GetValue(o::PyPtr) = (Base.unsafe_pointer_to_objref(UnsafePtr{PyJuliaValueObject}(o).value[!])::Base.RefValue{Any})[]
+PyJuliaValue_GetValue(o::PyPtr) = PYJLVALUES[UnsafePtr{PyJuliaValueObject}(o).value[]]
 
-PyJuliaValue_SetValue(o::PyPtr, v) = begin
-    ref = Base.RefValue{Any}(v)
-    PYJLGCCACHE[o] = ref
-    UnsafePtr{PyJuliaValueObject}(o).value[] = Base.pointer_from_objref(ref)
+PyJuliaValue_SetValue(o::PyPtr, @nospecialize(v)) = begin
+    idx = UnsafePtr{PyJuliaValueObject}(o).value[]
+    if idx == 0
+        if isempty(PYJLFREEVALUES)
+            push!(PYJLVALUES, v)
+            idx = length(PYJLVALUES)
+        else
+            idx = pop!(PYJLFREEVALUES)
+            PYJLVALUES[idx] = v
+        end
+        UnsafePtr{PyJuliaValueObject}(o).value[] = idx
+    else
+        PYJLVALUES[idx] = v
+    end
     nothing
 end
 
-PyJuliaValue_New(t::PyPtr, v) = begin
+PyJuliaValue_New(t::PyPtr, @nospecialize(v)) = begin
     if PyType_IsSubtype(t, POINTERS.PyJuliaBase_Type) != 1
         PyErr_SetString(POINTERS.PyExc_TypeError, "Expecting a subtype of 'juliacall.ValueBase'")
         return PyNULL

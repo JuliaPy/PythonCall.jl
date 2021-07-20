@@ -326,6 +326,6 @@ end
 
 @kwdef struct PyJuliaValueObject
     ob_base::PyObject = PyObject()
-    value::Ptr{Cvoid} = C_NULL
+    value::Int = 0
     weaklist::PyPtr = C_NULL
 end

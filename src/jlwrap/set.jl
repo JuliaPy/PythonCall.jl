@@ -114,6 +114,9 @@ function init_jlwrap_set()
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_symmetric_difference_update)), other)
         def update(self, other):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_update)), other)
+    import collections.abc
+    collections.abc.MutableSet.register(SetValue)
+    del collections
     """, filename, "exec"), jl.__dict__)
     pycopy!(pyjlsettype, jl.SetValue)
 end

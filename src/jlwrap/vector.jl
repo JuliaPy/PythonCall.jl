@@ -143,6 +143,9 @@ function init_jlwrap_vector()
             return self._jl_callmethod($(pyjl_methodnum(pyjlvector_index)), value)
         def count(self, value):
             return self._jl_callmethod($(pyjl_methodnum(pyjlvector_count)), value)
+    import collections.abc
+    collections.abc.MutableSequence.register(VectorValue)
+    del collections
     """, filename, "exec"), jl.__dict__)
     pycopy!(pyjlvectortype, jl.VectorValue)
 end

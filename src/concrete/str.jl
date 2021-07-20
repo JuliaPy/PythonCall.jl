@@ -1,6 +1,11 @@
 pystr_fromUTF8(x::Ptr, n::Integer) = pynew(errcheck(C.PyUnicode_DecodeUTF8(x, n, C_NULL)))
 pystr_fromUTF8(x) = pystr_fromUTF8(pointer(x), sizeof(x))
 
+"""
+    pystr(x)
+
+Convert `x` to a Python `str`.
+"""
 pystr(x) = pynew(errcheck(@autopy x C.PyObject_Str(getptr(x_))))
 pystr(x::String) = pystr_fromUTF8(x)
 pystr(x::SubString{String}) = pystr_fromUTF8(x)

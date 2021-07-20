@@ -1,15 +1,11 @@
 # Getting Started
 
-## You will need
-
-* Julia 1.0 or higher — download [here](https://julialang.org/downloads).
-* Python 3.5 or higher — download [here](https://www.python.org/downloads) or set `JULIA_PYTHONCALL_EXE=CONDA` (see below).
-
 ## Install the Julia package `PythonCall`
 
 ```julia
-using Pkg
-pkg"add PythonCall"
+julia> using Pkg
+
+pkg> add PythonCall
 ```
 
 ## Install the Python package `juliacall` (optional)
@@ -36,19 +32,8 @@ packages can always `import juliacall`.
 
 ## Environment variables
 
-If Julia and Python are in your PATH, then no further set-up is required.
-Otherwise, the following environment variables control how the package finds these.
-- `JULIA_PYTHONCALL_EXE`: Path to the Python executable. Or one of the following special
-  values:
-  - `CONDA`: Use Python from the default conda environment. In this case, if `conda` is not
-    detected then `Conda.jl` will automatically install
-    [`miniconda`](https://docs.conda.io/en/latest/miniconda.html) in your Julia depot.
-  - `CONDA:{env}`: Use Python from the given conda environment. Also automatically installs
-    miniconda.
-  - `PYCALL`: Import [`PyCall`](https://github.com/JuliaPy/PyCall.jl) and use whichever
-    Python that uses.
-- `JULIA_PYTHONCALL_LIB`: Path to the Python library. Normally this is inferred from the Python
-  executable, but can be over-ridden.
-- `PYTHON_JULIACALL_EXE`: Path to the Julia executable.
-- `PYTHON_JULIACALL_LIB`: Path to the Julia library. Normally this is inferred from the Julia
-  executable, but can be over-ridden.
+- `JULIA_PYTHONCALL_EXE`: By default, `PythonCall` manages its own installation of Python
+  specific to a particular Julia environment, so that the set of installed Python packages
+  is isolated between environments. To instead use a pre-installed version of Python, set
+  this variable to its path. It can simply be set to `python` if it is in your `PATH`.
+- `PYTHON_JULIACALL_EXE`: The path to the Julia executable. By default, it uses `julia`.

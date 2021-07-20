@@ -13,10 +13,26 @@ end
 pyset_fromiter(xs) = pyset_update_fromiter(pyset(), xs)
 pyfrozenset_fromiter(xs) = pyset_update_fromiter(pyfrozenset(), xs)
 
+"""
+    pyset(x=())
+
+Convert `x` to a Python `set`.
+
+If `x` is a Python object, this is equivalent to `set(x)` in Python.
+Otherwise `x` must be iterable.
+"""
 pyset() = pynew(errcheck(C.PySet_New(C.PyNULL)))
 pyset(x) = ispy(x) ? pybuiltins.set(x) : pyset_fromiter(x)
 export pyset
 
+"""
+    pyfrozenset(x=())
+
+Convert `x` to a Python `frozenset`.
+
+If `x` is a Python object, this is equivalent to `frozenset(x)` in Python.
+Otherwise `x` must be iterable.
+"""
 pyfrozenset() = pynew(errcheck(C.PyFrozenSet_New(C.PyNULL)))
 pyfrozenset(x) = ispy(x) ? pybuiltins.frozenset(x) : pyfrozenset_fromiter(x)
 export pyfrozenset

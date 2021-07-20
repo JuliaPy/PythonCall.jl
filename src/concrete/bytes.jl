@@ -1,6 +1,11 @@
 pybytes_fromdata(x::Ptr, n::Integer) = pynew(errcheck(C.PyBytes_FromStringAndSize(x, n)))
 pybytes_fromdata(x) = pybytes_fromdata(pointer(x), sizeof(x))
 
+"""
+    pybytes(x)
+
+Convert `x` to a Python `bytes`.
+"""
 pybytes(x) = pynew(errcheck(@autopy x C.PyObject_Bytes(getptr(x_))))
 pybytes(x::Vector{UInt8}) = pybytes_fromdata(x)
 pybytes(x::Base.CodeUnits{UInt8, String}) = pybytes_fromdata(x)

@@ -8,6 +8,11 @@ pyint_fallback(x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64
     pynew(errcheck(C.PyLong_FromString(string(x, base=32), C_NULL, 32)))
 pyint_fallback(x::Integer) = pyint_fallback(BigInt(x))
 
+"""
+    pyint(x=0)
+
+Convert `x` to a Python `int`.
+"""
 function pyint(x::Integer=0)
     y = mod(x, Clonglong)
     if x == y

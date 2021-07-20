@@ -12,21 +12,21 @@ Whenever a Python exception is displayed by Julia, `sys.last_traceback` and frie
 
 A `pandas.DataFrame` can be wrapped in Julia as a [`PyPandasDataFrame`](@ref), providing a `Tables.jl`-compatible interface.
 
+Furthermore, any Python object which can be converted to a `PyTable` (e.g. `pandas.DataFrame` can be converted to `PyPandasDataFrame`) satisfies the Tables.jl interface.
+
 In the other direction, the following functions can be used to convert any `Tables.jl`-compatible table to a Python table.
 
 ```@docs
-pycolumntable
-pyrowtable
-pypandasdataframe
+pytable
 ```
 
 ## MatPlotLib / PyPlot
 
 ```@docs
-pyplotshow
+pyplot_show
 ```
 
-If Julia is running an IJulia kernel, `pyplotshow()` is automatically called after executing a cell, so that plots generated in a cell are always shown (similar to IPython). It can be disabled by setting `PythonCall.CONFIG.pyplotautoshow = false`.
+If Julia is running an IJulia kernel, `pyplot_show()` is automatically called after executing a cell, so that plots generated in a cell are always shown (similar to IPython). It can be disabled by setting `PythonCall.CONFIG.auto_pyplot_show = false`.
 
 ## GUIs (including MatPlotLib)
 
@@ -37,14 +37,6 @@ If for example you wish to use PyPlot in interactive mode (`matplotlib.pyplot.io
 ```@docs
 PythonCall.event_loop_on
 PythonCall.event_loop_off
-```
-
-### Interaction
-
-The following is an alternative to using event loops to enable interactive plotting.
-
-```@docs
-pyinteract
 ```
 
 ### Qt path fix
@@ -58,3 +50,5 @@ PythonCall.fix_qt_plugin_path
 If Python is running an IPython kernel, then:
 - Julia's `Base.stdout` is set to Python's `sys.stdout`.
 - An `IPythonDisplay` is pushed onto Julia's display stack, so that `display(x)` goes to IPython if possible.
+
+This is disabled by setting `PythonCall.CONFIG.auto_ipython_display = false`.

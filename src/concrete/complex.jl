@@ -3,6 +3,12 @@
 # :PyComplex_ImagAsDouble => (PyPtr,) => Cdouble,
 # :PyComplex_AsCComplex => (PyPtr,) => Py_complex,
 
+"""
+    pycomplex(x=0.0)
+    pycomplex(re, im)
+
+Convert `x` to a Python `complex`, or create one from given real and imaginary parts.
+"""
 pycomplex(x::Real=0.0, y::Real=0.0) = pynew(errcheck(C.PyComplex_FromDoubles(x, y)))
 pycomplex(x::Complex) = pycomplex(real(x), imag(x))
 pycomplex(x) = pybuiltins.complex(x)

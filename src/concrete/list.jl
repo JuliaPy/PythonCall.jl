@@ -31,12 +31,20 @@ function pylist_fromiter(xs)
     end
 end
 
+"""
+    pylist(x=())
+
+Convert `x` to a Python `list`.
+
+If `x` is a Python object, this is equivalent to `list(x)` in Python.
+Otherwise `x` must be iterable.
+"""
 pylist() = pynulllist(0)
 pylist(x) = ispy(x) ? pybuiltins.list(x) : pylist_fromiter(x)
 export pylist
 
 """
-    pycollist([T=PyObject,] x::AbstractArray) :: T
+    pycollist(x::AbstractArray)
 
 Create a nested Python `list`-of-`list`s from the elements of `x`. For matrices, this is a list of columns.
 """
@@ -55,7 +63,7 @@ end
 export pycollist
 
 """
-    pyrowlist([T=PyObject,] x::AbstractArray) :: T
+    pyrowlist(x::AbstractArray)
 
 Create a nested Python `list`-of-`list`s from the elements of `x`. For matrices, this is a list of rows.
 """

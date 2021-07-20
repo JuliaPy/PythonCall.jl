@@ -1,48 +1,42 @@
 # The Julia module `PythonCall`
 
-To get started, just do `using PythonCall`. There are two main ways to use this module:
-
-**Way 1:** There is a [collection of macros](#Execute-Python-code) for directly executing Python code, interpolating Julia values in and extracting Julia values out. For example ```@pyv `$x+1`::Int``` adds `x` to `1` in Python and converts the result to an `Int`.
-
-**Way 2:** There is a [collection of functions](#Python-functions) which typically produce and consume Python objects. The previous example can be implemented as `pyadd(Int, x, 1)` or `pyconvert(Int, PyObject(x)+1)`.
-
-In all cases, when a Julia value needs to be passed to Python, it will be converted according to [this table](@ref jl2py).
-
-When a Python value is returned to Julia, by default it will be as a [`PyObject`](@ref). Most functions provide an optional way to specify the return type, in which case it will be converted according to [this table](@ref py2jl).
-
-You can also specify one of the [wrapper types](@ref python-wrappers) as a return type.
-
-## `PyObject`
+## `Py`
 
 ```@docs
-PyObject
+Py
 ```
 
-## Execute Python code
+The object `pybuiltins` has all the standard Python builtin objects as its properties.
+Hence you can access `pybuiltins.None` and `pybuiltins.TypeError`.
 
-These macros are used to execute or evaluate Python code. The main differences between them are in whether/how any values are extracted out again.
-
-**Note to package writers.** These all expect there to be a variable `pyglobals` in scope, which is a Python dictionary giving the global scope. For convenience, this module exports such a variable so that these macros work in the REPL. However other packages should define their own global scope by defining `const pyglobals = PyDict()`.
+## `@py`
 
 ```@docs
 @py
-@pyv
-@pyg
-@pya
-@pyr
 ```
 
 ## Python functions
+
+Most of the functions in this section are essentially Python builtins with a `py` prefix.
+For example `pyint(x)` converts `x` to a Python `int` and is equivalent to `int(x)` in
+Python when `x` is a Python object.
+
+Notable exceptions are:
+- [`pyconvert`](@ref) to convert a Python object to a Julia object.
+- [`pyimport`](@ref) to import a Python module.
+- [`pyjl`](@ref) to directly wrap a Julia object as a Python object.
+- [`pyclass`](@ref) to construct a new class.
+- [`pywith`](@ref) to emulate the Python `with` statement.
 
 ### Construct Python objects
 
 These functions convert Julia values into Python objects of standard types.
 
 ```@docs
-pynone
 pybool
 pyint
 pyfloat
+pycomplex
 pystr
 pybytes
 pytuple
@@ -53,10 +47,10 @@ pyset
 pyfrozenset
 pydict
 pyslice
-pyellipsis
-pynotimplemented
+pyrange
 pymethod
 pytype
+pyclass
 ```
 
 ### Wrap Julia values
@@ -67,23 +61,26 @@ These functions wrap Julia values into Python objects, documented [here](@ref ju
 pyjl
 pyjlraw
 pyisjl
-pyjlgetvalue
+pyjlvalue
 pytextio
-pyrawio
-pybufferedio
+pybinaryio
 ```
 
 ### Python builtins
 
 ```@docs
 pyconvert
+@pyconvert
 pyimport
+pyimport_conda
 pywith
 pyis
 pyrepr
+pyascii
 pyhasattr
 pygetattr
 pysetattr
+pydelattr
 pydir
 pycall
 pylen
@@ -99,7 +96,43 @@ pyhash
 pyiter
 ```
 
-### Numbers
+### Numeric functions
+
+```@docs
+pyneg
+pypos
+pyabs
+pyinv
+pyadd
+pysub
+pymul
+pymatmul
+pypow
+pyfloordiv
+pytruediv
+pymod
+pydivmod
+pylshift
+pyrshift
+pyand
+pyxor
+pyor
+pyiadd
+pyisub
+pyimul
+pyimatmul
+pyipow
+pyifloordiv
+pyitruediv
+pyimod
+pyilshift
+pyirshift
+pyiand
+pyixor
+pyior
+```
+
+### Comparisons
 
 ```@docs
 pyeq
@@ -108,37 +141,6 @@ pyle
 pylt
 pyge
 pygt
-pyadd
-pyiadd
-pysub
-pyisub
-pymul
-pyimul
-pymatmul
-pyimatmul
-pyfloordiv
-pyifloordiv
-pytruediv
-pyitruediv
-pymod
-pyimod
-pydivmod
-pylshift
-pyilshift
-pyrshift
-pyirshift
-pyand
-pyiand
-pyor
-pyior
-pyxor
-pyixor
-pypow
-pyipow
-pyneg
-pypos
-pyabs
-pyinv
 ```
 
 ## [Wrapper types](@id python-wrappers)
@@ -149,13 +151,8 @@ PySet
 PyDict
 PyIterable
 PyArray
-PyBuffer
 PyIO
+PyTable
 PyPandasDataFrame
-PyCode
-@py_cmd
-@pyv_cmd
-PyInternedString
-@pystr_str
-PyException
+PyObjectArray
 ```

@@ -1,7 +1,19 @@
+"""
+    pytype(x)
+
+The Python `type` of `x`.
+"""
 pytype(x) = pynew(errcheck(@autopy x C.PyObject_Type(getptr(x_))))
 pytype(name, bases, dict) = pybuiltins.type(name, ispy(bases) && pyistype(bases) ? pytuple((bases,)) : pytuple(bases), pydict(dict))
 export pytype
 
+"""
+    pyclass(name, bases=(); members...)
+
+Construct a new Python type with the given name, bases and members.
+
+Equivalent to `pytype(name, bases, members)`.
+"""
 pyclass(name, bases=(); dict...) = pytype(name, bases, pystrdict_fromiter(dict))
 export pyclass
 

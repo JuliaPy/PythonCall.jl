@@ -39,8 +39,7 @@ There is also a [`RawValue`](#juliacall.RawValue) object, which gives a stricter
     - [`DictValue`](#juliacall.DictValue)
     - [`SetValue`](#juliacall.SetValue)
     - [`IOValue`](#juliacall.IOValue)
-      - `RawIOValue`
-      - `BufferedIOValue`
+      - `BinaryIOValue`
       - `TextIOValue`
     - [`ModuleValue`](#juliacall.ModuleValue)
     - [`TypeValue`](#juliacall.TypeValue)
@@ -105,12 +104,7 @@ juliacall.IOValue - Class
 
 This wraps any Julia `IO` value. It is a subclass of `io.IOBase` and behaves like Python files.
 
-There are also subtypes `RawIOValue`, `BufferedIOValue` and `TextIOValue`, which are subclasses of `io.RawIOBase` (unbuffered bytes), `io.BufferedIOBase` (buffered bytes) and `io.TextIOBase` (text).
-
-###### Members
-- `torawio()`: Convert to a `RawIOValue`, an un-buffered bytes file-like object. (See also [`pyrawio`](@ref).)
-- `tobufferedio()`: Convert to a `BufferedIOValue`, an buffered bytes file-like object. Julia `IO` objects are converted to this by default. (See also [`pybufferedio`](@ref).)
-- `totextio()`: Convert to a `TextIOValue`, a text file-like object. (See also [`pytextio`](@ref).)
+There are also subtypes `BinaryIOValue` and `TextIOValue`, which are subclasses of `io.BufferedIOBase` (buffered bytes) and `io.TextIOBase` (text).
 `````
 
 `````@customdoc

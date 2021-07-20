@@ -300,4 +300,16 @@ function init_jlwrap_any()
     pycopy!(pyjlanytype, jl.AnyValue)
 end
 
+"""
+    pyjl([t], x)
+
+Create a Python object wrapping the Julia object `x`.
+
+If `x` is mutable, then mutating the returned object also mutates `x`, and vice versa.
+
+Its Python type is normally inferred from the type of `x`, but can be specified with `t`.
+
+For example if `x` is an `AbstractVector` then the object will have type `juliacall.VectorValue`.
+This object will satisfy the Python sequence interface, so for example uses 0-up indexing.
+"""
 pyjl(v) = pyjl(pyjlanytype, v)

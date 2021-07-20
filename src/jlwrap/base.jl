@@ -7,6 +7,11 @@ _pyjl_setvalue!(x, v) = @autopy x C.PyJuliaValue_SetValue(getptr(x_), v)
 pyjl(t, v) = pynew(errcheck(@autopy t C.PyJuliaValue_New(getptr(t_), v)))
 export pyjl
 
+"""
+    pyisjl(x)
+
+Test whether `x` is a wrapped Julia value, namely an instance of `juliacall.ValueBase`.
+"""
 pyisjl(x) = pytypecheck(x, pyjlbasetype)
 export pyisjl
 
@@ -18,6 +23,11 @@ pyjlisnull(x) = @autopy x begin
     end
 end
 
+"""
+    pyjlvalue(x)
+
+Extract the value from the wrapped Julia value `x`.
+"""
 pyjlvalue(x) = @autopy x begin
     if pyjlisnull(x_)
         error("Julia value is NULL")

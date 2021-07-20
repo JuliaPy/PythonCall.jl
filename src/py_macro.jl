@@ -716,6 +716,21 @@ function py_macro(ex, mod, src)
     Expr(:block, body..., ans)
 end
 
+"""
+    @py expr
+
+Evaluate the given expression using Pythonic semantics.
+
+For example:
+- `f(x, y)` is translated to `pycall(f, x, y)`
+- `x + y` is translated to `pyadd(x, y)`
+- `x === y` is translated to `pyis(x, y)`
+- `x.foo` is translated to `pygetattr(x, "foo")`
+
+Compound statements such as `begin`, `if`, `while` and `for` are supported.
+
+See the online documentation for more details.
+"""
 macro py(ex)
     esc(py_macro(ex, __module__, __source__))
 end

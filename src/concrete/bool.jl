@@ -1,3 +1,8 @@
+"""
+    pybool(x)
+
+Convert `x` to a Python `bool`.
+"""
 pybool(x::Bool=false) = Py(x ? pybuiltins.True : pybuiltins.False)
 pybool(x::Number) = pybool(!iszero(x))
 pybool(x) = pybuiltins.bool(x)

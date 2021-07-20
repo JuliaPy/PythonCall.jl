@@ -1,3 +1,8 @@
+"""
+    pyrange([[start], [stop]], [step])
+
+Construct a Python `range`. Unspecified arguments default to `None`.
+"""
 pyrange(x, y, z) = pybuiltins.range(x, y, z)
 pyrange(x, y) = pybuiltins.range(x, y)
 pyrange(y) = pybuiltins.range(y)

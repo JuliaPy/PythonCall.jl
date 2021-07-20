@@ -303,8 +303,23 @@ function init_jlwrap_io()
 end
 
 pyiobase(v::IO) = pyjl(pyjliobasetype, v)
+
+"""
+    pybinaryio(io::IO)
+
+Wrap `io` as a Python binary IO object.
+
+This is the default behaviour of `Py(io)`.
+"""
 pybinaryio(v::IO) = pyjl(pyjlbinaryiotype, v)
+export pybinaryio
+
+"""
+    pytextio(io::IO)
+
+Wrap `io` as a Python text IO object.
+"""
 pytextio(v::IO) = pyjl(pyjltextiotype, v)
-export pybinaryio, pytextio
+export pytextio
 
 pyjl(v::IO) = pybinaryio(v)

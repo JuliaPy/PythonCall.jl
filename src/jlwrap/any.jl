@@ -69,7 +69,7 @@ function pyjlany_delitem(self, k_::Py)
 end
 pyjl_handle_error_type(::typeof(pyjlany_delitem), self, exc) = exc isa BoundsError ? pybuiltins.IndexError : exc isa KeyError ? pybuiltins.KeyError : PyNULL
 
-pyjlany_contains(self, v::Py) = Py(pyconvert(Any, v) in self)
+pyjlany_contains(self, v::Py) = Py(@pyconvert(eltype(self), v, return Py(false)) in self)
 pyjl_handle_error_type(::typeof(pyjlany_contains), self, exc) = exc isa MethodError && exc.f === in ? pybuiltins.TypeError : PyNULL
 
 struct pyjlany_op{OP}

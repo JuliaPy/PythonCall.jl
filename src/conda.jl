@@ -1,6 +1,6 @@
 module Conda
 
-import ..External, JSON
+import ..External
 
 const _env = Ref("")
 
@@ -33,14 +33,14 @@ function activate()
             shell = "powershell"
             exportvarregex = r"^\$Env:([^ =]+) *= *\"(.*)\"$"
             setvarregex = exportvarregex
-            unsetvarregex = r"^Remove-Item \$Env:/([^ =]+)$"
+            unsetvarregex = r"^(Remove-Item +\$Env:/|Remove-Variable +)([^ =]+)$"
             runscriptregex = r"^\. +\"(.*)\"$"
         else
             shell = "posix"
-            exportvarregex = r"^export ([^ =]+)='(.*)'$"
+            exportvarregex = r"^\\?export ([^ =]+)='(.*)'$"
             setvarregex = r"^([^ =]+)='(.*)'"
-            unsetvarregex = r"^unset +([^ ]+)$"
-            runscriptregex = r"^\. +\"(.*)\"$"
+            unsetvarregex = r"^\\?unset +([^ ]+)$"
+            runscriptregex = r"^\\?\. +\"(.*)\"$"
         end
         for line in eachline(External.Conda._set_conda_env(`$(External.Conda.conda) shell.$shell activate $e`))
             if (m = match(exportvarregex, line)) !== nothing

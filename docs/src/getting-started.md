@@ -16,10 +16,10 @@ Currently `juliacall` is shipped with the source of the Julia package, and must 
 pip-installed manually. The following should work in most shells (including PowerShell):
 
 ```bash
-pip install $(julia -e "using PythonCall; print(PythonCall.juliacall_pipdir)")
+pip install $(julia -e ":PythonCall|>string|>Base.find_package|>dirname|>dirname|>print")
 ```
 
-Alternatively you can just copy the package (at `PythonCall.juliacall_dir`) to somewhere in your PYTHONPATH.
+Alternatively you can just copy the package from the `PythonCall` source directory to somewhere in your PYTHONPATH.
 
 Note that this is a [very small](https://github.com/cjdoris/PythonCall.jl/blob/master/juliacall/__init__.py)
 "bootstrap" package whose sole job is to locate and load Julia; the main functionality is in

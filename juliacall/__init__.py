@@ -53,7 +53,7 @@ def init():
                 if exepath is None:
                     raise Exception('Installed julia in %s but cannot find it' % repr(jlbin))
         if exepath is None:
-            raise Exception('Could not find julia.\n- It is recommended to use this package in a virtual environment (or conda environment)\nso that Julia may be automatically installed.\n- Otherwise, please install Julia and ensure it is in your PATH.')
+            raise Exception('Could not find julia.\n- It is recommended to use this package in a virtual environment (or conda environment)\n  so that Julia may be automatically installed.\n- Otherwise, please install Julia and ensure it is in your PATH.')
         # Test the executable is executable
         try:
             subprocess.run([exepath, "--version"], stdout=subprocess.DEVNULL)

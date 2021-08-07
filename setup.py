@@ -1,4 +1,16 @@
 import setuptools
+import setuptools.command.develop
+import setuptools.command.install
+
+class DevelopCmd(setuptools.command.develop.develop):
+    def run(self):
+        super().run()
+        import juliacall
+
+class InstallCmd(setuptools.command.install.install):
+    def run(self):
+        super().run()
+        import juliacall
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -19,4 +31,5 @@ setuptools.setup(
     ],
     python_requires='>=3.3',
     install_requires=['jill>=0.9.7'],
+    cmdclass={'install': InstallCmd, 'develop': DevelopCmd},
 )

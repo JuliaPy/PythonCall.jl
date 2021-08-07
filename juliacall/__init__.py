@@ -27,6 +27,9 @@ def init():
         # Find the Julia executable
         # TODO: check the version
         exepath = os.environ.get('PYTHON_JULIACALL_EXE')
+        if exepath is None and prefix is not None:
+            # see if installed in the virtual env
+            exepath = shutil.which(os.path.join(jlbin, "julia"))
         if exepath is None:
             # try the path
             exepath = shutil.which('julia')
@@ -38,20 +41,17 @@ def init():
             except:
                 pass
         if exepath is None and prefix is not None:
-            # see if installed in the virtual env
+            # install in the virtual env
+            os.makedirs(jldownload)
+            d = os.getcwd()
+            try:
+                os.chdir(jldownload)
+                jli.install_julia(confirm=True, install_dir=jlinstall, symlink_dir=jlbin)
+            finally:
+                os.chdir(d)
             exepath = shutil.which(os.path.join(jlbin, "julia"))
             if exepath is None:
-                # install in the virtual env
-                os.makedirs(jldownload)
-                d = os.getcwd()
-                try:
-                    os.chdir(jldownload)
-                    jli.install_julia(confirm=True, install_dir=jlinstall, symlink_dir=jlbin)
-                finally:
-                    os.chdir(d)
-                exepath = shutil.which(os.path.join(jlbin, "julia"))
-                if exepath is None:
-                    raise Exception('Installed julia in %s but cannot find it' % repr(jlbin))
+                raise Exception('Installed julia in %s but cannot find it' % repr(jlbin))
         if exepath is None:
             raise Exception('Could not find julia.\n- It is recommended to use this package in a virtual environment (or conda environment)\n  so that Julia may be automatically installed.\n- Otherwise, please install Julia and ensure it is in your PATH.')
         # Test the executable is executable

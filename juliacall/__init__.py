@@ -89,7 +89,7 @@ def init():
             install = 'Pkg.develop(path="{}")'.format(reporoot.replace('\\', '\\\\'))
         else:
             install = '''
-                let
+                (function ()
                     version_str = "{}"
                     version = VersionNumber(version_str)
                     uuid = Base.UUID("6099a3de-0909-46bc-b1f4-468b9a2dfc0d")
@@ -101,7 +101,8 @@ def init():
                         end
                     end
                     Pkg.add(name="PythonCall", version=version)
-                end
+                    return
+                end)()
             '''.format(__version__)
         script = '''
             try

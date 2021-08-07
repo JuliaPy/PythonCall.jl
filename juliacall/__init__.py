@@ -114,7 +114,7 @@ def init():
             )
         res = lib.jl_eval_string(script.encode('utf8'))
         if res is None:
-            raise Exception('PythonCall.jl did not start properly.\n-Ensure that the PythonCall package is installed in Julia.')
+            raise Exception('PythonCall.jl did not start properly.\n- Ensure that the PythonCall package is installed in Julia.')
     finally:
         os.chdir(d)
 

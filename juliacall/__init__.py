@@ -7,7 +7,7 @@ def init():
 
     # Determine the if we are in a virtual environment
     venvprefix = os.environ.get("VIRTUAL_ENV")
-    condaprefix = os.environ.get("CONDA_ENV")
+    condaprefix = os.environ.get("CONDA_PREFIX")
     if venvprefix and condaprefix:
         raise Exception('You appear to be in both a virtual env and a conda env.')
     elif venvprefix:

@@ -1,9 +1,16 @@
-__version__ = '#master'
+__version__ = '0.2.1'
 
-CONFIG = dict()
+CONFIG = dict(embedded=False)
 
 def init():
     import os, os.path, sys, ctypes as c, types, shutil, subprocess, jill.install as jli
+
+    # Determine if this is a development version of juliacall
+    # i.e. it is installed from the github repo, which contains Project.toml
+    reporoot = os.path.dirname(os.path.dirname(__file__))
+    projtoml = os.path.join(reporoot, "Project.toml")
+    isdev = os.path.isfile(projtoml) and "PythonCall" in open(projtoml, "rb").read().decode("utf8")
+    CONFIG['dev'] = isdev
 
     # Determine where to look for julia
     venvprefix = os.environ.get("VIRTUAL_ENV")
@@ -16,7 +23,7 @@ def init():
         prefix = condaprefix
     else:
         prefix = os.path.dirname(__file__)
-    jlprefix = os.path.join(prefix, ".julia")
+    jlprefix = os.path.join(prefix, "julia")
     jlbin = os.path.join(jlprefix, "bin")
     jlinstall = os.path.join(jlprefix, "install")
     jldownload = os.path.join(jlprefix, "download")
@@ -67,45 +74,40 @@ def init():
     else:
         if not os.path.isfile(libpath):
             raise Exception('PYTHON_JULIACALL_LIB=%s does not exist' % repr(libpath))
-    CONFIG['libpath'] = libpath
     d = os.getcwd()
     try:
         os.chdir(os.path.dirname(libpath))
         lib = c.CDLL(libpath)
+        CONFIG['libpath'] = libpath
         CONFIG['lib'] = lib
         lib.jl_init__threading.argtypes = []
         lib.jl_init__threading.restype = None
         lib.jl_init__threading()
         lib.jl_eval_string.argtypes = [c.c_char_p]
         lib.jl_eval_string.restype = c.c_void_p
+        if isdev:
+            install = 'Pkg.develop(path="{}")'.format(reporoot.replace('\\', '\\\\'))
+        else:
+            install = '''
+                let
+                    version_str = "{}"
+                    version = VersionNumber(version_str)
+                    uuid = Base.UUID("6099a3de-0909-46bc-b1f4-468b9a2dfc0d")
+                    deps = Pkg.dependencies()
+                    if haskey(deps, uuid)
+                        dep = deps[uuid]
+                        if version == dep.version && dep.is_tracking_registry && !dep.is_tracking_path && !dep.is_tracking_repo
+                            return
+                        end
+                    end
+                    Pkg.add(name="PythonCall", version=version)
+                end
+            '''.format(__version__)
         script = '''
             try
                 import Pkg
-                function install_PythonCall()
-                    version_str = "{}"
-                    if '#' in version_str
-                        version = nothing
-                        url, rev = split(version_str, '#', limit=2)
-                        if isempty(url)
-                            url = "https://github.com/cjdoris/PythonCall.jl"
-                        end
-                        Pkg.add(url=url, rev=rev)
-                    else
-                        version = VersionNumber(version_str)
-                        uuid = Base.UUID("6099a3de-0909-46bc-b1f4-468b9a2dfc0d")
-                        deps = Pkg.dependencies()
-                        if haskey(deps, uuid)
-                            dep = deps[uuid]
-                            if version == dep.version && dep.is_tracking_registry && !dep.is_tracking_path && !dep.is_tracking_repo
-                                return
-                            end
-                        end
-                        Pkg.add(name="PythonCall", version=version)
-                    end
-                    return
-                end
                 Pkg.activate("{}", shared={}, io=devnull)
-                install_PythonCall()
+                {}
                 ENV["JULIA_PYTHONCALL_LIBPTR"] = "{}"
                 import PythonCall
             catch err
@@ -113,9 +115,9 @@ def init():
                 rethrow()
             end
             '''.format(
-                __version__,
-                ('PythonCall' if prefix is None else jlenv).replace('\\', '\\\\'),
+                jlenv.replace('\\', '\\\\'),
                 'true' if prefix is None else 'false',
+                install,
                 c.pythonapi._handle,
             )
         res = lib.jl_eval_string(script.encode('utf8'))

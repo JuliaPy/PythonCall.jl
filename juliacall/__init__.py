@@ -5,55 +5,55 @@ CONFIG = dict()
 def init():
     import os, os.path, sys, ctypes as c, types, shutil, subprocess, jill.install as jli
 
-    # Determine the if we are in a virtual environment
+    # Determine where to look for julia
     venvprefix = os.environ.get("VIRTUAL_ENV")
     condaprefix = os.environ.get("CONDA_PREFIX")
     if venvprefix and condaprefix:
-        raise Exception('You appear to be in both a virtual env and a conda env.')
+        raise Exception("You appear to be using both a virtual environment and a conda environment.")
     elif venvprefix:
         prefix = venvprefix
     elif condaprefix:
         prefix = condaprefix
     else:
-        prefix = None
-    if prefix is not None:
-        jlprefix = os.path.join(prefix, ".julia")
-        jlbin = os.path.join(jlprefix, "bin")
-        jlinstall = os.path.join(jlprefix, "install")
-        jldownload = os.path.join(jlprefix, "download")
-        jlenv = os.path.join(jlprefix, "env")
+        prefix = os.path.dirname(__file__)
+    jlprefix = os.path.join(prefix, ".julia")
+    jlbin = os.path.join(jlprefix, "bin")
+    jlinstall = os.path.join(jlprefix, "install")
+    jldownload = os.path.join(jlprefix, "download")
+    jlenv = os.path.join(jlprefix, "env")
+    jlexe = os.path.join(jlbin, "julia.cmd" if os.name == "nt" else "julia")
 
     # Find the Julia library
     libpath = os.environ.get('PYTHON_JULIACALL_LIB')
     if libpath is None:
-        # Find the Julia executable
-        # TODO: check the version
+        # Find the Julia executable...
+        # ... in a specified location
         exepath = os.environ.get('PYTHON_JULIACALL_EXE')
-        if exepath is None and prefix is not None:
-            # see if installed in the virtual env
-            exepath = shutil.which(os.path.join(jlbin, "julia"))
+        # ... in the default prefix
         if exepath is None:
-            # try the path
-            exepath = shutil.which('julia')
+            exepath = shutil.which(jlexe)
+        # ... after installing in the default prefix
         if exepath is None:
-            # when using juliaup, the 'julia' command is not in the path but still executable
-            try:
-                subprocess.run(["julia", "--version"], stdout=subprocess.DEVNULL)
-                exepath = "julia"
-            except:
-                pass
-        if exepath is None and prefix is not None:
-            # install in the virtual env
-            os.makedirs(jldownload)
+            os.makedirs(jldownload, exist_ok=True)
             d = os.getcwd()
+            p = os.environ.get("PATH")
             try:
+                if p is None:
+                    os.environ["PATH"] = jlbin
+                else:
+                    os.environ["PATH"] += os.pathsep + jlbin
                 os.chdir(jldownload)
                 jli.install_julia(confirm=True, install_dir=jlinstall, symlink_dir=jlbin)
             finally:
+                if p is None:
+                    del os.environ["PATH"]
+                else:
+                    os.environ["PATH"] = p
                 os.chdir(d)
-            exepath = shutil.which(os.path.join(jlbin, "julia"))
+            exepath = shutil.which(jlexe)
             if exepath is None:
-                raise Exception('Installed julia in %s but cannot find it' % repr(jlbin))
+                raise Exception('Installed julia in \'%s\' but cannot find it' % jlbin)
+        # ... nowhere!
         if exepath is None:
             raise Exception('Could not find julia.\n- It is recommended to use this package in a virtual environment (or conda environment)\n  so that Julia may be automatically installed.\n- Otherwise, please install Julia and ensure it is in your PATH.')
         # Test the executable is executable
@@ -61,6 +61,7 @@ def init():
             subprocess.run([exepath, "--version"], stdout=subprocess.DEVNULL)
         except:
             raise Exception('Julia executable %s does not exist' % repr(exepath))
+        # Find the corresponding libjulia
         CONFIG['exepath'] = exepath
         libpath = subprocess.run([exepath, '--startup-file=no', '-O0', '--compile=min', '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))'], stdout=(subprocess.PIPE)).stdout.decode('utf8')
     else:

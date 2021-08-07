@@ -74,6 +74,8 @@ def init():
     else:
         if not os.path.isfile(libpath):
             raise Exception('PYTHON_JULIACALL_LIB=%s does not exist' % repr(libpath))
+
+    # Initialize Julia
     d = os.getcwd()
     try:
         os.chdir(os.path.dirname(libpath))

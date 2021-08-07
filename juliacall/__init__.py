@@ -53,12 +53,12 @@ def init():
                 if exepath is None:
                     raise Exception('Installed julia in %s but cannot find it' % repr(jlbin))
         if exepath is None:
-            raise Exception('Could not find julia. It is recommended to use this package in a virtual environment (or conda environment) so that Julia may be automatically installed. Otherwise, please install Julia and ensure it is in your PATH.')
+            raise Exception('Could not find julia.\n- It is recommended to use this package in a virtual environment (or conda environment)\nso that Julia may be automatically installed.\n- Otherwise, please install Julia and ensure it is in your PATH.')
         # Test the executable is executable
         try:
             subprocess.run([exepath, "--version"], stdout=subprocess.DEVNULL)
         except:
-            raise Exception('PYTHON_JULIACALL_EXE=%s does not exist' % repr(exepath))
+            raise Exception('Julia executable %s does not exist' % repr(exepath))
         CONFIG['exepath'] = exepath
         libpath = subprocess.run([exepath, '--startup-file=no', '-O0', '--compile=min', '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))'], stdout=(subprocess.PIPE)).stdout.decode('utf8')
     else:
@@ -102,7 +102,7 @@ def init():
             )
         res = lib.jl_eval_string(script.encode('utf8'))
         if res is None:
-            raise Exception('PythonCall.jl did not start properly. Ensure that the PythonCall package is installed in Julia.')
+            raise Exception('PythonCall.jl did not start properly.\n-Ensure that the PythonCall package is installed in Julia.')
     finally:
         os.chdir(d)
 

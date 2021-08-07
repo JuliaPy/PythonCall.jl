@@ -1,4 +1,4 @@
-__version__ = 'dev' # Set this to the corresponding PythonCall version on release
+__version__ = '#master'
 
 CONFIG = dict()
 
@@ -82,18 +82,23 @@ def init():
                 import Pkg
                 function install_PythonCall()
                     version_str = "{}"
-                    version = version_str == "dev" ? nothing : VersionNumber(version_str)
-                    uuid = Base.UUID("6099a3de-0909-46bc-b1f4-468b9a2dfc0d")
-                    deps = Pkg.dependencies()
-                    if haskey(deps, uuid)
-                        dep = deps[uuid]
-                        if version === nothing || version == dep.version
-                            return
+                    if '#' in version_str
+                        version = nothing
+                        url, rev = split(version_str, '#', limit=2)
+                        if isempty(url)
+                            url = "https://github.com/cjdoris/PythonCall.jl"
                         end
-                    end
-                    if version_str == "dev"
-                        Pkg.add(url="https://github.com/cjdoris/PythonCall.jl", rev="master")
+                        Pkg.add(url=url, rev=rev)
                     else
+                        version = VersionNumber(version_str)
+                        uuid = Base.UUID("6099a3de-0909-46bc-b1f4-468b9a2dfc0d")
+                        deps = Pkg.dependencies()
+                        if haskey(deps, uuid)
+                            dep = deps[uuid]
+                            if version == dep.version
+                                return
+                            end
+                        end
                         Pkg.add(name="PythonCall", version=version)
                     end
                     return

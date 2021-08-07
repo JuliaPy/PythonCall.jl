@@ -95,7 +95,7 @@ def init():
                         deps = Pkg.dependencies()
                         if haskey(deps, uuid)
                             dep = deps[uuid]
-                            if version == dep.version
+                            if version == dep.version && dep.is_tracking_registry && !dep.is_tracking_path && !dep.is_tracking_repo
                                 return
                             end
                         end

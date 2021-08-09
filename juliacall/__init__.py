@@ -12,7 +12,7 @@ def init():
     isdev = os.path.isfile(projtoml) and "PythonCall" in open(projtoml, "rb").read().decode("utf8")
     CONFIG['dev'] = isdev
 
-    # Determine where to look for julia
+    # Determine where to put the julia environment
     venvprefix = os.environ.get("VIRTUAL_ENV")
     condaprefix = os.environ.get("CONDA_PREFIX")
     if venvprefix and condaprefix:
@@ -22,12 +22,17 @@ def init():
     elif condaprefix:
         prefix = condaprefix
     else:
-        prefix = os.path.dirname(__file__)
-    jlprefix = os.path.join(prefix, "julia")
+        prefix = None
+    if prefix is None:
+        jlenv = "PythonCall"
+    else:
+        jlenv = os.path.join(prefix, "julia_env")
+
+    # Determine where to look for julia
+    jlprefix = os.path.join(os.path.expanduser("~"), ".julia", "pythoncall")
     jlbin = os.path.join(jlprefix, "bin")
     jlinstall = os.path.join(jlprefix, "install")
     jldownload = os.path.join(jlprefix, "download")
-    jlenv = os.path.join(jlprefix, "env")
     jlexe = os.path.join(jlbin, "julia.cmd" if os.name == "nt" else "julia")
 
     # Find the Julia library
@@ -39,6 +44,16 @@ def init():
         # ... in the default prefix
         if exepath is None:
             exepath = shutil.which(jlexe)
+        # ... preinstalled
+        if exepath is None:
+            exepath = shutil.which("julia")
+        # ... preinstalled but not in path but still callable somehow (e.g. juliaup)
+        if exepath is None:
+            try:
+                subprocess.run(["julia", "--version"], stdout=subprocess.DEVNULL)
+                exepath = "julia"
+            except:
+                pass
         # ... after installing in the default prefix
         if exepath is None:
             os.makedirs(jldownload, exist_ok=True)
@@ -60,9 +75,7 @@ def init():
             exepath = shutil.which(jlexe)
             if exepath is None:
                 raise Exception('Installed julia in \'%s\' but cannot find it' % jlbin)
-        # ... nowhere!
-        if exepath is None:
-            raise Exception('Could not find julia.\n- It is recommended to use this package in a virtual environment (or conda environment)\n  so that Julia may be automatically installed.\n- Otherwise, please install Julia and ensure it is in your PATH.')
+        assert exepath is not None
         # Test the executable is executable
         try:
             subprocess.run([exepath, "--version"], stdout=subprocess.DEVNULL)

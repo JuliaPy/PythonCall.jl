@@ -96,7 +96,7 @@ function C._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssize
                 if in_f
                     return pyjl_handle_error(f, self, exc)
                 else
-                    errset(pyJuliaError, pyjlraw((exc, catch_backtrace())))
+                    errset(pyJuliaError, pytuple((pyjlraw(exc), pyjlraw(catch_backtrace()))))
                     return C.PyNULL
                 end
             catch
@@ -112,7 +112,7 @@ function pyjl_handle_error(f, self, exc)
     t = pyjl_handle_error_type(f, self, exc)::Py
     if ispynull(t)
         # NULL => raise JuliaError
-        errset(pyJuliaError, pyjlraw((exc, catch_backtrace())))
+        errset(pyJuliaError, pytuple((pyjlraw(exc), pyjlraw(catch_backtrace()))))
         return C.PyNULL
     elseif pyistype(t)
         # Exception type => raise this type of error

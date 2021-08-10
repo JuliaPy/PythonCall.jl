@@ -44,7 +44,23 @@ function init_juliacall_2()
     class JuliaError(Exception):
         "An error arising in Julia code."
         __module__ = "juliacall"
-        pass
+        def __init__(self, exception, stacktrace=None):
+            super().__init__(exception, stacktrace)
+        def __str__(self):
+            e = self.exception
+            if isinstance(e, str):
+                return e
+            else:
+                from juliacall import Base as jl
+                io = jl.IOBuffer()
+                jl.showerror(io, e)
+                return str(jl.String(jl.take_b(io)))
+        @property
+        def exception(self):
+            return self.args[0]
+        @property
+        def stacktrace(self):
+            return self.args[1]
     """, filename, "exec"), jl.__dict__)
     pycopy!(pyJuliaError, jl.JuliaError)
     C.POINTERS.PyExc_JuliaError = incref(getptr(pyJuliaError))

@@ -99,13 +99,7 @@ function Base.showerror(io::IO, e::PyException)
     if pyissubclass(e.t, pyJuliaError)
         try
             # Extract error value
-            vo = pyconvert(Any, e.v.args[0])
-            if vo isa Tuple{Exception,Any}
-                je, jb = vo
-            else
-                je = vo
-                jb = nothing
-            end
+            je, jb = pyconvert(Tuple{Any,Any}, e.v.args)
             print(io, "Julia: ")
             # Show exception
             if je isa Exception

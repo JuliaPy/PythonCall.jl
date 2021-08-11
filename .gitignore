@@ -1,4 +1,5 @@
 Manifest.toml
+PythonCallMeta.toml
 deps/deps.jl
 deps/build.log
 .ipynb_checkpoints

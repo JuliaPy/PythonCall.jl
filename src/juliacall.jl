@@ -10,13 +10,18 @@ function init_juliacall()
     if C.CTX.is_embedded
         # in this case, Julia is being embedded into Python by juliacall, which already exists
         pycopy!(jl, sys.modules["juliacall"])
+        @assert pystr_asstring(jl.CONFIG["meta"]) == metafile()
     elseif "juliacall" in sys.modules
         # otherwise, Python is being embedded into Julia by PythonCall, so should not exist
         error("'juliacall' module already exists")
     else
+        # install dependencies of juliacall (this should match setup.py)
+        Deps.require_conda("PythonCall", "toml", ">=0.10.2")
         # create the juliacall module and save it in sys.modules
         pycopy!(jl, pytype(sys)("juliacall"))
-        jl.CONFIG = pydict()
+        jl.CONFIG = pydict(embedded=true, meta=Deps.meta_file())
+        # jl.__version__ = TODO
+        jl.__path__ = pylist((joinpath(dirname(dirname(pathof(PythonCall))), "juliacall"),))
         sys.modules["juliacall"] = jl
     end
 end
@@ -26,42 +31,10 @@ function init_juliacall_2()
     jl.Main = Main
     jl.Core = Core
     jl.Base = Base
-
-    filename = "$(@__FILE__):$(1+@__LINE__)"
-    pybuiltins.exec(pybuiltins.compile("""
-    def newmodule(name):
-        "A new module with the given name."
-        return Base.Module(Base.Symbol(name))
-    class As:
-        "Interpret 'value' as type 'type' when converting to Julia."
-        __slots__ = ("value", "type")
-        __module__ = "juliacall"
-        def __init__(self, value, type):
-            self.value = value
-            self.type = type
-        def __repr__(self):
-            return "juliacall.As({!r}, {!r})".format(self.value, self.type)
-    class JuliaError(Exception):
-        "An error arising in Julia code."
-        __module__ = "juliacall"
-        def __init__(self, exception, stacktrace=None):
-            super().__init__(exception, stacktrace)
-        def __str__(self):
-            e = self.exception
-            if isinstance(e, str):
-                return e
-            else:
-                from juliacall import Base as jl
-                io = jl.IOBuffer()
-                jl.showerror(io, e)
-                return str(jl.String(jl.take_b(io)))
-        @property
-        def exception(self):
-            return self.args[0]
-        @property
-        def stacktrace(self):
-            return self.args[1]
-    """, filename, "exec"), jl.__dict__)
+    jl.Pkg = Pkg
+    if !C.CTX.is_embedded
+        pybuiltins.exec(pybuiltins.compile("from .all import *", "$(@__FILE__):$(@__LINE__)", "exec"), jl.__dict__)
+    end
     pycopy!(pyJuliaError, jl.JuliaError)
     C.POINTERS.PyExc_JuliaError = incref(getptr(pyJuliaError))
 end

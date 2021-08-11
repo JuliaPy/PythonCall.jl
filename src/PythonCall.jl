@@ -1,15 +1,10 @@
 module PythonCall
 
-using Tables: rows
-module External
-    import Conda
-end
-
 using Base: @propagate_inbounds
-using MacroTools, Dates, Tables, Markdown, Serialization, Requires
+using MacroTools, Dates, Tables, Markdown, Serialization, Requires, TOML, Pkg
 
 include("utils.jl")
-include("conda.jl")
+include("deps.jl")
 
 include("cpython/CPython.jl")
 

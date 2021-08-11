@@ -16,11 +16,27 @@ A handle to a loaded instance of libpython, its interpreter, function pointers, 
     pyhome :: Union{String, Missing} = missing
     pyhome_w :: Any = missing
     version :: Union{VersionNumber, Missing} = missing
+    jlenv :: String = ""
 end
 
 const CTX = Context()
 
 function init_context()
+
+    # Find the topmost project which depends on PythonCall.
+    # This is the project in which we manage Python dependences.
+    for env in Base.load_path()
+        proj = Base.env_project_file(env)
+        is_pythoncall = Base.project_file_name_uuid(proj, "").uuid == PYTHONCALL_UUID
+        depends_on_pythoncall = Base.manifest_uuid_path(env, PYTHONCALL_PKGID) !== nothing
+        if is_pythoncall || depends_on_pythoncall
+            jlenv = proj isa String ? dirname(proj) : env
+            CTX.jlenv = jlenv
+            Deps._meta_file[] = joinpath(jlenv, "PythonCallMeta.toml")
+            break
+        end
+    end
+    isempty(CTX.jlenv) && error("could not find the environment containing PythonCall (this is a bug, please report it)")
 
     CTX.is_embedded = haskey(ENV, "JULIA_PYTHONCALL_LIBPTR")
 
@@ -48,35 +64,26 @@ function init_context()
             # Regarding the LOAD_PATH as getting "less specific" as we go through, this
             # choice of location is the "most specific" place which actually depends on
             # PythonCall.
-            conda_env = nothing
-            for env in Base.load_path()
-                proj = Base.env_project_file(env)
-                is_pythoncall = Base.project_file_name_uuid(proj, "").uuid == PYTHONCALL_UUID
-                depends_on_pythoncall = Base.manifest_uuid_path(env, PYTHONCALL_PKGID) !== nothing
-                if is_pythoncall || depends_on_pythoncall
-                    envdir = proj isa String ? dirname(proj) : env
-                    conda_env = Conda._env[] = joinpath(envdir, ".conda_env")
-                    break
-                end
+            Deps._conda_env[] = joinpath(CTX.jlenv, ".conda_env")
+            # create/activate the environment
+            if isdir(Deps.conda_env()) && Deps.get_dep("PythonCall", "conda_env") == "1"
+                Deps.conda_activate()
+            else
+                Deps.conda_create()
+                Deps.conda_activate()
+                Deps.pip_enable()
+                Deps.set_dep("PythonCall", "conda_env", "1")
             end
-            conda_env isa String || error("could not find the environment containing PythonCall (this is a bug, please report it)")
-            # ensure the environment exists
-            if !isdir(conda_env)
-                @info "Creating conda environment" conda_env
-                Conda.create()
-            end
-            # activate
-            Conda.activate()
-            # ensure python exists
-            exe_path = Conda.python_exe()
-            if !isfile(exe_path)
-                @info "Installing Python"
-                Conda.add("python")
-                isfile(exe_path) || error("installed python but still can't find it")
-            end
+            # install python
+            exe_path = Deps.python_exe()
+            Deps.require_conda("PythonCall", "python", ">=3.5.0,<4.0.0", force=!isfile(exe_path))
+            @assert isfile(exe_path)
+            # install pip
+            Deps.require_conda("PythonCall", "pip", ">=21.2.2", force=!isfile(Deps.pip_exe()))
+            @assert isfile(Deps.pip_exe())
         end
 
-        # Ensure Python us runnable
+        # Ensure Python is runnable
         try
             run(pipeline(`$exe_path --version`, devnull))
         catch
@@ -223,7 +230,7 @@ function init_context()
 
     end
 
-    @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version Conda._env[]
+    @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version CTX.jlenv Deps._meta_file[] Deps._conda_env[]
 
     return
 end

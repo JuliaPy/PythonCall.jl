@@ -1,5 +1,5 @@
 [script]
 
 [conda]
-packages = ["python>=3.5,<4", "pip>=21.2.2"]
+packages = ["python>=3.5,<4", "pip>=18"]
 channels = []

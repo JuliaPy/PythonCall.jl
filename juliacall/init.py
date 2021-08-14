@@ -5,8 +5,12 @@ from .deps import get_dep, set_dep
 # Determine if this is a development version of juliacall
 # i.e. it is installed from the github repo, which contains Project.toml
 reporoot = os.path.dirname(os.path.dirname(__file__))
-projtoml = os.path.join(reporoot, "Project.toml")
-isdev = os.path.isfile(projtoml) and "PythonCall" in open(projtoml, "rb").read().decode("utf8")
+isdev = False
+for n in ["Project.toml", "JuliaProject.toml"]:
+    projtoml = os.path.join(reporoot, n)
+    if os.path.isfile(projtoml) and "PythonCall" in open(projtoml, "rb").read().decode("utf8"):
+        isdev = True
+        break
 CONFIG['dev'] = isdev
 
 # Determine where to put the julia environment
@@ -24,7 +28,7 @@ if prefix is None:
     jlenv = "PythonCall"
 else:
     jlenv = os.path.join(prefix, "julia_env")
-CONFIG['meta'] = os.path.join(jlenv, "PythonCallMeta.toml")
+CONFIG['meta'] = os.path.join(jlenv, "PythonCallMeta.json")
 
 # Determine where to look for julia
 jlprefix = os.path.join(os.path.expanduser("~"), ".julia", "pythoncall")

@@ -156,7 +156,7 @@ function Base.showerror(io::IO, e::PyException)
         printstyled(io, "Python stacktrace:")
         try
             fs = [(pystr(String, x.name), pystr(String, x.filename), pystr(String, x.lineno)) for x in pyimport("traceback").extract_tb(e.b)]
-            if VERSION < v"1.6.0-rc1"
+            if Base.VERSION < v"1.6.0-rc1"
                 for (i, (name, fname, lineno)) in enumerate(reverse(fs))
                     println(io)
                     printstyled(io, " [", i, "] ")

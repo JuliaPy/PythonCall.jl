@@ -1,19 +1,19 @@
 from . import CONFIG
 
 def load_meta():
-    import toml, os.path
+    import json, os.path
     fn = CONFIG['meta']
     if os.path.exists(fn):
         with open(fn) as fp:
-            return toml.load(fp)
+            return json.load(fp)
     else:
         return {}
 
 def save_meta(meta):
-    import toml
+    import json
     fn = CONFIG['meta']
     with open(fn, 'w') as fp:
-        toml.dump(meta, fp)
+        json.dump(meta, fp)
 
 def get_meta(*keys):
     meta = load_meta()

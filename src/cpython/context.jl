@@ -32,7 +32,7 @@ function init_context()
         if is_pythoncall || depends_on_pythoncall
             jlenv = proj isa String ? dirname(proj) : env
             CTX.jlenv = jlenv
-            Deps._meta_file[] = joinpath(jlenv, "PythonCallMeta.toml")
+            Deps._meta_file[] = joinpath(jlenv, "PythonCallMeta.json")
             break
         end
     end
@@ -65,22 +65,9 @@ function init_context()
             # choice of location is the "most specific" place which actually depends on
             # PythonCall.
             Deps._conda_env[] = joinpath(CTX.jlenv, ".conda_env")
-            # create/activate the environment
-            if isdir(Deps.conda_env()) && Deps.get_dep("PythonCall", "conda_env") == "1"
-                Deps.conda_activate()
-            else
-                Deps.conda_create()
-                Deps.conda_activate()
-                Deps.pip_enable()
-                Deps.set_dep("PythonCall", "conda_env", "1")
-            end
-            # install python
+            Deps.resolve()
             exe_path = Deps.python_exe()
-            Deps.require_conda("PythonCall", "python", ">=3.5.0,<4.0.0", force=!isfile(exe_path))
-            @assert isfile(exe_path)
-            # install pip
-            Deps.require_conda("PythonCall", "pip", ">=21.2.2", force=!isfile(Deps.pip_exe()))
-            @assert isfile(Deps.pip_exe())
+            isfile(exe_path) || error("cannot find python executable")
         end
 
         # Ensure Python is runnable

@@ -1,6 +1,6 @@
 module Deps
 
-import Conda, TOML
+import Conda, JSON, TOML, Pkg, Dates, ..PythonCall
 
 ### META
 
@@ -10,13 +10,10 @@ meta_file() = _meta_file[]
 
 function load_meta()
     fn = meta_file()
-    isfile(fn) || save_meta(Dict())
-    TOML.parsefile(fn)
+    isfile(fn) ? open(JSON.parse, fn) : Dict{String,Any}()
 end
 
-save_meta(meta) = open(meta_file(), "w") do io
-    TOML.print(io, meta)
-end
+save_meta(meta) = open(io -> JSON.print(io, meta), meta_file(), "w")
 
 function get_meta(keys...)
     meta = load_meta()
@@ -40,10 +37,6 @@ function set_meta(args...)
     save_meta(meta)
 end
 
-get_dep(package, name) = get_meta("jldeps", package, name)
-
-set_dep(package, name, value) = set_meta("jldeps", package, name, value)
-
 ### CONDA
 
 const _conda_env = Ref("")
@@ -57,8 +50,6 @@ function conda_env()
 end
 
 conda_script_dir() = Conda.script_dir(conda_env())
-
-conda_create() = Conda.runconda(`create -y -p $(conda_env())`)
 
 const CONDA_ENV_STACK = Vector{Dict{String,String}}()
 
@@ -126,6 +117,9 @@ end
 
 conda_run(cmd::Cmd) = Conda.runconda(cmd, conda_env())
 
+conda_run_root(cmd::Cmd) = Conda.runconda(cmd)
+
+
 ### PYTHON
 
 python_dir() = Conda.python_dir(conda_env())
@@ -145,52 +139,293 @@ function pip_run(cmd::Cmd)
     nothing
 end
 
-### REQUIRE
+### RESOLVE
 
-function require(func::Function, package, name, value; force=false)
-    if force || get_dep(package, name) != value
-        func()
-        set_dep(package, name, value)
+function can_skip_resolve()
+    # resolve if the conda environment doesn't exist yet
+    isdir(conda_env()) || return false
+    # resolve if we haven't resolved before
+    deps = get_meta("jldeps")
+    deps === nothing && return false
+    # resolve whenever the PythonCall version changes
+    version = get(deps, "version", nothing)
+    version === nothing && return false
+    version != string(PythonCall.VERSION) && return false
+    # resolve whenever any of the environments in the load_path changes
+    timestamp = get(deps, "timestamp", nothing)
+    timestamp === nothing && return false
+    for env in Base.load_path()
+        proj = Base.env_project_file(env)
+        dir = nothing
+        if proj isa String
+            dir = dirname(proj)
+        elseif proj === true
+            dir = env
+        end
+        dir === nothing && continue
+        isdir(dir) || continue
+        stat(dir).mtime < timestamp || return false
+        fn = joinpath(dir, "PythonCallDeps.toml")
+        if isfile(fn)
+            stat(fn).mtime < timestamp || return false
+        end
+    end
+    return true
+end
+
+function user_deps_file()
+    for env in Base.load_path()
+        proj = Base.env_project_file(env)
+        if proj isa String
+            return joinpath(dirname(proj), "PythonCallDeps.toml")
+        elseif proj === true
+            return joinpath(env, "PythonCallDeps.toml")
+        end
+    end
+    error()
+end
+
+function deps_files()
+    dirs = String[]
+    for env in Base.load_path()
+        proj = Base.env_project_file(env)
+        if proj isa String
+            push!(dirs, dirname(proj))
+        elseif proj === true
+            push!(dirs, env)
+        end
+    end
+    for p in values(Pkg.dependencies())
+        push!(dirs, p.source)
+    end
+    ans = String[]
+    for dir in dirs
+        fn = joinpath(dir, "PythonCallDeps.toml")
+        if isfile(fn)
+            push!(ans, fn)
+        end
+    end
+    return ans
+end
+
+function resolve(; create=true, force=false)
+    if !force && can_skip_resolve()
+        # skip installing any dependencies
+        create && conda_activate()
+
+    else
+        # find python dependencies
+        all_deps_files = deps_files()
+        conda_channels = String[]
+        conda_packages = String[]
+        pip_packages = String[]
+        pip_indexes = String[]
+        scripts = String[]
+        for fn in all_deps_files
+            @info "Found PythonCall dependencies at '$(fn)'"
+            deps = TOML.parsefile(fn)
+            if haskey(deps, "conda")
+                if haskey(deps["conda"], "channels")
+                    union!(conda_channels, deps["conda"]["channels"])
+                end
+                if haskey(deps["conda"], "packages")
+                    union!(conda_packages, deps["conda"]["packages"])
+                end
+            end
+            if haskey(deps, "pip")
+                if haskey(deps["pip"], "indexes")
+                    union!(pip_indexes, deps["pip"]["indexes"])
+                end
+                if haskey(deps["pip"], "packages")
+                    union!(pip_packages, deps["pip"]["packages"])
+                end
+            end
+            if haskey(deps, "script")
+                if haskey(deps["script"], "expr")
+                    push!(scripts, deps["script"]["expr"])
+                end
+                if haskey(deps["script"], "file")
+                    push!(scripts, read(deps["script"]["file"], String))
+                end
+            end
+        end
+
+        # create and activate the conda environment with the desired packages
+        # if update=true, just install the packages
+        env = conda_env()
+        conda_args = String[]
+        for channel in conda_channels
+            push!(conda_args, "--channel", channel)
+        end
+        append!(conda_args, conda_packages)
+        if create
+            conda_run_root(`create --yes --no-default-packages --prefix $env $conda_args`)
+            conda_activate()
+        else
+            conda_run(`install --yes $conda_args`)
+        end
+
+        # install pip packages
+        if !isempty(pip_packages)
+            pip_enable()
+            pip_args = String[]
+            for index in pip_indexes
+                push!(pip_args, "--extra-index-url", index)
+            end
+            append!(pip_args, pip_packages)
+            pip_run(`install $pip_args`)
+        end
+
+        # run scripts
+        for script in scripts
+            @info "Executing `$script`"
+            eval(Meta.parse(script))
+        end
+
+        # record what we did
+        depinfo = Dict(
+            "timestamp" => time(),
+            "version" => string(PythonCall.VERSION),
+            "files" => all_deps_files,
+            "conda_packages" => conda_packages,
+            "conda_channels" => conda_channels,
+            "pip_packages" => pip_packages,
+            "pip_indexes" => pip_indexes,
+            "scripts" => scripts,
+        )
+        set_meta("jldeps", depinfo)
+    end
+
+    return
+end
+
+### INTERACTIVE
+
+function spec_split(spec)
+    spec = strip(spec)
+    i = findfirst(c->isspace(c) || c in ('!','<','>','='), spec)
+    if i === nothing
+        return (spec, "")
+    else
+        return (spec[1:prevind(spec,i)], spec[i:end])
     end
 end
 
-function require_conda(package, name, version; channel="", force=false)
-    if conda_available()
-        value = "$version (conda)"
-        if !isempty(channel)
-            value = "$value channel=$channel"
-        end
-        require(package, name, value, force=force) do
-            if any(c -> c in ('=', '<', '>'), version)
-                spec = "$name $version"
-            else
-                spec = "$name ==$version"
+function status()
+    file = user_deps_file()
+    printstyled("Status ", bold=true)
+    println(file)
+    if !isfile(file)
+        println("(does not exist yet)")
+        return
+    end
+    deps = TOML.parsefile(file)
+    if haskey(deps, "conda")
+        if haskey(deps["conda"], "channels") && !isempty(deps["conda"]["channels"])
+            printstyled("Conda channels:", bold=true)
+            println()
+            for channel in deps["conda"]["channels"]
+                println("  ", channel)
             end
-            cmd = `install -y $spec`
-            if !isempty(channel)
-                cmd = `$cmd -c $channel`
-            end
-            conda_run(cmd)
         end
-    else
-        @warn "Skipping adding conda package (conda not available)" name version channel
+        if haskey(deps["conda"], "packages") && !isempty(deps["conda"]["packages"])
+            printstyled("Conda packages:", bold=true)
+            println()
+            for spec in deps["conda"]["packages"]
+                pkg, ver = spec_split(spec)
+                print("  ", pkg, " ")
+                printstyled(ver, color=:light_black)
+                println()
+            end
+        end
+    end
+    if haskey(deps, "pip")
+        if haskey(deps["pip"], "indexes") && !isempty(deps["pip"]["indexes"])
+            printstyled("Pip indexes:", bold=true)
+            println()
+            for channel in deps["pip"]["indexes"]
+                println("  ", channel)
+            end
+        end
+        if haskey(deps["pip"], "packages") && !isempty(deps["pip"]["packages"])
+            printstyled("Pip packages:", bold=true)
+            println()
+            for spec in deps["pip"]["packages"]
+                pkg, ver = spec_split(spec)
+                print("  ", pkg, " ")
+                printstyled(ver, color=:light_black)
+                println()
+            end
+        end
+    end
+    if haskey(deps, "script")
+        if haskey(deps["script"], "expr")
+            printstyled("Script expr:", bold=true)
+            println()
+            println("  ", deps["script"]["expr"])
+        end
+        if haskey(deps["script"], "file")
+            printstyled("Script file:", bold=true)
+            println()
+            println("  ", deps["script"]["file"])
+        end
     end
 end
 
-function require_pip(package, name, version; force=false)
-    if conda_available()
-        value = "$version (pip)"
-        require(package, name, value, force=force) do
-            if any(c -> c in ('=', '<', '>'), version)
-                spec = "$name $version"
-            else
-                spec = "$name ==$version"
-            end
-            pip_run(`install $spec`)
-        end
-    else
-        @warn "Skipping adding pip package (conda not available)" name version
+function add(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothing, pip_packages=nothing, script_expr=nothing, script_file=nothing, resolve=true)
+    file = user_deps_file()
+    deps = isfile(file) ? TOML.parsefile(file) : Dict{String,Any}()
+    if conda_channels !== nothing
+        union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "conda"), "channels"), conda_channels)
     end
+    if conda_packages !== nothing
+        union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "conda"), "packages"), conda_packages)
+    end
+    if pip_indexes !== nothing
+        union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "pip"), "indexes"), pip_indexes)
+    end
+    if pip_packages !== nothing
+        union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "pip"), "packages"), pip_packages)
+    end
+    if script_expr !== nothing
+        get!(Dict{String,Any}, deps, "script")["expr"] = script_expr
+    end
+    if script_file !== nothing
+        get!(Dict{String,Any}, deps, "script")["file"] = script_file
+    end
+    open(io->TOML.print(io, deps), file, "w")
+    if resolve
+        Deps.resolve(force=true)
+    end
+    return
+end
+
+function rm(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothing, pip_packages=nothing, script_expr=false, script_file=false, resolve=true)
+    file = user_deps_file()
+    deps = isfile(file) ? TOML.parsefile(file) : Dict{String,Any}()
+    if conda_channels !== nothing
+        filter!(x -> x ∉ conda_channels, get!(Vector{String}, get!(Dict{String,Any}, deps, "conda"), "channels"))
+    end
+    if conda_packages !== nothing
+        filter!(x -> spec_split(x)[1] ∉ conda_packages, get!(Vector{String}, get!(Dict{String,Any}, deps, "conda"), "packages"))
+    end
+    if pip_indexes !== nothing
+        filter!(x -> x ∉ pip_indexes, get!(Vector{String}, get!(Dict{String,Any}, deps, "pip"), "indexes"))
+    end
+    if pip_packages !== nothing
+        filter!(x -> spec_split(x)[1] ∉ pip_packages, get!(Vector{String}, get!(Dict{String,Any}, deps, "pip"), "packages"))
+    end
+    if script_expr
+        delete!(get!(Dict{String,Any}, deps, "script"), "expr")
+    end
+    if script_file !== nothing
+        delete!(get!(Dict{String,Any}, deps, "script"), "file")
+    end
+    open(io->TOML.print(io, deps), file, "w")
+    if resolve
+        Deps.resolve(force=true)
+    end
+    return
 end
 
 end

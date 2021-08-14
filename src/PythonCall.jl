@@ -1,7 +1,9 @@
 module PythonCall
 
+const VERSION = v"0.2.1"
+
 using Base: @propagate_inbounds
-using MacroTools, Dates, Tables, Markdown, Serialization, Requires, TOML, Pkg
+using MacroTools, Dates, Tables, Markdown, Serialization, Requires, Pkg
 
 include("utils.jl")
 include("deps.jl")

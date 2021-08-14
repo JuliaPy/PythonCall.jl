@@ -18,5 +18,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.3',
-    install_requires=['jill==0.9.7', 'toml>=0.10.0'],
+    install_requires=['jill==0.9.7'],
 )

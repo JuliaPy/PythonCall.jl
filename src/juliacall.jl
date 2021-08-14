@@ -10,13 +10,11 @@ function init_juliacall()
     if C.CTX.is_embedded
         # in this case, Julia is being embedded into Python by juliacall, which already exists
         pycopy!(jl, sys.modules["juliacall"])
-        @assert pystr_asstring(jl.CONFIG["meta"]) == metafile()
+        @assert pystr_asstring(jl.CONFIG["meta"]) == Deps.meta_file()
     elseif "juliacall" in sys.modules
         # otherwise, Python is being embedded into Julia by PythonCall, so should not exist
         error("'juliacall' module already exists")
     else
-        # install dependencies of juliacall (this should match setup.py)
-        Deps.require_conda("PythonCall", "toml", ">=0.10.2")
         # create the juliacall module and save it in sys.modules
         pycopy!(jl, pytype(sys)("juliacall"))
         jl.CONFIG = pydict(embedded=true, meta=Deps.meta_file())

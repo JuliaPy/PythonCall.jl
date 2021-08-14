@@ -1,2 +1,2 @@
-from .deps import require, require_julia
+import juliacall.deps
 from .utils import *

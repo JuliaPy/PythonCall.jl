@@ -525,7 +525,7 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
     # if x; ...; end
     elseif isexpr(ex, :if, :elseif)
         if length(ex.args) == 2
-            return py_macro_lower(st, body, ans, Expr(ex.head, ex.args..., :None))
+            return py_macro_lower(st, body, ans, Expr(ex.head, ex.args..., nothing))
         elseif length(ex.args) == 3
             ax, ay, az = ex.args
             @gensym x
@@ -542,6 +542,38 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
             push!(body, Expr(:if, x, Expr(:block, body2...), Expr(:block, body3...)))
             return t
         end
+
+    # x && y
+    elseif isexpr(ex, :&&)
+        ax, ay = ex.args
+        tx = py_macro_lower(st, body, ans, ax)
+        body2 = []
+        body3 = []
+        tx && push!(body2, :($pydel!($ans)))
+        ty = py_macro_lower(st, body2, ans, ay)
+        t = tx || ty
+        if t
+            tx || push!(body3, :($ans = $Py($ans)))
+            ty || push!(body2, :($ans = $Py($ans)))
+        end
+        push!(body, Expr(:if, :($pytruth($ans)), Expr(:block, body2...), Expr(:block, body3...)))
+        return t
+
+    # x || y
+    elseif isexpr(ex, :||)
+        ax, ay = ex.args
+        tx = py_macro_lower(st, body, ans, ax)
+        body2 = []
+        body3 = []
+        tx && push!(body3, :($pydel!($ans)))
+        ty = py_macro_lower(st, body3, ans, ay)
+        t = tx || ty
+        if t
+            tx || push!(body2, :($ans = $Py($ans)))
+            ty || push!(body3, :($ans = $Py($ans)))
+        end
+        push!(body, Expr(:if, :($pytruth($ans)), Expr(:block, body2...), Expr(:block, body3...)))
+        return t
 
     # while x; ...; end
     elseif isexpr(ex, :while)

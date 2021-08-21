@@ -1,45 +1,8 @@
-# Conversion Rules
+# [Conversion to Julia](@id py2jl)
 
-This page documents the rules used to convert values between Julia and Python.
+## Conversion Rules
 
-In both directions, the default behaviour is to allow conversion between immutable values. Mutable values will be "wrapped" so that mutations on the wrapper affect the original object.
-
-## [Julia to Python](@id jl2py)
-
-When a Julia object is converted to a Python one (e.g. by calling `PyObject`, by interpolating it into a `@py` command, or passing it as an argument to a Python function) the following rules are used by default.
-
-The user can always explicitly choose a different conversion (e.g. by calling `pylist` or `pydict`).
-
-| From                                                                | To                                                  |
-| :------------------------------------------------------------------ | :-------------------------------------------------- |
-| Any Python object type (`PyObject`, `PyList`, etc.)                 | itself                                              |
-| `Nothing`, `Missing`                                                | `None`                                              |
-| `Bool`                                                              | `bool`                                              |
-| Standard integer (`IntXX`, `UIntXX`, `BigInt`)                      | `int`                                               |
-| Standard rational (`Rational{T}`, `T` a standard integer)           | `fractions.Fraction`                                |
-| Standard float (`FloatXX`)                                          | `float`                                             |
-| Standard complex (`Complex{T}`, `T` a standard float)               | `complex`                                           |
-| Standard string/char (`String` and `SubString{String}`, `Char`)     | `str`                                               |
-| `Tuple`                                                             | `tuple`                                             |
-| Standard integer range (`AbstractRange{T}`, `T` a standard integer) | `range`                                             |
-| `Date`, `Time`, `DateTime` (from `Dates`)                           | `date`, `time`, `datetime` (from `datetime`)        |
-| `Second`, `Millisecond`, `Microsecond`, `Nanosecond` (from `Dates`) | `timedelta` (from `datetime`)                       |
-| `Number`                                                            | `juliacall.NumberValue`, `juliacall.ComplexValue`, etc. |
-| `AbstractArray`                                                     | `juliacall.ArrayValue`, `juliacall.VectorValue`         |
-| `AbstractDict`                                                      | `juliacall.DictValue`                                 |
-| `AbstractSet`                                                       | `juliacall.SetValue`                                  |
-| `IO`                                                                | `juliacall.BufferedIOValue`                           |
-| `Module`                                                            | `juliacall.ModuleValue`                               |
-| `Type`                                                              | `juliacall.TypeValue`                                 |
-| Anything else                                                       | `juliacall.AnyValue`                                  |
-
-The `juliacall.*Value` types are all subtypes of `juliacall.AnyValue`. They wrap a Julia value, providing access to Julia semantics: it can be called, indexed, and so on. Subtypes add additional Pythonic semantics. Read more [here](@ref julia-wrappers).
-
-This conversion policy is defined/implemented by `PythonCall.C.PyObject_From` and `PythonCall.C.PyJuliaValue_From`. Package authors can (carefully) overload these with additional rules for custom types.
-
-## [Python to Julia](@id py2jl)
-
-From Julia, one can convert Python objects to a desired type using `pyconvert(T, x)` for example, or ```@pyv `...`::T```.
+From Julia, one can convert Python objects to a desired type using `pyconvert(T, x)` for example.
 
 From Python, when a value is passed to Julia, it is typically converted to a corresponding Julia value using `pyconvert(Any, x)`.
 
@@ -91,10 +54,28 @@ The following table specifies the conversion rules in place. If the initial Pyth
 | `ctypes.c_wchar_p`                                                                                           | `Cwstring`, `Ptr{Cwchar}`, `Ptr`                            |
 | `numpy.intXX`/`numpy.uintXX`/`numpy.floatXX`                                                                 | `Integer`, `Rational`, `Real`, `Number`                     |
 | Objects satisfying the buffer or array interface                                                             | `Array`                                                     |
-| **Low priority (fallback to `PyObject`).**                                                                   |                                                             |
-| Anything                                                                                                     | `PyObject`                                                  |
-| **Bottom priority (must be explicitly specified by excluding `PyObject`).**                                  |                                                             |
+| **Low priority (fallback to `Py`).**                                                                         |                                                             |
+| Anything                                                                                                     | `Py`                                                        |
+| **Bottom priority (must be explicitly specified by excluding `Py`).**                                        |                                                             |
 | Objects satisfying the buffer interface                                                                      | `PyBuffer`                                                  |
 | Anything                                                                                                     | `PyRef`                                                     |
 
-Package authors can (carefully) add extra rules by calling `PythonCall.C.PyObject_TryConvert_AddRule` in `__init__`.
+See below for an explanation of the `Py*` types (`PyList`, `PyIO`, etc).
+
+## [Wrapper types](@id python-wrappers)
+
+The following types wrap a Python object, giving it the semantics of a Julia object. For example `PyList(x)` interprets the Python sequence `x` as a Julia abstract vector.
+
+Apart from a few fundamental immutable types, conversion from Python to Julia `Any` will return a wrapper type such as one of these, or simply `Py` if no wrapper type is suitable.
+
+```@docs
+PyList
+PySet
+PyDict
+PyIterable
+PyArray
+PyIO
+PyTable
+PyPandasDataFrame
+PyObjectArray
+```

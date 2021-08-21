@@ -6,7 +6,7 @@
 [![Test Status](https://github.com/cjdoris/PythonCall.jl/workflows/Tests/badge.svg)](https://github.com/cjdoris/PythonCall.jl/actions?query=workflow%3ATests)
 [![Codecov](https://codecov.io/gh/cjdoris/PythonCall.jl/branch/master/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/cjdoris/PythonCall.jl)
 
-**Note: This package is currently being re-written from scratch. Install `PythonCall#master` for the latest version, and see the dev docs.**
+**Note: This package is currently being re-written from scratch. Install `PythonCall#master` for the latest version, and see the [dev docs](https://cjdoris.github.io/PythonCall.jl/dev).**
 
 Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://julialang.org/) together in seamless harmony:
 - Call Python code from Julia and Julia code from Python via a symmetric interface.
@@ -38,3 +38,12 @@ In this example we use the Python module `juliacall` from an IPython notebook to
 - We plot some sample output from the model using Python's `matplotlib.pyplot`.
 
 ![Flux example screenshot](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/master/examples/flux.png)
+
+## What about PyCall?
+
+The existing package [`PyCall`](https://github.com/JuliaPy/PyCall.jl) is another similar interface to Python. Here we note some key differences, but a more detailed comparison is in the documentation.
+- PythonCall supports a wider range of conversions between Julia and Python, and the conversion mechanism is extensible.
+- PythonCall by default never copies mutable objects when converting, but instead directly wraps the mutable object. This means that modifying the converted object modifies the original, and conversion is faster.
+- PythonCall does not usually automatically convert results to Julia values, but leaves them as Python objects. This makes it easier to do Pythonic things with these objects (e.g. accessing methods) and is type-stable.
+- PythonCall installs dependencies into a separate conda environment for each Julia project. This means each Julia project can have an isolated set of Python dependencies.
+- PythonCall supports Julia 1.0+ and Python 3.5+ whereas PyCall supports Julia 0.7+ and Python 2.7+.

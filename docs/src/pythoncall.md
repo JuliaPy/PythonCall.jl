@@ -1,9 +1,57 @@
-# The Julia module `PythonCall`
+# The Julia module *PythonCall*
+
+## Installation
+
+This package is in the general registry, so to install just type `]` in the Julia REPL and run:
+
+```julia-repl
+pkg> add PythonCall
+```
+
+## Getting started
+
+Import the module with:
+
+```julia-repl
+julia> using PythonCall
+```
+
+By default this will initialize a conda environment in your Julia environment, install
+Python into it, load the corresponding Python library and initialize an interpreter.
+
+Now you can interact with Python as follows:
+
+```julia-repl
+julia> re = pyimport("re")
+Python module: <module 're' from '[...]/lib/re.py'>
+
+julia> words = re.findall("[a-zA-Z]+", "PythonCall.jl is very useful!")
+Python list: ['PythonCall', 'jl', 'is', 'very', 'useful']
+
+julia> sentence = Py(" ").join(words)
+Python str: 'PythonCall jl is very useful'
+
+julia> pyconvert(String, sentence)
+"PythonCall jl is very useful"
+```
+
+In this example:
+- We used [`pyimport`](@ref) to import the `re` module. Equivalently we could have done
+  `@py import re` (see [`@py`](@ref)).
+- We called its `findall` function on a pair of strings, which were automatically
+  converted to Python strings (see [Conversion to Python](@ref jl2py)).
+- We called [`Py`](@ref) to explicitly convert a string to a Python string, so that we
+  could call its `join` method. All Python objects are of type `Py`.
+- We called [`pyconvert`](@ref) to convert the Python string `sentence` to a Julia string
+  (see [Conversion to Julia](@ref py2jl)).
+
+Read on to find out what else you can do.
 
 ## `Py`
 
 ```@docs
 Py
+@pyconst
 ```
 
 The object `pybuiltins` has all the standard Python builtin objects as its properties.
@@ -28,9 +76,12 @@ Notable exceptions are:
 - [`pyclass`](@ref) to construct a new class.
 - [`pywith`](@ref) to emulate the Python `with` statement.
 
-### Construct Python objects
+If a Julia value is passed as an argument to one of these functions, it is converted to a
+Python value using the rules documented [here](@ref jl2py).
 
-These functions convert Julia values into Python objects of standard types.
+### Constructors
+
+These functions construct Python objects of builtin types from Julia values.
 
 ```@docs
 pybool
@@ -53,26 +104,12 @@ pytype
 pyclass
 ```
 
-### Wrap Julia values
+### Builtins
 
-These functions wrap Julia values into Python objects, documented [here](@ref julia-wrappers).
-
-```@docs
-pyjl
-pyjlraw
-pyisjl
-pyjlvalue
-pytextio
-pybinaryio
-```
-
-### Python builtins
+These functions mimic the Python builtin functions or keywords of the same name.
 
 ```@docs
-pyconvert
-@pyconvert
 pyimport
-pyimport_conda
 pywith
 pyis
 pyrepr
@@ -89,20 +126,51 @@ pyin
 pygetitem
 pysetitem
 pydelitem
-pytruth
 pyissubclass
 pyisinstance
 pyhash
 pyiter
 ```
 
-### Numeric functions
+### Conversion to Julia
+
+These functions convert Python values to Julia values, using the rules documented [here](@ref jl2py).
+
+```@docs
+pyconvert
+@pyconvert
+```
+
+### Wrap Julia values
+
+These functions explicitly wrap Julia values into Python objects, documented [here](@ref julia-wrappers).
+
+As documented [here](@ref py2jl), Julia values are wrapped like this automatically on
+conversion to Python, unless the value is immutable and has a corresponding Python type.
+
+```@docs
+pyjl
+pyjlraw
+pyisjl
+pyjlvalue
+pytextio
+pybinaryio
+```
+
+### Arithmetic
+
+These functions are equivalent to the corresponding Python arithmetic operators.
+
+Note that the equivalent Julia operators are overloaded to call these when all arguments
+are `Py` (or `Number`). Hence the following are equivalent: `Py(1)+Py(2)`, `Py(1)+2`,
+`pyadd(1, 2)`, `pyadd(Py(1), Py(2))`, etc.
 
 ```@docs
 pyneg
 pypos
 pyabs
 pyinv
+pyindex
 pyadd
 pysub
 pymul
@@ -132,9 +200,20 @@ pyixor
 pyior
 ```
 
-### Comparisons
+### Logic
+
+These functions are equivalent to the corresponding Python logical operators.
+
+Note that the equivalent Julia operators are overloaded to call these when all arguments
+are `Py` (or `Number`). Hence the following are equivalent: `Py(1) < Py(2)`, `Py(1) < 2`,
+`pylt(1, 2)`, `pylt(Py(1), Py(2))`, etc.
+
+Note that the binary operators by default return `Py` (not `Bool`) since comparisons in
+Python do not necessarily return `bool`.
 
 ```@docs
+pytruth
+pynot
 pyeq
 pyne
 pyle
@@ -143,16 +222,49 @@ pyge
 pygt
 ```
 
-## [Wrapper types](@id python-wrappers)
+## Managing Python dependencies
+
+PythonCall manages its Python dependencies using Conda. A Conda environment is automatically
+created in your active Julia environment when PythonCall is loaded, is initialised with
+at least `python` and `pip`, and is activated.
+
+If your project requires more Python dependencies, use the mechanisms below to ensure they
+are automatically installed.
+
+### PythonCallDeps.toml
+
+If you put a file called `PythonCallDeps.toml` in a project/package/environment which
+depends on PythonCall, then the dependencies therein will be automatically installed into
+the Conda environment.
+
+Here is an example (all parts are optional):
+```toml
+[conda]
+packages = ["python>=3.6", "scikit-learn"]
+channels = ["conda-forge"]
+
+[pip]
+packages = ["numpy>=1.21"]
+# indexes = [...]
+
+[script]
+# expr = "some_julia_expression()"
+# file = "/path/to/julia/script.jl"
+```
+
+When PythonCall starts, it will ensure the Conda environment has the given Conda and pip
+packages installed, and will run the script if specified.
+
+### The Deps submodule
+
+Instead of manually editing `PythonCallDeps.toml`, you can use the submodule
+`PythonCall.Deps` to manage the Python dependencies of the current Julia project.
 
 ```@docs
-PyList
-PySet
-PyDict
-PyIterable
-PyArray
-PyIO
-PyTable
-PyPandasDataFrame
-PyObjectArray
+PythonCall.Deps.status
+PythonCall.Deps.add
+PythonCall.Deps.rm
+PythonCall.Deps.resolve
+PythonCall.Deps.conda_env
+PythonCall.Deps.user_deps_file
 ```

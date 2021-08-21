@@ -8,5 +8,3 @@ Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://juliala
 - Helpful wrappers: interpret Python sequences, dictionaries, arrays, dataframes and IO streams as their Julia couterparts, and vice versa.
 - Beautiful stack-traces.
 - Works anywhere: tested on Windows, MacOS and Linux, 32- and 64-bit, Julia 1.0 upwards and Python 3.5 upwards.
-
-This is actually two modules working together: a Julia one called `PythonCall` and a [tiny](https://github.com/cjdoris/PythonCall.jl/blob/master/juliacall/__init__.py) Python one called `juliacall`.

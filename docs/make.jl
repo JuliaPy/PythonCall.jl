@@ -31,16 +31,15 @@ Documenter.Expanders.Selectors.runner(::Type{CustomDocBlocks}, x, page, doc) = b
 end
 
 makedocs(
-    sitename = "PythonCall.jl",
+    sitename = "PythonCall & juliacall",
     modules = [PythonCall],
     pages = [
         "Home" => "index.md",
-        "getting-started.md",
         "pythoncall.md",
         "juliacall.md",
-        "conversion.md",
+        "conversion-to-python.md",
+        "conversion-to-julia.md",
         "compat.md",
-        "pycall.md",
     ]
 )
 

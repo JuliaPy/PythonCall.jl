@@ -1,17 +1,63 @@
 # Comparison to PyCall
 
-The existing package [`PyCall`](https://github.com/JuliaPy/PyCall.jl) is another similar interface to Python.
+The existing package [`PyCall`](https://github.com/JuliaPy/PyCall.jl) is another similar interface to Python. Here we note some key differences.
 
-You can use both `PythonCall` and `PyCall` in the same session, provided they are both using the same Python library.
-One way to ensure this is to set `JULIA_PYTHONCALL_EXE=PYCALL` (see [Environment variables](@ref)).
+## Flexibility of conversion
 
-Here is a comparison of the designs:
-- **Flexibility of conversion.** The mechanisms for data conversion from Python to Julia are different. In `PyCall`, conversion to `T` (via `convert(T,::PyObject)`) essentially only takes `T` into account, so for example when `T=Real` then the input will always be converted to a Python `float`, which is then converted to a `Cdouble`. In `PythonCall`, conversion takes into account both the target type `T` and the Python type of the Python object, and an extensible system allows one to declare conversions for any combination. Many conversions for overlapping combinations can be defined and the most specific one takes precedence. Hence in `PythonCall`, converting to a `Real` might return an `Int` (e.g. the input is a `int`), or `Cdouble` (e.g. the input is `float`), or `Rational{BigInt}`, or...
-- **Lossiness of conversion from Python.** In `PyCall`, the default `PyAny` conversion from Python to Julia can be lossy in the sense that it is impossible to recover the original value exactly. For example a list of ints is converted to a `Vector{Int}` which is a copy of the data, and therefore modifying the original list is not possible. It is also a source of off-by-one errors, since `Vector` and `list` have different indexing semantics. In `PythonCall`, the default conversion is to `PyObject` (non-lossy), and even if you convert to `Any` then by default this will be non-lossy: for example a `list` will be converted to a `PyList` which is a `Vector`-like view of the list.
-- **Lossiness of conversion to Python.** Similarly, in `PyCall` the default conversion from Julia to Python can be lossy: a `Vector{Int}` will be converted to a `list` of `int`s for example, losing mutability of the original vector. In `PythonCall`, only immutable values are truly converted to Python, everything else is wrapped into a Python wrapper around the Julia value: a `Vector{Int}` is wrapped into a `juliacall.VectorValue` which is a `list`-like sequence type
-- **Automatic conversion.** In `PyCall`, most function calls, attribute accesses, indexing, etc. of Python objects by default automatically convert their result to a Julia type. In `PythonCall` the default is to always return `PyObject`. The latter behaviour provides type-stability. It also makes interacting with Python values more predictable and allows generic programming (where the type of the result is not known). It also allows the user to pick another type to convert to after the fact, whereas since `PyCall` conversion can be lossy, this is sometimes not possible there.
-- **Building.** `PyCall` locates libpython in its build step, so that it is a `const` in the module code. This makes `ccall`s and the like straightforward. `PythonCall` does this at run-time, which slightly complicates the code (although it is abstracted away) but means that the module does not need to be rebulit for different Python versions.
-- **Default Python.** By default `PyCall` uses the version of Python in `conda` and will silently install `miniconda` for you if it doesn't exist. `PythonCall` by default simply uses the version of Python in the PATH. Both are customizable through environment variables.
-- **Python modules.** `PyCall` has a companion Python module `julia` for calling Julia from Python. So does `PythonCall`, but called `juliacall`. Both of them use `PyCall`/`PythonCall` under the hood on the Julia side. The `PyCall` one is itself about as complex in implementation as `PyCall`. The `PythonCall` one is about 50 lines of code (essentially just finding and loading libjulia and the PythonCall module) and provides a single simple entrypoint: the julia `Main` module.
-- **Compatability.** `PyCall` supports Julia 0.7+ and Python 2.7+, whereas `PythonCall` supports Julia 1.0+ and Python 3.5+. `PyCall` requires `numpy` to be installed, `PythonCall` doesn't (it provides the same fast array access through the buffer protocol and array interface).
-- **Startup time.** `PythonCall` takes longer to start than `PyCall`, largely because there are a lot of wrapper types (`juliacall.AnyValue` etc.) to compile.
+In PyCall you do `convert(T, x)` to convert the Python object `x` to a Julia `T`. In PythonCall you similarly do `pyconvert(T, x)`.
+
+PythonCall supports far more combinations of types of `T` and `x`. For example `convert(Vector, x)` in PyCall requires `x` to be a sequence, whereas in PythonCall `pyconvert(Vector, x)` works if `x` is an iterable, an object supporting the buffer protocol (such as `bytes`) or an object supporting the numpy array interface (such as `numpy.ndarray`).
+
+Furthermore, `pyconvert` can be extended to support more types, whereas `convert(Vector, x)` cannot support more Python types.
+
+## Lossiness of conversion
+
+Both packages allow conversion of Julia values to Python: `PyObject(x)` in PyCall, `Py(x)` in PythonCall.
+
+Whereas both packages convert numbers, booleans, tuples and strings to their Python counterparts, they differ in handling other types. For example PyCall converts `AbstractVector` to `list` whereas PythonCall converts `AbstractVector` to `juliacall.VectorValue` which is a sequence type directly wrapping the Julia value - this has the advantage that mutating the Python object also mutates the original Julia object.
+
+Hence with PyCall the following does not mutate the original array `x`:
+```julia
+x = ["foo", "bar"]
+PyObject(x).append("baz")
+@show x # --> ["foo", "bar"]
+```
+whereas with PythonCall the following does mutate `x`:
+```julia
+x = ["foo", "bar"]
+Py(x).append("baz")
+@show x # --> ["foo", "bar", "baz"]
+```
+
+In fact, PythonCall has the policy that any mutable object will by default be wrapped in this way, which not only preserves mutability but makes conversion faster for large containers since it does not require taking a copy of all the data.
+
+## Automatic conversion
+
+In PyCall, most function calls, attribute accesses, indexing, etc. of Python object by default automatically convert their result to a Julia object. This means that the following
+```julia
+pyimport("sys").modules["KEY"] = "VALUE"
+```
+does not actually modify the modules dict because it was *copied* to a new Julia `Dict`. This was probably not intended, plus it wasted time copying the whole dictionary. Instead you must do
+```julia
+set!(pyimport(os)."environ", "KEY", "VALUE")
+```
+
+In PythonCall, we don't do any such automatic conversion: we always return `Py`. This means that the first piece of code above does what you think.
+
+## Which Python
+
+PyCall uses some global installation of Python - typically the version of Python installed on the system or used by Conda.
+
+PythonCall uses a separate Conda environment for each Julia environment/project/package and installs Python (and other Python packages) into that. This means that different Julia projects can maintain an isolated set of Python dependencies (including the Python version itself).
+
+## Corresponding Python packages
+
+PyCall has the corresponding Python package [pyjulia](https://github.com/JuliaPy/pyjulia) for calling Julia from Python, and PythonCall similarly has juliacall.
+
+One difference is between them is their code size: pyjulia is a large package, whereas juliacall is very small, with most of the implementation being in PythonCall itself. The practical up-shot is that PythonCall/juliacall have very symmetric interfaces; for example they use identical conversion policies and have the same set of wrapper types available.
+
+Note also that juliacall will use a separate Julia project for each virtual/conda environment. This means that different Python environments can maintain an isolated set of Julia dependencies, including the versions of Julia and PythonCall themselves.
+
+## Compatability
+
+PyCall supports Julia 0.7+ and Python 2.7+, whereas PythonCall supports Julia 1.0+ and Python 3.5+. PyCall requires numpy to be installed, PythonCall doesn't (it provides the same fast array access through the buffer protocol and array interface).

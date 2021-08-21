@@ -43,6 +43,11 @@ const _conda_env = Ref("")
 
 conda_available() = !isempty(_conda_env[])
 
+"""
+    conda_env()
+
+The path to the Conda environment in which Python dependencies are managed.
+"""
 function conda_env()
     ans = _conda_env[]
     isempty(ans) && error("Conda is not available")
@@ -173,6 +178,11 @@ function can_skip_resolve()
     return true
 end
 
+"""
+    user_deps_file()
+
+The path to the `PythonCallDeps.toml` file in the active environment.
+"""
 function user_deps_file()
     for env in Base.load_path()
         proj = Base.env_project_file(env)
@@ -208,6 +218,17 @@ function deps_files()
     return ans
 end
 
+"""
+    resolve(; create=true, force=false)
+
+Resolve all Python dependencies.
+
+If `create=true` then a new Conda environment is created and activated.
+Otherwise, the existing one is updated.
+
+By default, if no dependencies have actually changed, then resolving them is skipped.
+Specify `force=true` to skip this check and force resolving dependencies.
+"""
 function resolve(; create=true, force=false)
     if !force && can_skip_resolve()
         # skip installing any dependencies
@@ -311,6 +332,11 @@ function spec_split(spec)
     end
 end
 
+"""
+    status()
+
+Display the status of dependencies of the current Julia project.
+"""
 function status()
     file = user_deps_file()
     printstyled("Status ", bold=true)
@@ -372,6 +398,24 @@ function status()
     end
 end
 
+"""
+    add(...)
+
+Add Python dependencies to the current Julia project.
+
+Keyword arguments (all optional):
+- `conda_channels`: An iterable of conda channels to use.
+- `conda_packages`: An iterable of conda packages to install.
+- `pip_indexes`: An iterable of pip indexes to use.
+- `pip_packages`: An iterable of pip packages to install.
+- `script_expr`: An expression to evaluate in the `Deps` module.
+- `script_file`: The path to a Julia file to evaluate in the `Deps` module.
+- `resolve=true`: When true, immediately resolve the dependencies. Otherwise, the
+  dependencies are not resolved until you call [`resolve`](@ref) or load PythonCall in a
+  new Julia session.
+
+The conda and pip packages can include version specifiers, such as `python>=3.6`.
+"""
 function add(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothing, pip_packages=nothing, script_expr=nothing, script_file=nothing, resolve=true)
     file = user_deps_file()
     deps = isfile(file) ? TOML.parsefile(file) : Dict{String,Any}()
@@ -400,6 +444,22 @@ function add(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothi
     return
 end
 
+"""
+    rm(...)
+
+Remove Python dependencies from the current Julia project.
+
+Keyword arguments (all optional):
+- `conda_channels`: An iterable of conda channels to remove.
+- `conda_packages`: An iterable of conda packages to remove.
+- `pip_indexes`: An iterable of pip indexes to remove.
+- `pip_packages`: An iterable of pip packages to remove.
+- `script_expr=false`: When true, remove the script expression.
+- `script_file=false`: When true, remove the script file.
+- `resolve=true`: When true, immediately resolve the dependencies. Otherwise, the
+  dependencies are not resolved until you call [`resolve`](@ref) or load PythonCall in a
+  new Julia session.
+"""
 function rm(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothing, pip_packages=nothing, script_expr=false, script_file=false, resolve=true)
     file = user_deps_file()
     deps = isfile(file) ? TOML.parsefile(file) : Dict{String,Any}()

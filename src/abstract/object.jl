@@ -35,11 +35,22 @@ pyhasattr(x, k) = errcheck(@autopy x k C.PyObject_HasAttr(getptr(x_), getptr(k_)
 export pyhasattr
 
 """
-    pygetattr(x, k)
+    pygetattr(x, k, [d])
 
 Equivalent to `getattr(x, k)` or `x.k` in Python.
+
+If `d` is specified, it is returned if the attribute does not exist.
 """
 pygetattr(x, k) = pynew(errcheck(@autopy x k C.PyObject_GetAttr(getptr(x_), getptr(k_))))
+function pygetattr(x, k, d)
+    ptr = @autopy x k C.PyObject_GetAttr(getptr(x_), getptr(k_))
+    if iserrset(ptr)
+        errclear()
+        return d
+    else
+        return pynew(ptr)
+    end
+end
 export pygetattr
 
 """

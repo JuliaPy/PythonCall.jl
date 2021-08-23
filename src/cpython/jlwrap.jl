@@ -204,8 +204,8 @@ function _pyjl_serialize(self::PyPtr, ::PyPtr)
         serialize(io, PyJuliaValue_GetValue(self))
         b = take!(io)
         return PyBytes_FromStringAndSize(pointer(b), sizeof(b))
-    catch
-        errset(POINTERS.PyExc_Exception, "error serializing this value")
+    catch e
+        PyErr_SetString(POINTERS.PyExc_Exception, "error serializing this value")
         return PyNULL
     end
 end
@@ -219,8 +219,8 @@ function _pyjl_deserialize(t::PyPtr, v::PyPtr)
         io = IOBuffer(unsafe_wrap(Array, Ptr{UInt8}(ptr[]), Int(len[])))
         x = deserialize(io)
         return PyJuliaValue_New(t, x)
-    catch
-        errset(POINTERS.PyExc_Exception, "error deserializing this value")
+    catch e
+        PyErr_SetString(POINTERS.PyExc_Exception, "error deserializing this value")
         return PyNULL
     end
 end

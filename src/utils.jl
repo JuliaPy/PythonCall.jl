@@ -14,6 +14,8 @@ module Utils
         if S isa Union
             Us = Any[explode_union(S.a)..., explode_union(S.b)...]
             Any[foldl((body, var) -> UnionAll(var, body), vars, init=U) for U in Us]
+        elseif S == Union{}
+            Any[]
         else
             Any[T]
         end

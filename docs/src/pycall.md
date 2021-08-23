@@ -1,6 +1,6 @@
-# Comparison to PyCall
+# Comparison with PyCall
 
-The existing package [`PyCall`](https://github.com/JuliaPy/PyCall.jl) is another similar interface to Python. Here we note some key differences.
+Another similar interface to Python is provided by [`PyCall`](https://github.com/JuliaPy/PyCall.jl). Here we note some key differences.
 
 ## Flexibility of conversion
 

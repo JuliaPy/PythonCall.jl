@@ -25,9 +25,7 @@ function Serialization.serialize(s::AbstractSerializer, x::Py)
     serialize_py(s, x)
 end
 
-function Serialization.deserialize(s::AbstractSerializer, ::Type{Py})
-    deserialize_py(s)
-end
+Serialization.deserialize(s::AbstractSerializer, ::Type{Py}) = deserialize_py(s)
 
 ### PyException
 #
@@ -43,11 +41,4 @@ function Serialization.serialize(s::AbstractSerializer, x::PyException)
     serialize_py(s, x.v)
 end
 
-function Serialization.deserialize(s::AbstractSerializer, ::Type{PyException})
-    v = deserialize_py(s)
-    if pyisnone(v)
-        PyException(pybuiltins.None, pybuiltins.None, pybuiltins.None, true)
-    else
-        PyException(pytype(v), v, v.__traceback__, true)
-    end
-end
+Serialization.deserialize(s::AbstractSerializer, ::Type{PyException}) = PyException(deserialize_py(s))

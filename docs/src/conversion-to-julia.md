@@ -78,4 +78,5 @@ PyIO
 PyTable
 PyPandasDataFrame
 PyObjectArray
+PyException
 ```

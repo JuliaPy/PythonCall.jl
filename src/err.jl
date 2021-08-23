@@ -43,11 +43,38 @@ function errnormalize!(t::Py, v::Py, b::Py)
     (t, v, b)
 end
 
+"""
+    PyException(x)
+
+Wraps the Python exception `x` as a Julia `Exception`.
+"""
 mutable struct PyException <: Exception
     _t :: Py
     _v :: Py
     _b :: Py
     _isnormalized :: Bool
+end
+function PyException(v::Py=pybuiltins.None)
+    if pyisnone(v)
+        t = b = v
+    elseif pyisinstance(v, pybuiltins.BaseException)
+        t = pytype(v)
+        b = pygetattr(v, "__traceback__", pybuiltins.None)
+    else
+        throw(ArgumentError("expecting a Python exception"))
+    end
+    PyException(t, v, b, true)
+end
+export PyException
+
+ispy(x::PyException) = true
+getpy(x::PyException) = x.v
+
+function Base.show(io::IO, x::PyException)
+    show(io, typeof(x))
+    print(io, "(")
+    show(io, x.v)
+    print(io, ")")
 end
 
 function Base.getproperty(exc::PyException, k::Symbol)

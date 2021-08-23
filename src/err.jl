@@ -47,16 +47,17 @@ mutable struct PyException <: Exception
     _t :: Py
     _v :: Py
     _b :: Py
-    isnormalized :: Bool
+    _isnormalized :: Bool
 end
 
 function Base.getproperty(exc::PyException, k::Symbol)
-    if k in (:t, :v, :b) && !exc.isnormalized
+    if k in (:t, :v, :b) && !exc._isnormalized
         errnormalize!(exc._t, exc._v, exc._b)
         ispynull(exc._t) && setptr!(exc._t, incref(getptr(pybuiltins.None)))
         ispynull(exc._v) && setptr!(exc._v, incref(getptr(pybuiltins.None)))
         ispynull(exc._b) && setptr!(exc._b, incref(getptr(pybuiltins.None)))
-        exc.isnormalized = true
+        pyisnone(exc._v) || (exc._v.__traceback__ = exc._b)
+        exc._isnormalized = true
     end
     k == :t ? exc._t : k == :v ? exc._v : k == :b ? exc._b : getfield(exc, k)
 end

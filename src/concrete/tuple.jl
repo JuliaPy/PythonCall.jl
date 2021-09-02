@@ -30,6 +30,17 @@ function pytuple_fromiter(xs)
     end
 end
 
+@generated function pytuple_fromiter(xs::Tuple)
+    n = length(xs.parameters)
+    code = []
+    push!(code, :(ans = pynulltuple($n)))
+    for i in 1:n
+        push!(code, :(pytuple_setitem(ans, $(i-1), xs[$i])))
+    end
+    push!(code, :(return ans))
+    return Expr(:block, code...)
+end
+
 """
     pytuple(x=())
 

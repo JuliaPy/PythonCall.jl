@@ -159,6 +159,9 @@ function can_skip_resolve()
     # resolve whenever any of the environments in the load_path changes
     timestamp = get(deps, "timestamp", nothing)
     timestamp === nothing && return false
+    load_path = get(deps, "load_path", nothing)
+    load_path === nothing && return false
+    load_path != Base.load_path() && return false
     for env in Base.load_path()
         proj = Base.env_project_file(env)
         dir = nothing
@@ -271,41 +274,69 @@ function resolve(; create=true, force=false)
             end
         end
 
+        # canonicalise dependencies
+        sort!(unique!(conda_channels))
+        sort!(unique!(conda_packages))
+        sort!(unique!(pip_packages))
+        sort!(unique!(pip_indexes))
+        sort!(unique!(scripts))
+
+        # determine if any dependencies have changed
+        env = conda_env()
+        skip = !force && isdir(env)
+        if skip
+            depinfo = get_meta("jldeps")
+            skip &= (
+                conda_channels == get(depinfo, "conda_channels", nothing) &&
+                conda_packages == get(depinfo, "conda_packages", nothing) &&
+                pip_indexes == get(depinfo, "pip_indexes", nothing) &&
+                pip_packages == get(depinfo, "pip_packages", nothing) &&
+                scripts == get(depinfo, "scripts", nothing)
+            )
+        end
+
         # create and activate the conda environment with the desired packages
         # if update=true, just install the packages
-        env = conda_env()
-        conda_args = String[]
-        for channel in conda_channels
-            push!(conda_args, "--channel", channel)
-        end
-        append!(conda_args, conda_packages)
-        if create
-            conda_run_root(`create --yes --no-default-packages --prefix $env $conda_args`)
-            conda_activate()
+        if skip
+            # nothing has changed
+            create && conda_activate()
+
         else
-            conda_run(`install --yes $conda_args`)
-        end
-
-        # install pip packages
-        if !isempty(pip_packages)
-            pip_enable()
-            pip_args = String[]
-            for index in pip_indexes
-                push!(pip_args, "--extra-index-url", index)
+            conda_args = String[]
+            for channel in conda_channels
+                push!(conda_args, "--channel", channel)
             end
-            append!(pip_args, pip_packages)
-            pip_run(`install $pip_args`)
-        end
+            append!(conda_args, conda_packages)
+            if create || !isdir(env)
+                ispath(env) && conda_run_root(`env remove --yes --prefix $env`)
+                conda_run_root(`create --yes --no-default-packages --no-channel-priority --prefix $env $conda_args`)
+                conda_activate()
+            else
+                conda_run(`install --yes $conda_args`)
+            end
 
-        # run scripts
-        for script in scripts
-            @info "Executing `$script`"
-            eval(Meta.parse(script))
+            # install pip packages
+            if !isempty(pip_packages)
+                pip_enable()
+                pip_args = String[]
+                for index in pip_indexes
+                    push!(pip_args, "--extra-index-url", index)
+                end
+                append!(pip_args, pip_packages)
+                pip_run(`install $pip_args`)
+            end
+
+            # run scripts
+            for script in scripts
+                @info "Executing `$script`"
+                eval(Meta.parse(script))
+            end
         end
 
         # record what we did
         depinfo = Dict(
             "timestamp" => time(),
+            "load_path" => Base.load_path(),
             "version" => string(PythonCall.VERSION),
             "files" => all_deps_files,
             "conda_packages" => conda_packages,
@@ -420,16 +451,16 @@ function add(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothi
     file = user_deps_file()
     deps = isfile(file) ? TOML.parsefile(file) : Dict{String,Any}()
     if conda_channels !== nothing
-        union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "conda"), "channels"), conda_channels)
+        sort!(union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "conda"), "channels"), conda_channels))
     end
     if conda_packages !== nothing
-        union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "conda"), "packages"), conda_packages)
+        sort!(union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "conda"), "packages"), conda_packages))
     end
     if pip_indexes !== nothing
-        union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "pip"), "indexes"), pip_indexes)
+        sort!(union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "pip"), "indexes"), pip_indexes))
     end
     if pip_packages !== nothing
-        union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "pip"), "packages"), pip_packages)
+        sort!(union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "pip"), "packages"), pip_packages))
     end
     if script_expr !== nothing
         get!(Dict{String,Any}, deps, "script")["expr"] = script_expr

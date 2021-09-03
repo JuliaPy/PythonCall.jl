@@ -4,5 +4,6 @@ deps/deps.jl
 deps/build.log
 .ipynb_checkpoints
 __pycache__
-.conda_env
+conda_env
+julia_env
 *.egg-info

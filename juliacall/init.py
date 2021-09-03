@@ -13,6 +13,14 @@ for n in ["Project.toml", "JuliaProject.toml"]:
         break
 CONFIG['dev'] = isdev
 
+# Determine where to look for julia
+jldepot = os.environ.get("JULIA_DEPOT_PATH", "").split(";" if os.name == "nt" else ":")[0] or os.path.join(os.path.expanduser("~"), ".julia")
+jlprefix = os.path.join(jldepot, "pythoncall")
+jlbin = os.path.join(jlprefix, "bin")
+jlinstall = os.path.join(jlprefix, "install")
+jldownload = os.path.join(jlprefix, "download")
+jlexe = os.path.join(jlbin, "julia.cmd" if os.name == "nt" else "julia")
+
 # Determine where to put the julia environment
 venvprefix = os.environ.get("VIRTUAL_ENV")
 condaprefix = os.environ.get("CONDA_PREFIX")
@@ -25,17 +33,10 @@ elif condaprefix:
 else:
     prefix = None
 if prefix is None:
-    jlenv = "PythonCall"
+    jlenv = os.path.join(jldepot, "environments", "PythonCall")
 else:
     jlenv = os.path.join(prefix, "julia_env")
 CONFIG['meta'] = os.path.join(jlenv, "PythonCallMeta.json")
-
-# Determine where to look for julia
-jlprefix = os.path.join(os.path.expanduser("~"), ".julia", "pythoncall")
-jlbin = os.path.join(jlprefix, "bin")
-jlinstall = os.path.join(jlprefix, "install")
-jldownload = os.path.join(jlprefix, "download")
-jlexe = os.path.join(jlbin, "julia.cmd" if os.name == "nt" else "julia")
 
 # Find the Julia library
 libpath = os.environ.get('PYTHON_JULIACALL_LIB')
@@ -111,7 +112,7 @@ try:
     script = '''
         try
             import Pkg
-            Pkg.activate("{}", shared={}, io=devnull)
+            Pkg.activate(raw"{}", io=devnull)
             {}
             ENV["JULIA_PYTHONCALL_LIBPTR"] = "{}"
             import PythonCall
@@ -119,12 +120,7 @@ try:
             @error "Error loading PythonCall.jl" err=err
             rethrow()
         end
-        '''.format(
-            jlenv.replace('\\', '\\\\'),
-            'true' if prefix is None else 'false',
-            install,
-            c.pythonapi._handle,
-        )
+        '''.format(jlenv, install, c.pythonapi._handle)
     res = lib.jl_eval_string(script.encode('utf8'))
     if res is None:
         raise Exception('PythonCall.jl did not start properly')

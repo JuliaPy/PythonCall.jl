@@ -64,7 +64,7 @@ function init_context()
             # Regarding the LOAD_PATH as getting "less specific" as we go through, this
             # choice of location is the "most specific" place which actually depends on
             # PythonCall.
-            Deps._conda_env[] = joinpath(CTX.jlenv, ".conda_env")
+            Deps._conda_env[] = joinpath(CTX.jlenv, "conda_env")
             Deps.resolve()
             exe_path = Deps.python_exe()
             isfile(exe_path) || error("cannot find python executable")

@@ -1,6 +1,5 @@
-import os, os.path, sys, ctypes as c, types, shutil, subprocess, jill.install as jli
-from . import CONFIG, __version__
-from .deps import get_dep, set_dep
+import os, os.path, ctypes as c, shutil, subprocess, jill.install as jli
+from . import CONFIG, __version__, deps
 
 # Determine if this is a development version of juliacall
 # i.e. it is installed from the github repo, which contains Project.toml
@@ -36,6 +35,7 @@ if prefix is None:
     jlenv = os.path.join(jldepot, "environments", "PythonCall")
 else:
     jlenv = os.path.join(prefix, "julia_env")
+CONFIG['jlenv'] = os.path.join(jlenv)
 CONFIG['meta'] = os.path.join(jlenv, "PythonCallMeta.json")
 
 # Find the Julia library
@@ -103,12 +103,47 @@ try:
     lib.jl_init__threading()
     lib.jl_eval_string.argtypes = [c.c_char_p]
     lib.jl_eval_string.restype = c.c_void_p
-    if isdev:
-        install = 'Pkg.develop(path="{}")'.format(reporoot.replace('\\', '\\\\'))
-    elif get_dep('juliacall', 'PythonCall') != __version__:
-        install = 'Pkg.add(name="PythonCall", version="{}")'.format(__version__)
-    else:
+    if deps.can_skip_resolve():
+        pkgs = None
         install = ''
+    else:
+        # get required packages
+        pkgs = deps.required_packages()
+        # add PythonCall
+        if isdev:
+            pkgs.append(deps.PackageSpec(name="PythonCall", uuid="6099a3de-0909-46bc-b1f4-468b9a2dfc0d", path=reporoot, dev=True))
+        else:
+            pkgs.append(deps.PackageSpec(name="PythonCall", uuid="6099a3de-0909-46bc-b1f4-468b9a2dfc0d", compat="= "+__version__))
+        # check if pkgs has changed at all
+        prev_pkgs = deps.get_meta("pydeps", "pkgs")
+        if prev_pkgs is not None and sorted(prev_pkgs, key=lambda p: p['name']) == sorted([p.dict() for p in pkgs], key=lambda p: p['name']):
+            install = ''
+        else:
+            # Write a Project.toml specifying UUIDs and compatibility of required packages
+            if os.path.exists(jlenv):
+                shutil.rmtree(jlenv)
+            os.makedirs(jlenv)
+            with open(os.path.join(jlenv, "Project.toml"), "wt") as fp:
+                print('[deps]', file=fp)
+                for pkg in pkgs:
+                    print('{} = "{}"'.format(pkg.name, pkg.uuid), file=fp)
+                print(file=fp)
+                print('[compat]', file=fp)
+                for pkg in pkgs:
+                    if pkg.compat:
+                        print('{} = "{}"'.format(pkg.name, pkg.compat), file=fp)
+                print(file=fp)
+            # Create install command
+            dev_pkgs = [pkg.jlstr() for pkg in pkgs if pkg.dev]
+            add_pkgs = [pkg.jlstr() for pkg in pkgs if not pkg.dev]
+            if dev_pkgs and add_pkgs:
+                install = 'Pkg.develop([{}]); Pkg.add([{}])'.format(', '.join(dev_pkgs), ', '.join(add_pkgs))
+            elif dev_pkgs:
+                install = 'Pkg.develop([{}])'.format(', '.join(dev_pkgs))
+            elif add_pkgs:
+                install = 'Pkg.add([{}])'.format(', '.join(add_pkgs))
+            else:
+                install = ''
     script = '''
         try
             import Pkg
@@ -124,9 +159,7 @@ try:
     res = lib.jl_eval_string(script.encode('utf8'))
     if res is None:
         raise Exception('PythonCall.jl did not start properly')
-    if isdev:
-        set_dep('juliacall', 'PythonCall', 'dev')
-    elif install:
-        set_dep('juliacall', 'PythonCall', __version__)
+    if pkgs is not None:
+        deps.record_resolve(pkgs)
 finally:
     os.chdir(d)

@@ -1,5 +1,5 @@
 import os
-import semantic_version as semver
+# import semantic_version as semver
 import sys
 
 from time import time

@@ -2,7 +2,6 @@ import os
 import semantic_version as semver
 import sys
 
-from collections import namedtuple
 from time import time
 
 from . import CONFIG, __version__
@@ -160,8 +159,28 @@ def required_packages():
                 p = ans[name]
                 if p.uuid != kw["uuid"]:
                     raise Exception("found multiple UUIDs for package '{}'".format(name))
-                # todo: dev, compat, path, url, rev, version
-                raise NotImplementedError("need to merge repeated dependency '{}'")
+                if "dev" in kw:
+                    p.dev |= kw["dev"]
+                if "compat" in kw:
+                    if p.compat is not None and p.compat != kw["compat"]:
+                        raise NotImplementedError("found multiple 'compat' entries for package '{}'".format(name))
+                    p.compat = kw["compat"]
+                if "path" in kw:
+                    if p.path is not None and p.path != kw["path"]:
+                        raise Exception("found multiple 'path' entries for package '{}'".format(name))
+                    p.path = kw["path"]
+                if "url" in kw:
+                    if p.url is not None and p.url != kw["url"]:
+                        raise Exception("found multiple 'url' entries for package '{}'".format(name))
+                    p.url = kw["url"]
+                if "rev" in kw:
+                    if p.rev is not None and p.rev != kw["rev"]:
+                        raise Exception("found multiple 'rev' entries for package '{}'".format(name))
+                    p.rev = kw["rev"]
+                if "version" in kw:
+                    if p.version is not None and p.version != kw["version"]:
+                        raise NotImplementedError("found multiple 'version' entries for package '{}'".format(name))
+                    p.version = kw["version"]
             else:
                 p = PackageSpec(name=name, **kw)
                 ans[p.name] = p

@@ -45,21 +45,21 @@ def set_meta(*args):
 
 ### VERSION PARSING
 
-@semver.base.BaseSpec.register_syntax
-class JuliaVersionSpec(semver.SimpleSpec):
-    SYNTAX = 'julia'
-    class Parser(semver.SimpleSpec.Parser):
-        PREFIX_ALIASES = {'=': '==', '': '^'}
-        @classmethod
-        def parse(cls, expression):
-            blocks = expression.split(',')
-            clause = semver.base.Never()
-            for block in blocks:
-                block = block.strip()
-                if not cls.NAIVE_SPEC.match(block):
-                    raise ValueError('Invalid simple block %r' % block)
-                clause |= cls.parse_block(block)
-            return clause
+# @semver.base.BaseSpec.register_syntax
+# class JuliaVersionSpec(semver.SimpleSpec):
+#     SYNTAX = 'julia'
+#     class Parser(semver.SimpleSpec.Parser):
+#         PREFIX_ALIASES = {'=': '==', '': '^'}
+#         @classmethod
+#         def parse(cls, expression):
+#             blocks = expression.split(',')
+#             clause = semver.base.Never()
+#             for block in blocks:
+#                 block = block.strip()
+#                 if not cls.NAIVE_SPEC.match(block):
+#                     raise ValueError('Invalid simple block %r' % block)
+#                 clause |= cls.parse_block(block)
+#             return clause
 
 ### RESOLVE
 

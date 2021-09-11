@@ -1,10 +1,10 @@
 import os
-# import semantic_version as semver
 import sys
 
 from time import time
 
 from . import CONFIG, __version__
+from .jlcompat import JuliaCompat
 
 ### META
 
@@ -42,24 +42,6 @@ def set_meta(*args):
         meta2 = meta2.setdefault(key, {})
     meta2[keys[-1]] = value
     save_meta(meta)
-
-### VERSION PARSING
-
-# @semver.base.BaseSpec.register_syntax
-# class JuliaVersionSpec(semver.SimpleSpec):
-#     SYNTAX = 'julia'
-#     class Parser(semver.SimpleSpec.Parser):
-#         PREFIX_ALIASES = {'=': '==', '': '^'}
-#         @classmethod
-#         def parse(cls, expression):
-#             blocks = expression.split(',')
-#             clause = semver.base.Never()
-#             for block in blocks:
-#                 block = block.strip()
-#                 if not cls.NAIVE_SPEC.match(block):
-#                     raise ValueError('Invalid simple block %r' % block)
-#                 clause |= cls.parse_block(block)
-#             return clause
 
 ### RESOLVE
 
@@ -149,42 +131,73 @@ def deps_files():
     return list(set(ans))
 
 def required_packages():
+    # read all dependencies into a dict: name -> key -> file -> value
     import json
-    ans = {}
+    all_deps = {}
     for fn in deps_files():
         with open(fn) as fp:
             deps = json.load(fp)
-        for (name, kw) in deps.get("packages", {}).items():
-            if name in ans:
-                p = ans[name]
-                if p.uuid != kw["uuid"]:
-                    raise Exception("found multiple UUIDs for package '{}'".format(name))
-                if "dev" in kw:
-                    p.dev |= kw["dev"]
-                if "compat" in kw:
-                    if p.compat is not None and p.compat != kw["compat"]:
-                        raise NotImplementedError("found multiple 'compat' entries for package '{}'".format(name))
-                    p.compat = kw["compat"]
-                if "path" in kw:
-                    if p.path is not None and p.path != kw["path"]:
-                        raise Exception("found multiple 'path' entries for package '{}'".format(name))
-                    p.path = kw["path"]
-                if "url" in kw:
-                    if p.url is not None and p.url != kw["url"]:
-                        raise Exception("found multiple 'url' entries for package '{}'".format(name))
-                    p.url = kw["url"]
-                if "rev" in kw:
-                    if p.rev is not None and p.rev != kw["rev"]:
-                        raise Exception("found multiple 'rev' entries for package '{}'".format(name))
-                    p.rev = kw["rev"]
-                if "version" in kw:
-                    if p.version is not None and p.version != kw["version"]:
-                        raise NotImplementedError("found multiple 'version' entries for package '{}'".format(name))
-                    p.version = kw["version"]
+        for (name, kvs) in deps.get("packages", {}).items():
+            dep = all_deps.setdefault(name, {})
+            for (k, v) in kvs.items():
+                dep.setdefault(k, {})[fn] = v
+    # merges non-unique values
+    def merge_unique(dep, kfvs, k):
+        fvs = kfvs.pop(k, None)
+        if fvs is not None:
+            vs = set(fvs.values())
+            if len(vs) == 1:
+                dep[k], = vs
+            elif vs:
+                raise Exception("'{}' entries are not unique:\n{}".format(k, '\n'.join(['- {!r} at {}'.format(v,f) for (f,v) in fvs.items()])))
+    # merges compat entries
+    def merge_compat(dep, kfvs, k):
+        fvs = kfvs.pop(k, None)
+        if fvs is not None:
+            compats = list(map(JuliaCompat, fvs.values()))
+            compat = compats[0]
+            for c in compats[1:]:
+                compat &= c
+            if compat.isempty():
+                raise Exception("'{}' entries have empty intersection:\n{}".format(k, '\n'.join(['- {!r} at {}'.format(v,f) for (f,v) in fvs.items()])))
             else:
-                p = PackageSpec(name=name, **kw)
-                ans[p.name] = p
-    return list(ans.values())
+                dep[k] = compat.jlstr()
+    # merges booleans with any
+    def merge_any(dep, kfvs, k):
+        fvs = kfvs.pop(k, None)
+        if fvs is not None:
+            dep[k] = any(fvs.values())
+    # merge dependencies: name -> key -> value
+    deps = []
+    for (name, kfvs) in all_deps.items():
+        kw = {'name': name}
+        merge_unique(kw, kfvs, 'uuid')
+        merge_unique(kw, kfvs, 'path')
+        merge_unique(kw, kfvs, 'url')
+        merge_unique(kw, kfvs, 'rev')
+        merge_compat(kw, kfvs, 'compat')
+        merge_any(kw, kfvs, 'dev')
+        deps.append(PackageSpec(**kw))
+    return deps
+
+def required_julia():
+    import json
+    compats = {}
+    for fn in deps_files():
+        with open(fn) as fp:
+            deps = json.load(fp)
+            c = deps.get("julia")
+            if c is not None:
+                compats[fn] = JuliaCompat(c)
+    compat = None
+    for c in compats.values():
+        if compat is None:
+            compat = c
+        else:
+            compat &= c
+    if compat is not None and compat.isempty():
+        raise Exception("'julia' compat entries have empty intersection:\n{}".format('\n'.join(['- {!r} at {}'.format(v,f) for (f,v) in compats.items()])))
+    return compat
 
 def record_resolve(pkgs):
     set_meta("pydeps", {

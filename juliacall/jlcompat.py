@@ -46,6 +46,8 @@ class JuliaCompat:
         return JuliaCompat(parts)
     def __repr__(self):
         return 'JuliaCompat({!r})'.format(self.parts)
+    def __contains__(self, v):
+        return any(v in p for p in self.parts)
 
 class Version:
     def __init__(self, src):

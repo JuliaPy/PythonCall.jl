@@ -1,10 +1,12 @@
 import os
 import sys
+import jill.utils.version_utils
+import jill.install
 
 from time import time
 
 from . import CONFIG, __version__
-from .jlcompat import JuliaCompat
+from .jlcompat import JuliaCompat, Version
 
 ### META
 
@@ -198,6 +200,33 @@ def required_julia():
     if compat is not None and compat.isempty():
         raise Exception("'julia' compat entries have empty intersection:\n{}".format('\n'.join(['- {!r} at {}'.format(v,f) for (f,v) in compats.items()])))
     return compat
+
+def best_julia_version():
+    """
+    Selects the best Julia version available matching required_julia().
+
+    It's based on jill.utils.version_utils.latest_version() and jill.install.install_julia().
+    """
+    compat = required_julia()
+    system = jill.install.current_system()
+    arch = jill.install.current_architecture()
+    if system == 'linux' and jill.install.current_libc() == 'musl':
+        system = 'musl'
+    releases = jill.utils.version_utils.read_releases()
+    releases = [r for r in releases if r[1]==system and r[2]==arch]
+    if compat is not None:
+        _releases = releases
+        releases = []
+        for r in _releases:
+            try:
+                v = Version(r[0])
+                if v in compat:
+                    releases.append(r)
+            except:
+                pass
+    if not releases:
+        raise Exception('Did not find a version of Julia satisfying {!r}'.format(compat.jlstr()))
+    return max(releases, key=lambda x: jill.utils.version_utils.Version(x[0]))[0]
 
 def record_resolve(pkgs):
     set_meta("pydeps", {

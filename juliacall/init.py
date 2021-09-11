@@ -42,6 +42,11 @@ CONFIG['meta'] = os.path.join(jlenv, "PythonCallMeta.json")
 libpath = os.environ.get('PYTHON_JULIACALL_LIB')
 if libpath is None:
     # Find the Julia executable...
+    # TODO: Check the Julia executable is compatible with jlcompat
+    #       - If Julia is not found, install a compatible one.
+    #       - If Julia is found in the default prefix and not compatible, reinstall.
+    #       - If Julia is found elsewhere, emit a warning?
+    jlcompat = deps.required_julia()
     # ... in a specified location
     exepath = os.environ.get('PYTHON_JULIACALL_EXE')
     # ... in the default prefix

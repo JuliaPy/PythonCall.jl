@@ -1,7 +1,5 @@
 import os
 import sys
-import jill.utils.version_utils
-import jill.install
 
 from time import time
 
@@ -207,6 +205,8 @@ def best_julia_version():
 
     It's based on jill.utils.version_utils.latest_version() and jill.install.install_julia().
     """
+    import jill.utils.version_utils
+    import jill.install
     compat = required_julia()
     system = jill.install.current_system()
     arch = jill.install.current_architecture()

@@ -147,6 +147,8 @@ def required_packages():
         with open(fn) as fp:
             deps = json.load(fp)
         for (name, kvs) in deps.get("packages", {}).items():
+            if name == "PythonCall":
+                raise ValueError("Cannot have a dependency called 'PythonCall'")
             dep = all_deps.setdefault(name, {})
             for (k, v) in kvs.items():
                 dep.setdefault(k, {})[fn] = v

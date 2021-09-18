@@ -87,7 +87,7 @@ else:
                     else:
                         os.environ["PATH"] += os.pathsep + jlbin
                     os.chdir(jldownload)
-                    jli.install_julia(version=exever, confirm=True, install_dir=jlinstall, symlink_dir=jlbin)
+                    jli.install_julia(version=exever, confirm=True, install_dir=jlinstall, symlink_dir=jlbin, upstream=os.getenv("JILL_UPSTREAM") or "Official")
                 finally:
                     if p is None:
                         del os.environ["PATH"]

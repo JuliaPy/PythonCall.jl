@@ -20,6 +20,7 @@ jlinstall = os.path.join(jlprefix, "install")
 jldownload = os.path.join(jlprefix, "download")
 
 # Determine where to put the julia environment
+# TODO: Can we more direcly figure out the environment from which python was called? Maybe find the first PATH entry containing python?
 venvprefix = os.environ.get("VIRTUAL_ENV")
 condaprefix = os.environ.get("CONDA_PREFIX")
 if venvprefix and condaprefix:

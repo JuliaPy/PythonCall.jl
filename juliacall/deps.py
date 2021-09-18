@@ -1,7 +1,5 @@
 import os
 import sys
-import jill.utils.version_utils
-import jill.install
 
 from time import time
 
@@ -218,6 +216,8 @@ def best_julia_version(compat=None):
     """
     if compat is None:
         compat = required_julia()
+    import jill.utils.version_utils
+    import jill.install
     system = jill.install.current_system()
     arch = jill.install.current_architecture()
     if system == 'linux' and jill.install.current_libc() == 'musl':

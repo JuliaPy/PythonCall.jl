@@ -7,3 +7,4 @@ __pycache__
 conda_env
 julia_env
 *.egg-info
+build/

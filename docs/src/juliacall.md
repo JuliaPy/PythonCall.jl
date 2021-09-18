@@ -39,6 +39,46 @@ Sometimes a more specific type will be used, such as when assigning to an array 
 
 When a Julia value is returned to Python, it will normally be converted according to [this table](@ref jl2py).
 
+## Managing Julia dependencies
+
+juliacall manages its Julia dependencies using [Pkg](https://pkgdocs.julialang.org/v1) for
+packages and [jill](https://pypi.org/project/jill/) for Julia itself.
+If a suitable version of julia is not found on your system, it will automatically be
+downloaded and installed into `~/.julia/pythoncall`.
+A Julia environment is automatically created when juliacall is loaded, is activated, and is
+initialised with at least PythonCall. If you are using a virtual or conda environment then
+the Julia environment is created there, otherwise a global environment is created at
+`~/.julia/environments/PythonCall`.
+
+If your project requires more Julia dependencies, use the mechanisms below to ensure they
+are automatically installed.
+
+### juliacalldeps.json
+
+If you put a file called `juliacalldeps.json` in a Python package, then the dependencies
+therein will be automatically installed into the Julia environment.
+
+Here is an example:
+```json
+{
+    "julia": "1.5",
+    "packages": {
+        "Example": {
+            "uuid": "7876af07-990d-54b4-ab0e-23690620f79a",
+            "compat": "0.5",
+            "url": "http://github.com/JuliaLang/Example.jl",
+            "path": "/path/to/the/package",
+            "rev": "master",
+            "dev": false, // when true, uses Pkg.dev not Pkg.add
+        }
+    }
+}
+```
+All parts are optional, except that the UUID of each package is required.
+
+When juliacall starts, it will ensure the latest compatible version of julia is installed,
+and will ensure the given packages are installed.
+
 ## Utilities
 
 `````@customdoc

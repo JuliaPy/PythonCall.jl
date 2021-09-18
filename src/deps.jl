@@ -178,7 +178,7 @@ function can_skip_resolve()
             stat(fn).mtime < timestamp || return false
         end
     end
-    return true
+    return deps
 end
 
 """

@@ -1,5 +1,5 @@
 import os, os.path, ctypes as c, shutil, subprocess, jill.install as jli
-from . import CONFIG, __version__, deps
+from . import CONFIG, __version__, deps, jlcompat
 
 # Determine if this is a development version of juliacall
 # i.e. it is installed from the github repo, which contains Project.toml
@@ -18,7 +18,6 @@ jlprefix = os.path.join(jldepot, "pythoncall")
 jlbin = os.path.join(jlprefix, "bin")
 jlinstall = os.path.join(jlprefix, "install")
 jldownload = os.path.join(jlprefix, "download")
-jlexe = os.path.join(jlbin, "julia.cmd" if os.name == "nt" else "julia")
 
 # Determine where to put the julia environment
 venvprefix = os.environ.get("VIRTUAL_ENV")
@@ -38,65 +37,73 @@ else:
 CONFIG['jlenv'] = os.path.join(jlenv)
 CONFIG['meta'] = os.path.join(jlenv, "PythonCallMeta.json")
 
-# Find the Julia library
+# Determine whether or not to skip resolving julia/package versions
+skip = deps.can_skip_resolve()
+
+# Find the Julia library, possibly installing Julia
 libpath = os.environ.get('PYTHON_JULIACALL_LIB')
-if libpath is None:
-    # Find the Julia executable...
-    # TODO: Check the Julia executable is compatible with jlcompat
-    #       - If Julia is not found, install a compatible one.
-    #       - If Julia is found in the default prefix and not compatible, reinstall.
-    #       - If Julia is found elsewhere, emit a warning?
-    jlcompat = deps.required_julia()
-    # ... in a specified location
+if libpath is not None:
+    if not os.path.exists(libpath):
+        raise ValueError('PYTHON_JULIACALL_LIB={!r} does not exist'.format(libpath))
+else:
+    # Find the Julia executable
     exepath = os.environ.get('PYTHON_JULIACALL_EXE')
-    # ... in the default prefix
-    if exepath is None:
-        exepath = shutil.which(jlexe)
-    # ... preinstalled
-    if exepath is None:
-        exepath = shutil.which("julia")
-    # ... preinstalled but not in path but still callable somehow (e.g. juliaup)
-    if exepath is None:
-        try:
-            subprocess.run(["julia", "--version"], stdout=subprocess.DEVNULL)
-            exepath = "julia"
-        except:
-            pass
-    # ... after installing in the default prefix
-    if exepath is None:
-        os.makedirs(jldownload, exist_ok=True)
-        d = os.getcwd()
-        p = os.environ.get("PATH")
-        try:
-            if p is None:
-                os.environ["PATH"] = jlbin
-            else:
-                os.environ["PATH"] += os.pathsep + jlbin
-            os.chdir(jldownload)
-            jli.install_julia(confirm=True, install_dir=jlinstall, symlink_dir=jlbin)
-        finally:
-            if p is None:
-                del os.environ["PATH"]
-            else:
-                os.environ["PATH"] = p
-            os.chdir(d)
-        exepath = shutil.which(jlexe)
-        if exepath is None:
-            raise Exception('Installed julia in \'%s\' but cannot find it' % jlbin)
-    assert exepath is not None
-    # Test the executable is executable
-    try:
-        subprocess.run([exepath, "--version"], stdout=subprocess.DEVNULL)
-    except:
-        raise Exception('Julia executable %s does not exist' % repr(exepath))
-    # Find the corresponding libjulia
+    if exepath is not None:
+        v = jlcompat.julia_version_str(exepath)
+        if v is None:
+            raise ValueError("PYTHON_JULIACALL_EXE={!r} does not exist".format(exepath))
+        else:
+            CONFIG["exever"] = v
+    else:
+        compat = deps.required_julia()
+        # Default scenario
+        if skip:
+            # Already know where Julia is
+            exepath = skip["jlexe"]
+        else:
+            # Find the best available version
+            exepath = None
+            exever = deps.best_julia_version(compat)
+            v = jlcompat.julia_version_str("julia")
+            if v is not None and v == exever:
+                exepath = "julia"
+            elif os.path.isdir(jlbin):
+                for f in os.listdir(jlbin):
+                    if f.startswith("julia"):
+                        x = os.path.join(jlbin, f)
+                        v = jlcompat.julia_version_str(x)
+                        if v is not None and v == exever:
+                            exepath = x
+                            break
+            # If no such version, install it
+            if exepath is None:
+                os.makedirs(jldownload, exist_ok=True)
+                d = os.getcwd()
+                p = os.environ.get("PATH")
+                try:
+                    if p is None:
+                        os.environ["PATH"] = jlbin
+                    else:
+                        os.environ["PATH"] += os.pathsep + jlbin
+                    os.chdir(jldownload)
+                    jli.install_julia(confirm=True, install_dir=jlinstall, symlink_dir=jlbin)
+                finally:
+                    if p is None:
+                        del os.environ["PATH"]
+                    else:
+                        os.environ["PATH"] = p
+                    os.chdir(d)
+                exepath = os.path.join(jlbin, "julia.cmd" if os.name == "nt" else "julia")
+                if not os.path.isfile(exepath):
+                    raise Exception('Installed julia in {!r} but cannot find it'.format(jlbin))
+        # Check the version is compatible
+        v = jlcompat.julia_version_str(exepath)
+        assert v is not None and (compat is None or jlcompat.Version(v) in compat)
+        CONFIG['exever'] = v
     CONFIG['exepath'] = exepath
     libpath = subprocess.run([exepath, '--startup-file=no', '-O0', '--compile=min', '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))'], stdout=(subprocess.PIPE)).stdout.decode('utf8')
-else:
-    if not os.path.isfile(libpath):
-        raise Exception('PYTHON_JULIACALL_LIB=%s does not exist' % repr(libpath))
 
-# Initialize Julia
+# Initialize Julia, including installing required packages
 d = os.getcwd()
 try:
     os.chdir(os.path.dirname(libpath))
@@ -108,8 +115,7 @@ try:
     lib.jl_init__threading()
     lib.jl_eval_string.argtypes = [c.c_char_p]
     lib.jl_eval_string.restype = c.c_void_p
-    if deps.can_skip_resolve():
-        pkgs = None
+    if skip:
         install = ''
     else:
         # get required packages
@@ -164,7 +170,7 @@ try:
     res = lib.jl_eval_string(script.encode('utf8'))
     if res is None:
         raise Exception('PythonCall.jl did not start properly')
-    if pkgs is not None:
+    if not skip:
         deps.record_resolve(pkgs)
 finally:
     os.chdir(d)

@@ -6,7 +6,7 @@ import jill.install
 from time import time
 
 from . import CONFIG, __version__
-from .jlcompat import JuliaCompat, Version
+from .jlcompat import JuliaCompat, Version, julia_version_str
 
 ### META
 
@@ -92,6 +92,13 @@ def can_skip_resolve():
     version = deps.get("version")
     if version is None or version != __version__:
         return False
+    # resolve whenever Julia changes
+    jlexe = deps.get("jlexe")
+    if jlexe is None:
+        return False
+    jlver = deps.get("jlversion")
+    if jlver is None or jlver != julia_version_str(jlexe):
+        return False
     # resolve whenever swapping between dev/not dev
     isdev = deps.get("dev")
     if isdev is None or isdev != CONFIG["dev"]:
@@ -114,7 +121,7 @@ def can_skip_resolve():
             fn = os.path.join(path, "juliacalldeps.json")
             if os.path.exists(fn) and os.path.getmtime(fn) > timestamp:
                 return False
-    return True
+    return deps
 
 def deps_files():
     ans = []
@@ -201,13 +208,14 @@ def required_julia():
         raise Exception("'julia' compat entries have empty intersection:\n{}".format('\n'.join(['- {!r} at {}'.format(v,f) for (f,v) in compats.items()])))
     return compat
 
-def best_julia_version():
+def best_julia_version(compat=None):
     """
     Selects the best Julia version available matching required_julia().
 
     It's based on jill.utils.version_utils.latest_version() and jill.install.install_julia().
     """
-    compat = required_julia()
+    if compat is None:
+        compat = required_julia()
     system = jill.install.current_system()
     arch = jill.install.current_architecture()
     if system == 'linux' and jill.install.current_libc() == 'musl':
@@ -232,6 +240,8 @@ def record_resolve(pkgs):
     set_meta("pydeps", {
         "version": __version__,
         "dev": CONFIG["dev"],
+        "jlversion": CONFIG.get("exever"),
+        "jlexe": CONFIG.get("exepath"),
         "timestamp": time(),
         "sys_path": sys.path,
         "pkgs": [pkg.dict() for pkg in pkgs],

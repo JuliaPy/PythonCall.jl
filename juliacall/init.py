@@ -77,6 +77,7 @@ else:
                             break
             # If no such version, install it
             if exepath is None:
+                print("Installing Julia version {} to {!r}".format(exever, jlbin))
                 os.makedirs(jldownload, exist_ok=True)
                 d = os.getcwd()
                 p = os.environ.get("PATH")
@@ -86,7 +87,7 @@ else:
                     else:
                         os.environ["PATH"] += os.pathsep + jlbin
                     os.chdir(jldownload)
-                    jli.install_julia(confirm=True, install_dir=jlinstall, symlink_dir=jlbin)
+                    jli.install_julia(version=exever, confirm=True, install_dir=jlinstall, symlink_dir=jlbin)
                 finally:
                     if p is None:
                         del os.environ["PATH"]

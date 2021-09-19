@@ -8,7 +8,7 @@ function pylist_setitem(xs::Py, i, x)
     return xs
 end
 
-pylist_append(xs::Py, x) = errcheck(@autopy x C.PyList_Append(getptr(ans), getptr(x_)))
+pylist_append(xs::Py, x) = errcheck(@autopy x C.PyList_Append(getptr(xs), getptr(x_)))
 
 pylist_astuple(x) = pynew(errcheck(@autopy x C.PyList_AsTuple(getptr(x_))))
 

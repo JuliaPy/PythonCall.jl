@@ -1,5 +1,11 @@
 using PythonCall, Test, Dates, Compat
 
+@testset "PythonCall.jl" begin
+    @testset "abstract" begin
+        include("abstract.jl")
+    end
+end
+
 # mutable struct Struct1
 #     x :: String
 #     y :: Int

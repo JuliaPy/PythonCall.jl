@@ -178,7 +178,7 @@ function can_skip_resolve()
             stat(fn).mtime < timestamp || return false
         end
     end
-    return deps
+    return false
 end
 
 """
@@ -312,7 +312,7 @@ function resolve(; create=true, force=false)
                 conda_run_root(`create --yes --no-default-packages --no-channel-priority --prefix $env $conda_args`)
                 conda_activate()
             else
-                conda_run(`install --yes $conda_args`)
+                conda_run(`install --yes --no-channel-priority --satisfied-skip-solve $conda_args`)
             end
 
             # install pip packages
@@ -429,6 +429,17 @@ function status()
     end
 end
 
+function getconvert!(::Type{T}, x, k) where {T}
+    v = get!(T, x, k)
+    if v isa T
+        return v::T
+    else
+        v = convert(T, v)
+        x[k] = v
+        return x[k]::T
+    end
+end
+
 """
     add(...)
 
@@ -444,33 +455,34 @@ Keyword arguments (all optional):
 - `resolve=true`: When true, immediately resolve the dependencies. Otherwise, the
   dependencies are not resolved until you call [`resolve`](@ref) or load PythonCall in a
   new Julia session.
+- `create=true`: When true, creates the environment from scratch when resolving.
 
 The conda and pip packages can include version specifiers, such as `python>=3.6`.
 """
-function add(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothing, pip_packages=nothing, script_expr=nothing, script_file=nothing, resolve=true)
+function add(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothing, pip_packages=nothing, script_expr=nothing, script_file=nothing, resolve=true, create=true)
     file = user_deps_file()
     deps = isfile(file) ? TOML.parsefile(file) : Dict{String,Any}()
     if conda_channels !== nothing
-        sort!(union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "conda"), "channels"), conda_channels))
+        sort!(union!(getconvert!(Vector{String}, getconvert!(Dict{String,Any}, deps, "conda"), "channels"), conda_channels))
     end
     if conda_packages !== nothing
-        sort!(union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "conda"), "packages"), conda_packages))
+        sort!(union!(getconvert!(Vector{String}, getconvert!(Dict{String,Any}, deps, "conda"), "packages"), conda_packages))
     end
     if pip_indexes !== nothing
-        sort!(union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "pip"), "indexes"), pip_indexes))
+        sort!(union!(getconvert!(Vector{String}, getconvert!(Dict{String,Any}, deps, "pip"), "indexes"), pip_indexes))
     end
     if pip_packages !== nothing
-        sort!(union!(get!(Vector{String}, get!(Dict{String,Any}, deps, "pip"), "packages"), pip_packages))
+        sort!(union!(getconvert!(Vector{String}, getconvert!(Dict{String,Any}, deps, "pip"), "packages"), pip_packages))
     end
     if script_expr !== nothing
-        get!(Dict{String,Any}, deps, "script")["expr"] = script_expr
+        getconvert!(Dict{String,Any}, deps, "script")["expr"] = script_expr
     end
     if script_file !== nothing
-        get!(Dict{String,Any}, deps, "script")["file"] = script_file
+        getconvert!(Dict{String,Any}, deps, "script")["file"] = script_file
     end
     open(io->TOML.print(io, deps), file, "w")
     if resolve
-        Deps.resolve(force=true)
+        Deps.resolve(force=true, create=create)
     end
     return
 end
@@ -490,31 +502,32 @@ Keyword arguments (all optional):
 - `resolve=true`: When true, immediately resolve the dependencies. Otherwise, the
   dependencies are not resolved until you call [`resolve`](@ref) or load PythonCall in a
   new Julia session.
+- `create=true`: When true, creates the environment from scratch when resolving.
 """
-function rm(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothing, pip_packages=nothing, script_expr=false, script_file=false, resolve=true)
+function rm(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothing, pip_packages=nothing, script_expr=false, script_file=false, resolve=true, create=true)
     file = user_deps_file()
     deps = isfile(file) ? TOML.parsefile(file) : Dict{String,Any}()
     if conda_channels !== nothing
-        filter!(x -> x ∉ conda_channels, get!(Vector{String}, get!(Dict{String,Any}, deps, "conda"), "channels"))
+        filter!(x -> x ∉ conda_channels, getconvert!(Vector{String}, getconvert!(Dict{String,Any}, deps, "conda"), "channels"))
     end
     if conda_packages !== nothing
-        filter!(x -> spec_split(x)[1] ∉ conda_packages, get!(Vector{String}, get!(Dict{String,Any}, deps, "conda"), "packages"))
+        filter!(x -> spec_split(x)[1] ∉ conda_packages, getconvert!(Vector{String}, getconvert!(Dict{String,Any}, deps, "conda"), "packages"))
     end
     if pip_indexes !== nothing
-        filter!(x -> x ∉ pip_indexes, get!(Vector{String}, get!(Dict{String,Any}, deps, "pip"), "indexes"))
+        filter!(x -> x ∉ pip_indexes, getconvert!(Vector{String}, getconvert!(Dict{String,Any}, deps, "pip"), "indexes"))
     end
     if pip_packages !== nothing
-        filter!(x -> spec_split(x)[1] ∉ pip_packages, get!(Vector{String}, get!(Dict{String,Any}, deps, "pip"), "packages"))
+        filter!(x -> spec_split(x)[1] ∉ pip_packages, getconvert!(Vector{String}, getconvert!(Dict{String,Any}, deps, "pip"), "packages"))
     end
     if script_expr
-        delete!(get!(Dict{String,Any}, deps, "script"), "expr")
+        delete!(getconvert!(Dict{String,Any}, deps, "script"), "expr")
     end
     if script_file !== nothing
-        delete!(get!(Dict{String,Any}, deps, "script"), "file")
+        delete!(getconvert!(Dict{String,Any}, deps, "script"), "file")
     end
     open(io->TOML.print(io, deps), file, "w")
     if resolve
-        Deps.resolve(force=true)
+        Deps.resolve(force=true, create=create)
     end
     return
 end

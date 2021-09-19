@@ -2,4 +2,4 @@
 
 [conda]
 packages = ["pip>=18", "python>=3.5,<4"]
-channels = []
+channels = ["defaults"]

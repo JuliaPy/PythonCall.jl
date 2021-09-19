@@ -24,6 +24,7 @@
     @testset "pygetattr" begin
         @test pyisinstance(pygetattr(pybuiltins.None, "__class__"), pybuiltins.type)
         @test_throws PyException pygetattr(pybuiltins.None, "not_an_attr")
+        @test pyisinstance(pygetattr(pybuiltins.None, "__class__", pybuiltins.None), pybuiltins.type)
         @test pyis(pygetattr(pybuiltins.None, "not_an_attr", pybuiltins.None), pybuiltins.None)
     end
     @testset "pysetattr" begin
@@ -159,6 +160,7 @@
     @testset "pylt" begin
         for a in -1:1
             for b in -1:1
+                @test pyis(pylt(pyint(a), pyint(b)), pybool(a < b))
                 @test pylt(Bool, pyint(a), pyint(b)) == (a < b)
             end
         end
@@ -166,6 +168,7 @@
     @testset "pyle" begin
         for a in -1:1
             for b in -1:1
+                @test pyis(pyle(pyint(a), pyint(b)), pybool(a ≤ b))
                 @test pyle(Bool, pyint(a), pyint(b)) == (a ≤ b)
             end
         end
@@ -173,6 +176,7 @@
     @testset "pygt" begin
         for a in -1:1
             for b in -1:1
+                @test pyis(pygt(pyint(a), pyint(b)), pybool(a > b))
                 @test pygt(Bool, pyint(a), pyint(b)) == (a > b)
             end
         end
@@ -180,6 +184,7 @@
     @testset "pyge" begin
         for a in -1:1
             for b in -1:1
+                @test pyis(pyge(pyint(a), pyint(b)), pybool(a ≥ b))
                 @test pyge(Bool, pyint(a), pyint(b)) == (a ≥ b)
             end
         end

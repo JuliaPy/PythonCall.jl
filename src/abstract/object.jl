@@ -106,7 +106,7 @@ export pytruth
 
 The falsyness of `x`. Equivalent to `not x` in Python, converted to a `Bool`.
 """
-pynot(x) = errcheck(@autopy x C.PyObject_IsNot(getptr(x_))) == 1
+pynot(x) = errcheck(@autopy x C.PyObject_Not(getptr(x_))) == 1
 export pynot
 
 """

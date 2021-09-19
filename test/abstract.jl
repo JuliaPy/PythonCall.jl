@@ -208,3 +208,150 @@
         @test !pyin(pybuiltins.None, x)
     end
 end
+
+@testset "iter" begin
+    @test_throws PyException pyiter(pybuiltins.None)
+    @test_throws PyException pyiter(pybuiltins.True)
+    it = pyiter(pyrange(2))
+    x = PythonCall.pynext(it)
+    @test !PythonCall.ispynull(x)
+    @test pyeq(Bool, x, 0)
+    x = PythonCall.pynext(it)
+    @test !PythonCall.ispynull(x)
+    @test pyeq(Bool, x, 1)
+    x = PythonCall.pynext(it)
+    @test PythonCall.ispynull(x)
+end
+
+@testset "number" begin
+    @testset "pyneg" begin
+        for n in -2:2
+            @test pyeq(Bool, pyneg(pyint(n)), pyint(-n))
+        end
+    end
+    @testset "pypos" begin
+        for n in -2:2
+            @test pyeq(Bool, pypos(pyint(n)), pyint(n))
+        end
+    end
+    @testset "pyabs" begin
+        for n in -2:2
+            @test pyeq(Bool, pyabs(pyint(n)), pyint(abs(n)))
+        end
+    end
+    @testset "pyinv" begin
+        for n in -2:2
+            @test pyeq(Bool, pyinv(pyint(n)), pyint(-n-1))
+        end
+    end
+    @testset "pyindex" begin
+        for n in -2:2
+            @test pyeq(Bool, pyindex(pyint(n)), pyint(n))
+        end
+    end
+    @testset "pyadd" begin
+        for x in -2:2
+            for y in -2:2
+                @test pyeq(Bool, pyadd(pyint(x), pyint(y)), pyint(x+y))
+            end
+        end
+    end
+    @testset "pysub" begin
+        for x in -2:2
+            for y in -2:2
+                @test pyeq(Bool, pysub(pyint(x), pyint(y)), pyint(x-y))
+            end
+        end
+    end
+    @testset "pymul" begin
+        for x in -2:2
+            for y in -2:2
+                @test pyeq(Bool, pymul(pyint(x), pyint(y)), pyint(x*y))
+            end
+        end
+    end
+    # TODO
+    # @testset "pymatmul" begin
+    #     for x in -2:2
+    #         for y in -2:2
+    #             @test pyeq(Bool, pymul(pyint(x), pyint(y)), pyint(x*y))
+    #         end
+    #     end
+    # end
+    @testset "pytruediv" begin
+        for x in -2:2
+            for y in -2:2
+                if y == 0
+                    @test_throws PyException pytruediv(pyint(x), pyint(y))
+                else
+                    @test pyeq(Bool, pytruediv(pyint(x), pyint(y)), pyfloat(x/y))
+                end
+            end
+        end
+    end
+    @testset "pyfloordiv" begin
+        for x in -2:2
+            for y in -2:2
+                if y == 0
+                    @test_throws PyException pyfloordiv(pyint(x), pyint(y))
+                else
+                    @test pyeq(Bool, pyfloordiv(pyint(x), pyint(y)), pyfloat(fld(x, y)))
+                end
+            end
+        end
+    end
+    @testset "pymod" begin
+        for x in -2:2
+            for y in -2:2
+                if y == 0
+                    @test_throws PyException pymod(pyint(x), pyint(y))
+                else
+                    @test pyeq(Bool, pymod(pyint(x), pyint(y)), pyint(mod(x, y)))
+                end
+            end
+        end
+    end
+    @testset "pydivmod" begin
+        for x in -2:2
+            for y in -2:2
+                if y == 0
+                    @test_throws PyException pydivmod(pyint(x), pyint(y))
+                else
+                    @test pyeq(Bool, pydivmod(pyint(x), pyint(y)), pytuple(fldmod(x, y)))
+                end
+            end
+        end
+    end
+    @testset "pylshift" begin
+        for n in 0:3
+            @test pyeq(Bool, pylshift(pyint(123), pyint(n)), pyint(123 << n))
+        end
+    end
+    @testset "pyrshift" begin
+        for n in 0:3
+            @test pyeq(Bool, pyrshift(pyint(123), pyint(n)), pyint(123 >> n))
+        end
+    end
+    @testset "pyand" begin
+        for x in 0:3
+            for y in 0:3
+                @test pyeq(Bool, pyand(pyint(x), pyint(y)), pyint(x & y))
+            end
+        end
+    end
+    @testset "pyxor" begin
+        for x in 0:3
+            for y in 0:3
+                @test pyeq(Bool, pyxor(pyint(x), pyint(y)), pyint(x ⊻ y))
+            end
+        end
+    end
+    @testset "pyor" begin
+        for x in 0:3
+            for y in 0:3
+                @test pyeq(Bool, pyor(pyint(x), pyint(y)), pyint(x | y))
+            end
+        end
+    end
+    # TODO: in-place operators
+end

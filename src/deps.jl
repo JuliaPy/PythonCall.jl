@@ -159,6 +159,7 @@ function can_skip_resolve()
     # resolve whenever any of the environments in the load_path changes
     timestamp = get(deps, "timestamp", nothing)
     timestamp === nothing && return false
+    timestamp = max(timestamp, stat(meta_file()).mtime)
     load_path = get(deps, "load_path", nothing)
     load_path === nothing && return false
     load_path != Base.load_path() && return false
@@ -178,7 +179,7 @@ function can_skip_resolve()
             stat(fn).mtime < timestamp || return false
         end
     end
-    return false
+    return true
 end
 
 """
@@ -455,11 +456,11 @@ Keyword arguments (all optional):
 - `resolve=true`: When true, immediately resolve the dependencies. Otherwise, the
   dependencies are not resolved until you call [`resolve`](@ref) or load PythonCall in a
   new Julia session.
-- `create=true`: When true, creates the environment from scratch when resolving.
+- `create=false`: When true, creates the environment from scratch when resolving.
 
 The conda and pip packages can include version specifiers, such as `python>=3.6`.
 """
-function add(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothing, pip_packages=nothing, script_expr=nothing, script_file=nothing, resolve=true, create=true)
+function add(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothing, pip_packages=nothing, script_expr=nothing, script_file=nothing, resolve=true, create=false)
     file = user_deps_file()
     deps = isfile(file) ? TOML.parsefile(file) : Dict{String,Any}()
     if conda_channels !== nothing

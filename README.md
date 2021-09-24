@@ -1,12 +1,10 @@
 ![PythonCall.jl logo](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/master/logo-text.svg)
 ---
-[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://cjdoris.github.io/PythonCall.jl/stable)
 [![Dev Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://cjdoris.github.io/PythonCall.jl/dev)
 [![Test Status](https://github.com/cjdoris/PythonCall.jl/workflows/Tests/badge.svg)](https://github.com/cjdoris/PythonCall.jl/actions?query=workflow%3ATests)
 [![Codecov](https://codecov.io/gh/cjdoris/PythonCall.jl/branch/master/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/cjdoris/PythonCall.jl)
-
-**Note: This package is currently being re-written from scratch. Install `PythonCall#master` for the latest version, and see the [dev docs](https://cjdoris.github.io/PythonCall.jl/dev).**
 
 Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://julialang.org/) together in seamless harmony:
 - Call Python code from Julia and Julia code from Python via a symmetric interface.

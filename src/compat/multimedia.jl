@@ -113,5 +113,5 @@ end
 function init_pyshow()
     pyshow_add_rule(pyshow_rule_mimebundle)
     pyshow_add_rule(pyshow_rule_repr)
-    pyshow_add_rule(pyshow_rule_savefig)
+    # pyshow_add_rule(pyshow_rule_savefig)
 end

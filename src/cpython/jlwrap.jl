@@ -169,7 +169,7 @@ function _pyjl_get_buffer(o::PyPtr, buf::Ptr{Py_buffer}, flags::Cint)
         x = PyJuliaValue_GetValue(o)
         return _pyjl_get_buffer_impl(o, buf, flags, x, f)::Cint
     catch exc
-        @show exc
+        @debug "error getting the buffer" exc
         PyErr_SetString(POINTERS.PyExc_BufferError, "some error occurred getting the buffer")
         return Cint(-1)
     end

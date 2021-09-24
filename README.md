@@ -21,10 +21,10 @@ To get started, read the [documentation](https://cjdoris.github.io/PythonCall.jl
 
 ## Example 1: Calling Python from Julia
 
-In this example, we use `PythonCall.jl` from an IJulia notebook to inspect the Iris dataset:
-- We load the Iris dataset as a Julia `DataFrame` using `RDatasets.jl`.
-- We use `pypandasdataframe(df)` to convert it to a Python `pandas.DataFrame`.
-- We use the Python package `seaborn` to produce a pair-plot, which is automatically displayed.
+In this example, we use `PythonCall.jl` from a [`Pluto`](https://github.com/fonsp/Pluto.jl) notebook to inspect the Iris dataset:
+- We load the Iris dataset as a Julia [`DataFrame`](https://dataframes.juliadata.org/stable/) using [`RDatasets.jl`](https://github.com/JuliaStats/RDatasets.jl).
+- We use `pytable(df)` to convert it to a Python [`pandas.DataFrame`](https://pandas.pydata.org/).
+- We use the Python package [`seaborn`](https://seaborn.pydata.org/) to produce a pair-plot, which is automatically displayed.
 
 ![Seaborn example screenshot](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/master/examples/seaborn.png)
 

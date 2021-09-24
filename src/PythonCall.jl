@@ -84,6 +84,7 @@ function __init__()
         init_consts()
         init_pyconvert()
         init_datetime()
+        init_pyshow()
         # juliacall/jlwrap
         init_juliacall()
         init_jlwrap_base()

@@ -1,54 +1,117 @@
-py_mime_reprmethod(::MIME) = nothing
-py_mime_reprmethod(::MIME"text/plain") = "__repr__"
-py_mime_reprmethod(::MIME"text/html") = "_repr_html_"
-py_mime_reprmethod(::MIME"text/markdown") = "_repr_markdown_"
-py_mime_reprmethod(::MIME"text/json") = "_repr_json_"
-py_mime_reprmethod(::MIME"text/latex") = "_repr_latex_"
-py_mime_reprmethod(::MIME"application/javascript") = "_repr_javascript_"
-py_mime_reprmethod(::MIME"application/pdf") = "_repr_pdf_"
-py_mime_reprmethod(::MIME"image/jpeg") = "_repr_jpeg_"
-py_mime_reprmethod(::MIME"image/png") = "_repr_png_"
-py_mime_reprmethod(::MIME"image/svg+xml") = "_repr_svg_"
+### Extensible system for multimedia display of Python objects
 
-py_mime_data(m::MIME, o) = begin
-    o = Py(o)
-    r = py_mime_reprmethod(m)
-    data = nothing
-    meta = nothing
+const PYSHOW_RULES = Function[]
+
+function pyshow_add_rule(rule::Function)
+    push!(PYSHOW_RULES, rule)
+    return
+end
+
+function pyshow(io::IO, mime::MIME, x)
+    x_ = Py(x)
+    for rule in PYSHOW_RULES
+        rule(io, string(mime), x_) && return
+    end
+    throw(MethodError(show, (io, mime, x_)))
+end
+
+function pyshowable(mime::MIME, x)
+    x_ = Py(x)
+    for rule in PYSHOW_RULES
+        rule(devnull, string(mime), x_) && return true
+    end
+    return false
+end
+
+### Particular rules
+
+function pyshow_rule_mimebundle(io::IO, mime::String, x::Py)
     try
-        x = o.__class__._repr_mimebundle_(o, include=pylist((string(m),)))
-        if pyisinstance(x, pybuiltins.tuple)
-            data = x[0][string(m)]
-            meta = x[1].get(string(m))
+        ans = x._repr_mimebundle_(include=pylist((mime,)))
+        if pyisinstance(ans, pybuiltins.tuple)
+            data = ans[0][mime]
+            meta = ans[1].get(mime)
         else
-            data = x[m]
+            data = ans[mime]
+            meta = pybuiltins.None
         end
+        write(io, pyconvert(Union{String,Vector{UInt8}}, data))
+        return true
     catch exc
-        exc isa PyException || rethrow()
-    end
-    if data === nothing && r !== nothing
-        try
-            x = pygetattr(o.__class__, r)(o)
-            if pyisinstance(x, pybuiltins.tuple)
-                data = x[0]
-                meta = x[1]
-            else
-                data = x
-            end
-        catch exc
-            exc isa PyException || rethrow()
+        if exc isa PyException
+            return false
+        else
+            rethrow()
         end
     end
-    data, meta
 end
 
-py_mime_showable(m::MIME, o) = begin
-    data, meta = py_mime_data(m, o)
-    data !== nothing
+const MIME_TO_REPR_METHOD = Dict(
+    "text/plain" => "__repr__",
+    "text/html" => "_repr_html_",
+    "text/markdown" => "_repr_markdown_",
+    "text/json" => "_repr_json_",
+    "text/latex" => "_repr_latex_",
+    "application/javascript" => "_repr_javascript_",
+    "application/pdf" => "_repr_pdf_",
+    "image/jpeg" => "_repr_jpeg_",
+    "image/png" => "_repr_png_",
+    "image/svg+xml" => "_repr_svg_",
+)
+
+function pyshow_rule_repr(io::IO, mime::String, x::Py)
+    method = get(MIME_TO_REPR_METHOD, mime, "")
+    isempty(method) && return false
+    try
+        ans = pygetattr(x, method)()
+        if pyisinstance(ans, pybuiltins.tuple)
+            data = ans[0]
+            meta = ans[1]
+        else
+            data = ans
+            meta = pybuiltins.None
+        end
+        write(io, pyconvert(Union{String,Vector{UInt8}}, data))
+        return true
+    catch exc
+        if exc isa PyException
+            return false
+        else
+            rethrow()
+        end
+    end
 end
 
-py_mime_show(io::IO, m::MIME, o) = begin
-    data, meta = py_mime_data(m, o)
-    write(io, istextmime(m) ? pystr(String, data) : pybytes(Vector{UInt8}, data))
-    nothing
+const MIME_TO_MATPLOTLIB_FORMAT = Dict(
+    "image/png" => "png",
+    "image/jpeg" => "jpeg",
+    "image/tiff" => "tiff",
+    "image/svg+xml" => "svg",
+    "application/pdf" => "pdf",
+)
+
+function pyshow_rule_savefig(io::IO, mime::String, x::Py)
+    # TODO: restrict to types or modules which are known to have a savefig method like this?
+    format = get(MIME_TO_MATPLOTLIB_FORMAT, mime, "")
+    isempty(format) && return false
+    try
+        # buf = pyimport("io").BytesIO()
+        # x.savefig(buf, format=format)
+        # data = pyconvert(Vector{UInt8}, buf.getvalue())
+        # write(io, data)
+        x.savefig(io, format=format)
+        return true
+    catch exc
+        if exc isa PyException
+            return false
+        else
+            rethrow()
+        end
+    end
+end
+
+function init_pyshow()
+    pyshow_add_rule(pyshow_rule_mimebundle)
+    pyshow_add_rule(pyshow_rule_repr)
+    pyshow_add_rule(pyshow_rule_savefig)
 end

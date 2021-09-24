@@ -210,10 +210,10 @@ function Base.show(io::IO, mime::MIME"text/plain", o::Py)
     end
 end
 
-Base.show(io::IO, mime::MIME, o::Py) = py_mime_show(io, mime, o)
-Base.show(io::IO, mime::MIME"text/csv", o::Py) = py_mime_show(io, mime, o)
-Base.show(io::IO, mime::MIME"text/tab-separated-values", o::Py) = py_mime_show(io, mime, o)
-Base.showable(mime::MIME, o::Py) = py_mime_showable(mime, o)
+Base.show(io::IO, mime::MIME, o::Py) = pyshow(io, mime, o)
+Base.show(io::IO, mime::MIME"text/csv", o::Py) = pyshow(io, mime, o)
+Base.show(io::IO, mime::MIME"text/tab-separated-values", o::Py) = pyshow(io, mime, o)
+Base.showable(mime::MIME, o::Py) = pyshowable(mime, o)
 
 Base.getproperty(x::Py, k::Symbol) = pygetattr(x, string(k))
 Base.getproperty(x::Py, k::String) = pygetattr(x, k)

@@ -20,19 +20,24 @@ In the other direction, the following functions can be used to convert any `Tabl
 pytable
 ```
 
-## MatPlotLib / PyPlot
+## MatPlotLib / PyPlot / Seaborn
 
-```@docs
-pyplot_show
-```
+MatPlotLib figures can be shown with Julia's display mechanism,
+like `display(fig)` or `display(mime, fig)`.
 
-If Julia is running an IJulia kernel, `pyplot_show()` is automatically called after executing a cell, so that plots generated in a cell are always shown (similar to IPython). It can be disabled by setting `PythonCall.CONFIG.auto_pyplot_show = false`.
+This means that if you return a figure from a Jupyter or Pluto notebook cell,
+it will be shown. You can call `display(plt.gcf())` to display the current figure.
+
+We also provide a simple MatPlotLib backend: `mpl.use("module://juliacall.matplotlib")`.
+Now you can call `plt.show()` to display the figure with Julia's display mechanism.
+You can specify the format like `plt.show(format="png")`.
 
 ## GUIs (including MatPlotLib)
 
 ### Event loops
 
-If for example you wish to use PyPlot in interactive mode (`matplotlib.pyplot.ion()`) then activating the correct event loop will allow it to work.
+If for example you wish to use PyPlot in interactive mode (`matplotlib.pyplot.ion()`)
+then activating the correct event loop will allow it to work.
 
 ```@docs
 PythonCall.event_loop_on

@@ -25,15 +25,14 @@ end
 
 ### Particular rules
 
+# x._repr_mimebundle_()
 function pyshow_rule_mimebundle(io::IO, mime::String, x::Py)
     try
         ans = x._repr_mimebundle_(include=pylist((mime,)))
         if pyisinstance(ans, pybuiltins.tuple)
             data = ans[0][mime]
-            meta = ans[1].get(mime)
         else
             data = ans[mime]
-            meta = pybuiltins.None
         end
         write(io, pyconvert(Union{String,Vector{UInt8}}, data))
         return true
@@ -59,6 +58,7 @@ const MIME_TO_REPR_METHOD = Dict(
     "image/svg+xml" => "_repr_svg_",
 )
 
+# x._repr_FORMAT_()
 function pyshow_rule_repr(io::IO, mime::String, x::Py)
     method = get(MIME_TO_REPR_METHOD, mime, "")
     isempty(method) && return false
@@ -66,10 +66,8 @@ function pyshow_rule_repr(io::IO, mime::String, x::Py)
         ans = pygetattr(x, method)()
         if pyisinstance(ans, pybuiltins.tuple)
             data = ans[0]
-            meta = ans[1]
         else
             data = ans
-            meta = pybuiltins.None
         end
         write(io, pyconvert(Union{String,Vector{UInt8}}, data))
         return true
@@ -90,16 +88,25 @@ const MIME_TO_MATPLOTLIB_FORMAT = Dict(
     "application/pdf" => "pdf",
 )
 
+# x.savefig()
+# Requires x to be a matplotlib.pyplot.Figure, or x.figure to be one.
+# Closes the underlying figure.
 function pyshow_rule_savefig(io::IO, mime::String, x::Py)
-    # TODO: restrict to types or modules which are known to have a savefig method like this?
     format = get(MIME_TO_MATPLOTLIB_FORMAT, mime, "")
     isempty(format) && return false
+    pyhasattr(x, "savefig") || return false
     try
-        # buf = pyimport("io").BytesIO()
-        # x.savefig(buf, format=format)
-        # data = pyconvert(Vector{UInt8}, buf.getvalue())
-        # write(io, data)
-        x.savefig(io, format=format)
+        plt = pysysmodule.modules["matplotlib.pyplot"]
+        Figure = plt.Figure
+        fig = x
+        while !pyisinstance(fig, Figure)
+            fig = fig.figure
+        end
+        buf = pyimport("io").BytesIO()
+        x.savefig(buf, format=format)
+        data = pyconvert(Vector{UInt8}, buf.getvalue())
+        write(io, data)
+        plt.close(fig)
         return true
     catch exc
         if exc isa PyException
@@ -113,5 +120,5 @@ end
 function init_pyshow()
     pyshow_add_rule(pyshow_rule_mimebundle)
     pyshow_add_rule(pyshow_rule_repr)
-    # pyshow_add_rule(pyshow_rule_savefig)
+    pyshow_add_rule(pyshow_rule_savefig)
 end

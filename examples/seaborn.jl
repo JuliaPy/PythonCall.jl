@@ -5,10 +5,10 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ e9dcc3e9-7c0f-40aa-b633-1242aacca66c
-using Pkg; Pkg.activate("tmp", shared=true)
+using Pkg; Pkg.activate("tmp", shared=true);
 
 # ╔═╡ 545b2750-1bc5-11ec-1d6a-275133eec22d
-using PythonCall, RDatasets
+using PythonCall, RDatasets;
 
 # ╔═╡ dbf0b8fc-d9d1-492a-892e-79f1ea86c345
 iris = dataset("datasets", "iris");

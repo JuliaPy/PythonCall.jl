@@ -62,10 +62,10 @@ end
     end
 end
 
-pyconvert_rule_array(::Type{A}, x::Py) where {A<:PyArray} = pyarray_make(A, x, copy=false)
+pyconvert_rule_array_nocopy(::Type{A}, x::Py) where {A<:PyArray} = pyarray_make(A, x, copy=false)
 
 function pyconvert_rule_array(::Type{A}, x::Py) where {A<:AbstractArray}
-    r = pyconvert_rule_array(PyArray, x)
+    r = pyarray_make(PyArray, x)
     if pyconvert_isunconverted(r)
         return pyconvert_unconverted()
     else

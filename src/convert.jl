@@ -142,14 +142,37 @@ function pyconvert_get_rules(type::Type, pytype::Py)
     @assert all(pyis(x,y) for (x,y) in zip(omro, omro_))
 
     # get the names of the types in the MRO of pytype
-    mro = String["$(t.__module__)/$(t.__qualname__)" for t in mro]
+    xmro = [["$(t.__module__)/$(t.__qualname__)"] for t in mro]
 
-    # add special names
-    # currently we don't care where they go because they are tested in their own priority (200)
-    pyhasattr(pytype, "__array_struct__") && push!(mro, "<arraystruct>")
-    pyhasattr(pytype, "__array_interface__") && push!(mro, "<arrayinterface>")
-    pyhasattr(pytype, "__array__") && push!(mro, "<array>")
-    C.PyType_CheckBuffer(getptr(pytype)) && push!(mro, "<buffer>")
+    # add special names corresponding to certain interfaces
+    # these get inserted just above the topmost type satisfying the interface
+    for (t, x) in reverse(collect(zip(mro, xmro)))
+        if pyhasattr(t, "__array_struct__")
+            push!(x, "<arraystruct>")
+            break
+        end
+    end
+    for (t, x) in reverse(collect(zip(mro, xmro)))
+        if pyhasattr(t, "__array_interface__")
+            push!(x, "<arrayinterface>")
+            break
+        end
+    end
+    for (t, x) in reverse(collect(zip(mro, xmro)))
+        if pyhasattr(t, "__array__")
+            push!(x, "<array>")
+            break
+        end
+    end
+    for (t, x) in reverse(collect(zip(mro, xmro)))
+        if C.PyType_CheckBuffer(getptr(t))
+            push!(x, "<buffer>")
+            break
+        end
+    end
+
+    # flatten to get the MRO as a list of strings
+    mro = String[x for xs in xmro for x in xs]
 
     # get corresponding rules
     rules = PyConvertRule[rule for tname in mro for rule in get!(Vector{PyConvertRule}, PYCONVERT_RULES, tname)]
@@ -172,7 +195,7 @@ function pyconvert_get_rules(type::Type, pytype::Py)
     # filter out repeated rules
     rules = [rule for (i, rule) in enumerate(rules) if !any((rule.func === rules[j].func) && ((rule.type) <: (rules[j].type)) for j in 1:(i-1))]
 
-    # @info "pyconvert" rules
+    @debug "pyconvert" type pytype mro=join(mro, " ") rules
     return Function[pyconvert_fix(rule.type, rule.func) for rule in rules]
 end
 
@@ -282,10 +305,10 @@ function init_pyconvert()
     pyconvert_add_rule("juliacall/As", Any, pyconvert_rule_jlas, 300)
     pyconvert_add_rule("juliacall/ValueBase", Any, pyconvert_rule_jlvalue, 300)
     # priority 200: arrays
-    pyconvert_add_rule("<arraystruct>", AbstractArray, pyconvert_rule_array, 200)
-    pyconvert_add_rule("<arrayinterface>", AbstractArray, pyconvert_rule_array, 200)
-    pyconvert_add_rule("<array>", AbstractArray, pyconvert_rule_array, 200)
-    pyconvert_add_rule("<buffer>", AbstractArray, pyconvert_rule_array, 200)
+    pyconvert_add_rule("<arraystruct>", PyArray, pyconvert_rule_array_nocopy, 200)
+    pyconvert_add_rule("<arrayinterface>", PyArray, pyconvert_rule_array_nocopy, 200)
+    pyconvert_add_rule("<array>", PyArray, pyconvert_rule_array_nocopy, 200)
+    pyconvert_add_rule("<buffer>", PyArray, pyconvert_rule_array_nocopy, 200)
     # priority 100: canonical
     pyconvert_add_rule("builtins/NoneType", Nothing, pyconvert_rule_none, 100)
     pyconvert_add_rule("builtins/bool", Bool, pyconvert_rule_bool, 100)
@@ -327,6 +350,14 @@ function init_pyconvert()
     pyconvert_add_rule("collections.abc/Sequence", Tuple, pyconvert_rule_iterable)
     pyconvert_add_rule("collections.abc/Set", Set, pyconvert_rule_iterable)
     pyconvert_add_rule("collections.abc/Mapping", Dict, pyconvert_rule_mapping)
+    pyconvert_add_rule("<arraystruct>", Array, pyconvert_rule_array)
+    pyconvert_add_rule("<arrayinterface>", Array, pyconvert_rule_array)
+    pyconvert_add_rule("<array>", Array, pyconvert_rule_array)
+    pyconvert_add_rule("<buffer>", Array, pyconvert_rule_array)
+    pyconvert_add_rule("<arraystruct>", AbstractArray, pyconvert_rule_array)
+    pyconvert_add_rule("<arrayinterface>", AbstractArray, pyconvert_rule_array)
+    pyconvert_add_rule("<array>", AbstractArray, pyconvert_rule_array)
+    pyconvert_add_rule("<buffer>", AbstractArray, pyconvert_rule_array)
     # priority -100: fallbacks
     pyconvert_add_rule("builtins/object", Py, pyconvert_rule_object, -100)
     # priority -200: explicit

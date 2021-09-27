@@ -64,6 +64,15 @@ end
 
 pyconvert_rule_array(::Type{A}, x::Py) where {A<:PyArray} = pyarray_make(A, x, copy=false)
 
+function pyconvert_rule_array(::Type{A}, x::Py) where {A<:AbstractArray}
+    r = pyconvert_rule_array(PyArray, x)
+    if pyconvert_isunconverted(r)
+        return pyconvert_unconverted()
+    else
+        return pyconvert_tryconvert(A, pyconvert_result(PyArray, r))
+    end
+end
+
 abstract type PyArraySource end
 
 function pyarray_make(::Type{A}, x::Py; array::Bool=true, buffer::Bool=true, copy::Bool=true) where {A<:PyArray}

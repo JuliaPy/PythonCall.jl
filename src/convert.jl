@@ -140,10 +140,16 @@ function pyconvert_get_rules(type::Type, pytype::Py)
     omro_ = filter(t -> pyisin(t, omro), mro)
     @assert length(omro) == length(omro_)
     @assert all(pyis(x,y) for (x,y) in zip(omro, omro_))
-    # TODO: special cases (buffer protocol, etc.)
 
     # get the names of the types in the MRO of pytype
     mro = String["$(t.__module__)/$(t.__qualname__)" for t in mro]
+
+    # add special names
+    # currently we don't care where they go because they are tested in their own priority (200)
+    pyhasattr(pytype, "__array_struct__") && push!(mro, "<arraystruct>")
+    pyhasattr(pytype, "__array_interface__") && push!(mro, "<arrayinterface>")
+    pyhasattr(pytype, "__array__") && push!(mro, "<array>")
+    C.PyType_CheckBuffer(getptr(pytype)) && push!(mro, "<buffer>")
 
     # get corresponding rules
     rules = PyConvertRule[rule for tname in mro for rule in get!(Vector{PyConvertRule}, PYCONVERT_RULES, tname)]
@@ -276,6 +282,10 @@ function init_pyconvert()
     pyconvert_add_rule("juliacall/As", Any, pyconvert_rule_jlas, 300)
     pyconvert_add_rule("juliacall/ValueBase", Any, pyconvert_rule_jlvalue, 300)
     # priority 200: arrays
+    pyconvert_add_rule("<arraystruct>", AbstractArray, pyconvert_rule_array, 200)
+    pyconvert_add_rule("<arrayinterface>", AbstractArray, pyconvert_rule_array, 200)
+    pyconvert_add_rule("<array>", AbstractArray, pyconvert_rule_array, 200)
+    pyconvert_add_rule("<buffer>", AbstractArray, pyconvert_rule_array, 200)
     # priority 100: canonical
     pyconvert_add_rule("builtins/NoneType", Nothing, pyconvert_rule_none, 100)
     pyconvert_add_rule("builtins/bool", Bool, pyconvert_rule_bool, 100)

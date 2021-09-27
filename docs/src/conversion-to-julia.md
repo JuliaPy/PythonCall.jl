@@ -18,8 +18,9 @@ The following table specifies the conversion rules in place. If the initial Pyth
 | :----------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------- |
 | **Top priority (wrapped values).**                                                                           |                                                             |
 | `juliacall.AnyValue`                                                                                         | `Any`                                                       |
+| `juliacall.As`                                                                                               | `Any`                                                       |
 | **Very high priority (arrays).**                                                                             |                                                             |
-| Objects satisfying the buffer or array interface (inc. `bytes`, `bytearray`, `array.array`, `numpy.ndarray`) | `PyArray`                                                   |
+| Objects satisfying the buffer or array interface (inc. `bytes`, `bytearray`, `array.array`, `numpy.ndarray`) | `PyArray`, `Array`, `AbstractArray`                         |
 | **High priority (canonical conversions).**                                                                   |                                                             |
 | `None`                                                                                                       | `Nothing`                                                   |
 | `bool`                                                                                                       | `Bool`                                                      |

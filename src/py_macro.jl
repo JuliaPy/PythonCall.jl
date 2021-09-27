@@ -675,8 +675,9 @@ end
 function py_macro_lower_bool(st, body, ans, ex)
     # TODO: special cases to avoid round-tripping bools from Julia to Python to Julia
     @gensym x
-    t = py_macro_lower(st, body, x, ex)
+    tx = py_macro_lower(st, body, x, ex)
     py_macro_assign(body, ans, :($pytruth($x)))
+    py_macro_del(body, x, tx)
     return
 end
 

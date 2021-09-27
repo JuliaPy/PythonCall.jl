@@ -82,6 +82,11 @@ pyconvert_tryconvert(::Type{T}, x) where {T} =
         pyconvert_unconverted()
     end
 
+function pyconvert_typename(t::Py)
+    m = pygetattr(t, "__module__", "<unknown>")
+    n = pygetattr(t, "__name__", "<name>")
+    return "$m/$n"
+end
 
 function pyconvert_get_rules(type::Type, pytype::Py)
     @nospecialize type
@@ -142,7 +147,7 @@ function pyconvert_get_rules(type::Type, pytype::Py)
     @assert all(pyis(x,y) for (x,y) in zip(omro, omro_))
 
     # get the names of the types in the MRO of pytype
-    xmro = [["$(t.__module__)/$(t.__qualname__)"] for t in mro]
+    xmro = [String[pyconvert_typename(t)] for t in mro]
 
     # add special names corresponding to certain interfaces
     # these get inserted just above the topmost type satisfying the interface

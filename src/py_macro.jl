@@ -11,6 +11,18 @@
 # - generator functions??
 # - splatting
 
+const PY_MACRO_NILOPS = Dict(
+    :help => (pyhelp, false),
+    :int => (pyint, true),
+    :float => (pyfloat, true),
+    :complex => (pycomplex, true),
+    :tuple => (pytuple, true),
+    :list => (pylist, true),
+    :dict => (pydict, true),
+    :set => (pyset, true),
+    :frozenset => (pyfrozenset, true),
+)
+
 const PY_MACRO_UNOPS = Dict(
     # operators
     :(+) => (pypos, true),
@@ -18,17 +30,22 @@ const PY_MACRO_UNOPS = Dict(
     :(~) => (pyinv, true),
     # builtins
     :abs => (pyabs, true),
+    :all => (pyall, false),
+    :any => (pyany, false),
     :ascii => (pyascii, true),
     :bytes => (pybytes, true),
     :bool => (pybool, true),
+    :callable => (pycallable, false),
     :complex => (pycomplex, true),
     :dict => (pydict, true),
     :dir => (pydir, true),
     :float => (pyfloat, true),
     :frozenset => (pyfrozenset, true),
+    :help => (pyhelp, false),
     :int => (pyint, true),
     :iter => (pyiter, true),
     :list => (pylist, true),
+    :next => (pynext, true),
     :range => (pyrange, true),
     :repr => (pyrepr, true),
     :set => (pyset, true),
@@ -201,10 +218,18 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         af = ex.args[1]
         # is it a special operator?
         isop = false
+        if haskey(PY_MACRO_NILOPS, af)
+            isop = true
+            if length(ex.args) == 1
+                op, t = PY_MACRO_NILOPS[af]
+                py_macro_assign(body, ans, :($op()))
+                return t
+            end
+        end
         if haskey(PY_MACRO_UNOPS, af)
             isop = true
-            op, t = PY_MACRO_UNOPS[af]
             if length(ex.args) == 2
+                op, t = PY_MACRO_UNOPS[af]
                 ax, = ex.args[2:end]
                 @gensym x
                 tx = py_macro_lower(st, body, x, ax)
@@ -215,8 +240,8 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         end
         if haskey(PY_MACRO_BINOPS, af)
             isop = true
-            op, t = PY_MACRO_BINOPS[af]
             if length(ex.args) == 3
+                op, t = PY_MACRO_BINOPS[af]
                 ax, ay = ex.args[2:end]
                 @gensym x y
                 tx = py_macro_lower(st, body, x, ax)
@@ -229,8 +254,8 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         end
         if haskey(PY_MACRO_TERNOPS, af)
             isop = true
-            op, t = PY_MACRO_TERNOPS[af]
             if length(ex.args) == 4
+                op, t = PY_MACRO_TERNOPS[af]
                 ax, ay, az = ex.args[2:end]
                 @gensym x y z
                 tx = py_macro_lower(st, body, x, ax)
@@ -285,7 +310,14 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
             py_macro_assign(body, ans, :($pycallargs($f)))
             py_macro_del(body, f, tf)
         end
-        return true
+        if af === :print
+            # treat print as a special case since it is variadic
+            push!(body, :($pydel!($ans)))
+            py_macro_assign(body, ans, nothing)
+            return false
+        else
+            return true
+        end
 
     # (...)
     elseif isexpr(ex, :tuple)

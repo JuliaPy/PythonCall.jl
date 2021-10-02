@@ -105,6 +105,7 @@ def can_skip_resolve():
     timestamp = deps.get("timestamp")
     if timestamp is None:
         return False
+    timestamp = max(os.path.getmtime(CONFIG["meta"]), timestamp)
     sys_path = deps.get("sys_path")
     if sys_path is None or sys_path != sys.path:
         return False

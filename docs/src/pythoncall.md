@@ -268,3 +268,17 @@ PythonCall.Deps.resolve
 PythonCall.Deps.conda_env
 PythonCall.Deps.user_deps_file
 ```
+
+## Low-level API
+
+The functions here are not exported. They are mostly unsafe in the sense that you can
+crash Julia by using them incorrectly.
+
+```@docs
+PythonCall.pynew
+PythonCall.pyisnull
+PythonCall.getptr
+PythonCall.pycopy!
+PythonCall.pydel!
+PythonCall.unsafe_pynext
+```

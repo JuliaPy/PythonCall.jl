@@ -4,7 +4,6 @@ authors = ["Christopher Doris <github.com/cjdoris>"]
 version = "0.3.0"
 
 [deps]
-Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 IteratorInterfaceExtensions = "82899510-4779-5014-852e-03e436cf321d"
@@ -22,7 +21,6 @@ Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 UnsafePointers = "e17b2a0c-0bdf-430a-bd0c-3a23cae4ff39"
 
 [compat]
-Compat = "2.0.0, 3"
 Conda = "1.5"
 IteratorInterfaceExtensions = "1"
 JSON = "0.21"
@@ -34,7 +32,8 @@ UnsafePointers = "1"
 julia = "1"
 
 [extras]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["Aqua", "Test"]

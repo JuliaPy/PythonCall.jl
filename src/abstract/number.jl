@@ -185,7 +185,7 @@ pyixor(x, y) = pynew(errcheck(@autopy x y C.PyNumber_InPlaceXor(getptr(x_), getp
 In-place or. `x = pyior(x, y)` is equivalent to `x |= y` in Python.
 """
 pyior(x, y) = pynew(errcheck(@autopy x y C.PyNumber_InPlaceOr(getptr(x_), getptr(y_))))
-export pyiadd, pyisub, pyimul, pyimatmul, pyifloordiv, pyitruediv, pyimod, pyidivmod, pyilshift, pyirshift, pyiand, pyixor, pyior
+export pyiadd, pyisub, pyimul, pyimatmul, pyifloordiv, pyitruediv, pyimod, pyilshift, pyirshift, pyiand, pyixor, pyior
 
 # power
 """

@@ -169,6 +169,7 @@ module Utils
 
     struct StaticString{T,N} <: AbstractString
         codeunits :: NTuple{N,T}
+        StaticString{T,N}(codeunits::NTuple{N,T}) where {T,N} = new{T,N}(codeunits)
     end
 
     function Base.convert(::Type{String}, x::StaticString)
@@ -192,7 +193,7 @@ module Utils
 
     (::Type{T})(x::AbstractString) where {T<:StaticString} = convert(T, x)
 
-    function Base.iterate(x::StaticString, st=nothing)
+    function Base.iterate(x::StaticString, st::Union{Nothing,Tuple}=nothing)
         if st === nothing
             s = String(x)
             z = iterate(s)

@@ -260,7 +260,7 @@ Base.eltype(::Type{Py}) = Py
 Base.IteratorSize(::Type{Py}) = Base.SizeUnknown()
 
 function Base.iterate(x::Py, it::Py=pyiter(x))
-    v = pynext(it)
+    v = unsafe_pynext(it)
     if ispynull(v)
         pydel!(it)
         nothing

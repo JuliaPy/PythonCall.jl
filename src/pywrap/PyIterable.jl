@@ -20,7 +20,7 @@ Base.IteratorSize(::Type{PyIterable{T}}) where {T} = Base.SizeUnknown()
 Base.eltype(::Type{PyIterable{T}}) where {T} = T
 
 function Base.iterate(x::PyIterable{T}, it::Py=pyiter(x)) where {T}
-    y = pynext(it)
+    y = unsafe_pynext(it)
     if ispynull(y)
         pydel!(it)
         return nothing

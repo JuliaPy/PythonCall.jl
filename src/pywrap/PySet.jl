@@ -30,7 +30,7 @@ Base.length(x::PySet) = Int(pylen(x))
 Base.isempty(x::PySet) = length(x) == 0
 
 function Base.iterate(x::PySet{T}, it::Py=pyiter(x)) where {T}
-    y = pynext(it)
+    y = unsafe_pynext(it)
     if ispynull(y)
         pydel!(it)
         return nothing

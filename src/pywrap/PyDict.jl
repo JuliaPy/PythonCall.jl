@@ -33,7 +33,7 @@ pyconvert_rule_mapping(::Type{T}, x::Py, ::Type{PyDict{K,V}}=Utils._type_ub(T)) 
 Base.length(x::PyDict) = Int(pylen(x))
 
 function Base.iterate(x::PyDict{K,V}, it::Py=pyiter(x)) where {K,V}
-    k_ = pynext(it)
+    k_ = unsafe_pynext(it)
     ispynull(k_) && return nothing
     v_ = pygetitem(x, k_)
     k = pyconvert_and_del(K, k_)
@@ -42,7 +42,7 @@ function Base.iterate(x::PyDict{K,V}, it::Py=pyiter(x)) where {K,V}
 end
 
 function Base.iterate(x::Base.KeySet{K,PyDict{K,V}}, it::Py=pyiter(x.dict)) where {K,V}
-    k_ = pynext(it)
+    k_ = unsafe_pynext(it)
     ispynull(k_) && return nothing
     k = pyconvert_and_del(K, k_)
     return (k, it)

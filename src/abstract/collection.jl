@@ -3,7 +3,7 @@
 function _pyconvert_rule_iterable(ans::Vector{T0}, it::Py, ::Type{T1}) where {T0,T1}
     @label again
     x_ = unsafe_pynext(it)
-    if ispynull(x_)
+    if pyisnull(x_)
         pydel!(it)
         return pyconvert_return(ans)
     end
@@ -29,7 +29,7 @@ end
 function _pyconvert_rule_iterable(ans::Set{T0}, it::Py, ::Type{T1}) where {T0,T1}
     @label again
     x_ = unsafe_pynext(it)
-    if ispynull(x_)
+    if pyisnull(x_)
         pydel!(it)
         return pyconvert_return(ans)
     end
@@ -55,7 +55,7 @@ end
 function _pyconvert_rule_mapping(ans::Dict{K0,V0}, x::Py, it::Py, ::Type{K1}, ::Type{V1}) where {K0,V0,K1,V1}
     @label again
     k_ = unsafe_pynext(it)
-    if ispynull(k_)
+    if pyisnull(k_)
         pydel!(it)
         return pyconvert_return(ans)
     end
@@ -128,14 +128,14 @@ end
 function pyconvert_rule_iterable(::Type{R}, x::Py, ::Type{Pair{K0,V0}}=Utils._type_lb(R), ::Type{Pair{K1,V1}}=Utils._type_ub(R)) where {R<:Pair,K0,V0,K1,V1}
     it = pyiter(x)
     k_ = unsafe_pynext(it)
-    if ispynull(k_)
+    if pyisnull(k_)
         pydel!(it)
         pydel!(k_)
         return pyconvert_unconverted()
     end
     k = @pyconvert_and_del(K1, k_)
     v_ = unsafe_pynext(it)
-    if ispynull(v_)
+    if pyisnull(v_)
         pydel!(it)
         pydel!(v_)
         return pyconvert_unconverted()
@@ -143,7 +143,7 @@ function pyconvert_rule_iterable(::Type{R}, x::Py, ::Type{Pair{K0,V0}}=Utils._ty
     v = @pyconvert_and_del(V1, v_)
     z_ = unsafe_pynext(it)
     pydel!(it)
-    if ispynull(z_)
+    if pyisnull(z_)
         pydel!(z_)
     else
         pydel!(z_)

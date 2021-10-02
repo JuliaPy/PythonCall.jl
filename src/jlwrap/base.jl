@@ -110,7 +110,7 @@ end
 function pyjl_handle_error(f, self, exc)
     @nospecialize f self exc
     t = pyjl_handle_error_type(f, self, exc)::Py
-    if ispynull(t)
+    if pyisnull(t)
         # NULL => raise JuliaError
         errset(pyJuliaError, pytuple((pyjlraw(exc), pyjlraw(catch_backtrace()))))
         return C.PyNULL

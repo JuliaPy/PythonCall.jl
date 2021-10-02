@@ -1,10 +1,29 @@
 incref(x::C.PyPtr) = (C.Py_IncRef(x); x)
 decref(x::C.PyPtr) = (C.Py_DecRef(x); x)
 
+"""
+    ispy(x)
+
+True if `x` is a Python object.
+
+This includes `Py` and Python wrapper types such as `PyList`.
+"""
 ispy(x) = false
-ispynull(x) = getptr(x) == C.PyNULL
+export ispy
+
+"""
+    pyisnull(x)
+
+True if the Python object `x` is NULL.
+"""
+pyisnull(x) = getptr(x) == C.PyNULL
+
+"""
+    getptr(x)
+
+Get the underlying pointer from the Python object `x`.
+"""
 getptr(x) = getptr(getpy(x)::Py)
-export ispy, ispynull
 
 """
     Py(x)
@@ -33,6 +52,17 @@ setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, ptr); x)
 
 const PYNULL_CACHE = Py[]
 
+"""
+    pynew([ptr])
+
+A new `Py` representing the Python object at `ptr` (NULL by default).
+
+If `ptr` is given and non-NULL, this function steals a reference to the Python object it
+points at, i.e. the new `Py` object owns a reference.
+
+Note that NULL Python objects are not safe in the sense that most API functions will probably
+crash your Julia session if you pass a NULL argument.
+"""
 pynew() =
     if isempty(PYNULL_CACHE)
         Py(Val(:new), C.PyNULL)
@@ -44,9 +74,37 @@ const PyNULL = pynew()
 
 pynew(ptr::C.PyPtr) = setptr!(pynew(), ptr)
 
-# assumes dst is NULL
+"""
+    pycopy!(dst::Py, src)
+
+Copy the Python object `src` into `dst`, so that they both represent the same object.
+
+This function exists to support module-level constant Python objects. It is illegal to call
+most PythonCall API functions at the top level of a module (i.e. before `__init__()` has run)
+so you cannot do `const x = pything()` at the top level. Instead do `const x = pynew()` at
+the top level then `pycopy!(x, pything())` inside `__init__()`.
+
+Assumes `dst` is NULL, otherwise a memory leak will occur.
+"""
 pycopy!(dst, src) = setptr!(dst, incref(getptr(src)))
 
+"""
+    pydel!(x::Py)
+
+Delete the Python object `x`.
+
+DANGER! Use this function ONLY IF the Julia object `x` could have been garbage-collected
+anyway, i.e. was about to become unreachable. This means you MUST KNOW that no other part of
+the program has the Julia object `x`.
+
+This decrements the reference count, sets the pointer to NULL and appends `x` to a cache
+of unused objects (`PYNULL_CACHE`).
+
+This is an optimization to avoid excessive allocation and deallocation in Julia, which can
+be a significant source of slow-down in code which uses a lot of Python objects. It allows
+`pynew()` to pop an item from `PYNULL_CACHE` instead of allocating one, and avoids calling
+the relatively slow finalizer on `x`.
+"""
 function pydel!(x::Py)
     ptr = getptr(x)
     if ptr != C.PyNULL
@@ -60,8 +118,6 @@ function pystolen!(x::Py)
     push!(PYNULL_CACHE, x)
     nothing
 end
-
-export pynull, pynew, pydel!, pystolen!
 
 macro autopy(args...)
     vs = args[1:end-1]
@@ -94,7 +150,7 @@ Py(x::Time) = pytime(x)
 Py(x::DateTime) = pydatetime(x)
 Py(x) = ispy(x) ? Py(getpy(x)) : pyjl(x)
 
-Base.string(x::Py) = ispynull(x) ? "<py NULL>" : pystr(String, x)
+Base.string(x::Py) = pyisnull(x) ? "<py NULL>" : pystr(String, x)
 Base.print(io::IO, x::Py) = print(io, string(x))
 
 function Base.repr(x::Py)
@@ -124,7 +180,7 @@ end
 
 function Base.show(io::IO, mime::MIME"text/plain", o::Py)
     hasprefix = get(io, :typeinfo, Any) != Py
-    if ispynull(o)
+    if pyisnull(o)
         if hasprefix
             printstyled(io, "Python NULL", bold=true)
         else
@@ -261,7 +317,7 @@ Base.IteratorSize(::Type{Py}) = Base.SizeUnknown()
 
 function Base.iterate(x::Py, it::Py=pyiter(x))
     v = unsafe_pynext(it)
-    if ispynull(v)
+    if pyisnull(v)
         pydel!(it)
         nothing
     else

@@ -80,9 +80,9 @@ end
 function Base.getproperty(exc::PyException, k::Symbol)
     if k in (:t, :v, :b) && !exc._isnormalized
         errnormalize!(exc._t, exc._v, exc._b)
-        ispynull(exc._t) && setptr!(exc._t, incref(getptr(pybuiltins.None)))
-        ispynull(exc._v) && setptr!(exc._v, incref(getptr(pybuiltins.None)))
-        ispynull(exc._b) && setptr!(exc._b, incref(getptr(pybuiltins.None)))
+        pyisnull(exc._t) && setptr!(exc._t, incref(getptr(pybuiltins.None)))
+        pyisnull(exc._v) && setptr!(exc._v, incref(getptr(pybuiltins.None)))
+        pyisnull(exc._b) && setptr!(exc._b, incref(getptr(pybuiltins.None)))
         pyisnone(exc._v) || (exc._v.__traceback__ = exc._b)
         exc._isnormalized = true
     end
@@ -124,7 +124,7 @@ function Base.showerror(io::IO, e::PyException)
     end
 
     # if this is a Julia exception then recursively print it and its stacktrace
-    if !ispynull(pyJuliaError) && pyissubclass(e.t, pyJuliaError)
+    if !pyisnull(pyJuliaError) && pyissubclass(e.t, pyJuliaError)
         try
             # Extract error value
             je, jb = pyconvert(Tuple{Any,Any}, e.v.args)

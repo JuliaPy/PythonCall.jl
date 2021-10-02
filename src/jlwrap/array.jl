@@ -276,7 +276,7 @@ function pyjlarray_array_interface(x::AbstractArray{T,N}) where {T,N}
             d["data"] = data
             d["strides"] = strides(x) .* Base.aligned_sizeof(T)
             d["version"] = 3
-            if !ispynull(descr)
+            if !pyisnull(descr)
                 d["descr"] = descr
             end
             return d

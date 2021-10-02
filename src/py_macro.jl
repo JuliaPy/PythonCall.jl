@@ -596,7 +596,7 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         py_macro_del(body, y, ty)
         body2 = []
         push!(body2, :($v = $unsafe_pynext($i)))
-        push!(body2, Expr(:if, :($ispynull($v)), Expr(:block, :($pydel!($v)), :(break))))
+        push!(body2, Expr(:if, :($pyisnull($v)), Expr(:block, :($pydel!($v)), :(break))))
         py_macro_lower_assign(st, body2, ax, v)
         py_macro_del(body2, v, true)
         tz = py_macro_lower(st, body2, z, az)

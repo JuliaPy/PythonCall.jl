@@ -21,7 +21,7 @@ Base.eltype(::Type{PyIterable{T}}) where {T} = T
 
 function Base.iterate(x::PyIterable{T}, it::Py=pyiter(x)) where {T}
     y = unsafe_pynext(it)
-    if ispynull(y)
+    if pyisnull(y)
         pydel!(it)
         return nothing
     else

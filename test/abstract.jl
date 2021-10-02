@@ -214,13 +214,13 @@ end
     @test_throws PyException pyiter(pybuiltins.True)
     it = pyiter(pyrange(2))
     x = PythonCall.unsafe_pynext(it)
-    @test !PythonCall.ispynull(x)
+    @test !PythonCall.pyisnull(x)
     @test pyeq(Bool, x, 0)
     x = PythonCall.unsafe_pynext(it)
-    @test !PythonCall.ispynull(x)
+    @test !PythonCall.pyisnull(x)
     @test pyeq(Bool, x, 1)
     x = PythonCall.unsafe_pynext(it)
-    @test PythonCall.ispynull(x)
+    @test PythonCall.pyisnull(x)
 end
 
 @testset "number" begin

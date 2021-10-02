@@ -9,10 +9,11 @@ pyprint(args...; kwargs...) = (pydel!(pybuiltins.print(args...; kwargs...)); not
 export pyprint
 
 """
-    pyhelp(x)
+    pyhelp([x])
 
 Equivalent to `help(x)` in Python.
 """
+pyhelp() = (pydel!(pybuiltins.help()); nothing)
 pyhelp(x) = (pydel!(pybuiltins.help(x)); nothing)
 export pyhelp
 

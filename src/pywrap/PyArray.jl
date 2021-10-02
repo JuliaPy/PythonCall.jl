@@ -413,7 +413,7 @@ end
 pyarray_store!(p::Ptr{R}, x::R) where {R} = unsafe_store!(p, x)
 pyarray_store!(p::Ptr{UnsafePyObject}, x::Py) = begin
     decref(unsafe_load(p).ptr)
-    unsafe_store!(p, UnsafePyObject(incref(getptr(x))))
+    unsafe_store!(p, UnsafePyObject(GC.@preserve x incref(getptr(x))))
 end
 
 pyarray_get_T(::Type{R}, ::Type{T0}, ::Type{T1}) where {R,T0,T1} = T0 <: R <: T1 ? R : error("not possible")

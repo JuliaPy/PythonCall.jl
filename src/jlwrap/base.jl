@@ -89,7 +89,7 @@ function C._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssize
         return ptr
     catch exc
         if exc isa PyException
-            C.PyErr_Restore(incref(getptr(exc._t)), incref(getptr(exc._v)), incref(getptr(exc._b)))
+            GC.@preserve exc C.PyErr_Restore(incref(getptr(exc._t)), incref(getptr(exc._v)), incref(getptr(exc._b)))
             return C.PyNULL
         else
             try
@@ -120,7 +120,7 @@ function pyjl_handle_error(f, self, exc)
         return C.PyNULL
     else
         # Otherwise, return the given object (e.g. NotImplemented)
-        return incref(getptr(t))
+        return GC.@preserve t incref(getptr(t))
     end
 end
 

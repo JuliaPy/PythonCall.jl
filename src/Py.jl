@@ -86,7 +86,7 @@ the top level then `pycopy!(x, pything())` inside `__init__()`.
 
 Assumes `dst` is NULL, otherwise a memory leak will occur.
 """
-pycopy!(dst, src) = setptr!(dst, incref(getptr(src)))
+pycopy!(dst, src) = GC.@preserve src setptr!(dst, incref(getptr(src)))
 
 """
     pydel!(x::Py)
@@ -132,7 +132,7 @@ macro autopy(args...)
     end)
 end
 
-Py(x::Py) = pynew(incref(getptr(x))) # copy, because Py must always return a new object
+Py(x::Py) = GC.@preserve x pynew(incref(getptr(x))) # copy, because Py must always return a new object
 Py(x::Nothing) = Py(pybuiltins.None)
 Py(x::Bool) = pybool(x)
 Py(x::Union{String, SubString{String}, Char}) = pystr(x)

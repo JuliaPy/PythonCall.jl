@@ -13,7 +13,7 @@ pystr(x::Char) = pystr(string(x))
 pystr(::Type{String}, x) = (s=pystr(x); ans=pystr_asstring(s); pydel!(s); ans)
 export pystr
 
-pystr_asUTF8bytes(x::Py) = pynew(errcheck(C.PyUnicode_AsUTF8String(getptr(x))))
+pystr_asUTF8bytes(x::Py) = GC.@preserve x pynew(errcheck(C.PyUnicode_AsUTF8String(getptr(x))))
 pystr_asUTF8vector(x::Py) = (b=pystr_asUTF8bytes(x); ans=pybytes_asvector(b); pydel!(b); ans)
 pystr_asstring(x::Py) = (b=pystr_asUTF8bytes(x); ans=pybytes_asUTF8string(b); pydel!(b); ans)
 

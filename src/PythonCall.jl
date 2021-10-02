@@ -17,6 +17,7 @@ include("convert.jl")
 # abstract interfaces
 include("abstract/object.jl")
 include("abstract/iter.jl")
+include("abstract/builtins.jl")
 include("abstract/number.jl")
 include("abstract/collection.jl")
 # concrete types

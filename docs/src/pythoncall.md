@@ -131,6 +131,11 @@ pyisinstance
 pyhash
 pyiter
 pynext
+pyhelp
+pyprint
+pyall
+pyany
+pycallable
 ```
 
 ### Conversion to Julia

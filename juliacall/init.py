@@ -64,7 +64,8 @@ else:
         else:
             # Find the best available version
             exepath = None
-            exever = deps.best_julia_version(compat)
+            jill_upstream = os.getenv("JILL_UPSTREAM") or "Official"
+            exever = deps.best_julia_version(compat, upstream=jill_upstream)
             v = jlcompat.julia_version_str("julia")
             if v is not None and v == exever:
                 exepath = "julia"
@@ -88,7 +89,7 @@ else:
                     else:
                         os.environ["PATH"] += os.pathsep + jlbin
                     os.chdir(jldownload)
-                    jli.install_julia(version=exever, confirm=True, install_dir=jlinstall, symlink_dir=jlbin, upstream=os.getenv("JILL_UPSTREAM") or "Official")
+                    jli.install_julia(version=exever, confirm=True, install_dir=jlinstall, symlink_dir=jlbin, upstream=jill_upstream)
                 finally:
                     if p is None:
                         del os.environ["PATH"]

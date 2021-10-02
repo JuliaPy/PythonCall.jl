@@ -208,7 +208,7 @@ def required_julia():
         raise Exception("'julia' compat entries have empty intersection:\n{}".format('\n'.join(['- {!r} at {}'.format(v,f) for (f,v) in compats.items()])))
     return compat
 
-def best_julia_version(compat=None):
+def best_julia_version(compat=None, upstream=None):
     """
     Selects the best Julia version available matching required_julia().
 
@@ -222,7 +222,7 @@ def best_julia_version(compat=None):
     arch = jill.install.current_architecture()
     if system == 'linux' and jill.install.current_libc() == 'musl':
         system = 'musl'
-    releases = jill.utils.version_utils.read_releases()
+    releases = jill.utils.version_utils.read_releases(upstream=upstream)
     releases = [r for r in releases if r[1]==system and r[2]==arch]
     if compat is not None:
         _releases = releases

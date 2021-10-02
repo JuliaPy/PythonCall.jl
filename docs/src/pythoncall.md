@@ -130,6 +130,7 @@ pyissubclass
 pyisinstance
 pyhash
 pyiter
+pynext
 ```
 
 ### Conversion to Julia

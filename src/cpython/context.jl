@@ -27,7 +27,7 @@ function init_context()
     # This is the project in which we manage Python dependences.
     for env in Base.load_path()
         proj = Base.env_project_file(env)
-        is_pythoncall = Base.project_file_name_uuid(proj, "").uuid == PYTHONCALL_UUID
+        is_pythoncall = proj isa String && Base.project_file_name_uuid(proj, "").uuid == PYTHONCALL_UUID
         depends_on_pythoncall = Base.manifest_uuid_path(env, PYTHONCALL_PKGID) !== nothing
         if is_pythoncall || depends_on_pythoncall
             jlenv = proj isa String ? dirname(proj) : env

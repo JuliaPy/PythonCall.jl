@@ -237,6 +237,10 @@ at least `python` and `pip`, and is activated.
 If your project requires more Python dependencies, use the mechanisms below to ensure they
 are automatically installed.
 
+We **strongly recommend that you specify Conda dependencies** if possible, instead of pip
+or script dependencies. This is because Conda can account for all inter-dependencies between
+packages and so prevent incompatible combinations of packages from being installed.
+
 ### PythonCallDeps.toml
 
 If you put a file called `PythonCallDeps.toml` in a project/package/environment which
@@ -275,6 +279,40 @@ PythonCall.Deps.conda_env
 PythonCall.Deps.user_deps_file
 ```
 
+## Writing packages which depend on *PythonCall*
+
+### Example
+
+See https://github.com/cjdoris/FAISS.jl for an example package which wraps the Python FAISS
+package.
+
+### Precompilation
+
+You may not interact with Python during module precompilation. Therefore, instead of
+```
+module MyModule
+  using PythonCall
+  const foo = pyimport("foo")
+  bar() = foo.bar() # will crash when called
+end
+```
+you must do
+```
+module MyModule
+  using PythonCall
+  const foo = PythonCall.pynew() # initially NULL
+  function __init__()
+    PythonCall.pycopy!(foo, pyimport("foo"))
+  end
+  bar() = foo.bar() # now ok
+end
+```
+
+### Dependencies
+
+If your package depends on some Python packages, you must write a `PythonCallDeps.toml` file.
+See [Managing Python dependencies](@ref).
+
 ## Low-level API
 
 The functions here are not exported. They are mostly unsafe in the sense that you can
@@ -283,8 +321,8 @@ crash Julia by using them incorrectly.
 ```@docs
 PythonCall.pynew
 PythonCall.pyisnull
-PythonCall.getptr
 PythonCall.pycopy!
+PythonCall.getptr
 PythonCall.pydel!
 PythonCall.unsafe_pynext
 ```

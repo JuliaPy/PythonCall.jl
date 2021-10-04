@@ -279,6 +279,20 @@ PythonCall.Deps.conda_env
 PythonCall.Deps.user_deps_file
 ```
 
+### The Python interpreter
+
+By default, `python` is automatically installed into the Conda environment mentioned above.
+
+To use a different interpreter, you can set the environment variable `JULIA_PYTHONCALL_EXE`
+to its path before importing PythonCall. You can set it to `python` if it is in your PATH.
+
+You can also set it to the special value `"@PyCall"` which will use the same interpreter as
+PyCall.
+
+Note that using a non-default interpreter will disable all dependency management: no Conda
+environment will be created and no packages will be automatically installed. It is up to the
+user to ensure any required packages are installed.
+
 ## Writing packages which depend on *PythonCall*
 
 ### Example

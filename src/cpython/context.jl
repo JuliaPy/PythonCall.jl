@@ -68,11 +68,16 @@ function init_context()
             Deps.resolve()
             exe_path = Deps.python_exe()
             isfile(exe_path) || error("cannot find python executable")
+        elseif exe_path == "@PyCall"
+            haskey(Base.loaded_modules, PYCALL_PKGID) || Base.require(PYCALL_PKGID)
+            PyCall = Base.loaded_modules[PYCALL_PKGID]
+            exe_path = PyCall.python::String
+            CTX.lib_path = PyCall.libpython::String
         end
 
         # Ensure Python is runnable
         try
-            run(pipeline(`$exe_path --version`, devnull))
+            run(pipeline(`$exe_path --version`, stdout=devnull, stderr=devnull))
         catch
             error("Python executable $(repr(exe_path)) is not executable.")
         end
@@ -117,14 +122,6 @@ function init_context()
                 """)
         end
         init_pointers()
-
-        # Compare libpath with PyCall
-        PyCall = get(Base.loaded_modules, PYCALL_PKGID, nothing)
-        if PyCall === nothing
-            @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" check_libpath(PyCall)
-        else
-            check_libpath(PyCall)
-        end
 
         # Initialize
         with_gil() do
@@ -238,10 +235,18 @@ const PYTHONCALL_PKGID = Base.PkgId(PYTHONCALL_UUID, "PythonCall")
 const PYCALL_UUID = Base.UUID("438e738f-606a-5dbb-bf0a-cddfbfd45ab0")
 const PYCALL_PKGID = Base.PkgId(PYCALL_UUID, "PyCall")
 
-check_libpath(PyCall) = begin
-    if realpath(PyCall.libpython) == realpath(CTX.lib_path)
-        # @info "libpython path agrees between PythonCall and PyCall" PythonCall.CONFIG.libpath PyCall.libpython
-    else
-        @warn "PythonCall and PyCall are using different versions of libpython. This will probably go badly." CTX.lib_path PyCall.libpython
-    end
-end
+# # Compare libpath with PyCall
+# PyCall = get(Base.loaded_modules, PYCALL_PKGID, nothing)
+# if PyCall === nothing
+#     @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" check_libpath(PyCall)
+# else
+#     check_libpath(PyCall)
+# end
+
+# check_libpath(PyCall) = begin
+#     if realpath(PyCall.libpython) == realpath(CTX.lib_path)
+#         # @info "libpython path agrees between PythonCall and PyCall" PythonCall.CONFIG.libpath PyCall.libpython
+#     else
+#         @warn "PythonCall and PyCall are using different versions of libpython. This will probably go badly." CTX.lib_path PyCall.libpython
+#     end
+# end

@@ -283,13 +283,13 @@ PythonCall.Deps.user_deps_file
 
 ### Example
 
-See https://github.com/cjdoris/FAISS.jl for an example package which wraps the Python FAISS
+See [https://github.com/cjdoris/Faiss.jl] for an example package which wraps the Python FAISS
 package.
 
 ### Precompilation
 
 You may not interact with Python during module precompilation. Therefore, instead of
-```
+```julia
 module MyModule
   using PythonCall
   const foo = pyimport("foo")
@@ -297,7 +297,7 @@ module MyModule
 end
 ```
 you must do
-```
+```julia
 module MyModule
   using PythonCall
   const foo = PythonCall.pynew() # initially NULL

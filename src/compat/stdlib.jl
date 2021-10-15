@@ -9,8 +9,7 @@ function init_stdlib()
     if !C.CTX.is_embedded
 
         # set sys.argv
-        pysysmodule.argv = [""]
-        pysysmodule.argv.extend(pylist(ARGS))
+        pysysmodule.argv = pylist([""; ARGS])
 
         # some modules test for interactivity by checking if sys.ps1 exists
         if isinteractive() && !pyhasattr(pysysmodule, "ps1")

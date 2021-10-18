@@ -34,6 +34,7 @@ The following table specifies the conversion rules in place. If the initial Pyth
 | `collections.abc.Sequence` (inc. `list`)                                                                     | `PyList`                                                    |
 | `collections.abc.Set` (inc. `set`, `frozenset`)                                                              | `PySet`                                                     |
 | `io.IOBase` (includes open files)                                                                            | `PyIO`                                                      |
+| `BaseException`                                                                                              | `PyException`                                               |
 | `datetime.date`/`datetime.time`/`datetime.datetime`                                                          | `Date`/`Time`/`DateTime`                                    |
 | `datetime.timedelta`                                                                                         | `Microsecond` (or `Millisecond` or `Second` on overflow)    |
 | `numpy.intXX`/`numpy.uintXX`/`numpy.floatXX`                                                                 | `IntXX`/`UIntXX`/`FloatXX`                                  |

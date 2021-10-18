@@ -334,6 +334,7 @@ function init_pyconvert()
     pyconvert_add_rule("datetime/datetime", DateTime, pyconvert_rule_datetime, 100)
     pyconvert_add_rule("datetime/date", Date, pyconvert_rule_date, 100)
     pyconvert_add_rule("datetime/time", Time, pyconvert_rule_time, 100)
+    pyconvert_add_rule("builtins/BaseException", PyException, pyconvert_rule_exception, 100)
     # priority 0: reasonable
     pyconvert_add_rule("builtins/NoneType", Missing, pyconvert_rule_none)
     pyconvert_add_rule("builtins/bool", Number, pyconvert_rule_bool)

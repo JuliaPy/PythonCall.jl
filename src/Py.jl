@@ -153,19 +153,6 @@ Py(x) = ispy(x) ? Py(getpy(x)) : pyjl(x)
 Base.string(x::Py) = pyisnull(x) ? "<py NULL>" : pystr(String, x)
 Base.print(io::IO, x::Py) = print(io, string(x))
 
-function Base.repr(x::Py)
-    if getptr(x) == C.PyNULL
-        return "<py NULL>"
-    else
-        s = pyrepr(String, x)
-        if startswith(s, "<") && endswith(s, ">")
-            return "<py $(SubString(s, 2))"
-        else
-            return "<py $s>"
-        end
-    end
-end
-
 function Base.show(io::IO, x::Py)
     if get(io, :typeinfo, Any) == Py
         if getptr(x) == C.PyNULL
@@ -174,11 +161,20 @@ function Base.show(io::IO, x::Py)
             print(io, pyrepr(String, x))
         end
     else
-        print(io, repr(x))
+        if getptr(x) == C.PyNULL
+            print(io, "<py NULL>")
+        else
+            s = pyrepr(String, x)
+            if startswith(s, "<") && endswith(s, ">")
+                print(io, "<py ", SubString(s, 2))
+            else
+                print(io, "<py ", s, ">")
+            end
+        end
     end
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", o::Py)
+function Base.show(io::IO, ::MIME"text/plain", o::Py)
     hasprefix = get(io, :typeinfo, Any) != Py
     if pyisnull(o)
         if hasprefix

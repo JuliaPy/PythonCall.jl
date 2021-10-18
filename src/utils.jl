@@ -172,16 +172,14 @@ module Utils
         StaticString{T,N}(codeunits::NTuple{N,T}) where {T,N} = new{T,N}(codeunits)
     end
 
-    function Base.convert(::Type{String}, x::StaticString)
+    function Base.print(io::IO, x::StaticString)
         cs = collect(x.codeunits)
         i = findfirst(==(0), cs)
-        transcode(String, i===nothing ? cs : cs[1:i-1])
+        print(io, transcode(String, i===nothing ? cs : cs[1:i-1]))
     end
 
-    Base.String(x::StaticString) = convert(String, x)
-
-    function Base.convert(::Type{StaticString{T,N}}, x::String) where {T,N}
-        cs = transcode(T, x)
+    function Base.convert(::Type{StaticString{T,N}}, x::AbstractString) where {T,N}
+        cs = collect(transcode(T, convert(String, x)))
         length(cs) > N && throw(InexactError(:convert, StaticString{T,N}, x))
         while length(cs) < N
             push!(cs, 0)
@@ -189,9 +187,7 @@ module Utils
         StaticString{T,N}(NTuple{N,T}(cs))
     end
 
-    Base.convert(::Type{T}, x::AbstractString) where {T<:StaticString} = convert(T, convert(String, x))
-
-    (::Type{T})(x::AbstractString) where {T<:StaticString} = convert(T, x)
+    StaticString{T,N}(x::AbstractString) where {T,N} = convert(StaticString{T,N}, x)
 
     function Base.iterate(x::StaticString, st::Union{Nothing,Tuple}=nothing)
         if st === nothing

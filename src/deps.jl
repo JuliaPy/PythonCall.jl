@@ -288,6 +288,7 @@ function resolve(; create=true, force=false)
         if skip
             depinfo = get_meta("jldeps")
             skip &= (
+                depinfo !== nothing &&
                 conda_channels == get(depinfo, "conda_channels", nothing) &&
                 conda_packages == get(depinfo, "conda_packages", nothing) &&
                 pip_indexes == get(depinfo, "pip_indexes", nothing) &&

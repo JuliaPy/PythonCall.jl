@@ -4,38 +4,89 @@ import Conda, JSON, TOML, Pkg, Dates, ..PythonCall
 
 ### META
 
+# increment whenever the format changes
+const META_VERSION = 1
+
+Base.@kwdef struct Meta
+    timestamp::Float64
+    load_path::Vector{String}
+    version::VersionNumber
+    files::Vector{String}
+    conda_packages::Vector{String}
+    conda_channels::Vector{String}
+    pip_packages::Vector{String}
+    pip_indexes::Vector{String}
+    scripts::Vector{String}
+end
+
+function write_meta(io::IO, meta::Meta)
+    write(io, Int(META_VERSION))
+    write_meta(io, meta.timestamp)
+    write_meta(io, meta.load_path)
+    write_meta(io, meta.version)
+    write_meta(io, meta.files)
+    write_meta(io, meta.conda_packages)
+    write_meta(io, meta.conda_channels)
+    write_meta(io, meta.pip_packages)
+    write_meta(io, meta.pip_indexes)
+    write_meta(io, meta.scripts)
+end
+
+write_meta(io::IO, x::Float64) = write(io, x)
+write_meta(io::IO, x::VersionNumber) = write_meta(io, string(x))
+function write_meta(io::IO, x::String)
+    write(io, Int(sizeof(x)))
+    write(io, x)
+end
+function write_meta(io::IO, x::Vector)
+    write(io, Int(length(x)))
+    for y in x
+        write_meta(io, y)
+    end
+end
+
+function read_meta(io::IO)
+    if read(io, Int) == META_VERSION
+        Meta(
+            timestamp = read_meta(io, Float64),
+            load_path = read_meta(io, Vector{String}),
+            version = read_meta(io, VersionNumber),
+            files = read_meta(io, Vector{String}),
+            conda_packages = read_meta(io, Vector{String}),
+            conda_channels = read_meta(io, Vector{String}),
+            pip_packages = read_meta(io, Vector{String}),
+            pip_indexes = read_meta(io, Vector{String}),
+            scripts = read_meta(io, Vector{String}),
+        )
+    end
+end
+read_meta(io::IO, ::Type{Float64}) = read(io, Float64)
+read_meta(io::IO, ::Type{VersionNumber}) = VersionNumber(read_meta(io, String))
+function read_meta(io::IO, ::Type{String})
+    n = read(io, Int)
+    bytes = read(io, n)
+    length(bytes) == n || error()
+    return String(bytes)
+end
+function read_meta(io::IO, ::Type{Vector{T}}) where {T}
+    n = read(io, Int)
+    x = Vector{T}()
+    for i in 1:n
+        push!(x, read_meta(io, T))
+    end
+    return x
+end
+
 const _meta_file = Ref("")
 
 meta_file() = _meta_file[]
 
 function load_meta()
     fn = meta_file()
-    isfile(fn) ? open(JSON.parse, fn) : Dict{String,Any}()
+    isfile(fn) ? open(read_meta, fn) : nothing
 end
 
-save_meta(meta) = open(io -> JSON.print(io, meta), meta_file(), "w")
-
-function get_meta(keys...)
-    meta = load_meta()
-    for key in keys
-        if haskey(meta, key)
-            meta = meta[key]
-        else
-            return
-        end
-    end
-    meta
-end
-
-function set_meta(args...)
-    length(args) < 2 && error("setmeta() takes at least 2 arguments")
-    here = meta = load_meta()
-    for key in args[1:end-2]
-        here = get!(Dict{String,Any}, here, key)
-    end
-    here[args[end-1]] = args[end]
-    save_meta(meta)
-end
+save_meta(meta::Meta) = open(io -> write_meta(io, meta), meta_file(), "w")
 
 ### CONDA
 
@@ -150,19 +201,13 @@ function can_skip_resolve()
     # resolve if the conda environment doesn't exist yet
     isdir(conda_env()) || return false
     # resolve if we haven't resolved before
-    deps = get_meta("jldeps")
+    deps = load_meta()
     deps === nothing && return false
     # resolve whenever the PythonCall version changes
-    version = get(deps, "version", nothing)
-    version === nothing && return false
-    version != string(PythonCall.VERSION) && return false
+    deps.version == PythonCall.VERSION || return false
     # resolve whenever any of the environments in the load_path changes
-    timestamp = get(deps, "timestamp", nothing)
-    timestamp === nothing && return false
-    timestamp = max(timestamp, stat(meta_file()).mtime)
-    load_path = get(deps, "load_path", nothing)
-    load_path === nothing && return false
-    load_path != Base.load_path() && return false
+    timestamp = max(deps.timestamp, stat(meta_file()).mtime)
+    deps.load_path == Base.load_path() || return false
     for env in Base.load_path()
         proj = Base.env_project_file(env)
         dir = nothing
@@ -286,14 +331,14 @@ function resolve(; create=true, force=false)
         env = conda_env()
         skip = !force && isdir(env)
         if skip
-            depinfo = get_meta("jldeps")
-            skip &= (
+            depinfo = load_meta()
+            skip = (
                 depinfo !== nothing &&
-                conda_channels == get(depinfo, "conda_channels", nothing) &&
-                conda_packages == get(depinfo, "conda_packages", nothing) &&
-                pip_indexes == get(depinfo, "pip_indexes", nothing) &&
-                pip_packages == get(depinfo, "pip_packages", nothing) &&
-                scripts == get(depinfo, "scripts", nothing)
+                conda_channels == depinfo.conda_channels &&
+                conda_packages == depinfo.conda_packages &&
+                pip_indexes == depinfo.pip_indexes &&
+                pip_packages == depinfo.pip_packages &&
+                scripts == depinfo.scripts
             )
         end
 
@@ -311,6 +356,7 @@ function resolve(; create=true, force=false)
             append!(conda_args, conda_packages)
             if create || !isdir(env)
                 ispath(env) && conda_run_root(`env remove --yes --prefix $env`)
+                ispath(env) && Base.rm(env, force=true, recursive=true)
                 conda_run_root(`create --yes --no-default-packages --no-channel-priority --prefix $env $conda_args`)
                 conda_activate()
             else
@@ -336,18 +382,17 @@ function resolve(; create=true, force=false)
         end
 
         # record what we did
-        depinfo = Dict(
-            "timestamp" => time(),
-            "load_path" => Base.load_path(),
-            "version" => string(PythonCall.VERSION),
-            "files" => all_deps_files,
-            "conda_packages" => conda_packages,
-            "conda_channels" => conda_channels,
-            "pip_packages" => pip_packages,
-            "pip_indexes" => pip_indexes,
-            "scripts" => scripts,
-        )
-        set_meta("jldeps", depinfo)
+        save_meta(Meta(
+            timestamp = time(),
+            load_path = Base.load_path(),
+            version = PythonCall.VERSION,
+            files = all_deps_files,
+            conda_packages = conda_packages,
+            conda_channels = conda_channels,
+            pip_packages = pip_packages,
+            pip_indexes = pip_indexes,
+            scripts = scripts,
+        ))
     end
 
     return

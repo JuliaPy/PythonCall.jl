@@ -36,7 +36,7 @@ if prefix is None:
 else:
     jlenv = os.path.join(prefix, "julia_env")
 CONFIG['jlenv'] = os.path.join(jlenv)
-CONFIG['meta'] = os.path.join(jlenv, "PythonCallMeta.json")
+CONFIG['meta'] = os.path.join(jlenv, "PythonCallPyMeta")
 
 # Determine whether or not to skip resolving julia/package versions
 skip = deps.can_skip_resolve()

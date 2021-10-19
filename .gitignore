@@ -1,7 +1,5 @@
 Manifest.toml
-PythonCallMeta.json
-deps/deps.jl
-deps/build.log
+PythonCallMeta
 .ipynb_checkpoints
 __pycache__
 conda_env

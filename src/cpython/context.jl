@@ -32,7 +32,7 @@ function init_context()
         if is_pythoncall || depends_on_pythoncall
             jlenv = proj isa String ? dirname(proj) : env
             CTX.jlenv = jlenv
-            Deps._meta_file[] = joinpath(jlenv, "PythonCallMeta.json")
+            Deps._meta_file[] = joinpath(jlenv, "PythonCallMeta")
             break
         end
     end

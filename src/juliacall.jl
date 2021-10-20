@@ -10,7 +10,6 @@ function init_juliacall()
     if C.CTX.is_embedded
         # in this case, Julia is being embedded into Python by juliacall, which already exists
         pycopy!(jl, sys.modules["juliacall"])
-        @assert pystr_asstring(jl.CONFIG["meta"]) == Deps.meta_file()
         @assert pystr_asstring(jl.__version__) == string(VERSION)
     elseif "juliacall" in sys.modules
         # otherwise, Python is being embedded into Julia by PythonCall, so should not exist
@@ -18,7 +17,7 @@ function init_juliacall()
     else
         # create the juliacall module and save it in sys.modules
         pycopy!(jl, pytype(sys)("juliacall"))
-        jl.CONFIG = pydict(embedded=true, meta=Deps.meta_file())
+        jl.CONFIG = pydict(embedded=true)
         jl.__version__ = string(VERSION)
         jl.__path__ = pylist((joinpath(dirname(dirname(pathof(PythonCall))), "juliacall"),))
         sys.modules["juliacall"] = jl

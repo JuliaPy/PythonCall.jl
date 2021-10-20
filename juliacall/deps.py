@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 
@@ -8,40 +9,22 @@ from .jlcompat import JuliaCompat, Version, julia_version_str
 
 ### META
 
+META_VERSION = 1 # increment whenever the format changes
+
 def load_meta():
-    import json, os.path
     fn = CONFIG['meta']
     if os.path.exists(fn):
         with open(fn) as fp:
-            return json.load(fp)
-    else:
-        return {}
+            meta = json.load(fp)
+            if meta.get('meta_version') == META_VERSION:
+                return meta
 
 def save_meta(meta):
-    import json
+    assert isinstance(meta, dict)
+    assert meta.get('meta_version') == META_VERSION
     fn = CONFIG['meta']
     with open(fn, 'w') as fp:
         json.dump(meta, fp)
-
-def get_meta(*keys):
-    meta = load_meta()
-    for key in keys:
-        if key in meta:
-            meta = meta[key]
-        else:
-            return None
-    return meta
-
-def set_meta(*args):
-    if len(args) < 2:
-        raise TypeError('set_meta requires at least two arguments')
-    keys = args[:-1]
-    value = args[-1]
-    meta2 = meta = load_meta()
-    for key in keys[:-1]:
-        meta2 = meta2.setdefault(key, {})
-    meta2[keys[-1]] = value
-    save_meta(meta)
 
 ### RESOLVE
 
@@ -83,7 +66,7 @@ class PackageSpec:
 
 def can_skip_resolve():
     # resolve if we haven't resolved before
-    deps = get_meta("pydeps")
+    deps = load_meta()
     if deps is None:
         return False
     # resolve whenever the version changes
@@ -240,7 +223,8 @@ def best_julia_version(compat=None, upstream=None):
     return max(releases, key=lambda x: jill.utils.version_utils.Version(x[0]))[0]
 
 def record_resolve(pkgs):
-    set_meta("pydeps", {
+    save_meta({
+        "meta_version": META_VERSION,
         "version": __version__,
         "dev": CONFIG["dev"],
         "jlversion": CONFIG.get("exever"),

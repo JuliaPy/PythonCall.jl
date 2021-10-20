@@ -129,7 +129,8 @@ try:
         else:
             pkgs.append(deps.PackageSpec(name="PythonCall", uuid="6099a3de-0909-46bc-b1f4-468b9a2dfc0d", compat="= "+__version__))
         # check if pkgs has changed at all
-        prev_pkgs = deps.get_meta("pydeps", "pkgs")
+        meta = deps.load_meta()
+        prev_pkgs = None if meta is None else meta.get('pkgs')
         if prev_pkgs is not None and sorted(prev_pkgs, key=lambda p: p['name']) == sorted([p.dict() for p in pkgs], key=lambda p: p['name']):
             install = ''
         else:

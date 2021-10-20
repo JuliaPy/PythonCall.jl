@@ -1,6 +1,6 @@
 module Deps
 
-import Conda, JSON, TOML, Pkg, Dates, ..PythonCall
+import Conda, TOML, Pkg, Dates, ..PythonCall
 
 ### META
 
@@ -356,7 +356,6 @@ function resolve(; create=true, force=false)
             append!(conda_args, conda_packages)
             if create || !isdir(env)
                 ispath(env) && conda_run_root(`env remove --yes --prefix $env`)
-                ispath(env) && Base.rm(env, force=true, recursive=true)
                 conda_run_root(`create --yes --no-default-packages --no-channel-priority --prefix $env $conda_args`)
                 conda_activate()
             else

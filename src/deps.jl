@@ -359,7 +359,7 @@ function resolve(; create=true, force=false)
                 conda_run_root(`create --yes --no-default-packages --no-channel-priority --prefix $env $conda_args`)
                 conda_activate()
             else
-                conda_run(`install --yes --no-channel-priority --satisfied-skip-solve $conda_args`)
+                conda_run(`install --yes --no-channel-priority --freeze-installed $conda_args`)
             end
 
             # install pip packages

@@ -1,6 +1,6 @@
 module PythonCall
 
-const VERSION = v"0.3.0"
+const VERSION = v"0.4.0"
 
 using Base: @propagate_inbounds
 using MacroTools, Dates, Tables, Markdown, Serialization, Requires, Pkg

@@ -533,7 +533,7 @@ function add(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothi
     open(io->TOML.print(io, deps), file, "w")
     if resolve
         Deps.resolve(force=true, create=create)
-        @warn "You will need to restart Julia if this Conda command reinstalled Python or any other packages."
+        @info "You will need to restart Julia if this Conda command reinstalled Python or any other packages."
     end
     return
 end
@@ -579,7 +579,7 @@ function rm(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothin
     open(io->TOML.print(io, deps), file, "w")
     if resolve
         Deps.resolve(force=true, create=create)
-        @warn "You will need to restart Julia if this Conda command reinstalled Python or any other packages."
+        @info "You will need to restart Julia if this Conda command reinstalled Python or any other packages."
     end
     return
 end

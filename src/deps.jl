@@ -359,7 +359,11 @@ function resolve(; create=true, force=false)
                 conda_run_root(`create --yes --no-default-packages --no-channel-priority --prefix $env $conda_args`)
                 conda_activate()
             else
-                conda_run(`install --yes --no-channel-priority --freeze-installed $conda_args`)
+                # TODO: we'd like to use --freeze-installed instead of --satisifed-skip-solve
+                #   so that already installed packages are not touched. But the option doesn't
+                #   work properly. Even if we filter conda_packages to just include new things,
+                #   conda can secretly downgrade python, which breaks everything.
+                conda_run(`install --yes --no-channel-priority --satisfied-skip-solve $conda_args`)
             end
 
             # install pip packages
@@ -529,6 +533,7 @@ function add(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothi
     open(io->TOML.print(io, deps), file, "w")
     if resolve
         Deps.resolve(force=true, create=create)
+        @warn "You will need to restart Julia if this Conda command reinstalled Python or any other packages."
     end
     return
 end
@@ -574,6 +579,7 @@ function rm(; conda_channels=nothing, conda_packages=nothing, pip_indexes=nothin
     open(io->TOML.print(io, deps), file, "w")
     if resolve
         Deps.resolve(force=true, create=create)
+        @warn "You will need to restart Julia if this Conda command reinstalled Python or any other packages."
     end
     return
 end

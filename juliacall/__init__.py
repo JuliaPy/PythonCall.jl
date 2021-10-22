@@ -1,4 +1,4 @@
-__version__ = '0.4.0'
+__version__ = '0.4.1'
 CONFIG = dict(embedded=False)
 from .all import *
 from . import init

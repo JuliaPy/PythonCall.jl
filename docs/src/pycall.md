@@ -1,6 +1,6 @@
 # Coming from *PyCall*?
 
-Another similar interface to Python is provided by [`PyCall`](https://github.com/JuliaPy/PyCall.jl).
+Another similar interface to Python is provided by [PyCall](https://github.com/JuliaPy/PyCall.jl).
 
 On this page, we give some tips for migrating between the two modules and a comparison.
 
@@ -61,11 +61,11 @@ PythonCall uses a separate Conda environment for each Julia environment/project/
 
 ### Corresponding Python packages
 
-PyCall has the corresponding Python package [pyjulia](https://github.com/JuliaPy/pyjulia) for calling Julia from Python, and PythonCall similarly has juliacall.
+PyCall has the corresponding Python package [PyJulia](https://github.com/JuliaPy/pyjulia) for calling Julia from Python, and PythonCall similarly has JuliaCall.
 
-One difference is between them is their code size: pyjulia is a large package, whereas juliacall is very small, with most of the implementation being in PythonCall itself. The practical up-shot is that PythonCall/juliacall have very symmetric interfaces; for example they use identical conversion policies and have the same set of wrapper types available.
+One difference is between them is their code size: PyJulia is a large package, whereas JuliaCall is very small, with most of the implementation being in PythonCall itself. The practical up-shot is that PythonCall/JuliaCall have very symmetric interfaces; for example they use identical conversion policies and have the same set of wrapper types available.
 
-Note also that juliacall will use a separate Julia project for each virtual/conda environment. This means that different Python environments can maintain an isolated set of Julia dependencies, including the versions of Julia and PythonCall themselves.
+Note also that JuliaCall will use a separate Julia project for each virtual/conda environment. This means that different Python environments can maintain an isolated set of Julia dependencies, including the versions of Julia and PythonCall themselves.
 
 ### Compatability
 

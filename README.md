@@ -21,19 +21,19 @@ To get started, read the [documentation](https://cjdoris.github.io/PythonCall.jl
 
 ## Example 1: Calling Python from Julia
 
-In this example, we use `PythonCall.jl` from a [`Pluto`](https://github.com/fonsp/Pluto.jl) notebook to inspect the Iris dataset:
-- We load the Iris dataset as a Julia [`DataFrame`](https://dataframes.juliadata.org/stable/) using [`RDatasets.jl`](https://github.com/JuliaStats/RDatasets.jl).
-- We use `pytable(df)` to convert it to a Python [`pandas.DataFrame`](https://pandas.pydata.org/).
-- We use the Python package [`seaborn`](https://seaborn.pydata.org/) to produce a pair-plot, which is automatically displayed.
+In this example, we use PythonCall from a [Pluto](https://github.com/fonsp/Pluto.jl) notebook to inspect the Iris dataset:
+- We load the Iris dataset as a Julia [DataFrame](https://dataframes.juliadata.org/stable/) using [RDatasets](https://github.com/JuliaStats/RDatasets.jl).
+- We use `pytable(df)` to convert it to a Python [Pandas DataFrame](https://pandas.pydata.org/).
+- We use the Python package [Seaborn](https://seaborn.pydata.org/) to produce a pair-plot, which is automatically displayed.
 
 ![Seaborn example screenshot](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/master/examples/seaborn.png)
 
 ## Example 2: Calling Julia from Python
 
-In this example we use the Python module `juliacall` from an IPython notebook to train a simple neural network:
-- We generate some random training data using Python's `numpy`.
-- We construct and train a neural network model using Julia's `Flux`.
-- We plot some sample output from the model using Python's `matplotlib.pyplot`.
+In this example we use the Python module JuliaCall from an IPython notebook to train a simple neural network:
+- We generate some random training data using Python's Numpy.
+- We construct and train a neural network model using Julia's Flux.
+- We plot some sample output from the model using Python's MatPlotLib.
 
 ![Flux example screenshot](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/master/examples/flux.png)
 

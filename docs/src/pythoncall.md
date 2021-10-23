@@ -1,4 +1,4 @@
-# The Julia module *PythonCall*
+# The Julia module PythonCall
 
 ## Installation
 
@@ -45,7 +45,18 @@ In this example:
 - We called [`pyconvert`](@ref) to convert the Python string `sentence` to a Julia string
   (see [Conversion to Julia](@ref py2jl)).
 
-Read on to find out what else you can do.
+What to read next:
+- The rest of this page details the functions for interacting with Python objects, of type
+  [`Py`](@ref).
+- If you need to install Python packages, [read here](@ref python-deps).
+- When you call a Python function, such as `re.findall(...)` in the above example, its
+  arguments are converted to Python according to [this table](@ref jl2py-conversion) and
+  its return value is a [`Py`](@ref).
+- Python objects can be converted to Julia objects using [`pyconvert`](@ref) with rules
+  according to [this table](@ref py2jl-conversion).
+- Python objects can also be wrapped to provide more Julian semantics. For example, a
+  [`PyDict`](@ref) wraps a Python dict as a Julia dict, and a [`PyArray`](@ref) wraps a
+  Python array or buffer as a Julia array. [See here](@id python-wrappers).
 
 ## `Py`
 
@@ -228,7 +239,7 @@ pyge
 pygt
 ```
 
-## Managing Python dependencies
+## [Managing Python dependencies](@id python-deps)
 
 PythonCall manages its Python dependencies using Conda. A Conda environment is automatically
 created in your active Julia environment when PythonCall is loaded, is initialised with
@@ -237,7 +248,10 @@ at least `python` and `pip`, and is activated.
 If your project requires more Python dependencies, use the mechanisms below to ensure they
 are automatically installed.
 
-We **strongly recommend that you specify Conda dependencies** if possible, instead of pip
+**Do not install packages using conda or pip directly!** PythonCall can and will delete and
+reinstall its Conda environment periodically, such as when any dependencies change.
+
+**We strongly recommend that you specify Conda dependencies** if possible, instead of pip
 or script dependencies. This is because Conda can account for all inter-dependencies between
 packages and so prevent incompatible combinations of packages from being installed.
 
@@ -270,6 +284,8 @@ packages installed, and will run the script if specified.
 Instead of manually editing `PythonCallDeps.toml`, you can use the submodule
 `PythonCall.Deps` to manage the Python dependencies of the current Julia project.
 
+These functions are for interactive use, **do not call them from packages!**
+
 ```@docs
 PythonCall.Deps.status
 PythonCall.Deps.add
@@ -293,7 +309,7 @@ Note that using a non-default interpreter will disable all dependency management
 environment will be created and no packages will be automatically installed. It is up to the
 user to ensure any required packages are installed.
 
-## Writing packages which depend on *PythonCall*
+## Writing packages which depend on PythonCall
 
 ### Example
 

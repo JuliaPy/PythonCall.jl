@@ -1,14 +1,13 @@
 # [Conversion to Python](@id jl2py)
 
-## Conversion Rules
-
-From Julia, one converts Julia objects to Python explicitly using `Py(x)` or implicitly by passing the value to one of the many other functions, such as `pygetattr(x, "append")`.
-
-From Python, calling a Julia function or indexing a Julia object, etc., will convert the result to some Python object.
+## [Conversion Rules](@id jl2py-conversion)
 
 The following table specifies the conversion rules used whenever converting a Julia object to a Python object.
 
-The user can always explicitly choose a different conversion (e.g. by calling `pylist` or `pydict`).
+From Julia, this occurs explicitly with `Py(x)` or implicitly when passing Julia objects as the argument to a Python function.
+To avoid this automatic conversion, the user can convert objects explicitly, such as by calling `pylist` or `pydict`.
+
+From Python, this occurs when converting the return value of a Julia function.
 
 | From                                                                | To                                                      |
 | :------------------------------------------------------------------ | :------------------------------------------------------ |

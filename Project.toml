@@ -1,7 +1,7 @@
 name = "PythonCall"
 uuid = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 authors = ["Christopher Doris <github.com/cjdoris>"]
-version = "0.4.1"
+version = "0.4.2"
 
 [deps]
 Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"

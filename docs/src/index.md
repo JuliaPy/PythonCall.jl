@@ -1,4 +1,4 @@
-# PythonCall.jl
+# PythonCall & JuliaCall
 
 Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://julialang.org/) together in seamless harmony:
 - Call Python code from Julia and Julia code from Python via a symmetric interface.

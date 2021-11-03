@@ -42,10 +42,18 @@ def get_arch():
     arch = platform.machine().lower()
     return arch_aliases.get(arch.lower(), arch)
 
+libc_aliases = {
+    'glibc': 'gnu',
+}
+
+def get_libc():
+    libc = platform.libc_ver()[0].lower()
+    return libc_aliases.get(libc, libc)
+
 def compatible_julia_versions(compat=None, stable=True, kind=None):
     os = get_os()
     arch = get_arch()
-    libc, _ = platform.libc_ver()
+    libc = get_libc()
     if libc == '' and os == 'linux':
         warnings.warn('could not determine libc version - assuming glibc')
         libc = 'gnu'

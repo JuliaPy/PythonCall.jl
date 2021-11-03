@@ -58,10 +58,9 @@ What to read next:
 
 ## [Managing Julia dependencies](@id julia-deps)
 
-JuliaCall manages its Julia dependencies using [Pkg](https://pkgdocs.julialang.org/v1) for
-packages and [jill](https://pypi.org/project/jill/) for Julia itself.
+JuliaCall manages its Julia dependencies using [Pkg](https://pkgdocs.julialang.org/v1).
 If a suitable version of Julia is not found on your system, it will automatically be
-downloaded and installed into `~/.julia/pythoncall`.
+downloaded and installed into `~/.julia/pythoncall/julia-VERSION`.
 A Julia environment is automatically created when JuliaCall is loaded, is activated, and is
 initialised with at least PythonCall. If you are using a virtual or conda environment then
 the Julia environment is created there, otherwise a global environment is created at

@@ -1,5 +1,5 @@
-import os, os.path, ctypes as c, shutil, subprocess, jill.install as jli
-from . import CONFIG, __version__, deps, semver
+import os, os.path, ctypes as c, shutil, subprocess
+from . import CONFIG, __version__, deps, semver, install
 
 # Determine if this is a development version of juliacall
 # i.e. it is installed from the github repo, which contains Project.toml
@@ -15,9 +15,6 @@ CONFIG['dev'] = isdev
 # Determine where to look for julia
 jldepot = os.environ.get("JULIA_DEPOT_PATH", "").split(";" if os.name == "nt" else ":")[0] or os.path.join(os.path.expanduser("~"), ".julia")
 jlprefix = os.path.join(jldepot, "pythoncall")
-jlbin = os.path.join(jlprefix, "bin")
-jlinstall = os.path.join(jlprefix, "install")
-jldownload = os.path.join(jlprefix, "download")
 
 # Determine where to put the julia environment
 # TODO: Can we more direcly figure out the environment from which python was called? Maybe find the first PATH entry containing python?
@@ -50,7 +47,7 @@ else:
     # Find the Julia executable
     exepath = os.environ.get('PYTHON_JULIACALL_EXE')
     if exepath is not None:
-        v = semver.julia_version_str(exepath)
+        v = deps.julia_version_str(exepath)
         if v is None:
             raise ValueError("PYTHON_JULIACALL_EXE={!r} does not exist".format(exepath))
         else:
@@ -64,47 +61,29 @@ else:
         else:
             # Find the best available version
             exepath = None
-            jill_upstream = os.getenv("JILL_UPSTREAM") or "Official"
-            exever = deps.best_julia_version(compat, upstream=jill_upstream)
-            v = semver.julia_version_str("julia")
-            if v is not None and v == exever:
-                exepath = "julia"
-            elif os.path.isdir(jlbin):
-                for f in os.listdir(jlbin):
-                    if f.startswith("julia"):
-                        x = os.path.join(jlbin, f)
-                        v = semver.julia_version_str(x)
-                        if v is not None and v == exever:
-                            exepath = x
-                            break
+            exever, exeverinfo = install.best_julia_version(compat)
+            default_exeprefix = os.path.join(jlprefix, 'julia-'+exever)
+            default_exepath = os.path.join(default_exeprefix, 'bin', 'julia.exe' if os.name=='nt' else 'julia')
+            for x in [default_exepath, 'julia']:
+                v = deps.julia_version_str(x)
+                if v is not None and v == exever:
+                    print(f'Found Julia {v} at {x!r}')
+                    exepath = x
+                    break
+                elif v is not None:
+                    print(f'Found Julia {v} at {x!r} (but looking for Julia {exever})')
             # If no such version, install it
             if exepath is None:
-                print("Installing Julia version {} to {!r}".format(exever, jlbin))
-                os.makedirs(jldownload, exist_ok=True)
-                d = os.getcwd()
-                p = os.environ.get("PATH")
-                try:
-                    if p is None:
-                        os.environ["PATH"] = jlbin
-                    else:
-                        os.environ["PATH"] += os.pathsep + jlbin
-                    os.chdir(jldownload)
-                    jli.install_julia(version=exever, confirm=True, install_dir=jlinstall, symlink_dir=jlbin, upstream=jill_upstream)
-                finally:
-                    if p is None:
-                        del os.environ["PATH"]
-                    else:
-                        os.environ["PATH"] = p
-                    os.chdir(d)
-                exepath = os.path.join(jlbin, "julia.cmd" if os.name == "nt" else "julia")
+                install.install_julia(exeverinfo, default_exeprefix)
+                exepath = default_exepath
                 if not os.path.isfile(exepath):
-                    raise Exception('Installed julia in {!r} but cannot find it'.format(jlbin))
+                    raise Exception(f'Installed Julia in {default_exeprefix!r} but cannot find it')
         # Check the version is compatible
-        v = semver.julia_version_str(exepath)
+        v = deps.julia_version_str(exepath)
         assert v is not None and (compat is None or semver.Version(v) in compat)
         CONFIG['exever'] = v
     CONFIG['exepath'] = exepath
-    libpath = subprocess.run([exepath, '--startup-file=no', '-O0', '--compile=min', '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))'], stdout=(subprocess.PIPE)).stdout.decode('utf8')
+    libpath = subprocess.run([exepath, '--startup-file=no', '-O0', '--compile=min', '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))'], check=True, stdout=subprocess.PIPE).stdout.decode('utf8')
 
 # Initialize Julia, including installing required packages
 d = os.getcwd()

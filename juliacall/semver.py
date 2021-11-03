@@ -1,5 +1,3 @@
-import subprocess
-
 class JuliaCompat:
     def __init__(self, src):
         if isinstance(src, str):
@@ -140,16 +138,3 @@ class Range:
         return self.v0 <= v and v < self.v1
     def __repr__(self):
         return 'Range({!r}, {!r})'.format(self.v0, self.v1)
-
-def julia_version_str(exe):
-    """
-    If exe is a julia executable, return its version as a string. Otherwise return None.
-    """
-    try:
-        proc = subprocess.Popen([exe, "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        proc.wait()
-        words = proc.stdout.read().decode("utf-8").split()
-        assert words[0] == "julia" and words[1] == "version"
-        return words[2]
-    except:
-        pass

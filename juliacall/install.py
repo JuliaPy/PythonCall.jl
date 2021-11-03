@@ -114,7 +114,8 @@ def install_julia(ver, prefix):
         # download julia
         buf = download_julia(f)
         # include the version in the prefix
-        print(f'Installing Julia to {prefix}')
+        v = f['version']
+        print(f'Installing Julia {v} to {prefix}')
         if os.path.exists(prefix):
             shutil.rmtree(prefix)
         if os.path.dirname(prefix):
@@ -182,7 +183,7 @@ def install_julia_dmg(f, buf, prefix):
             f.write(buf.read())
         # mount it
         mount = os.path.join(tmpdir, 'mount')
-        subprocess.run(['hdiutil', 'mount', '-mount', 'required', '-mountpoint', mount, dmg], check=True, capture_output=True)
+        subprocess.run(['hdiutil', 'mount', '-mount', 'required', '-mountpoint', mount, dmg], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         try:
             # copy stuff out
             appdirs = [d for d in os.listdir(mount) if d.startswith('Julia') and d.endswith('.app')]
@@ -192,7 +193,7 @@ def install_julia_dmg(f, buf, prefix):
             shutil.copytree(srcdir, prefix, symlinks=True)
         finally:
             # unmount
-            subprocess.run(['umount', mount], check=True, capture_output=True)
+            subprocess.run(['umount', mount], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 julia_installers = {
     '.tar.gz': install_julia_tar_gz,

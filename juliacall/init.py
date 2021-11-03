@@ -1,5 +1,5 @@
 import os, os.path, ctypes as c, shutil, subprocess, jill.install as jli
-from . import CONFIG, __version__, deps, jlcompat
+from . import CONFIG, __version__, deps, semver
 
 # Determine if this is a development version of juliacall
 # i.e. it is installed from the github repo, which contains Project.toml
@@ -50,7 +50,7 @@ else:
     # Find the Julia executable
     exepath = os.environ.get('PYTHON_JULIACALL_EXE')
     if exepath is not None:
-        v = jlcompat.julia_version_str(exepath)
+        v = semver.julia_version_str(exepath)
         if v is None:
             raise ValueError("PYTHON_JULIACALL_EXE={!r} does not exist".format(exepath))
         else:
@@ -66,14 +66,14 @@ else:
             exepath = None
             jill_upstream = os.getenv("JILL_UPSTREAM") or "Official"
             exever = deps.best_julia_version(compat, upstream=jill_upstream)
-            v = jlcompat.julia_version_str("julia")
+            v = semver.julia_version_str("julia")
             if v is not None and v == exever:
                 exepath = "julia"
             elif os.path.isdir(jlbin):
                 for f in os.listdir(jlbin):
                     if f.startswith("julia"):
                         x = os.path.join(jlbin, f)
-                        v = jlcompat.julia_version_str(x)
+                        v = semver.julia_version_str(x)
                         if v is not None and v == exever:
                             exepath = x
                             break
@@ -100,8 +100,8 @@ else:
                 if not os.path.isfile(exepath):
                     raise Exception('Installed julia in {!r} but cannot find it'.format(jlbin))
         # Check the version is compatible
-        v = jlcompat.julia_version_str(exepath)
-        assert v is not None and (compat is None or jlcompat.Version(v) in compat)
+        v = semver.julia_version_str(exepath)
+        assert v is not None and (compat is None or semver.Version(v) in compat)
         CONFIG['exever'] = v
     CONFIG['exepath'] = exepath
     libpath = subprocess.run([exepath, '--startup-file=no', '-O0', '--compile=min', '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))'], stdout=(subprocess.PIPE)).stdout.decode('utf8')

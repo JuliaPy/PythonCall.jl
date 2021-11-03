@@ -5,7 +5,7 @@ import sys
 from time import time
 
 from . import CONFIG, __version__
-from .jlcompat import JuliaCompat, Version, julia_version_str
+from .semver import JuliaCompat, Version, julia_version_str
 
 ### META
 

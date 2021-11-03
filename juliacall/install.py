@@ -7,6 +7,7 @@ import platform
 import shutil
 import subprocess
 import tarfile
+import tempfile
 import time
 import urllib.request
 import warnings
@@ -52,7 +53,7 @@ def get_libc():
     libc = platform.libc_ver()[0].lower()
     return libc_aliases.get(libc, libc)
 
-def compatible_julia_versions(compat=None, stable=True, kind=None):
+def compatible_julia_versions(compat=None):
     os = get_os()
     arch = get_arch()
     libc = get_libc()
@@ -62,12 +63,12 @@ def compatible_julia_versions(compat=None, stable=True, kind=None):
     ans = {}
     for (k, v) in all_julia_versions().items():
         v = v.copy()
-        if stable is not None and v['stable'] != stable:
+        if not v['stable']:
             continue
         files = []
         for f in v['files']:
             assert f['version'] == k
-            if kind is not None and f['kind'] != kind:
+            if not any(f['url'].endswith(ext) for ext in julia_installers):
                 continue
             if f['os'] != os:
                 continue
@@ -92,27 +93,34 @@ def compatible_julia_versions(compat=None, stable=True, kind=None):
         raise Exception(f'multiple matching triplets {sorted(triplets)} - this is a bug, please report')
     return ans
 
-def install_julia(vers, prefix):
+def best_julia_version(compat=None):
+    vers = compatible_julia_versions(compat)
     if not vers:
         raise Exception('no compatible Julia version found')
-    for v in sorted(vers.keys(), key=Version, reverse=True):
-        for f in vers[v]['files']:
-            url = f['url']
-            if url.endswith('.tar.gz'):
-                installer = install_julia_tar_gz
-            elif url.endswith('.zip'):
-                installer = install_julia_zip
-            elif url.endswith('.dmg'):
-                installer = install_julia_dmg
-            else:
-                continue
-            buf = download_julia(f)
-            prefix2 = prefix.format(version=v)
-            print(f'Installing Julia to {prefix2}')
-            if os.path.exists(prefix2):
-                shutil.rmtree(prefix2)
-            installer(f, buf, prefix2)
-            return
+    v = sorted(vers.keys(), key=Version, reverse=True)[0]
+    return v, vers[v]
+
+def install_julia(ver, prefix):
+    for f in ver['files']:
+        url = f['url']
+        # find a suitable installer
+        installer = None
+        for ext in julia_installers:
+            if url.endswith(ext):
+                installer = julia_installers[ext]
+                break
+        if installer is None:
+            continue
+        # download julia
+        buf = download_julia(f)
+        # include the version in the prefix
+        print(f'Installing Julia to {prefix}')
+        if os.path.exists(prefix):
+            shutil.rmtree(prefix)
+        if os.path.dirname(prefix):
+            os.makedirs(os.path.dirname(prefix))
+        installer(f, buf, prefix)
+        return
     raise Exception('no installable Julia version found')
 
 def download_julia(f):
@@ -130,7 +138,7 @@ def download_julia(f):
                 break
             buf.write(data)
             if time.time() > t:
-                print(f'  downloaded {buf.tell()/(1<<20):.3f} MB of {size/(1<<20):.3f} MB')
+                print(f'  downloaded {buf.tell()/(1<<20):.1f} MB of {size/(1<<20):.1f} MB')
                 t = time.time() + freq
     print('  download complete')
     print(f'Verifying download')
@@ -144,55 +152,50 @@ def download_julia(f):
     return buf
 
 def install_julia_zip(f, buf, prefix):
-    os.makedirs(prefix)
-    with zipfile.ZipFile(buf) as zf:
-        zf.extractall(prefix)
-    fns = os.listdir(prefix)
-    if 'bin' not in fns:
-        if len(fns) != 1:
-            raise Exception('expecting one subdirectory')
-        top = fns[0]
-        fns = os.listdir(os.path.join(prefix, top))
-        if 'bin' not in fns:
-            raise Exception('expecting a bin directory')
-        for fn in fns:
-            os.rename(os.path.join(prefix, top, fn), os.path.join(prefix, fn))
-        os.rmdir(os.path.join(prefix, top))
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # extract all files
+        with zipfile.ZipFile(buf) as zf:
+            zf.extractall(tmpdir)
+        # copy stuff out
+        srcdirs = [d for d in os.listdir(tmpdir) if d.startswith('julia')]
+        if len(srcdirs) != 1:
+            raise Exception('expecting one julia* directory')
+        shutil.copytree(os.path.join(tmpdir, srcdirs[0]), prefix, symlinks=True)
 
 def install_julia_tar_gz(f, buf, prefix):
-    os.makedirs(prefix)
-    with gzip.GzipFile(fileobj=buf) as gf:
-        with tarfile.TarFile(fileobj=gf) as tf:
-            tf.extractall(prefix)
-    fns = os.listdir(prefix)
-    if 'bin' not in fns:
-        if len(fns) != 1:
-            raise Exception('expecting one subdirectory')
-        top = fns[0]
-        fns = os.listdir(os.path.join(prefix, top))
-        if 'bin' not in fns:
-            raise Exception('expecting a bin directory')
-        for fn in fns:
-            os.rename(os.path.join(prefix, top, fn), os.path.join(prefix, fn))
-        os.rmdir(os.path.join(prefix, top))
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # extract all files
+        with gzip.GzipFile(fileobj=buf) as gf:
+            with tarfile.TarFile(fileobj=gf) as tf:
+                tf.extractall(tmpdir)
+        # copy stuff out
+        srcdirs = [d for d in os.listdir(tmpdir) if d.startswith('julia')]
+        if len(srcdirs) != 1:
+            raise Exception('expecting one julia* directory')
+        shutil.copytree(os.path.join(tmpdir, srcdirs[0]), prefix, symlinks=True)
 
 def install_julia_dmg(f, buf, prefix):
-    tmpdir = prefix + '.tmp'
-    os.makedirs(tmpdir)
-    # write the dmg file out
-    dmg = os.path.join(tmpdir, 'dmg')
-    with open(dmg, 'wb') as f:
-        f.write(buf.read())
-    # mount it
-    mount = os.path.join(tmpdir, 'mount')
-    subprocess.run(['hdiutil', 'mount', '-mount', 'required', '-mountpoint', mount, dmg], check=True, capture_output=True)
-    # copy stuff out
-    appdirs = [d for d in os.listdir(mount) if d.startswith('Julia') and d.endswith('.app')]
-    if len(appdirs) != 1:
-        raise Exception('expecting one Julia*.app directory')
-    srcdir = os.path.join(mount, appdirs[0], 'Contents', 'Resources', 'julia')
-    shutil.copytree(srcdir, prefix, symlinks=True)
-    # unmount
-    subprocess.run(['umount', mount], check=True, capture_output=True)
-    # delete tmpdir
-    shutil.rmtree(tmpdir)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # write the dmg file out
+        dmg = os.path.join(tmpdir, 'dmg')
+        with open(dmg, 'wb') as f:
+            f.write(buf.read())
+        # mount it
+        mount = os.path.join(tmpdir, 'mount')
+        subprocess.run(['hdiutil', 'mount', '-mount', 'required', '-mountpoint', mount, dmg], check=True, capture_output=True)
+        try:
+            # copy stuff out
+            appdirs = [d for d in os.listdir(mount) if d.startswith('Julia') and d.endswith('.app')]
+            if len(appdirs) != 1:
+                raise Exception('expecting one Julia*.app directory')
+            srcdir = os.path.join(mount, appdirs[0], 'Contents', 'Resources', 'julia')
+            shutil.copytree(srcdir, prefix, symlinks=True)
+        finally:
+            # unmount
+            subprocess.run(['umount', mount], check=True, capture_output=True)
+
+julia_installers = {
+    '.tar.gz': install_julia_tar_gz,
+    '.zip': install_julia_zip,
+    '.dmg': install_julia_dmg,
+}

@@ -5,6 +5,7 @@ import json
 import os
 import platform
 import shutil
+import subprocess
 import tarfile
 import time
 import urllib.request
@@ -176,4 +177,22 @@ def install_julia_tar_gz(f, buf, prefix):
         os.rmdir(os.path.join(prefix, top))
 
 def install_julia_dmg(f, buf, prefix):
-    raise NotImplementedError('cannot yet install Julia from DMG')
+    tmpdir = prefix + '.tmp'
+    os.makedirs(tmpdir)
+    # write the dmg file out
+    dmg = os.path.join(tmpdir, 'dmg')
+    with open(dmg, 'wb') as f:
+        f.write(buf.read())
+    # mount it
+    mount = os.path.join(tmpdir, 'mount')
+    subprocess.run(['hdiutil', 'mount', '-mount', 'required', '-mountpoint', mount, dmg], check=True, capture_output=True)
+    # copy stuff out
+    appdirs = [d for d in os.listdir(mount) if d.startswith('Julia') and d.endswith('.app')]
+    if len(appdirs) != 1:
+        raise Exception('expecting one Julia*.app directory')
+    srcdir = os.path.join(mount, appdirs[0], 'Contents', 'Resources', 'julia')
+    shutil.copytree(srcdir, prefix, symlinks=True)
+    # unmount
+    subprocess.run(['umount', mount], check=True, capture_output=True)
+    # delete tmpdir
+    shutil.rmtree(tmpdir)

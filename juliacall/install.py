@@ -29,7 +29,7 @@ os_aliases = {
 }
 
 def get_os():
-    os = platform.system()
+    os = platform.system().lower()
     return os_aliases.get(os.lower(), os)
 
 arch_aliases = {
@@ -39,7 +39,7 @@ arch_aliases = {
 }
 
 def get_arch():
-    arch = platform.machine()
+    arch = platform.machine().lower()
     return arch_aliases.get(arch.lower(), arch)
 
 def compatible_julia_versions(compat=None, stable=True, kind=None):
@@ -82,31 +82,27 @@ def compatible_julia_versions(compat=None, stable=True, kind=None):
         raise Exception(f'multiple matching triplets {sorted(triplets)} - this is a bug, please report')
     return ans
 
-def best_julia_version(*args, **kwargs):
-    vers = compatible_julia_versions(*args, **kwargs)
+def install_julia(vers, prefix):
     if not vers:
-        raise ValueError('no compatible Julia version found')
-    v = sorted(vers.keys(), key=Version)[-1]
-    return v, vers[v]
-
-def install_julia(ver, prefix):
-    for f in ver['files']:
-        url = f['url']
-        if url.endswith('.tar.gz'):
-            installer = install_julia_tar
-        elif url.endswith('.zip'):
-            installer = install_julia_zip
-        elif url.endswith('.dmg'):
-            installer = install_julia_dmg
-        else:
-            continue
-        buf = download_julia(f)
-        print(f'Installing Julia to {prefix}')
-        if os.path.exists(prefix):
-            shutil.rmtree(prefix)
-        installer(f, buf, prefix)
-        return
-    raise ValueError('no installable Julia version found')
+        raise Exception('no compatible Julia version found')
+    for v in sorted(vers.keys(), key=Version, reverse=True):
+        for f in vers[v]['files']:
+            url = f['url']
+            if url.endswith('.tar.gz'):
+                installer = install_julia_tar
+            elif url.endswith('.zip'):
+                installer = install_julia_zip
+            elif url.endswith('.dmg'):
+                installer = install_julia_dmg
+            else:
+                continue
+            buf = download_julia(f)
+            print(f'Installing Julia to {prefix}')
+            if os.path.exists(prefix):
+                shutil.rmtree(prefix)
+            installer(f, buf, prefix)
+            return
+    raise Exception('no installable Julia version found')
 
 def download_julia(f):
     url = f['url']

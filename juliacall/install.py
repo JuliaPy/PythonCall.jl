@@ -1,5 +1,6 @@
 import hashlib
 import io
+import gzip
 import json
 import os
 import platform
@@ -97,7 +98,7 @@ def install_julia(vers, prefix):
         for f in vers[v]['files']:
             url = f['url']
             if url.endswith('.tar.gz'):
-                installer = install_julia_tar
+                installer = install_julia_tar_gz
             elif url.endswith('.zip'):
                 installer = install_julia_zip
             elif url.endswith('.dmg'):
@@ -105,10 +106,11 @@ def install_julia(vers, prefix):
             else:
                 continue
             buf = download_julia(f)
-            print(f'Installing Julia to {prefix}')
-            if os.path.exists(prefix):
-                shutil.rmtree(prefix)
-            installer(f, buf, prefix)
+            prefix2 = prefix.format(version=v)
+            print(f'Installing Julia to {prefix2}')
+            if os.path.exists(prefix2):
+                shutil.rmtree(prefix2)
+            installer(f, buf, prefix2)
             return
     raise Exception('no installable Julia version found')
 
@@ -156,10 +158,11 @@ def install_julia_zip(f, buf, prefix):
             os.rename(os.path.join(prefix, top, fn), os.path.join(prefix, fn))
         os.rmdir(os.path.join(prefix, top))
 
-def install_julia_tar(f, buf, prefix):
+def install_julia_tar_gz(f, buf, prefix):
     os.makedirs(prefix)
-    with tarfile.TarFile(fileobj=buf) as tf:
-        tf.extractall(prefix)
+    with gzip.GzipFile(fileobj=buf) as gf:
+        with tarfile.TarFile(fileobj=gf) as tf:
+            tf.extractall(prefix)
     fns = os.listdir(prefix)
     if 'bin' not in fns:
         if len(fns) != 1:

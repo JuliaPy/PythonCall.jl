@@ -1,4 +1,4 @@
-import os, os.path, ctypes as c, shutil, subprocess
+import os, os.path, ctypes as c, shutil, sys, subprocess
 from . import CONFIG, __version__, deps, semver, install
 
 # Determine if this is a development version of juliacall
@@ -138,12 +138,17 @@ try:
                 install = 'Pkg.add([{}])'.format(', '.join(add_pkgs))
             else:
                 install = ''
+    os.environ['JULIA_PYTHONCALL_LIBPTR'] = str(c.pythonapi._handle)
+    os.environ['JULIA_PYTHONCALL_EXE'] = sys.executable or ''
     script = '''
         try
+            if ENV["JULIA_PYTHONCALL_EXE"] != "" && get(ENV, "PYTHON", "") == ""
+                # Ensures PyCall uses the same Python executable
+                ENV["PYTHON"] = ENV["JULIA_PYTHONCALL_EXE"]
+            end
             import Pkg
             Pkg.activate(raw"{}", io=devnull)
             {}
-            ENV["JULIA_PYTHONCALL_LIBPTR"] = "{}"
             import PythonCall
         catch err
             @error "Error loading PythonCall.jl" err=err

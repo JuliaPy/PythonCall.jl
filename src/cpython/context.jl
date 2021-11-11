@@ -17,6 +17,7 @@ A handle to a loaded instance of libpython, its interpreter, function pointers, 
     pyhome_w :: Any = missing
     version :: Union{VersionNumber, Missing} = missing
     jlenv :: String = ""
+    matches_pycall :: Union{Bool, Missing} = missing
 end
 
 const CTX = Context()
@@ -47,6 +48,10 @@ function init_context()
         # Check Python is initialized
         Py_IsInitialized() == 0 && error("Python is not already initialized.")
         CTX.is_initialized = CTX.is_preinitialized = true
+        exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
+        if exe_path != ""
+            CTX.exe_path = exe_path
+        end
     else
         # Find Python executable
         # TODO: PyCall compatibility mode
@@ -182,6 +187,9 @@ function init_context()
         end
     end
 
+    # Compare libpath with PyCall
+    @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
+
 #     C.PyObject_TryConvert_AddRule("builtins.object", PyObject, CTryConvertRule_wrapref, -100)
 #     C.PyObject_TryConvert_AddRule("builtins.object", PyRef, CTryConvertRule_wrapref, -200)
 #     C.PyObject_TryConvert_AddRule("collections.abc.Sequence", PyList, CTryConvertRule_wrapref, 100)
@@ -235,18 +243,9 @@ const PYTHONCALL_PKGID = Base.PkgId(PYTHONCALL_UUID, "PythonCall")
 const PYCALL_UUID = Base.UUID("438e738f-606a-5dbb-bf0a-cddfbfd45ab0")
 const PYCALL_PKGID = Base.PkgId(PYCALL_UUID, "PyCall")
 
-# # Compare libpath with PyCall
-# PyCall = get(Base.loaded_modules, PYCALL_PKGID, nothing)
-# if PyCall === nothing
-#     @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" check_libpath(PyCall)
-# else
-#     check_libpath(PyCall)
-# end
-
-# check_libpath(PyCall) = begin
-#     if realpath(PyCall.libpython) == realpath(CTX.lib_path)
-#         # @info "libpython path agrees between PythonCall and PyCall" PythonCall.CONFIG.libpath PyCall.libpython
-#     else
-#         @warn "PythonCall and PyCall are using different versions of libpython. This will probably go badly." CTX.lib_path PyCall.libpython
-#     end
-# end
+function init_pycall(PyCall::Module)
+    # see if PyCall and PythonCall are using the same interpreter by checking if a couple of memory addresses are the same
+    ptr1 = Py_GetVersion()
+    ptr2 = @eval PyCall ccall(@pysym(:Py_GetVersion), Ptr{Cchar}, ())
+    CTX.matches_pycall = ptr1 == ptr2
+end

@@ -143,6 +143,9 @@ def required_packages():
                 raise ValueError("Cannot have a dependency called 'PythonCall'")
             dep = all_deps.setdefault(name, {})
             for (k, v) in kvs.items():
+                if k == 'path':
+                    # resolve paths relative to the directory containing the file
+                    v = os.path.join(os.path.dirname(fn), v)
                 dep.setdefault(k, {})[fn] = v
     # merges non-unique values
     def merge_unique(dep, kfvs, k):

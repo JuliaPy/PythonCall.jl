@@ -43,15 +43,14 @@ def save_meta(meta):
 ### RESOLVE
 
 class PackageSpec:
-    def __init__(self, name, uuid, dev=False, compat=None, path=None, url=None, rev=None, version=None):
+    def __init__(self, name, uuid, dev=False, version=None, path=None, url=None, rev=None):
         self.name = name
         self.uuid = uuid
         self.dev = dev
-        self.compat = compat
+        self.version = version
         self.path = path
         self.url = url
         self.rev = rev
-        self.version = version
 
     def jlstr(self):
         args = ['name="{}"'.format(self.name), 'uuid="{}"'.format(self.uuid)]
@@ -61,8 +60,6 @@ class PackageSpec:
             args.append('url=raw"{}"'.format(self.url))
         if self.rev is not None:
             args.append('rev=raw"{}"'.format(self.rev))
-        if self.version is not None:
-            args.append('version=raw"{}"'.format(self.version))
         return "Pkg.PackageSpec({})".format(', '.join(args))
 
     def dict(self):
@@ -70,11 +67,10 @@ class PackageSpec:
             "name": self.name,
             "uuid": self.uuid,
             "dev": self.dev,
-            "compat": self.compat,
+            "version": self.version,
             "path": self.path,
             "url": self.url,
             "rev": self.rev,
-            "version": self.version,
         }
         return {k:v for (k,v) in ans.items() if v is not None}
 
@@ -182,7 +178,7 @@ def required_packages():
         merge_unique(kw, kfvs, 'path')
         merge_unique(kw, kfvs, 'url')
         merge_unique(kw, kfvs, 'rev')
-        merge_compat(kw, kfvs, 'compat')
+        merge_compat(kw, kfvs, 'version')
         merge_any(kw, kfvs, 'dev')
         deps.append(PackageSpec(**kw))
     return deps

@@ -106,7 +106,7 @@ try:
         if isdev:
             pkgs.append(deps.PackageSpec(name="PythonCall", uuid="6099a3de-0909-46bc-b1f4-468b9a2dfc0d", path=reporoot, dev=True))
         else:
-            pkgs.append(deps.PackageSpec(name="PythonCall", uuid="6099a3de-0909-46bc-b1f4-468b9a2dfc0d", compat="= "+__version__))
+            pkgs.append(deps.PackageSpec(name="PythonCall", uuid="6099a3de-0909-46bc-b1f4-468b9a2dfc0d", version="= "+__version__))
         # check if pkgs has changed at all
         meta = deps.load_meta()
         prev_pkgs = None if meta is None else meta.get('pkgs')
@@ -124,8 +124,8 @@ try:
                 print(file=fp)
                 print('[compat]', file=fp)
                 for pkg in pkgs:
-                    if pkg.compat:
-                        print('{} = "{}"'.format(pkg.name, pkg.compat), file=fp)
+                    if pkg.version:
+                        print('{} = "{}"'.format(pkg.name, pkg.version), file=fp)
                 print(file=fp)
             # Create install command
             dev_pkgs = [pkg.jlstr() for pkg in pkgs if pkg.dev]

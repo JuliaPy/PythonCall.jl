@@ -81,7 +81,7 @@ Here is an example:
     "packages": {
         "Example": {
             "uuid": "7876af07-990d-54b4-ab0e-23690620f79a",
-            "compat": "0.5",
+            "version": "0.5, 0.6",
             "url": "http://github.com/JuliaLang/Example.jl",
             "path": "/path/to/the/package",
             "rev": "master",
@@ -91,7 +91,7 @@ Here is an example:
 }
 ```
 All parts are optional, except that the UUID of each package is required. Typically you
-will just include the UUID and compat fields.
+will just include the UUID and version fields.
 
 When JuliaCall starts, it will ensure the latest compatible version of Julia is installed,
 and will ensure the given packages are installed.

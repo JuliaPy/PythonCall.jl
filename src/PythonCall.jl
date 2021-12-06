@@ -1,5 +1,9 @@
 module PythonCall
 
+if isdefined(Base, :Experimental) && isdefined(Base.Experimental, Symbol("@optlevel"))
+    @eval Base.Experimental.@compiler_options optimize=0 compile=min infer=no
+end
+
 const VERSION = v"0.4.3"
 
 using Base: @propagate_inbounds

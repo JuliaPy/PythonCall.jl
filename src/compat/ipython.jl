@@ -1,11 +1,42 @@
+"""
+    PythonDisplay()
+
+Like TextDisplay() but prints to Python's stdout.
+"""
+struct PythonDisplay <: AbstractDisplay end
+
+function Base.display(d::PythonDisplay, m::MIME, @nospecialize(x))
+    istextmime(m) || throw(MethodError(display, (d, m, x)))
+    buf = IOBuffer()
+    io = IOContext(buf, :limit=>true)
+    try
+        show(io, m, x)
+    catch
+        throw(MethodError(display, (d, m, x)))
+    end
+    data = String(take!(buf))
+    pyprint(data)
+    return
+end
+
+function Base.display(d::PythonDisplay, @nospecialize(x))
+    display(d, MIME("text/plain"), x)
+end
+
+"""
+    IPythonDisplay()
+
+For displaying multimedia with IPython's display mechanism.
+"""
 struct IPythonDisplay <: AbstractDisplay end
 
 function Base.display(d::IPythonDisplay, m::MIME, @nospecialize(x))
     ipy = pyimport("IPython")
     buf = IOBuffer()
+    io = IOContext(buf, :limit=>true)
     dict = pydict()
     try
-        show(buf, m, x)
+        show(io, m, x)
     catch
         throw(MethodError(display, (d, m, x)))
     end
@@ -22,10 +53,11 @@ function Base.display(d::IPythonDisplay, @nospecialize(x))
         return
     end
     buf = IOBuffer()
+    io = IOContext(buf, :limit=>true)
     dict = pydict()
     for m in Utils.mimes_for(x)
         try
-            show(buf, MIME(m), x)
+            show(io, MIME(m), x)
         catch
             continue
         end
@@ -42,10 +74,7 @@ function init_ipython()
     if C.CTX.is_embedded && CONFIG.auto_ipython_display
         is_ipython = ("IPython" in pysysmodule.modules) && !pyisnone(pysysmodule.modules["IPython"].get_ipython())
         if is_ipython
-            # We used to set `Base.stdout` to `sys.stdout` and ensure it is flushed after each execution.
-            # But `Base.stdout` is expected to be a "real" file in some places (e.g. when spawning tasks).
-            # set displays so that Base.display() renders in ipython
-            # pushdisplay(TextDisplay(Base.stdout))
+            pushdisplay(PythonDisplay())
             pushdisplay(IPythonDisplay())
         end
     end

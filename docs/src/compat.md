@@ -53,7 +53,5 @@ PythonCall.fix_qt_plugin_path
 ## IPython
 
 If Python is running an IPython kernel, then:
-- Julia's `Base.stdout` is set to Python's `sys.stdout`.
-- An `IPythonDisplay` is pushed onto Julia's display stack, so that `display(x)` goes to IPython if possible.
-
-This is disabled by setting `PythonCall.CONFIG.auto_ipython_display = false`.
+- Currently disabled: Julia's `Base.stdout` is set to Python's `sys.stdout`.
+- A `PythonDisplay` and `IPythonDisplay` are pushed onto Julia's display stack, so that `display(x)` goes to IPython if possible.

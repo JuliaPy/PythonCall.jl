@@ -42,11 +42,10 @@ function init_ipython()
     if C.CTX.is_embedded && CONFIG.auto_ipython_display
         is_ipython = ("IPython" in pysysmodule.modules) && !pyisnone(pysysmodule.modules["IPython"].get_ipython())
         if is_ipython
-            # Set `Base.stdout` to `sys.stdout` and ensure it is flushed after each execution
-            @eval Base stdout = $(PyIO(pysysmodule.stdout))
-            pysysmodule.modules["IPython"].get_ipython().events.register("post_execute", pycallback(() -> (flush(Base.stdout); nothing)))
+            # We used to set `Base.stdout` to `sys.stdout` and ensure it is flushed after each execution.
+            # But `Base.stdout` is expected to be a "real" file in some places (e.g. when spawning tasks).
             # set displays so that Base.display() renders in ipython
-            pushdisplay(TextDisplay(Base.stdout))
+            # pushdisplay(TextDisplay(Base.stdout))
             pushdisplay(IPythonDisplay())
         end
     end

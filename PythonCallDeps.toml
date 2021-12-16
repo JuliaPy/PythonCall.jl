@@ -1,3 +1,0 @@
-[conda]
-packages = ["pip>=18", "python>=3.5,<3.10"] # TODO: restricting to <3.10 for now because conda has issues when the minor number has two digits
-channels = ["defaults"]

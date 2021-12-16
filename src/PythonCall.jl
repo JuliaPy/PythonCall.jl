@@ -6,7 +6,6 @@ using Base: @propagate_inbounds
 using MacroTools, Dates, Tables, Markdown, Serialization, Requires, Pkg
 
 include("utils.jl")
-include("deps.jl")
 
 include("cpython/CPython.jl")
 

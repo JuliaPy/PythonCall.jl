@@ -15,29 +15,22 @@ A handle to a loaded instance of libpython, its interpreter, function pointers, 
     pyprogname_w :: Any = missing
     pyhome :: Union{String, Missing} = missing
     pyhome_w :: Any = missing
+    which :: Symbol = :unknown # :CondaPkg, :PyCall, :embedded or :unknown
     version :: Union{VersionNumber, Missing} = missing
-    jlenv :: String = ""
     matches_pycall :: Union{Bool, Missing} = missing
 end
 
 const CTX = Context()
 
-function init_context()
-
-    # Find the topmost project which depends on PythonCall.
-    # This is the project in which we manage Python dependences.
-    for env in Base.load_path()
-        proj = Base.env_project_file(env)
-        is_pythoncall = proj isa String && Base.project_file_name_uuid(proj, "").uuid == PYTHONCALL_UUID
-        depends_on_pythoncall = Base.manifest_uuid_path(env, PYTHONCALL_PKGID) !== nothing
-        if is_pythoncall || depends_on_pythoncall
-            jlenv = proj isa String ? dirname(proj) : env
-            CTX.jlenv = jlenv
-            Deps._meta_file[] = joinpath(jlenv, "PythonCallMeta")
-            break
-        end
+function _atpyexit()
+    if CTX.is_initialized && CTX.which != :PyCall
+        @warn "Python exited unexpectedly"
     end
-    isempty(CTX.jlenv) && error("could not find the environment containing PythonCall (this is a bug, please report it)")
+    CTX.is_initialized = false
+    return
+end
+
+function init_context()
 
     CTX.is_embedded = haskey(ENV, "JULIA_PYTHONCALL_LIBPTR")
 
@@ -48,41 +41,35 @@ function init_context()
         # Check Python is initialized
         Py_IsInitialized() == 0 && error("Python is not already initialized.")
         CTX.is_initialized = CTX.is_preinitialized = true
+        CTX.which = :embedded
         exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
         if exe_path != ""
             CTX.exe_path = exe_path
         end
     else
         # Find Python executable
-        # TODO: PyCall compatibility mode
-        # TODO: when JULIA_PYTHONCALL_EXE is given, determine if we are in a conda environment
         exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
-        if exe_path == ""
-            # By default, we use a conda environment inside the first Julia environment in
-            # the LOAD_PATH in which PythonCall is installed (in the manifest as an
-            # indirect dependency).
-            #
-            # Note that while Julia environments are stacked, Python environments are not,
-            # so it is possible that two Julia environments contain two different packages
-            # depending on PythonCall which install into this one conda environment.
-            #
-            # Regarding the LOAD_PATH as getting "less specific" as we go through, this
-            # choice of location is the "most specific" place which actually depends on
-            # PythonCall.
-            Deps._conda_env[] = joinpath(CTX.jlenv, "conda_env")
-            Deps.resolve()
-            exe_path = Deps.python_exe()
-            isfile(exe_path) || error("cannot find python executable")
+        if exe_path == "" || exe_path == "@CondaPkg"
+            # By default, we use Python installed by CondaPkg.
+            exe_path = CondaPkg.which("python")
+            CTX.which = :CondaPkg
         elseif exe_path == "@PyCall"
-            haskey(Base.loaded_modules, PYCALL_PKGID) || Base.require(PYCALL_PKGID)
-            PyCall = Base.loaded_modules[PYCALL_PKGID]
+            PyCall = Base.require(PYCALL_PKGID)
             exe_path = PyCall.python::String
             CTX.lib_path = PyCall.libpython::String
+            CTX.which = :PyCall
+        elseif startswith(exe_path, "@")
+            error("invalid JULIA_PYTHONCALL_EXE=$exe_path")
+        else
+            CTX.which = :unknown
         end
+
+        # Call f() in a suitable environment for running Python
+        withenv(f) = CTX.which == :CondaPkg ? CondaPkg.withenv(f) : f()
 
         # Ensure Python is runnable
         try
-            run(pipeline(`$exe_path --version`, stdout=devnull, stderr=devnull))
+            withenv(() -> run(pipeline(`$exe_path --version`, stdout=devnull, stderr=devnull)))
         catch
             error("Python executable $(repr(exe_path)) is not executable.")
         end
@@ -102,7 +89,7 @@ function init_context()
             Some(nothing)
         )
         if lib_path !== nothing
-            lib_ptr = dlopen_e(lib_path, CTX.dlopen_flags)
+            lib_ptr = withenv(() -> dlopen_e(lib_path, CTX.dlopen_flags))
             if lib_ptr == C_NULL
                 error("Python library $(repr(lib_path)) could not be opened.")
             else
@@ -110,8 +97,8 @@ function init_context()
                 CTX.lib_ptr = lib_ptr
             end
         else
-            for lib_path in readlines(python_cmd([joinpath(@__DIR__, "find_libpython.py"), "--list-all"]))
-                lib_ptr = dlopen_e(lib_path, CTX.dlopen_flags)
+            for lib_path in withenv(() -> readlines(python_cmd([joinpath(@__DIR__, "find_libpython.py"), "--list-all"])))
+                lib_ptr = withenv(() -> dlopen_e(lib_path, CTX.dlopen_flags))
                 if lib_ptr == C_NULL
                     @warn "Python library $(repr(lib_path)) could not be opened."
                 else
@@ -132,7 +119,9 @@ function init_context()
         with_gil() do
             if Py_IsInitialized() != 0
                 # Already initialized (maybe you're using PyCall as well)
+                @assert CTX.which in (:embedded, :PyCall)
             else
+                @assert CTX.which in (:unknown, :CondaPkg)
                 # Find ProgramName and PythonHome
                 script = if Sys.iswindows()
                     """
@@ -157,7 +146,7 @@ function init_context()
                         sys.stdout.write(sys.exec_prefix)
                     """
                 end
-                CTX.pyprogname, CTX.pyhome = readlines(python_cmd(["-c", script]))
+                CTX.pyprogname, CTX.pyhome = withenv(() -> readlines(python_cmd(["-c", script])))
 
                 # Set PythonHome
                 CTX.pyhome_w = Base.cconvert(Cwstring, CTX.pyhome)
@@ -181,7 +170,7 @@ function init_context()
                 end
             end
             CTX.is_initialized = true
-            if Py_AtExit(@cfunction(() -> (CTX.is_initialized && @warn("Python exited unexpectedly"); CTX.is_initialized = false; nothing), Cvoid, ())) == -1
+            if Py_AtExit(@cfunction(_atpyexit, Cvoid, ())) == -1
                 @warn "Py_AtExit() error"
             end
         end
@@ -222,7 +211,7 @@ function init_context()
 
     end
 
-    @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version CTX.jlenv Deps._meta_file[] Deps._conda_env[]
+    @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version
 
     return
 end
@@ -248,4 +237,7 @@ function init_pycall(PyCall::Module)
     ptr1 = Py_GetVersion()
     ptr2 = @eval PyCall ccall(@pysym(:Py_GetVersion), Ptr{Cchar}, ())
     CTX.matches_pycall = ptr1 == ptr2
+    if CTX.which == :PyCall
+        @assert CTX.matches_pycall
+    end
 end

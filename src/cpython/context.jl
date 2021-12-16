@@ -51,9 +51,10 @@ function init_context()
         exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
         if exe_path == "" || exe_path == "@CondaPkg"
             # By default, we use Python installed by CondaPkg.
-            exe_path = CondaPkg.which("python")
+            exe_path = Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") : joinpath(CondaPkg.envdir(), "bin", "python")
             CTX.which = :CondaPkg
         elseif exe_path == "@PyCall"
+            # PyCall compatibility mode
             PyCall = Base.require(PYCALL_PKGID)
             exe_path = PyCall.python::String
             CTX.lib_path = PyCall.libpython::String
@@ -61,6 +62,7 @@ function init_context()
         elseif startswith(exe_path, "@")
             error("invalid JULIA_PYTHONCALL_EXE=$exe_path")
         else
+            # Otherwise we use the Python specified
             CTX.which = :unknown
         end
 

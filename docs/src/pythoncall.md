@@ -258,8 +258,8 @@ REPL.
 
 ### Example
 
-See [https://github.com/cjdoris/Faiss.jl] for an example package which wraps the Python FAISS
-package.
+See [https://github.com/cjdoris/Faiss.jl](https://github.com/cjdoris/Faiss.jl) for an
+example package which wraps the Python FAISS package.
 
 ### Precompilation
 
@@ -285,8 +285,8 @@ end
 
 ### Dependencies
 
-If your package depends on some Python packages, you must write a `PythonCallDeps.toml` file.
-See [Managing Python dependencies](@ref).
+If your package depends on some Python packages, you must write a `CondaPkg.toml` file.
+See [Installing Python packages](@ref python-deps).
 
 ## Low-level API
 

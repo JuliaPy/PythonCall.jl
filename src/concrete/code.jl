@@ -26,7 +26,7 @@ Evaluate the given Python `code`, returning the result as a `T`.
 If `globals` is a `Module`, then a persistent `dict` unique to that module is used.
 
 By default the code runs in global scope (i.e. `locals===globals`). To use a temporary
-local scope, set `locals` to `()`, or to a `NamedTuple`` of variables to include in the
+local scope, set `locals` to `()`, or to a `NamedTuple` of variables to include in the
 scope.
 
 See also [`@pyeval`](@ref).
@@ -71,7 +71,7 @@ Execute the given Python `code`.
 If `globals` is a `Module`, then a persistent `dict` unique to that module is used.
 
 By default the code runs in global scope (i.e. `locals===globals`). To use a temporary
-local scope, set `locals` to `()`, or to a `NamedTuple`` of variables to include in the
+local scope, set `locals` to `()`, or to a `NamedTuple` of variables to include in the
 scope.
 
 If `T==Nothing` then returns `nothing`. Otherwise `T` must be a concrete `NamedTuple` type

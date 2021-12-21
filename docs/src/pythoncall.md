@@ -147,6 +147,10 @@ pyprint
 pyall
 pyany
 pycallable
+pyeval
+pyexec
+@pyeval
+@pyexec
 ```
 
 ### Conversion to Julia
@@ -239,75 +243,15 @@ pyge
 pygt
 ```
 
-## [Managing Python dependencies](@id python-deps)
+## [Installing Python packages](@id python-deps)
 
-PythonCall manages its Python dependencies using Conda. A Conda environment is automatically
-created in your active Julia environment when PythonCall is loaded, is initialised with
-at least `python` and `pip`, and is activated.
+PythonCall uses [CondaPkg.jl](https://github.com/cjdoris/CondaPkg.jl) to manage its
+dependencies. Namely, CondaPkg will automatically install Python and any packages required
+into a Conda environment specific to your current project.
 
-If your project requires more Python dependencies, use the mechanisms below to ensure they
-are automatically installed.
-
-**Do not install packages using conda or pip directly!** PythonCall can and will delete and
-reinstall its Conda environment periodically, such as when any dependencies change.
-
-**We strongly recommend that you specify Conda dependencies** if possible, instead of pip
-or script dependencies. This is because Conda can account for all inter-dependencies between
-packages and so prevent incompatible combinations of packages from being installed.
-
-### PythonCallDeps.toml
-
-If you put a file called `PythonCallDeps.toml` in a project/package/environment which
-depends on PythonCall, then the dependencies therein will be automatically installed into
-the Conda environment.
-
-Here is an example (all parts are optional):
-```toml
-[conda]
-packages = ["python>=3.6", "scikit-learn"]
-channels = ["conda-forge"]
-
-[pip]
-packages = ["numpy>=1.21"]
-# indexes = [...]
-
-[script]
-# expr = "some_julia_expression()"
-# file = "/path/to/julia/script.jl"
-```
-
-When PythonCall starts, it will ensure the Conda environment has the given Conda and pip
-packages installed, and will run the script if specified.
-
-### The Deps submodule
-
-Instead of manually editing `PythonCallDeps.toml`, you can use the submodule
-`PythonCall.Deps` to manage the Python dependencies of the current Julia project.
-
-These functions are for interactive use, **do not call them from packages!**
-
-```@docs
-PythonCall.Deps.status
-PythonCall.Deps.add
-PythonCall.Deps.rm
-PythonCall.Deps.resolve
-PythonCall.Deps.conda_env
-PythonCall.Deps.user_deps_file
-```
-
-### The Python interpreter
-
-By default, `python` is automatically installed into the Conda environment mentioned above.
-
-To use a different interpreter, you can set the environment variable `JULIA_PYTHONCALL_EXE`
-to its path before importing PythonCall. You can set it to `python` if it is in your PATH.
-
-You can also set it to the special value `"@PyCall"` which will use the same interpreter as
-PyCall.
-
-Note that using a non-default interpreter will disable all dependency management: no Conda
-environment will be created and no packages will be automatically installed. It is up to the
-user to ensure any required packages are installed.
+If your project requires any Python packages, add a `CondaPkg.toml` file to your project
+specifying what you need. Alternatively use `CondaPkg.add()` to add dependencies from the
+REPL.
 
 ## Writing packages which depend on PythonCall
 

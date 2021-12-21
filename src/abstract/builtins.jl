@@ -55,3 +55,11 @@ function pycallable(x)
     z
 end
 export pycallable
+
+"""
+    pycompile(...)
+
+Equivalent to `compile(...)` in Python.
+"""
+pycompile(args...; kwargs...) = pybuiltins.compile(args...; kwargs...)
+export pycompile

@@ -25,14 +25,18 @@ Evaluate the given Python `code`, returning the result as a `T`.
 
 If `globals` is a `Module`, then a persistent `dict` unique to that module is used.
 
-If `locals` is not specified, then it is set to `globals`, i.e. the code runs in global scope.
-
-For example the following computes `1.1+2.2` in the `Main` module as a `Float64`:
-```
-pyeval(Float64, "x+y", Main, (x=1.1, y=2.2))
-```
+By default the code runs in global scope (i.e. `locals===globals`). To use a temporary
+local scope, set `locals` to `()`, or to a `NamedTuple`` of variables to include in the
+scope.
 
 See also [`@pyeval`](@ref).
+
+# Examples
+
+The following computes `1.1+2.2` in the `Main` module as a `Float64`:
+```
+pyeval(Float64, "x+y", Main, (x=1.1, y=2.2))  # returns 3.3
+```
 """
 function pyeval(::Type{T}, code, globals, locals=nothing) where {T}
     globals_, locals_ = _pyeval_args(globals, locals)
@@ -66,17 +70,28 @@ Execute the given Python `code`.
 
 If `globals` is a `Module`, then a persistent `dict` unique to that module is used.
 
-If `locals` is not specified, then it is set to `globals`, i.e. the code runs in global scope.
+By default the code runs in global scope (i.e. `locals===globals`). To use a temporary
+local scope, set `locals` to `()`, or to a `NamedTuple`` of variables to include in the
+scope.
 
 If `T==Nothing` then returns `nothing`. Otherwise `T` must be a concrete `NamedTuple` type
 and the corresponding items from `locals` are extracted and returned.
 
-For example the following computes `1.1+2.2` in the `Main` module as a `Float64`:
+See also [`@pyexec`](@ref).
+
+# Examples
+
+The following computes `1.1+2.2` in the `Main` module as a `Float64`:
 ```
-pyeval(@NamedTuple{ans::Float64}, "ans=x+y", Main, (x=1.1, y=2.2))
+pyexec(@NamedTuple{ans::Float64}, "ans=x+y", Main, (x=1.1, y=2.2))  # returns (ans = 3.3,)
 ```
 
-See also [`@pyexec`](@ref).
+Marking variables as `global` saves them into the module scope, so that they are available
+in subsequent invocations:
+```
+pyexec("global x; x=12", Main)
+pyeval(Int, "x", Main)  # returns 12
+```
 """
 function pyexec(::Type{T}, code, globals, locals=nothing) where {T}
     globals_, locals_ = _pyeval_args(globals, locals)
@@ -131,9 +146,7 @@ function _pyeval_macro_args(arg, filename, mode)
         $codeobj
     end
     # convert inputs to locals
-    if inputs === :GLOBAL
-        locals = nothing
-    elseif inputs === nothing
+    if inputs === nothing
         locals = ()
     else
         if inputs isa Expr && inputs.head === :tuple
@@ -160,18 +173,20 @@ end
 """
     @pyeval [inputs =>] code [=> T]
 
-Evaluate the given `code` in a scope unique to the current module and return the answer as a `T`.
+Evaluate the given `code` in a new local scope and return the answer as a `T`.
+
+The global scope is persistent and unique to the current module.
 
 The `code` must be a literal string or command.
 
-The `inputs` is a tuple of inputs of the form `v=expr` to be included in a temporary new
-`locals` dict. Only `v` is required, `expr` defaults to `v`.
+The `inputs` is a tuple of inputs of the form `v=expr` to be included in the local scope.
+Only `v` is required, `expr` defaults to `v`.
 
-As a special case, if `inputs` is `GLOBAL` then the code is run in global scope.
+# Examples
 
-For example the following computes `1.1+2.2` and returns a `Float64`:
+The following computes `1.1+2.2` and returns a `Float64`:
 ```
-@pyeval (x=1.1, y=2.2) => `x+y` => Float64
+@pyeval (x=1.1, y=2.2) => `x+y` => Float64  # returns 3.3
 ```
 """
 macro pyeval(arg)
@@ -186,22 +201,31 @@ export @pyeval
 """
     @pyexec [inputs =>] code [=> outputs]
 
-Execute the given `code` in a scope unique to the current module.
+Execute the given `code` in a new local scope.
+
+The global scope is persistent and unique to the current module.
 
 The `code` must be a literal string or command.
 
-The `inputs` is a tuple of inputs of the form `v=expr` to be included in a temporary new
-`locals` dict. Only `v` is required, `expr` defaults to `v`.
-
-As a special case, if `inputs` is `GLOBAL` then the code is run in global scope.
+The `inputs` is a tuple of inputs of the form `v=expr` to be included in the local scope.
+Only `v` is required, `expr` defaults to `v`.
 
 The `outputs` is a tuple of outputs of the form `x::T=v`, meaning that `v` is extracted from
 locals, converted to `T` and assigned to `x`. Only `x` is required: `T` defaults to `Py`
 and `v` defaults to `x`.
 
-For example the following computes `1.1+2.2` and assigns its value to `ans` as a `Float64`:
+# Examples
+
+The following computes `1.1+2.2` and assigns its value to `ans` as a `Float64`:
 ```
-@pyexec (x=1.1, y=2.2) => `ans=x+y` => ans::Float64
+@pyexec (x=1.1, y=2.2) => `ans=x+y` => ans::Float64  # returns 3.3
+```
+
+Marking variables as `global` saves them into the module scope, so that they are available
+in subsequent invocations:
+```
+@pyexec `global x; x=12`
+@pyeval `x` => Int  # returns 12
 ```
 """
 macro pyexec(arg)

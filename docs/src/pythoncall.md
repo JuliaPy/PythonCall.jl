@@ -149,6 +149,7 @@ pyany
 pycallable
 pyeval
 pyexec
+pycompile
 @pyeval
 @pyexec
 ```

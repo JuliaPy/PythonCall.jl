@@ -52,6 +52,11 @@ function init_context()
         if exe_path == "" || exe_path == "@CondaPkg"
             # By default, we use Python installed by CondaPkg.
             exe_path = Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") : joinpath(CondaPkg.envdir(), "bin", "python")
+            # It's not sufficient to only activate the env while Python is initialising,
+            # it must also be active when loading extension modules (e.g. numpy). So we
+            # activate the environment globally.
+            # TODO: is this really necessary?
+            CondaPkg.activate!(ENV)
             CTX.which = :CondaPkg
         elseif exe_path == "@PyCall"
             # PyCall compatibility mode
@@ -66,12 +71,9 @@ function init_context()
             CTX.which = :unknown
         end
 
-        # Call f() in a suitable environment for running Python
-        withenv(f) = CTX.which == :CondaPkg ? CondaPkg.withenv(f) : f()
-
         # Ensure Python is runnable
         try
-            withenv(() -> run(pipeline(`$exe_path --version`, stdout=devnull, stderr=devnull)))
+            run(pipeline(`$exe_path --version`, stdout=devnull, stderr=devnull))
         catch
             error("Python executable $(repr(exe_path)) is not executable.")
         end
@@ -91,7 +93,7 @@ function init_context()
             Some(nothing)
         )
         if lib_path !== nothing
-            lib_ptr = withenv(() -> dlopen_e(lib_path, CTX.dlopen_flags))
+            lib_ptr = dlopen_e(lib_path, CTX.dlopen_flags)
             if lib_ptr == C_NULL
                 error("Python library $(repr(lib_path)) could not be opened.")
             else
@@ -99,8 +101,8 @@ function init_context()
                 CTX.lib_ptr = lib_ptr
             end
         else
-            for lib_path in withenv(() -> readlines(python_cmd([joinpath(@__DIR__, "find_libpython.py"), "--list-all"])))
-                lib_ptr = withenv(() -> dlopen_e(lib_path, CTX.dlopen_flags))
+            for lib_path in readlines(python_cmd([joinpath(@__DIR__, "find_libpython.py"), "--list-all"]))
+                lib_ptr = dlopen_e(lib_path, CTX.dlopen_flags)
                 if lib_ptr == C_NULL
                     @warn "Python library $(repr(lib_path)) could not be opened."
                 else
@@ -148,7 +150,7 @@ function init_context()
                         sys.stdout.write(sys.exec_prefix)
                     """
                 end
-                CTX.pyprogname, CTX.pyhome = withenv(() -> readlines(python_cmd(["-c", script])))
+                CTX.pyprogname, CTX.pyhome = readlines(python_cmd(["-c", script]))
 
                 # Set PythonHome
                 CTX.pyhome_w = Base.cconvert(Cwstring, CTX.pyhome)

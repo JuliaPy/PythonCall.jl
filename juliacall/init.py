@@ -151,7 +151,10 @@ try:
             {}
             import PythonCall
         catch err
-            @error "Error loading PythonCall.jl" err=err
+            print(stdout, "ERROR: ")
+            showerror(stdout, err)
+            Base.show_backtrace(stdout, Base.catch_backtrace())
+            flush(stdout)
             rethrow()
         end
         '''.format(jlenv, install, c.pythonapi._handle)

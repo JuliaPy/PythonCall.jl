@@ -23,7 +23,7 @@ end
 const CTX = Context()
 
 function _atpyexit()
-    if CTX.is_initialized && CTX.which != :PyCall
+    if CTX.is_initialized && !CTX.is_preinitialized
         @warn "Python exited unexpectedly"
     end
     CTX.is_initialized = false
@@ -40,7 +40,7 @@ function init_context()
         init_pointers()
         # Check Python is initialized
         Py_IsInitialized() == 0 && error("Python is not already initialized.")
-        CTX.is_initialized = CTX.is_preinitialized = true
+        CTX.is_initialized = true
         CTX.which = :embedded
         exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
         if exe_path != ""
@@ -121,7 +121,8 @@ function init_context()
 
         # Initialize
         with_gil() do
-            if Py_IsInitialized() != 0
+            CTX.is_preinitialized = Py_IsInitialized() != 0
+            if CTX.is_preinitialized
                 # Already initialized (maybe you're using PyCall as well)
                 @assert CTX.which in (:embedded, :PyCall)
             else

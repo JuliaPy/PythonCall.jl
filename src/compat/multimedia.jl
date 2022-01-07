@@ -34,7 +34,7 @@ function pyshow_rule_mimebundle(io::IO, mime::String, x::Py)
         else
             data = ans[mime]
         end
-        data = pyconvert(Union{String,Vector{UInt8}}, data)
+        data = @pyconvert(Union{String,Vector{UInt8}}, data, return false)
         if mime == "text/html"
             data = String(data)
             if occursin("altair-viz-", data) && occursin("document.currentScript.previousElementSibling", data)
@@ -78,7 +78,7 @@ function pyshow_rule_repr(io::IO, mime::String, x::Py)
         else
             data = ans
         end
-        write(io, pyconvert(Union{String,Vector{UInt8}}, data))
+        write(io, @pyconvert(Union{String,Vector{UInt8}}, data, return false))
         return true
     catch exc
         if exc isa PyException
@@ -113,7 +113,7 @@ function pyshow_rule_savefig(io::IO, mime::String, x::Py)
         end
         buf = pyimport("io").BytesIO()
         x.savefig(buf, format=format)
-        data = pyconvert(Vector{UInt8}, buf.getvalue())
+        data = @pyconvert(Vector{UInt8}, buf.getvalue(), return false)
         write(io, data)
         plt.close(fig)
         return true

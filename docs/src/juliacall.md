@@ -84,7 +84,7 @@ Here is an example:
             "version": "0.5, 0.6",
             "url": "http://github.com/JuliaLang/Example.jl",
             "path": "/path/to/the/package",
-            "rev": "master",
+            "rev": "main",
             "dev": false, // when true, uses Pkg.dev not Pkg.add
         }
     }

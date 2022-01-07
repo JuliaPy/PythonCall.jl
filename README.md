@@ -1,10 +1,10 @@
-<h1><img src="https://raw.githubusercontent.com/cjdoris/PythonCall.jl/master/docs/src/assets/logo.svg" alt="PythonCall.jl logo" style="width: 100px;"><br>PythonCall &amp;&nbsp;JuliaCall</h1>
+<h1><img src="https://raw.githubusercontent.com/cjdoris/PythonCall.jl/main/docs/src/assets/logo.svg" alt="PythonCall.jl logo" style="width: 100px;"><br>PythonCall &amp;&nbsp;JuliaCall</h1>
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://cjdoris.github.io/PythonCall.jl/stable)
 [![Dev Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://cjdoris.github.io/PythonCall.jl/dev)
 [![Test Status](https://github.com/cjdoris/PythonCall.jl/workflows/Tests/badge.svg)](https://github.com/cjdoris/PythonCall.jl/actions?query=workflow%3ATests)
-[![Codecov](https://codecov.io/gh/cjdoris/PythonCall.jl/branch/master/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/cjdoris/PythonCall.jl)
+[![Codecov](https://codecov.io/gh/cjdoris/PythonCall.jl/branch/main/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/cjdoris/PythonCall.jl)
 
 Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://julialang.org/) together in seamless harmony:
 - Call Python code from Julia and Julia code from Python via a symmetric interface.
@@ -26,7 +26,7 @@ In this example, we use the Julia module PythonCall from a [Pluto](https://githu
 - We use `pytable(df)` to convert it to a Python [Pandas DataFrame](https://pandas.pydata.org/).
 - We use the Python package [Seaborn](https://seaborn.pydata.org/) to produce a pair-plot, which is automatically displayed.
 
-![Seaborn example screenshot](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/master/examples/seaborn.png)
+![Seaborn example screenshot](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/main/examples/seaborn.png)
 
 ## Example 2: Calling Julia from Python
 
@@ -35,7 +35,7 @@ In this example we use the Python module JuliaCall from an IPython notebook to t
 - We construct and train a neural network model using Julia's Flux.
 - We plot some sample output from the model using Python's MatPlotLib.
 
-![Flux example screenshot](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/master/examples/flux.png)
+![Flux example screenshot](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/main/examples/flux.png)
 
 ## What about PyCall?
 

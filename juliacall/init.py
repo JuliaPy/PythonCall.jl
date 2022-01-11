@@ -152,8 +152,7 @@ try:
             import PythonCall
         catch err
             print(stdout, "ERROR: ")
-            showerror(stdout, err)
-            Base.show_backtrace(stdout, Base.catch_backtrace())
+            showerror(stdout, err, catch_backtrace())
             flush(stdout)
             rethrow()
         end

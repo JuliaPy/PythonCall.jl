@@ -41,6 +41,7 @@ makedocs(
         "conversion-to-julia.md",
         "compat.md",
         "pycall.md",
+        "releasenotes.md",
     ]
 )
 

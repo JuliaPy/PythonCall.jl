@@ -25,7 +25,7 @@ function errget()
     (pynew(t[]), pynew(v[]), pynew(b[]))
 end
 
-errset(t::Py) = GC.@preserve y C.PyErr_SetNone(getptr(t))
+errset(t::Py) = GC.@preserve t C.PyErr_SetNone(getptr(t))
 errset(t::Py, v::Py) = GC.@preserve t v C.PyErr_SetObject(getptr(t), getptr(v))
 errset(t::Py, v::String) = GC.@preserve t C.PyErr_SetString(getptr(t), v)
 

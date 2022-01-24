@@ -27,8 +27,9 @@ end
 
 # x._repr_mimebundle_()
 function pyshow_rule_mimebundle(io::IO, mime::String, x::Py)
+    pyhasattr(x, "_repr_mimebundle_") || return false
     try
-        ans = x._repr_mimebundle_(include=pylist((mime,)))
+        ans = pytype(x)._repr_mimebundle_(x, include=pylist([mime]))
         if pyisinstance(ans, pybuiltins.tuple)
             data = ans[0][mime]
         else
@@ -71,8 +72,9 @@ const MIME_TO_REPR_METHOD = Dict(
 function pyshow_rule_repr(io::IO, mime::String, x::Py)
     method = get(MIME_TO_REPR_METHOD, mime, "")
     isempty(method) && return false
+    pyhasattr(x, method) || return false
     try
-        ans = pygetattr(x, method)()
+        ans = pygetattr(pytype(x), method)(x)
         if pyisinstance(ans, pybuiltins.tuple)
             data = ans[0]
         else
@@ -103,7 +105,7 @@ const MIME_TO_MATPLOTLIB_FORMAT = Dict(
 function pyshow_rule_savefig(io::IO, mime::String, x::Py)
     format = get(MIME_TO_MATPLOTLIB_FORMAT, mime, "")
     isempty(format) && return false
-    pyhasattr(x, "savefig") || return false
+    pyhasattr(x, "savefig") || pyhasattr(x, "figure") || return false
     try
         plt = pysysmodule.modules["matplotlib.pyplot"]
         Figure = plt.Figure

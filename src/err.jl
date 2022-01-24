@@ -106,7 +106,11 @@ file_to_pymodule(fname::String) = begin
     end
 end
 
-function Base.showerror(io::IO, e::PyException)
+Base.showerror(io::IO, e::PyException) = _showerror(io, e, nothing, backtrace=false)
+
+Base.showerror(io::IO, e::PyException, bt; backtrace=true) = _showerror(io, e, bt; backtrace=backtrace)
+
+function _showerror(io::IO, e::PyException, bt; backtrace=true)
     print(io, "Python: ")
 
     if pyisnone(e.t)
@@ -125,108 +129,93 @@ function Base.showerror(io::IO, e::PyException)
         end
     end
 
-    # if this is a Julia exception then recursively print it and its stacktrace
     if !pyisnull(pyJuliaError) && pyissubclass(e.t, pyJuliaError)
+        # handle Julia exceptions specially
         try
-            # Extract error value
             je, jb = pyconvert(Tuple{Any,Any}, e.v.args)
             print(io, "Julia: ")
-            # Show exception
             if je isa Exception
-                showerror(io, je)
+                showerror(io, je, jb, backtrace=backtrace && jb !== nothing)
             else
                 print(io, je)
-            end
-            # Show backtrace
-            if jb === nothing
-                println(io)
-                printstyled(io, "Stacktrace: none")
-            else
-                io2 = IOBuffer()
-                Base.show_backtrace(
-                    IOContext(io2, io),
-                    jb,
-                )
-                printstyled(io, String(take!(io2)))
-            end
-            # Show Python backtrace
-            if pyisnone(e.b)
-                println(io)
-                printstyled(io, "Python stacktrace: none")
-                return
-            else
-                @goto pystacktrace
+                backtrace && jb !== nothing && Base.show_backtrace(io, jb)
             end
         catch err
             println("<error while printing Julia exception inside Python exception: $err>")
         end
-    end
-
-    # print the type name
-    try
-        print(io, e.t.__name__)
-    catch err
-        print(io, "<error while printing type: $err>")
-    end
-
-    # print the error message
-    if !pyisnone(e.v)
-        print(io, ": ")
+    else
+        # print the type name
         try
-            print(io, e.v)
+            print(io, e.t.__name__)
         catch err
-            print(io, "<error while printing value: $err>")
+            print(io, "<error while printing type: $err>")
+        end
+
+        # print the error message
+        if !pyisnone(e.v)
+            print(io, ": ")
+            try
+                print(io, e.v)
+            catch err
+                print(io, "<error while printing value: $err>")
+            end
         end
     end
 
-    # print the stacktrace
-    if !pyisnone(e.b)
-        @label pystacktrace
+    if backtrace
+        # print the Python stacktrace
         println(io)
         printstyled(io, "Python stacktrace:")
-        try
-            fs = [(pystr(String, x.name), pystr(String, x.filename), pystr(String, x.lineno)) for x in pyimport("traceback").extract_tb(e.b)]
-            if Base.VERSION < v"1.6.0-rc1"
-                for (i, (name, fname, lineno)) in enumerate(reverse(fs))
-                    println(io)
-                    printstyled(io, " [", i, "] ")
-                    printstyled(io, name, bold = true)
-                    printstyled(io, " at ")
-                    printstyled(io, fname, ":", lineno, bold = true)
-                end
-            else
-                mcdict = Dict{String, Symbol}()
-                mccyclyer = Iterators.Stateful(Iterators.cycle(Base.STACKTRACE_MODULECOLORS))
-                # skip a couple as a basic attempt to make the colours different from the Julia stacktrace
-                popfirst!(mccyclyer)
-                popfirst!(mccyclyer)
-                for (i, (name, fname, lineno)) in enumerate(reverse(fs))
-                    println(io)
-                    printstyled(io, " [", i, "] ")
-                    printstyled(io, name, bold = true)
-                    println(io)
-                    printstyled(io, "   @ ", color = :light_black)
-                    mod = file_to_pymodule(fname)
-                    if mod !== nothing
-                        # print the module, with colour determined by the top level name
-                        tmod = first(split(mod, ".", limit=2))
-                        color = get!(mcdict, tmod) do
-                            popfirst!(mccyclyer)
-                        end
-                        printstyled(io, mod, " ", color = color)
+        if pyisnone(e.b)
+            printstyled(io, " none")
+        else
+            try
+                fs = [(pystr(String, x.name), pystr(String, x.filename), pystr(String, x.lineno)) for x in pyimport("traceback").extract_tb(e.b)]
+                if Base.VERSION < v"1.6.0-rc1"
+                    for (i, (name, fname, lineno)) in enumerate(reverse(fs))
+                        println(io)
+                        printstyled(io, " [", i, "] ")
+                        printstyled(io, name, bold = true)
+                        printstyled(io, " at ")
+                        printstyled(io, fname, ":", lineno, bold = true)
                     end
-                    if isfile(fname) && :stacktrace_contract_userdir in names(Base, all=true) && Base.stacktrace_contract_userdir()
-                        if :replaceuserpath in names(Base, all=true)
-                            fname = Base.replaceuserpath(fname)
-                        elseif :contractuser in names(Base.Filesystem, all=true)
-                            fname = Base.Filesystem.contractuser(fname)
+                else
+                    mcdict = Dict{String, Symbol}()
+                    mccyclyer = Iterators.Stateful(Iterators.cycle(Base.STACKTRACE_MODULECOLORS))
+                    # skip a couple as a basic attempt to make the colours different from the Julia stacktrace
+                    popfirst!(mccyclyer)
+                    popfirst!(mccyclyer)
+                    for (i, (name, fname, lineno)) in enumerate(reverse(fs))
+                        println(io)
+                        printstyled(io, " [", i, "] ")
+                        printstyled(io, name, bold = true)
+                        println(io)
+                        printstyled(io, "   @ ", color = :light_black)
+                        mod = file_to_pymodule(fname)
+                        if mod !== nothing
+                            # print the module, with colour determined by the top level name
+                            tmod = first(split(mod, ".", limit=2))
+                            color = get!(mcdict, tmod) do
+                                popfirst!(mccyclyer)
+                            end
+                            printstyled(io, mod, " ", color = color)
                         end
+                        if isfile(fname) && :stacktrace_contract_userdir in names(Base, all=true) && Base.stacktrace_contract_userdir()
+                            if :replaceuserpath in names(Base, all=true)
+                                fname = Base.replaceuserpath(fname)
+                            elseif :contractuser in names(Base.Filesystem, all=true)
+                                fname = Base.Filesystem.contractuser(fname)
+                            end
+                        end
+                        printstyled(io, fname, ":", lineno, color = :light_black)
                     end
-                    printstyled(io, fname, ":", lineno, color = :light_black)
                 end
+            catch err
+                print(io, "<error while printing stacktrace: $err>")
             end
-        catch err
-            print(io, "<error while printing stacktrace: $err>")
         end
+
+        # print the Julia stacktrace
+        Base.show_backtrace(io, bt)
     end
 end

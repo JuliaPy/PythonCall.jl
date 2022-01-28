@@ -178,6 +178,11 @@ function init_context()
             if Py_AtExit(@cfunction(_atpyexit, Cvoid, ())) == -1
                 @warn "Py_AtExit() error"
             end
+            if CTX.which != :embedded
+                atexit() do
+                    dlclose(CTX.lib_ptr)
+                end
+            end
         end
     end
 

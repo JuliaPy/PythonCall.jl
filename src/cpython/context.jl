@@ -60,7 +60,7 @@ function init_context()
             CTX.which = :CondaPkg
         elseif exe_path == "@PyCall"
             # PyCall compatibility mode
-            PyCall = Base.require(PYCALL_PKGID)
+            PyCall = Base.require(PYCALL_PKGID)::Module
             exe_path = PyCall.python::String
             CTX.lib_path = PyCall.libpython::String
             CTX.which = :PyCall
@@ -86,7 +86,7 @@ function init_context()
             setenv(`$(CTX.exe_path) $args`, env)
         end
 
-        # Find Python library
+        # Find and open Python library
         lib_path = something(
             CTX.lib_path===missing ? nothing : CTX.lib_path,
             get(ENV, "JULIA_PYTHONCALL_LIB", nothing),
@@ -117,16 +117,22 @@ function init_context()
                 If you know where the library is, set environment variable 'JULIA_PYTHONCALL_LIB' to its path.
                 """)
         end
+
+        # Close the library when Julia exits
+        atexit() do
+            dlclose(CTX.lib_ptr)
+        end
+
+        # Get function pointers from the library
         init_pointers()
 
-        # Initialize
+        # Initialize the interpreter
         with_gil() do
             CTX.is_preinitialized = Py_IsInitialized() != 0
             if CTX.is_preinitialized
-                # Already initialized (maybe you're using PyCall as well)
-                @assert CTX.which in (:embedded, :PyCall)
+                @assert CTX.which == :PyCall
             else
-                @assert CTX.which in (:unknown, :CondaPkg)
+                @assert CTX.which != :PyCall
                 # Find ProgramName and PythonHome
                 script = if Sys.iswindows()
                     """
@@ -178,33 +184,11 @@ function init_context()
             if Py_AtExit(@cfunction(_atpyexit, Cvoid, ())) == -1
                 @warn "Py_AtExit() error"
             end
-            if CTX.which != :embedded
-                atexit() do
-                    dlclose(CTX.lib_ptr)
-                end
-            end
         end
     end
 
     # Compare libpath with PyCall
     @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
-
-#     C.PyObject_TryConvert_AddRule("builtins.object", PyObject, CTryConvertRule_wrapref, -100)
-#     C.PyObject_TryConvert_AddRule("builtins.object", PyRef, CTryConvertRule_wrapref, -200)
-#     C.PyObject_TryConvert_AddRule("collections.abc.Sequence", PyList, CTryConvertRule_wrapref, 100)
-#     C.PyObject_TryConvert_AddRule("collections.abc.Set", PySet, CTryConvertRule_wrapref, 100)
-#     C.PyObject_TryConvert_AddRule("collections.abc.Mapping", PyDict, CTryConvertRule_wrapref, 100)
-#     C.PyObject_TryConvert_AddRule("_io._IOBase", PyIO, CTryConvertRule_trywrapref, 100)
-#     C.PyObject_TryConvert_AddRule("io.IOBase", PyIO, CTryConvertRule_trywrapref, 100)
-#     C.PyObject_TryConvert_AddRule("<buffer>", PyArray, CTryConvertRule_trywrapref, 200)
-#     C.PyObject_TryConvert_AddRule("<buffer>", Array, CTryConvertRule_PyArray_tryconvert, 0)
-#     C.PyObject_TryConvert_AddRule("<buffer>", PyBuffer, CTryConvertRule_wrapref, -200)
-#     C.PyObject_TryConvert_AddRule("<arrayinterface>", PyArray, CTryConvertRule_trywrapref, 200)
-#     C.PyObject_TryConvert_AddRule("<arrayinterface>", Array, CTryConvertRule_PyArray_tryconvert, 0)
-#     C.PyObject_TryConvert_AddRule("<arraystruct>", PyArray, CTryConvertRule_trywrapref, 200)
-#     C.PyObject_TryConvert_AddRule("<arraystruct>", Array, CTryConvertRule_PyArray_tryconvert, 0)
-#     C.PyObject_TryConvert_AddRule("<array>", PyArray, CTryConvertRule_trywrapref, 0)
-#     C.PyObject_TryConvert_AddRule("<array>", Array, CTryConvertRule_PyArray_tryconvert, 0)
 
     with_gil() do
 
@@ -215,8 +199,8 @@ function init_context()
             error("Cannot parse version from version string: $(repr(verstr))")
         end
         CTX.version = VersionNumber(vermatch.match)
-        v"3" ≤ CTX.version < v"4" || error(
-            "Only Python 3 is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
+        v"3.5" ≤ CTX.version < v"4" || error(
+            "Only Python 3.5+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
         )
 
     end

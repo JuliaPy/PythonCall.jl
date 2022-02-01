@@ -67,6 +67,6 @@ One difference is between them is their code size: PyJulia is a large package, w
 
 Note also that JuliaCall will use a separate Julia project for each virtual/conda environment. This means that different Python environments can maintain an isolated set of Julia dependencies, including the versions of Julia and PythonCall themselves.
 
-### Compatability
+### Compatibility
 
 PyCall supports Julia 0.7+ and Python 2.7+, whereas PythonCall supports Julia 1.4+ and Python 3.5+. PyCall requires numpy to be installed, PythonCall doesn't (it provides the same fast array access through the buffer protocol and array interface).

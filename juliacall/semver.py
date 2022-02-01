@@ -95,7 +95,7 @@ class Eq:
     def isempty(self):
         return False
     def __and__(self, other):
-        if self in other:
+        if self.v in other:
             return self
         else:
             return Range(Version('0'), Version('0'))

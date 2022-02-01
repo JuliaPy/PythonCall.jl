@@ -96,7 +96,7 @@ def compatible_julia_versions(compat=None):
 def best_julia_version(compat=None):
     vers = compatible_julia_versions(compat)
     if not vers:
-        raise Exception('no compatible Julia version found')
+        raise Exception(f'no version of Julia is compatible with: {compat.jlstr()}')
     v = sorted(vers.keys(), key=Version, reverse=True)[0]
     return v, vers[v]
 

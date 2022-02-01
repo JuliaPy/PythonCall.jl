@@ -18,70 +18,84 @@ jlprefix = os.path.join(jldepot, "pythoncall")
 
 # Determine where to put the julia environment
 # TODO: Can we more direcly figure out the environment from which python was called? Maybe find the first PATH entry containing python?
-venvprefix = os.environ.get("VIRTUAL_ENV")
-condaprefix = os.environ.get("CONDA_PREFIX")
-if venvprefix and condaprefix:
-    raise Exception("You appear to be using both a virtual environment and a conda environment.")
-elif venvprefix:
-    prefix = venvprefix
-elif condaprefix:
-    prefix = condaprefix
-else:
+prefixes = [os.environ.get('VIRTUAL_ENV'), os.environ.get('CONDA_PREFIX'), os.environ.get('MAMBA_PREFIX')]
+prefixes = [x for x in prefixes if x is not None]
+if len(prefixes) == 0:
     prefix = None
+elif len(prefixes) == 1:
+    prefix = prefixes[0]
+else:
+    raise Exception('You are using some mix of virtual, conda and mamba environments, cannot figure out which to use!')
 if prefix is None:
     jlenv = os.path.join(jldepot, "environments", "PythonCall")
 else:
     jlenv = os.path.join(prefix, "julia_env")
 CONFIG['jlenv'] = os.path.join(jlenv)
-CONFIG['meta'] = os.path.join(jlenv, "PythonCallPyMeta")
+CONFIG['meta'] = os.path.join(jlenv, ".PythonCallJuliaCallMeta")
 
 # Determine whether or not to skip resolving julia/package versions
 skip = deps.can_skip_resolve()
 
-# Find the Julia library, possibly installing Julia
+# Find the Julia library
 libpath = os.environ.get('PYTHON_JULIACALL_LIB')
 if libpath is not None:
     if not os.path.exists(libpath):
-        raise ValueError('PYTHON_JULIACALL_LIB={!r} does not exist'.format(libpath))
+        raise ValueError(f'PYTHON_JULIACALL_LIB={libpath!r} does not exist')
 else:
     # Find the Julia executable
-    exepath = os.environ.get('PYTHON_JULIACALL_EXE')
-    if exepath is not None:
-        v = deps.julia_version_str(exepath)
-        if v is None:
-            raise ValueError("PYTHON_JULIACALL_EXE={!r} does not exist".format(exepath))
-        else:
-            CONFIG["exever"] = v
-    else:
+    exepath = os.environ.get('PYTHON_JULIACALL_EXE', '@auto')
+    if exepath.startswith('@'):
+        if exepath not in ('@auto', '@system', '@best'):
+            raise ValueError(f"PYTHON_JULIACALL_EXE={exepath!r} is not valid (can be @auto, @system or @best)")
+        method = exepath[1:]
+        exepath = None
         compat = deps.required_julia()
         # Default scenario
         if skip:
             # Already know where Julia is
             exepath = skip["jlexe"]
         else:
-            # Find the best available version
-            exepath = None
-            exever, exeverinfo = install.best_julia_version(compat)
-            default_exeprefix = os.path.join(jlprefix, 'julia-'+exever)
-            default_exepath = os.path.join(default_exeprefix, 'bin', 'julia.exe' if os.name=='nt' else 'julia')
-            for x in [default_exepath, 'julia']:
+            # @auto and @system try the system julia and succeed if it matches the compat bound
+            if exepath is None and method in ('auto', 'system'):
+                x = shutil.which('julia')
+                if x is not None:
+                    v = deps.julia_version_str(x)
+                    if compat is None or semver.Version(v) in compat:
+                        print(f'Found Julia v{v} at {x!r}')
+                        exepath = x
+                    else:
+                        print(f'Incompatible Julia v{v} at {x!r}, require: {compat.jlstr()}')
+            # @auto and @best look for the best available version
+            if exepath is None and method in ('auto', 'system'):
+                exever, exeverinfo = install.best_julia_version(compat)
+                default_exeprefix = os.path.join(jlprefix, 'julia-'+exever)
+                x = os.path.join(default_exeprefix, 'bin', 'julia.exe' if os.name=='nt' else 'julia')
                 v = deps.julia_version_str(x)
                 if v is not None and v == exever:
-                    print(f'Found Julia {v} at {x!r}')
+                    print(f'Found Julia v{v} at {x!r}')
                     exepath = x
-                    break
                 elif v is not None:
-                    print(f'Found Julia {v} at {x!r} (but looking for Julia {exever})')
-            # If no such version, install it
-            if exepath is None:
-                install.install_julia(exeverinfo, default_exeprefix)
-                exepath = default_exepath
-                if not os.path.isfile(exepath):
-                    raise Exception(f'Installed Julia in {default_exeprefix!r} but cannot find it')
+                    print(f'Incompatible Julia v{v} at {x!r}, require: = {exever}')
+                # If no such version, install it
+                if exepath is None:
+                    install.install_julia(exeverinfo, default_exeprefix)
+                    exepath = x
+                    if not os.path.isfile(exepath):
+                        raise Exception(f'Installed Julia in {default_exeprefix!r} but cannot find it')
+        # Failed to find Julia
+        if exepath is None:
+            raise Exception('Could not find a compatible version of Julia')
         # Check the version is compatible
         v = deps.julia_version_str(exepath)
         assert v is not None and (compat is None or semver.Version(v) in compat)
         CONFIG['exever'] = v
+    else:
+        v = deps.julia_version_str(exepath)
+        if v is None:
+            raise ValueError(f"PYTHON_JULIACALL_EXE={exepath!r} is not a Julia executable")
+        else:
+            CONFIG["exever"] = v
+    assert exepath is not None
     CONFIG['exepath'] = exepath
     libpath = subprocess.run([exepath, '--startup-file=no', '-O0', '--compile=min', '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))'], check=True, stdout=subprocess.PIPE).stdout.decode('utf8')
 
@@ -120,12 +134,12 @@ try:
             with open(os.path.join(jlenv, "Project.toml"), "wt") as fp:
                 print('[deps]', file=fp)
                 for pkg in pkgs:
-                    print('{} = "{}"'.format(pkg.name, pkg.uuid), file=fp)
+                    print(f'{pkg.name} = "{pkg.uuid}"', file=fp)
                 print(file=fp)
                 print('[compat]', file=fp)
                 for pkg in pkgs:
                     if pkg.version:
-                        print('{} = "{}"'.format(pkg.name, pkg.version), file=fp)
+                        print(f'{pkg.name} = "{pkg.version}"', file=fp)
                 print(file=fp)
             # Create install command
             dev_pkgs = [pkg.jlstr() for pkg in pkgs if pkg.dev]
@@ -140,15 +154,15 @@ try:
                 install = ''
     os.environ['JULIA_PYTHONCALL_LIBPTR'] = str(c.pythonapi._handle)
     os.environ['JULIA_PYTHONCALL_EXE'] = sys.executable or ''
-    script = '''
+    script = f'''
         try
             if ENV["JULIA_PYTHONCALL_EXE"] != "" && get(ENV, "PYTHON", "") == ""
                 # Ensures PyCall uses the same Python executable
                 ENV["PYTHON"] = ENV["JULIA_PYTHONCALL_EXE"]
             end
             import Pkg
-            Pkg.activate(raw"{}", io=devnull)
-            {}
+            Pkg.activate(raw"{jlenv}", io=devnull)
+            {install}
             import PythonCall
         catch err
             print(stdout, "ERROR: ")
@@ -156,7 +170,7 @@ try:
             flush(stdout)
             rethrow()
         end
-        '''.format(jlenv, install, c.pythonapi._handle)
+        '''
     res = lib.jl_eval_string(script.encode('utf8'))
     if res is None:
         raise Exception('PythonCall.jl did not start properly')

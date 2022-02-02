@@ -30,6 +30,15 @@ In this example, we use the Julia module PythonCall from a [Pluto](https://githu
 
 ## Example 2: Calling Julia from Python
 
+### Changes in jlapeyre branches !
+
+The examples have not been updated to reflect the following. In order to use the Python module JuliaCall (juliacall),
+you must do
+```python
+import juliacall
+juliacall.default_init()
+```
+
 In this example we use the Python module JuliaCall from an IPython notebook to train a simple neural network:
 - We generate some random training data using Python's Numpy.
 - We construct and train a neural network model using Julia's Flux.

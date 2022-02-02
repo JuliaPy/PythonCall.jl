@@ -4,44 +4,51 @@ from . import CONFIG, __version__, deps, semver, install
 # Determine if this is a development version of juliacall
 # i.e. it is installed from the github repo, which contains Project.toml
 reporoot = os.path.dirname(os.path.dirname(__file__))
-isdev = False
-for n in ["Project.toml", "JuliaProject.toml"]:
-    projtoml = os.path.join(reporoot, n)
-    if os.path.isfile(projtoml) and "PythonCall" in open(projtoml, "rb").read().decode("utf8"):
-        isdev = True
-        break
-CONFIG['dev'] = isdev
 
-# Determine where to look for julia
-jldepot = os.environ.get("JULIA_DEPOT_PATH", "").split(";" if os.name == "nt" else ":")[0] or os.path.join(os.path.expanduser("~"), ".julia")
-jlprefix = os.path.join(jldepot, "pythoncall")
+def find_isdev():
+    isdev = False
+    for n in ["Project.toml", "JuliaProject.toml"]:
+        projtoml = os.path.join(reporoot, n)
+        if os.path.isfile(projtoml) and "PythonCall" in open(projtoml, "rb").read().decode("utf8"):
+            isdev = True
+            break
+    CONFIG['dev'] = isdev
+    return isdev
 
-# Determine where to put the julia environment
-# TODO: Can we more direcly figure out the environment from which python was called? Maybe find the first PATH entry containing python?
-prefixes = [os.environ.get('VIRTUAL_ENV'), os.environ.get('CONDA_PREFIX'), os.environ.get('MAMBA_PREFIX')]
-prefixes = [x for x in prefixes if x is not None]
-if len(prefixes) == 0:
-    prefix = None
-elif len(prefixes) == 1:
-    prefix = prefixes[0]
-else:
-    raise Exception('You are using some mix of virtual, conda and mamba environments, cannot figure out which to use!')
-if prefix is None:
-    jlenv = os.path.join(jldepot, "environments", "PythonCall")
-else:
-    jlenv = os.path.join(prefix, "julia_env")
-CONFIG['jlenv'] = os.path.join(jlenv)
-CONFIG['meta'] = os.path.join(jlenv, ".PythonCallJuliaCallMeta")
 
-# Determine whether or not to skip resolving julia/package versions
-skip = deps.can_skip_resolve()
+def find_env_paths():
+    # Determine where to look for julia
+    jldepot = os.environ.get("JULIA_DEPOT_PATH", "").split(";" if os.name == "nt" else ":")[0] or os.path.join(os.path.expanduser("~"), ".julia")
+    jlprefix = os.path.join(jldepot, "pythoncall")
 
-# Find the Julia library
-libpath = os.environ.get('PYTHON_JULIACALL_LIB')
-if libpath is not None:
-    if not os.path.exists(libpath):
-        raise ValueError(f'PYTHON_JULIACALL_LIB={libpath!r} does not exist')
-else:
+    # Determine where to put the julia environment
+    # TODO: Can we more direcly figure out the environment from which python was called? Maybe find the first PATH entry containing python?
+    prefixes = [os.environ.get('VIRTUAL_ENV'), os.environ.get('CONDA_PREFIX'), os.environ.get('MAMBA_PREFIX')]
+    prefixes = [x for x in prefixes if x is not None]
+    if len(prefixes) == 0:
+        prefix = None
+    elif len(prefixes) == 1:
+        prefix = prefixes[0]
+    else:
+        raise Exception('You are using some mix of virtual, conda and mamba environments, cannot figure out which to use!')
+    if prefix is None:
+        jlenv = os.path.join(jldepot, "environments", "PythonCall")
+    else:
+        jlenv = os.path.join(prefix, "julia_env")
+    CONFIG['jlenv'] = os.path.join(jlenv)
+    CONFIG['meta'] = os.path.join(jlenv, ".PythonCallJuliaCallMeta")
+    return jlenv, jlprefix, CONFIG['meta']
+
+
+
+def libpath_from_exepath(exepath):
+    return subprocess.run(
+        [exepath, '--startup-file=no', '-O0', '--compile=min', '-e',
+         'import Libdl; print(abspath(Libdl.dlpath("libjulia")))'],
+        check=True, stdout=subprocess.PIPE).stdout.decode('utf8')
+
+
+def find_executable(skip, jlprefix):
     # Find the Julia executable
     exepath = os.environ.get('PYTHON_JULIACALL_EXE', '@auto')
     if exepath.startswith('@'):
@@ -97,20 +104,39 @@ else:
             CONFIG["exever"] = v
     assert exepath is not None
     CONFIG['exepath'] = exepath
-    libpath = subprocess.run([exepath, '--startup-file=no', '-O0', '--compile=min', '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))'], check=True, stdout=subprocess.PIPE).stdout.decode('utf8')
+    return exepath
 
-# Initialize Julia, including installing required packages
-d = os.getcwd()
-try:
-    os.chdir(os.path.dirname(libpath))
-    lib = c.CDLL(libpath)
-    CONFIG['libpath'] = libpath
-    CONFIG['lib'] = lib
-    lib.jl_init__threading.argtypes = []
-    lib.jl_init__threading.restype = None
-    lib.jl_init__threading()
-    lib.jl_eval_string.argtypes = [c.c_char_p]
-    lib.jl_eval_string.restype = c.c_void_p
+
+# Find the Julia library
+def find_julia_library(skip, jlprefix):
+    libpath = os.environ.get('PYTHON_JULIACALL_LIB')
+    if libpath is not None:
+        if not os.path.exists(libpath):
+            raise ValueError(f'PYTHON_JULIACALL_LIB={libpath!r} does not exist')
+    else:
+        exepath = find_executable(skip, jlprefix)
+        libpath = libpath_from_exepath(exepath)
+        return libpath
+
+
+def init_libjulia(libpath):
+    current_dir = os.getcwd()
+    try:
+        os.chdir(os.path.dirname(libpath))
+        lib = c.CDLL(libpath)
+        CONFIG['libpath'] = libpath
+        CONFIG['lib'] = lib
+        lib.jl_init__threading.argtypes = []
+        lib.jl_init__threading.restype = None
+        lib.jl_init__threading()
+        lib.jl_eval_string.argtypes = [c.c_char_p]
+        lib.jl_eval_string.restype = c.c_void_p
+    finally:
+        os.chdir(current_dir)
+    return lib
+
+
+def install_packages(lib, skip, isdev, jlenv, meta_path):
     if skip:
         install = ''
     else:
@@ -122,7 +148,7 @@ try:
         else:
             pkgs.append(deps.PackageSpec(name="PythonCall", uuid="6099a3de-0909-46bc-b1f4-468b9a2dfc0d", version="= "+__version__))
         # check if pkgs has changed at all
-        meta = deps.load_meta()
+        meta = deps.load_meta(meta_path)
         prev_pkgs = None if meta is None else meta.get('pkgs')
         if prev_pkgs is not None and sorted(prev_pkgs, key=lambda p: p['name']) == sorted([p.dict() for p in pkgs], key=lambda p: p['name']):
             install = ''
@@ -175,6 +201,26 @@ try:
     if res is None:
         raise Exception('PythonCall.jl did not start properly')
     if not skip:
-        deps.record_resolve(pkgs)
-finally:
-    os.chdir(d)
+        deps.record_resolve(meta_path, pkgs)
+
+
+def default_init():
+    """
+    Initialize Julia and its packages.
+
+    After importing `juliacall`, call this method initialize the Julia
+    dependencies. This includes first locating the julia executable and library,
+    and if none is found, downloading a Julia distribution. Then the required
+    Julia packages are installed.
+    """
+    # Are we developing PythonCall
+    isdev = find_isdev()
+    # Determine paths to mutable data maintained by PythonCall, and julia
+    jlenv, jlprefix, meta_path = find_env_paths()
+    # Determine whether or not to skip resolving julia/package versions
+    skip = deps.can_skip_resolve(isdev, meta_path)
+    # Find a compatible jula executable and libjulia
+    libpath = find_julia_library(skip, jlprefix)
+    # Initialze libjulia
+    lib = init_libjulia(libpath)
+    install_packages(lib, skip, isdev, jlenv, meta_path)

@@ -25,19 +25,17 @@ def julia_version_str(exe):
 
 META_VERSION = 1 # increment whenever the format changes
 
-def load_meta():
-    fn = CONFIG['meta']
-    if os.path.exists(fn):
-        with open(fn) as fp:
+def load_meta(meta_path):
+    if os.path.exists(meta_path):
+        with open(meta_path) as fp:
             meta = json.load(fp)
             if meta.get('meta_version') == META_VERSION:
                 return meta
 
-def save_meta(meta):
+def save_meta(meta_path, meta):
     assert isinstance(meta, dict)
     assert meta.get('meta_version') == META_VERSION
-    fn = CONFIG['meta']
-    with open(fn, 'w') as fp:
+    with open(meta_path, 'w') as fp:
         json.dump(meta, fp)
 
 ### RESOLVE
@@ -74,9 +72,9 @@ class PackageSpec:
         }
         return {k:v for (k,v) in ans.items() if v is not None}
 
-def can_skip_resolve():
+def can_skip_resolve(isdev_in, meta_path):
     # resolve if we haven't resolved before
-    deps = load_meta()
+    deps = load_meta(meta_path)
     if deps is None:
         return False
     # resolve whenever the version changes
@@ -92,7 +90,7 @@ def can_skip_resolve():
         return False
     # resolve whenever swapping between dev/not dev
     isdev = deps.get("dev")
-    if isdev is None or isdev != CONFIG["dev"]:
+    if isdev is None or isdev != isdev_in: # CONFIG["dev"]:
         return False
     # resolve whenever anything in sys.path changes
     timestamp = deps.get("timestamp")
@@ -205,8 +203,8 @@ def required_julia():
         raise Exception("'julia' compat entries have empty intersection:\n{}".format('\n'.join(['- {!r} at {}'.format(v,f) for (f,v) in compats.items()])))
     return compat
 
-def record_resolve(pkgs):
-    save_meta({
+def record_resolve(meta_path, pkgs):
+    save_meta(meta_path, {
         "meta_version": META_VERSION,
         "version": __version__,
         "dev": CONFIG["dev"],

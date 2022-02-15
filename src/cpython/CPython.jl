@@ -7,6 +7,7 @@ module C
 
 import Base: @kwdef
 import CondaPkg
+import Pkg
 using Libdl, Requires, UnsafePointers, Serialization, ..Utils
 
 include("consts.jl")

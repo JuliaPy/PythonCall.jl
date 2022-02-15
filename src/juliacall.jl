@@ -7,6 +7,7 @@ function init_juliacall()
     # whether Python is embedded in Julia or vice-versa
     jl = pyjuliacallmodule
     sys = pysysmodule
+    os = pyosmodule
     if C.CTX.is_embedded
         # in this case, Julia is being embedded into Python by juliacall, which already exists
         pycopy!(jl, sys.modules["juliacall"])
@@ -15,12 +16,15 @@ function init_juliacall()
         # otherwise, Python is being embedded into Julia by PythonCall, so should not exist
         error("'juliacall' module already exists")
     else
-        # create the juliacall module and save it in sys.modules
-        pycopy!(jl, pytype(sys)("juliacall"))
-        jl.CONFIG = pydict(embedded=true)
-        jl.__version__ = string(VERSION)
-        jl.__path__ = pylist((joinpath(dirname(dirname(pathof(PythonCall))), "juliacall"),))
-        sys.modules["juliacall"] = jl
+        # prepend the directory containing juliacall to sys.path
+        sys.path.insert(0, joinpath(dirname(dirname(pathof(PythonCall))), "python"))
+        # prevent juliacall from initialising itself
+        os.environ["PYTHON_JULIACALL_NOINIT"] = "yes"
+        # import juliacall
+        pycopy!(jl, pyimport("juliacall"))
+        # check the version
+        @assert pystr_asstring(jl.__version__) == string(VERSION)
+        @assert pybool_asbool(jl.CONFIG["noinit"])
     end
 end
 
@@ -30,9 +34,6 @@ function init_juliacall_2()
     jl.Core = Core
     jl.Base = Base
     jl.Pkg = Pkg
-    if !C.CTX.is_embedded
-        pybuiltins.exec(pybuiltins.compile("from .all import *", "$(@__FILE__):$(@__LINE__)", "exec"), jl.__dict__)
-    end
     pycopy!(pyJuliaError, jl.JuliaError)
     C.POINTERS.PyExc_JuliaError = incref(getptr(pyJuliaError))
 end

@@ -45,6 +45,8 @@ function init_context()
         exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
         if exe_path != ""
             CTX.exe_path = exe_path
+            # this ensures PyCall uses the same Python interpreter
+            get!(ENV, "PYTHON", exe_path)
         end
     else
         # Find Python executable

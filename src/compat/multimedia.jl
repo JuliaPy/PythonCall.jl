@@ -36,14 +36,6 @@ function pyshow_rule_mimebundle(io::IO, mime::String, x::Py)
             data = ans[mime]
         end
         data = @pyconvert(Union{String,Vector{UInt8}}, data, return false)
-        if mime == "text/html"
-            data = String(data)
-            if occursin("altair-viz-", data) && occursin("document.currentScript.previousElementSibling", data)
-                # unsatisfactory hack to get altair plots to display properly in pluto
-                # TODO: fix this upstream (in altair or pluto??)
-                data = replace(data, "document.currentScript.previousElementSibling" => "((document.currentScript || {}).previousElementSibling || {})")
-            end
-        end
         write(io, data)
         return true
     catch exc

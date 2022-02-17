@@ -8,8 +8,9 @@ pip install juliacall
 ```
 
 Developers may wish to clone the repo (https://github.com/cjdoris/PythonCall.jl) directly
-and pip install the module in editable mode. This guarantees you are using the latest
-version of PythonCall in conjunction with JuliaCall.
+and pip install the module in editable mode. You should add `"dev":true, "path":"../.."` to
+`python/juliacall/juliapkg.json` to ensure you use the development version of PythonCall
+in conjunction with JuliaCall.
 
 ## Getting started
 

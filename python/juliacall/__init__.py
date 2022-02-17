@@ -54,11 +54,11 @@ class As:
 
 class JuliaError(Exception):
     "An error arising in Julia code."
-    def __init__(self, exception, stacktrace=None):
-        super().__init__(exception, stacktrace)
+    def __init__(self, exception, backtrace=None):
+        super().__init__(exception, backtrace)
     def __str__(self):
         e = self.exception
-        b = self.stacktrace
+        b = self.backtrace
         if b is None:
             return Base.sprint(Base.showerror, e)
         else:
@@ -67,7 +67,7 @@ class JuliaError(Exception):
     def exception(self):
         return self.args[0]
     @property
-    def stacktrace(self):
+    def backtrace(self):
         return self.args[1]
 
 CONFIG = {'inited': False}

@@ -167,6 +167,12 @@ const CAPI_FUNC_SIGS = Dict{Symbol, Pair{Tuple, Type}}(
     :PySlice_New => (PyPtr, PyPtr, PyPtr) => PyPtr,
     # METHOD
     :PyInstanceMethod_New => (PyPtr,) => PyPtr,
+    # CAPSULE
+    :PyCapsule_New => (Ptr{Cvoid}, Ptr{Cchar}, Ptr{Cvoid}) => PyPtr,
+    :PyCapsule_GetName => (PyPtr,) => Ptr{Cchar},
+    :PyCapsule_SetName => (PyPtr, Ptr{Cchar}) => Cint,
+    :PyCapsule_GetPointer => (PyPtr, Ptr{Cchar}) => Ptr{Cvoid},
+    :PyCapsule_SetDestructor => (PyPtr, Ptr{Cvoid}) => Cint,
 )
 
 const CAPI_EXCEPTIONS = Set([
@@ -254,6 +260,7 @@ const CAPI_OBJECTS = Set([
     :PyUnicode_Type,
     :PyTuple_Type,
     :PyType_Type,
+    :PyCapsule_Type,
     # OTHERS
     :_Py_TrueStruct,
     :_Py_FalseStruct,

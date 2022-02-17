@@ -58,22 +58,16 @@ What to read next:
 
 ## [Managing Julia dependencies](@id julia-deps)
 
-JuliaCall manages its Julia dependencies using [Pkg](https://pkgdocs.julialang.org/v1).
-If a suitable version of Julia is not found on your system, it will automatically be
-downloaded and installed into `~/.julia/pythoncall/julia-VERSION`.
-A Julia environment is automatically created when JuliaCall is loaded, is activated, and is
-initialised with at least PythonCall. If you are using a virtual or conda environment then
-the Julia environment is created there, otherwise a global environment is created at
-`~/.julia/environments/PythonCall`.
+JuliaCall manages its Julia dependencies using [JuliaPkg](https://github.com/cjdoris/PyJuliaPkg).
 
-If your project requires more Julia dependencies, use the mechanisms below to ensure they
-are automatically installed.
+It will automatically download a suitable version of Julia if required.
 
-### juliacalldeps.json
+A Julia environment is also created, activated and populated with any required packages.
+If you are in a virtual or Conda environment, the environment is put there. Otherwise a
+global environment is used at `~/.julia/environments/pyjuliapkg`.
 
-If you put a file called `juliacalldeps.json` in a Python package, then the dependencies
-therein will be automatically installed into the Julia environment.
-
+If your project requires any Julia packages, or a particular version of Julia itself, then
+create a file called `juliapkg.json` in your package. For example:
 Here is an example:
 ```json
 {
@@ -81,20 +75,15 @@ Here is an example:
     "packages": {
         "Example": {
             "uuid": "7876af07-990d-54b4-ab0e-23690620f79a",
-            "version": "0.5, 0.6",
-            "url": "http://github.com/JuliaLang/Example.jl",
-            "path": "/path/to/the/package",
-            "rev": "main",
-            "dev": false, // when true, uses Pkg.dev not Pkg.add
+            "version": "0.5, 0.6"
         }
     }
 }
 ```
-All parts are optional, except that the UUID of each package is required. Typically you
-will just include the UUID and version fields.
 
-When JuliaCall starts, it will ensure the latest compatible version of Julia is installed,
-and will ensure the given packages are installed.
+Alternatively you can use `add`, `rm`, etc. from JuliaPkg to edit this file.
+
+See [JuliaPkg](https://github.com/cjdoris/PyJuliaPkg) for more details.
 
 ## Utilities
 

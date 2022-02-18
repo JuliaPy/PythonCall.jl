@@ -1,5 +1,13 @@
 module PythonCall
 
+if isdefined(Base, :Experimental) && isdefined(Base.Experimental, Symbol("@optlevel"))
+    @eval Base.Experimental.@compiler_options optimize=1 infer=no
+end
+
+if isdefined(Base, :Experimental) && isdefined(Base.Experimental, Symbol("@max_methods"))
+    @eval Base.Experimental.@max_methods 1
+end
+
 const VERSION = v"0.6.0"
 
 using Base: @propagate_inbounds

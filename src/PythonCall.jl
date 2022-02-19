@@ -40,6 +40,8 @@ include("concrete/fraction.jl")
 include("concrete/method.jl")
 include("concrete/datetime.jl")
 include("concrete/code.jl")
+include("concrete/ctypes.jl")
+include("concrete/numpy.jl")
 # @py
 # anything below can depend on @py, anything above cannot
 include("py_macro.jl")
@@ -105,6 +107,8 @@ function __init__()
         init_gui()
         init_ipython()
         init_tables()
+        init_numpy()
+        init_ctypes()
     end
     @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
 end

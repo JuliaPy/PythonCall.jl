@@ -316,27 +316,44 @@ function PyArraySource_Buffer(x::Py)
     PyArraySource_Buffer(x, memview, buf)
 end
 
-pyarray_bufferformat_to_type(fmt::String) =
-    fmt == "b" ? Cchar :
-    fmt == "B" ? Cuchar :
-    fmt == "h" ? Cshort :
-    fmt == "H" ? Cushort :
-    fmt == "i" ? Cint :
-    fmt == "I" ? Cuint :
-    fmt == "l" ? Clong :
-    fmt == "L" ? Culong :
-    fmt == "q" ? Clonglong :
-    fmt == "Q" ? Culonglong :
-    fmt == "e" ? Float16 :
-    fmt == "f" ? Cfloat :
-    fmt == "d" ? Cdouble :
-    fmt == "?" ? Bool :
-    fmt == "P" ? Ptr{Cvoid} :
-    fmt == "O" ? UnsafePyObject :
-    fmt == "=e" ? Float16 :
-    fmt == "=f" ? Float32 :
-    fmt == "=d" ? Float64 :
-    error("not implemented: $(repr(fmt))")
+const PYARRAY_BUFFERFORMAT_TO_TYPE = let c = Utils.islittleendian() ? '<' : '>'
+    Dict(
+        "b" => Cchar,
+        "B" => Cuchar,
+        "h" => Cshort,
+        "H" => Cushort,
+        "i" => Cint,
+        "I" => Cuint,
+        "l" => Clong,
+        "L" => Culong,
+        "q" => Clonglong,
+        "Q" => Culonglong,
+        "e" => Float16,
+        "f" => Cfloat,
+        "d" => Cdouble,
+        "$(c)b" => Cchar,
+        "$(c)B" => Cuchar,
+        "$(c)h" => Cshort,
+        "$(c)H" => Cushort,
+        "$(c)i" => Cint,
+        "$(c)I" => Cuint,
+        "$(c)l" => Clong,
+        "$(c)L" => Culong,
+        "$(c)q" => Clonglong,
+        "$(c)Q" => Culonglong,
+        "$(c)e" => Float16,
+        "$(c)f" => Cfloat,
+        "$(c)d" => Cdouble,
+        "?" => Bool,
+        "P" => Ptr{Cvoid},
+        "O" => UnsafePyObject,
+        "=e" => Float16,
+        "=f" => Float32,
+        "=d" => Float64,
+    )
+end
+
+pyarray_bufferformat_to_type(fmt::String) = get(()->error("not implemented: buffer format $(repr(fmt))"), PYARRAY_BUFFERFORMAT_TO_TYPE, fmt)
 
 function pyarray_get_R(src::PyArraySource_Buffer)
     ptr = src.buf.format[]
@@ -379,6 +396,15 @@ Base.size(x::PyArray) = x.size
 Utils.ismutablearray(x::PyArray{T,N,M,L,R}) where {T,N,M,L,R} = M
 
 Base.IndexStyle(::Type{PyArray{T,N,M,L,R}}) where {T,N,M,L,R} = L ? Base.IndexLinear() : Base.IndexCartesian()
+
+Base.unsafe_convert(::Type{Ptr{T}}, x::PyArray{T,N,M,L,T}) where {T,N,M,L} = x.ptr
+
+Base.strides(x::PyArray{T,N,M,L,R}) where {T,N,M,L,R} =
+    if all(mod.(x.strides, sizeof(R)) .== 0)
+        div.(x.strides, sizeof(R))
+    else
+        error("strides are not a multiple of element size")
+    end
 
 @propagate_inbounds Base.getindex(x::PyArray{T,N}, i::Vararg{Int,N}) where {T,N} = pyarray_getindex(x, i...)
 @propagate_inbounds Base.getindex(x::PyArray{T,N,M,true}, i::Int) where {T,N,M} = pyarray_getindex(x, i)

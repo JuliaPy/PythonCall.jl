@@ -51,6 +51,10 @@ function PyOS_RunInputHook()
     end
 end
 
+function PySimpleObject_GetValue(::Type{T}, o::PyPtr) where {T}
+    UnsafePtr{PySimpleObject{T}}(o).value[!]
+end
+
 # FAST REFCOUNTING
 #
 # _Py_IncRef(o) = ccall(POINTERS.Py_IncRef, Cvoid, (PyPtr,), o)

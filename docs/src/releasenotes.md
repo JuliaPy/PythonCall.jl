@@ -1,5 +1,10 @@
 # Release Notes
 
+## v0.6.1 (2022-02-21)
+* Conversions from simple ctypes types, e.g. `ctypes.c_float` to `Cfloat`.
+* Conversions from simple numpy types, e.g. `numpy.float32` to `Float32`.
+* Bug fixes.
+
 ## v0.6.0 (2022-02-17)
 * **Breaking:** JuliaCall now uses JuliaPkg to manage Julia dependencies.
 * Bug fixes.

@@ -793,10 +793,26 @@ For example:
 - `x.foo` is translated to `pygetattr(x, "foo")`
 
 Compound statements such as `begin`, `if`, `while` and `for` are supported.
+Import statements are supported, e.g.
+- `import foo, bar`
+- `from os.path import join as py_joinpath, exists`
 
 See the online documentation for more details.
 """
 macro py(ex)
     esc(py_macro(ex, __module__, __source__))
 end
+
+macro py(keyword, modulename, ex)
+    keyword == :from || return :( nothing )
+
+    d = Dict(isa(a.args[1], Symbol) ? a.args[1] => a.args[1] : a.args[1].args[1] => a.args[2]  for a in ex.args)
+    vars = Expr(:tuple, values(d)...)
+    imports = Tuple(keys(d))
+
+    esc(quote
+        $vars = pyimport($(string(modulename)) => $(string.(imports)))
+    end)
+end
+
 export @py

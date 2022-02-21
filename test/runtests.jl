@@ -1,6 +1,6 @@
 using PythonCall, Test, Dates, Aqua
 
-# Aqua.test_all(PythonCall)
+Aqua.test_all(PythonCall, unbound_args=false)
 
 @testset "PythonCall.jl" begin
     @testset "abstract" begin

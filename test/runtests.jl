@@ -9,6 +9,9 @@ Aqua.test_all(PythonCall)
     @testset "concrete" begin
         include("concrete.jl")
     end
+    @testset "convert" begin
+        include("convert.jl")
+    end
     @testset "jlwrap" begin
         include("jlwrap.jl")
     end

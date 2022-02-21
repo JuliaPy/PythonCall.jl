@@ -83,14 +83,14 @@ end
 
 function pyconvert_rule_iterable(::Type{T}, xs::Py) where {T<:Tuple}
     T isa DataType || return pyconvert_unconverted()
-    ts = collect(T.parameters)
-    if !isempty(ts) && Base.isvarargtype(ts[end])
+    if T != Tuple{} && Tuple{T.parameters[end]} == Base.tuple_type_tail(Tuple{T.parameters[end]})
         isvararg = true
-        vartype = ts[end].body.parameters[1]::Type
-        pop!(ts)
+        vartype = Base.tuple_type_head(Tuple{T.parameters[end]})
+        ts = T.parameters[1:end-1]
     else
         isvararg = false
         vartype = Union{}
+        ts = T.parameters
     end
     zs = Any[]
     for x in xs
@@ -107,19 +107,37 @@ function pyconvert_rule_iterable(::Type{T}, xs::Py) where {T<:Tuple}
     return length(zs) < length(ts) ? pyconvert_unconverted() : pyconvert_return(T(zs))
 end
 
-# N-Tuple for N up to 16
-# TODO: Vararg
-
 for N in 0:16
     Ts = [Symbol("T", n) for n in 1:N]
     zs = [Symbol("z", n) for n in 1:N]
+    # Tuple with N elements
     @eval function pyconvert_rule_iterable(::Type{Tuple{$(Ts...)}}, xs::Py) where {$(Ts...)}
-        pylen(xs) == $N || return pyconvert_unconverted()
+        xs = pytuple(xs)
+        n = pylen(xs)
+        n == $N || return pyconvert_unconverted()
         $((
             :($z = @pyconvert_and_del($T, pytuple_getitem(xs, $(i-1))))
             for (i, T, z) in zip(1:N, Ts, zs)
         )...)
+        pydel!(xs)
         return pyconvert_return(($(zs...),))
+    end
+    # Tuple with N elements plus Vararg
+    @eval function pyconvert_rule_iterable(::Type{Tuple{$(Ts...),Vararg{V}}}, xs::Py) where {$(Ts...),V}
+        xs = pytuple(xs)
+        n = pylen(xs)
+        n ≥ $N || return pyconvert_unconverted()
+        $((
+            :($z = @pyconvert_and_del($T, pytuple_getitem(xs, $(i-1))))
+            for (i, T, z) in zip(1:N, Ts, zs)
+        )...)
+        vs = V[]
+        for i in $(N+1):n
+            v = @pyconvert_and_del(V, pytuple_getitem(xs, i-1))
+            push!(vs, v)
+        end
+        pydel!(xs)
+        return pyconvert_return(($(zs...), vs...))
     end
 end
 

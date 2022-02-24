@@ -106,7 +106,7 @@ function pyshow_rule_savefig(io::IO, mime::String, x::Py)
             fig = fig.figure
         end
         buf = pyimport("io").BytesIO()
-        x.savefig(buf, format=format)
+        x.savefig(buf, format=format, bbox_inches="tight")
         data = @pyconvert(Vector{UInt8}, buf.getvalue(), return false)
         write(io, data)
         plt.close(fig)

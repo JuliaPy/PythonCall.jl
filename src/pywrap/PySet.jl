@@ -7,11 +7,10 @@ If `x` is not a Python object, it is converted to one using `pyset`.
 """
 struct PySet{T} <: AbstractSet{T}
     py :: Py
-    PySet{T}(::Val{:new}, py::Py) where {T} = new{T}(py)
+    PySet{T}(x=pyset()) where {T} = new{T}(ispy(x) ? Py(x) : pyset(x))
 end
 export PySet
 
-PySet{T}(x=pyset()) where {T} = PySet{T}(Val(:new), ispy(x) ? Py(x) : pyset(x))
 PySet(x=pyset()) = PySet{Py}(x)
 
 ispy(::PySet) = true
@@ -98,5 +97,8 @@ function Base.empty!(x::PySet)
 end
 
 function Base.copy(x::PySet{T}) where {T}
-    return PySet{T}(Val(:new), @py x.copy())
+    o = @py x.copy()
+    c = PySet{T}(o)
+    pydel!(o)
+    return c
 end

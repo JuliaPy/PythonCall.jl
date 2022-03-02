@@ -1,5 +1,5 @@
 """
-    PyPandasDataFrame(x; indexname=nothing, columntypes=Dict())
+    PyPandasDataFrame(x; indexname=nothing, columntypes=())
 
 Wraps the pandas DataFrame `x` as a Tables.jl-compatible table.
 
@@ -11,17 +11,15 @@ struct PyPandasDataFrame <: PyTable
     py::Py
     indexname::Union{String,Nothing}
     columntypes::Dict{String,Type}
-    PyPandasDataFrame(::Val{:new}, py::Py, indexname::Union{String,Nothing}, columntypes::Dict{String,Type}) = new(py, indexname, columntypes)
+    function PyPandasDataFrame(x; indexname=nothing, columntypes=())
+        if indexname !== nothing
+            indexname = convert(String, indexname)
+        end
+        columntypes = Dict{String,Type}(columntypes)
+        new(Py(x), indexname, columntypes)
+    end
 end
 export PyPandasDataFrame
-
-function PyPandasDataFrame(x; indexname=nothing, columntypes=())
-    if indexname !== nothing
-        indexname = convert(String, indexname)
-    end
-    columntypes = Dict{String,Type}(columntypes)
-    PyPandasDataFrame(Val(:new), Py(x), indexname, columntypes)
-end
 
 ispy(x::PyPandasDataFrame) = true
 getpy(x::PyPandasDataFrame) = x.py

@@ -29,25 +29,20 @@ mutable struct PyIO <: IO
     obuflen::Int
     obuf::Vector{UInt8}
 
-    PyIO(::Val{:new}, py::Py, own::Bool, text::Bool, ibuflen::Int, obuflen::Int) = begin
-        io = new(py, own, text, false, ibuflen, UInt8[], obuflen, UInt8[])
-        finalizer(pyio_finalize!, io)
+    function PyIO(x; own::Bool = false, text::Union{Missing,Bool} = missing, buflen::Integer = 4096, ibuflen::Integer = buflen, obuflen::Integer = buflen)
+        if text === missing
+            text = pyhasattr(x, "encoding")
+        end
+        buflen = convert(Int, buflen)
+        buflen > 0 || error("buflen must be positive")
+        ibuflen = convert(Int, ibuflen)
+        ibuflen > 0 || error("ibuflen must be positive")
+        obuflen = convert(Int, obuflen)
+        obuflen > 0 || error("obuflen must be positive")
+        new(Py(x), own, text, false, ibuflen, UInt8[], obuflen, UInt8[])
     end
 end
 export PyIO
-
-function PyIO(o; own::Bool = false, text::Union{Missing,Bool} = missing, buflen::Integer = 4096, ibuflen::Integer = buflen, obuflen::Integer = buflen)
-    if text === missing
-        text = pyhasattr(o, "encoding")
-    end
-    buflen = convert(Int, buflen)
-    buflen > 0 || error("buflen must be positive")
-    ibuflen = convert(Int, ibuflen)
-    ibuflen > 0 || error("ibuflen must be positive")
-    obuflen = convert(Int, obuflen)
-    obuflen > 0 || error("obuflen must be positive")
-    PyIO(Val(:new), Py(o), own, text, ibuflen, obuflen)
-end
 
 pyio_finalize!(io::PyIO) = begin
     C.CTX.is_initialized || return

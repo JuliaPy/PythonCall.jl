@@ -5,11 +5,10 @@ This object iterates over iterable Python object `x`, yielding values of type `T
 """
 struct PyIterable{T}
     py :: Py
-    PyIterable{T}(::Val{:new}, py::Py) where {T} = new{T}(py)
+    PyIterable{T}(x) where {T} = new{T}(Py(x))
 end
 export PyIterable
 
-PyIterable{T}(x) where {T} = PyIterable{T}(Val(:new), Py(x))
 PyIterable(x) = PyIterable{Py}(x)
 
 ispy(x::PyIterable) = true

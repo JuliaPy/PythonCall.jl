@@ -7,11 +7,10 @@ If `x` is not a Python object, it is converted to one using `pylist`.
 """
 struct PyList{T} <: AbstractVector{T}
     py :: Py
-    PyList{T}(::Val{:new}, py::Py) where {T} = new{T}(py)
+    PyList{T}(x=pylist()) where {T} = new{T}(ispy(x) ? Py(x) : pylist(x))
 end
 export PyList
 
-PyList{T}(x=pylist()) where {T} = PyList{T}(Val(:new), ispy(x) ? Py(x) : pylist(x))
 PyList(x=pylist()) = PyList{Py}(x)
 
 ispy(::PyList) = true
@@ -95,5 +94,8 @@ function Base.empty!(x::PyList)
 end
 
 function Base.copy(x::PyList{T}) where {T}
-    PyList{T}(Val(:new), @py x.copy())
+    o = @py x.copy()
+    c = PyList{T}(o)
+    pydel!(o)
+    return c
 end

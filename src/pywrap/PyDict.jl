@@ -7,11 +7,10 @@ If `x` is not a Python object, it is converted to one using `pydict`.
 """
 struct PyDict{K,V} <: AbstractDict{K,V}
     py :: Py
-    PyDict{K,V}(::Val{:new}, py::Py) where {K,V} = new{K,V}(py)
+    PyDict{K,V}(x=pydict()) where {K,V} = new{K,V}(ispy(x) ? Py(x) : pydict(x))
 end
 export PyDict
 
-PyDict{K,V}(x=pydict()) where {K,V} = PyDict{K,V}(Val(:new), ispy(x) ? Py(x) : pydict(x))
 PyDict{K}(x=pydict()) where {K} = PyDict{K,Py}(x)
 PyDict(x=pydict()) = PyDict{Py,Py}(x)
 
@@ -71,7 +70,10 @@ function Base.empty!(x::PyDict)
 end
 
 function Base.copy(x::PyDict{K,V}) where {K,V}
-    PyDict{K,V}(Val(:new), @py x.copy())
+    o = @py x.copy()
+    c = PyDict{K,V}(o)
+    pydel!(o)
+    return c
 end
 
 function Base.haskey(x::PyDict{K,V}, k) where {K,V}

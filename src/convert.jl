@@ -20,14 +20,29 @@ const PYCONVERT_EXTRATYPES = Py[]
 
 Add a new conversion rule for `pyconvert`.
 
-`tname` is a string of the form `"__module__:__qualname__"` identifying a Python type `t`,
-such as `"builtins:dict"`.
+### Arguments
 
-`func` is the function implementing the rule. It is called as `func(S, x::Py)` for some
-`S <: T`. It must return either `pyconvert_return(ans)` where `ans` is the result of the
-conversion (and must be an `S`) or `pyconvert_unconverted()` to indicate that the conversion
-was not possible (for example conversion from `list` to `Vector{Int}` might fail if some
-of the list items are not integers).
+- `tname` is a string of the form `"__module__:__qualname__"` identifying a Python type `t`,
+  such as `"builtins:dict"`. This rule only applies to Python objects of this type.
+- `T` is a Julia type, such that this rule only applies when the target type intersects
+  with `T`.
+- `func` is the function implementing the rule.
+- `priority` determines whether to prioritise this rule above others.
+
+When `pyconvert(R, x)` is called, all rules such that `typeintersect(T, R) != Union{}`
+and `pyisinstance(x, t)` are considered. These rules are sorted first by priority,
+then by the specificity of `pytype` (e.g. `bool` is more specific than `int` is more
+specific than `object`) then by the order they were added. The rules are tried in turn
+until one succeeds.
+
+### Implemeting `func`
+
+`func` is called as `func(S, x::Py)` for some `S <: T`.
+
+It must return one of:
+- `pyconvert_return(ans)` where `ans` is the result of the conversion (and must be an `S`).
+- `pyconvert_unconverted()` if the conversion was not possible (e.g. converting a `list` to
+  `Vector{Int}` might fail if some of the list items are not integers).
 
 The target type `S` is never a union or the empty type, i.e. it is always a data type or
 union-all.
@@ -37,12 +52,6 @@ the call to `func`, which means that the returned `ans` must not contain a refer
 Therefore if `ans` is a wrapper type (such as `PyList`) you may need to create a new
 Julia object around the same Python object by calling `Py(x)` and wrap that. It is
 recommended that wrapper types do this automatically in their inner constructor.
-
-When `pyconvert(R, x)` is called, all rules such that `typeintersect(T, R) != Union{}`
-and `pyisinstance(x, t)` are considered. These rules are sorted first by priority,
-then by the specificity of `pytype` (e.g. `bool` is more specific than `int` is more
-specific than `object`) then by the order they were added. The rules are tried in turn
-until one succeeds.
 
 ### Priority
 

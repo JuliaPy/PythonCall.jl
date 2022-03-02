@@ -41,7 +41,7 @@ function init_ctypes()
         isint = isreal && !isfloat
         isuint = isint && (startswith(t, "u") || t == "size_t")
 
-        name = "ctypes/c_$t"
+        name = "ctypes:c_$t"
         rule = pyconvert_rule_ctypessimplevalue{T, false}()
         saferule = pyconvert_rule_ctypessimplevalue{T, true}()
 

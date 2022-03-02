@@ -795,6 +795,9 @@ For example:
 Compound statements such as `begin`, `if`, `while` and `for` are supported.
 
 See the online documentation for more details.
+
+!!! warning
+    This macro is experimental. It may be modified or removed in a future release.
 """
 macro py(ex)
     esc(py_macro(ex, __module__, __source__))

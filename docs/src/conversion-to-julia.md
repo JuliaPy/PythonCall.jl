@@ -58,6 +58,8 @@ From Python, the arguments to a Julia function will be converted according to th
 
 See below for an explanation of the `Py*` types (`PyList`, `PyIO`, etc).
 
+To add new conversion rules, see further below.
+
 ## [Wrapper types](@id python-wrappers)
 
 The following types wrap a Python object, giving it the semantics of a Julia object. For example `PyList(x)` interprets the Python sequence `x` as a Julia abstract vector.
@@ -75,4 +77,16 @@ PyTable
 PyPandasDataFrame
 PyObjectArray
 PyException
+```
+
+## [Adding conversion rules](@id py2jl-conversion-custom)
+
+To add a custom conversion rule, you must define a function to do the conversion and call
+`pyconvert_add_rule` to register it.
+
+You must not do this while precompiling, so these calls will normally be in the `__init__`
+function of your module.
+
+```@docs
+PythonCall.pyconvert_add_rule
 ```

@@ -31,9 +31,9 @@ Add a new conversion rule for `pyconvert`.
 
 When `pyconvert(R, x)` is called, all rules such that `typeintersect(T, R) != Union{}`
 and `pyisinstance(x, t)` are considered. These rules are sorted first by priority,
-then by the specificity of `pytype` (e.g. `bool` is more specific than `int` is more
-specific than `object`) then by the order they were added. The rules are tried in turn
-until one succeeds.
+then by the specificity of `t` (e.g. `bool` is more specific than `int` is more specific
+than `object`) then by the order they were added. The rules are tried in turn until one
+succeeds.
 
 ### Implemeting `func`
 

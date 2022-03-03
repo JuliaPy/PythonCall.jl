@@ -301,7 +301,7 @@ function init_jlwrap_any()
 end
 
 """
-    pyjl([t], x)
+    pyjl([t=pyjltype(x)], x)
 
 Create a Python object wrapping the Julia object `x`.
 
@@ -311,5 +311,18 @@ Its Python type is normally inferred from the type of `x`, but can be specified 
 
 For example if `x` is an `AbstractVector` then the object will have type `juliacall.VectorValue`.
 This object will satisfy the Python sequence interface, so for example uses 0-up indexing.
+
+To define a custom conversion for your type `T`, overload `pyjltype(::T)`.
 """
-pyjl(v) = pyjl(pyjlanytype, v)
+pyjl(v) = pyjl(pyjltype(v), v)
+export pyjl
+
+"""
+    pyjltype(x)
+
+The subtype of `juliacall.AnyValue` which the Julia object `x` is wrapped as by `pyjl(x)`.
+
+Overload `pyjltype(::T)` to define a custom conversion for your type `T`.
+"""
+pyjltype(::Any) = pyjlanytype
+export pyjltype

@@ -40,4 +40,4 @@ function init_jlwrap_iter()
     pycopy!(pyjlitertype, jl.IteratorValue)
 end
 
-pyjl(v::Iterator) = pyjl(pyjlitertype, v)
+pyjltype(::Iterator) = pyjlitertype

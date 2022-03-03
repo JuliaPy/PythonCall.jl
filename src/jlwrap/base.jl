@@ -5,7 +5,6 @@ _pyjl_getvalue(x) = @autopy x C.PyJuliaValue_GetValue(getptr(x_))
 _pyjl_setvalue!(x, v) = @autopy x C.PyJuliaValue_SetValue(getptr(x_), v)
 
 pyjl(t, v) = pynew(errcheck(@autopy t C.PyJuliaValue_New(getptr(t_), v)))
-export pyjl
 
 """
     pyisjl(x)

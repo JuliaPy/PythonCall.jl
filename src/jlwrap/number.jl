@@ -224,8 +224,8 @@ function init_jlwrap_number()
     pycopy!(pyjlintegertype, jl.IntegerValue)
 end
 
-pyjl(v::Number) = pyjl(pyjlnumbertype, v)
-pyjl(v::Complex) = pyjl(pyjlcomplextype, v)
-pyjl(v::Real) = pyjl(pyjlrealtype, v)
-pyjl(v::Rational) = pyjl(pyjlrationaltype, v)
-pyjl(v::Integer) = pyjl(pyjlintegertype, v)
+pyjltype(::Number) = pyjlnumbertype
+pyjltype(::Complex) = pyjlcomplextype
+pyjltype(::Real) = pyjlrealtype
+pyjltype(::Rational) = pyjlrationaltype
+pyjltype(::Integer) = pyjlintegertype

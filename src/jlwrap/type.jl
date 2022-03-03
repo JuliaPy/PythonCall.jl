@@ -27,4 +27,4 @@ function init_jlwrap_type()
     pycopy!(pyjltypetype, jl.TypeValue)
 end
 
-pyjl(v::Type) = pyjl(pyjltypetype, v)
+pyjltype(::Type) = pyjltypetype

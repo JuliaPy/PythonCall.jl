@@ -43,6 +43,14 @@ PythonCall.getpy
 PythonCall.ispy
 ```
 
+Alternatively, if you define a wrapper type (a subtype of
+[`juliacall.AnyValue`](#juliacall.AnyValue)) then you may instead define `pyjltype(::T)` to
+be that type.
+
+```@docs
+PythonCall.pyjltype
+```
+
 ## [Wrapper types](@id julia-wrappers)
 
 Apart from a few fundamental immutable types, all Julia values are by default converted into Python to some [`AnyValue`](#juliacall.AnyValue) object, which wraps the original value, but giving it a Pythonic interface.

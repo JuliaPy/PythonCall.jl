@@ -28,4 +28,4 @@ function init_jlwrap_module()
     pycopy!(pyjlmoduletype, jl.ModuleValue)
 end
 
-pyjl(v::Module) = pyjl(pyjlmoduletype, v)
+pyjltype(::Module) = pyjlmoduletype

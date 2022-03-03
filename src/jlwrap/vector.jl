@@ -150,4 +150,4 @@ function init_jlwrap_vector()
     pycopy!(pyjlvectortype, jl.VectorValue)
 end
 
-pyjl(v::AbstractVector) = pyjl(pyjlvectortype, v)
+pyjltype(::AbstractVector) = pyjlvectortype

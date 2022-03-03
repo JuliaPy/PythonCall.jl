@@ -334,4 +334,4 @@ function init_jlwrap_array()
     pycopy!(pyjlarraytype, jl.ArrayValue)
 end
 
-pyjl(v::AbstractArray) = pyjl(pyjlarraytype, v)
+pyjltype(::AbstractArray) = pyjlarraytype

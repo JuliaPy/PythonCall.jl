@@ -104,4 +104,4 @@ function init_jlwrap_dict()
     pycopy!(pyjldicttype, jl.DictValue)
 end
 
-pyjl(v::AbstractDict) = pyjl(pyjldicttype, v)
+pyjltype(::AbstractDict) = pyjldicttype

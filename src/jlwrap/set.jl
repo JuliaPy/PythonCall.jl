@@ -121,4 +121,4 @@ function init_jlwrap_set()
     pycopy!(pyjlsettype, jl.SetValue)
 end
 
-pyjl(v::AbstractSet) = pyjl(pyjlsettype, v)
+pyjltype(::AbstractSet) = pyjlsettype

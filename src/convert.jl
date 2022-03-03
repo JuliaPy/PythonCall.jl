@@ -47,12 +47,6 @@ It must return one of:
 The target type `S` is never a union or the empty type, i.e. it is always a data type or
 union-all.
 
-**Important.** To enable an optimization, the *Julia* object `x` may be invalidated after
-the call to `func`, which means that the returned `ans` must not contain a reference to `x`.
-Therefore if `ans` is a wrapper type (such as `PyList`) you may need to create a new
-Julia object around the same Python object by calling `Py(x)` and wrap that. It is
-recommended that wrapper types do this automatically in their inner constructor.
-
 ### Priority
 
 Most rules should have priority `PYCONVERT_PRIORITY_NORMAL` (the default) which is for any
@@ -66,6 +60,17 @@ and not to a `Vector`. There should not be more than one canonical conversion ru
 given Python type.
 
 Other priorities are reserved for internal use.
+
+### Optional optimization (for experts)
+
+If `func(S, x::Py)` makes a successful conversion, it may call `pydel!(x)` if safe to do so.
+This means that the returned answer must not reference `x` in any way.
+
+If you are returning a wrapper type, such as `PyList(x)`, then the object `x` should be
+duplicated first, as in `Py(x)`. It is recommended to force this in the inner constructor
+of the wrapper type.
+
+If the conversion is not successful, it **must not** call `pydel!(x)`.
 """
 function pyconvert_add_rule(pytypename::String, type::Type, func::Function, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL)
     @nospecialize type func
@@ -278,14 +283,16 @@ function pyconvert_rule_fast(::Type{T}, x::Py) where {T}
     pyconvert_unconverted()
 end
 
-pytryconvert(::Type{T}, x) where {T} = @autopy x begin
+function pytryconvert(::Type{T}, x_) where {T}
+    # Copy the input
+    x = Py(x_)
     # We can optimize the conversion for some types by overloading pytryconvert_fast.
     # It MUST give the same results as via the slower route using rules.
-    ans = pyconvert_rule_fast(T, getpy(x_)) :: pyconvert_returntype(T)
+    ans = pyconvert_rule_fast(T, x) :: pyconvert_returntype(T)
     pyconvert_isunconverted(ans) || return ans
     # get rules from the cache
     # TODO: we should hold weak references and clear the cache if types get deleted
-    tptr = C.Py_Type(getptr(x_))
+    tptr = C.Py_Type(getptr(x))
     trules = get!(Dict{Type, Vector{PyConvertRule}}, PYCONVERT_RULES_CACHE, tptr)
     if !haskey(trules, T)
         t = pynew(incref(tptr))
@@ -295,9 +302,11 @@ pytryconvert(::Type{T}, x) where {T} = @autopy x begin
     rules = trules[T]
     # apply the rules
     for rule in rules
-        ans = rule(getpy(x_)) :: pyconvert_returntype(T)
+        ans = rule(x) :: pyconvert_returntype(T)
         pyconvert_isunconverted(ans) || return ans
     end
+    # if no rule succeeded, assume nothing references x
+    pydel!(x)
     return pyconvert_unconverted()
 end
 
@@ -310,11 +319,13 @@ On failure, evaluates to `onfail`, which defaults to `return pyconvert_unconvert
 """
 macro pyconvert(T, x, onfail=:(return $pyconvert_unconverted()))
     quote
-        ans = pytryconvert($(esc(T)), $(esc(x)))
+        T = $(esc(T))
+        x = $(esc(x))
+        ans = pytryconvert(T, x)
         if pyconvert_isunconverted(ans)
             $(esc(onfail))
         else
-            pyconvert_result($(esc(T)), ans)
+            pyconvert_result(T, ans)
         end
     end
 end

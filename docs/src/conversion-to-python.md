@@ -34,6 +34,15 @@ From Python, this occurs when converting the return value of a Julia function.
 
 See below for an explanation of the `juliacall.*Value` types.
 
+### [Custom rules](@id jl2py-conversion-custom)
+
+You may define a new conversion rule for your new type `T` by overloading `getpy(::T)`.
+
+```@docs
+PythonCall.getpy
+PythonCall.ispy
+```
+
 ## [Wrapper types](@id julia-wrappers)
 
 Apart from a few fundamental immutable types, all Julia values are by default converted into Python to some [`AnyValue`](#juliacall.AnyValue) object, which wraps the original value, but giving it a Pythonic interface.

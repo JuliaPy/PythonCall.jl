@@ -29,6 +29,8 @@ getptr(x) = getptr(getpy(x)::Py)
     Py(x)
 
 Convert `x` to a Python object.
+
+Do not overload this function. To define a new conversion, overload [`getpy`](@ref).
 """
 mutable struct Py
     ptr :: C.PyPtr
@@ -132,23 +134,51 @@ macro autopy(args...)
     end)
 end
 
+struct NewPy
+    py::Py
+    NewPy(py::Py) = new(py)
+end
+
 Py(x::Py) = GC.@preserve x pynew(incref(getptr(x))) # copy, because Py must always return a new object
-Py(x::Nothing) = Py(pybuiltins.None)
-Py(x::Bool) = pybool(x)
-Py(x::Union{String, SubString{String}, Char}) = pystr(x)
-Py(x::Base.CodeUnits{UInt8, String}) = pybytes(x)
-Py(x::Base.CodeUnits{UInt8, SubString{String}}) = pybytes(x)
-Py(x::Tuple) = pytuple_fromiter(x)
-Py(x::Pair) = pytuple_fromiter(x)
-Py(x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}) = pyint(x)
-Py(x::Rational{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = pyfraction(x)
-Py(x::Union{Float16,Float32,Float64}) = pyfloat(x)
-Py(x::Complex{<:Union{Float16,Float32,Float64}}) = pycomplex(x)
-Py(x::AbstractRange{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = pyrange_fromrange(x)
-Py(x::Date) = pydate(x)
-Py(x::Time) = pytime(x)
-Py(x::DateTime) = pydatetime(x)
-Py(x) = ispy(x) ? Py(getpy(x)) : pyjl(x)
+Py(x::NewPy) = x.py
+Py(x) = Py(getpy(x)::Union{Py,NewPy})
+
+"""
+    getpy(x)
+
+Convert `x` to a `Py`.
+
+Overload this function (not `Py`) to define a new conversion to Python.
+
+If `x` is a simple wrapper around a Python object (such as `PyList` or `PyDict`) then
+`getpy(x)` should return the Python object. You should also define `ispy(x) = true`. This
+means that when `x` is passed back to Python, the underlying object is used directly.
+
+### Optional optimization (for experts)
+
+If `ispy(x)` is false and the returned Julia object `ans` is not referenced anywhere else,
+in the sense that `pydel!(ans)` would be safe, you may instead return `NewPy(ans)`.
+
+This can avoid the Julia garbage collector in performance-critical code.
+
+If `ispy(x)` is true, you **must** return a `Py`.
+"""
+getpy(x) = ispy(x) ? throw(MethodError(getpy, (x,))) : NewPy(pyjl(x))
+getpy(x::Nothing) = pybuiltins.None
+getpy(x::Bool) = NewPy(pybool(x))
+getpy(x::Union{String, SubString{String}, Char}) = NewPy(pystr(x))
+getpy(x::Base.CodeUnits{UInt8, String}) = NewPy(pybytes(x))
+getpy(x::Base.CodeUnits{UInt8, SubString{String}}) = NewPy(pybytes(x))
+getpy(x::Tuple) = NewPy(pytuple_fromiter(x))
+getpy(x::Pair) = NewPy(pytuple_fromiter(x))
+getpy(x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}) = NewPy(pyint(x))
+getpy(x::Rational{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = NewPy(pyfraction(x))
+getpy(x::Union{Float16,Float32,Float64}) = NewPy(pyfloat(x))
+getpy(x::Complex{<:Union{Float16,Float32,Float64}}) = NewPy(pycomplex(x))
+getpy(x::AbstractRange{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = NewPy(pyrange_fromrange(x))
+getpy(x::Date) = NewPy(pydate(x))
+getpy(x::Time) = NewPy(pytime(x))
+getpy(x::DateTime) = NewPy(pydatetime(x))
 
 Base.string(x::Py) = pyisnull(x) ? "<py NULL>" : pystr(String, x)
 Base.print(io::IO, x::Py) = print(io, string(x))

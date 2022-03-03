@@ -58,7 +58,17 @@ From Python, the arguments to a Julia function will be converted according to th
 
 See below for an explanation of the `Py*` types (`PyList`, `PyIO`, etc).
 
-To add new conversion rules, see further below.
+### [Custom rules](@id py2jl-conversion-custom)
+
+To add a custom conversion rule, you must define a function to do the conversion and call
+`pyconvert_add_rule` to register it.
+
+You must not do this while precompiling, so these calls will normally be in the `__init__`
+function of your module.
+
+```@docs
+PythonCall.pyconvert_add_rule
+```
 
 ## [Wrapper types](@id python-wrappers)
 
@@ -79,14 +89,21 @@ PyObjectArray
 PyException
 ```
 
-## [Adding conversion rules](@id py2jl-conversion-custom)
+### [Custom wrappers](@id python-wrappers-custom)
 
-To add a custom conversion rule, you must define a function to do the conversion and call
-`pyconvert_add_rule` to register it.
+Here is a minimal example of defining a wrapper type. You may add methods, fields and a
+supertype to the type to specialise its behaviour. See any of the above wrapper types for
+examples.
 
-You must not do this while precompiling, so these calls will normally be in the `__init__`
-function of your module.
+```julia
+# The new type with a field for the Python object being wrapped.
+struct MyType
+    py::Py
+end
 
-```@docs
-PythonCall.pyconvert_add_rule
+# Says that the object is a wrapper.
+ispy(x::MyType) = true
+
+# Says how to access the underlying Python object.
+getpy(x::MyType) = x.py
 ```

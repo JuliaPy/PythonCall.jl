@@ -2,7 +2,8 @@ const pyjlanytype = pynew()
 
 pyjlany_repr(self) = Py("<jl $(repr(self))>")
 
-pyjlany_str(self) = Py(string(self))
+# Note: string(self) doesn't always return a String
+pyjlany_str(self) = Py(sprint(print, self))
 
 function pyjlany_getattr(self, k_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))

@@ -4,6 +4,7 @@
 * `pyconvert_add_rule` is now documented. Its semantics have changed, including the
   separator of the first argument from `/` to `:` (not breaking because it was previously
   undocumented).
+* Bug fixes.
 
 ## v0.6.1 (2022-02-21)
 * Conversions from simple ctypes types, e.g. `ctypes.c_float` to `Cfloat`.

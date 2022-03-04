@@ -31,6 +31,3 @@ function pyconvert_rule_range(::Type{R}, x::Py, ::Type{UnitRange{T0}}=Utils._typ
     T2 = Utils._promote_type_bounded(T0, typeof(a′), typeof(c′), T1)
     pyconvert_return(UnitRange{T2}(a′, c′))
 end
-
-pyconvert_rule_fast(::Type{T}, x::Py) where {T<:StepRange} = pyisrange(x) ? pyconvert_rule_range(T, x) : pyconvert_unconverted()
-pyconvert_rule_fast(::Type{T}, x::Py) where {T<:UnitRange} = pyisrange(x) ? pyconvert_rule_range(T, x) : pyconvert_unconverted()

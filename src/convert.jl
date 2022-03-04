@@ -63,14 +63,13 @@ Other priorities are reserved for internal use.
 
 ### Optional optimization (for experts)
 
-If `func(S, x::Py)` makes a successful conversion, it may call `pydel!(x)` if safe to do so.
-This means that the returned answer must not reference `x` in any way.
+The `func` is given the only reference to `x`. This means it may call `pydel!(x)` when done
+with `x` provided `x` is not referenced anywhere else, such as in the return value. See
+[`pydel!`](@ref).
 
 If you are returning a wrapper type, such as `PyList(x)`, then the object `x` should be
 duplicated first, as in `Py(x)`. It is recommended to force this in the inner constructor
 of the wrapper type.
-
-If the conversion is not successful, it **must not** call `pydel!(x)`.
 """
 function pyconvert_add_rule(pytypename::String, type::Type, func::Function, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL)
     @nospecialize type func
@@ -78,24 +77,27 @@ function pyconvert_add_rule(pytypename::String, type::Type, func::Function, prio
     return
 end
 
-if false
-    # this scheme returns either the result or Unconverted()
+# Alternative ways to represent the result of conversion.
+if true
+    # Returns either the result or Unconverted().
     struct Unconverted end
-    pyconvert_return(x) = x
-    pyconvert_unconverted() = Unconverted()
-    pyconvert_returntype(::Type{T}) where {T} = Union{T,Unconverted}
-    pyconvert_isunconverted(r) = r === Unconverted()
-    pyconvert_result(::Type{T}, r) where {T} = r::T
-elseif true
-    # this scheme stores the result in PYCONVERT_RESULT
+    @inline pyconvert_return(x) = x
+    @inline pyconvert_unconverted() = Unconverted()
+    @inline pyconvert_returntype(::Type{T}) where {T} = Union{T,Unconverted}
+    @inline pyconvert_isunconverted(r) = r === Unconverted()
+    @inline pyconvert_result(::Type{T}, r) where {T} = r::T
+elseif false
+    # Stores the result in PYCONVERT_RESULT.
+    # This is global state, probably best avoided.
     const PYCONVERT_RESULT = Ref{Any}(nothing)
-    pyconvert_return(x) = (PYCONVERT_RESULT[] = x; true)
-    pyconvert_unconverted() = false
-    pyconvert_returntype(::Type{T}) where {T} = Bool
-    pyconvert_isunconverted(r::Bool) = !r
-    pyconvert_result(::Type{T}, r::Bool) where {T} = (ans = PYCONVERT_RESULT[]::T; PYCONVERT_RESULT[] = nothing; ans)
+    @inline pyconvert_return(x) = (PYCONVERT_RESULT[] = x; true)
+    @inline pyconvert_unconverted() = false
+    @inline pyconvert_returntype(::Type{T}) where {T} = Bool
+    @inline pyconvert_isunconverted(r::Bool) = !r
+    @inline pyconvert_result(::Type{T}, r::Bool) where {T} = (ans = PYCONVERT_RESULT[]::T; PYCONVERT_RESULT[] = nothing; ans)
 else
-    # same as the previous scheme, but with special handling for bits types
+    # Same as the previous scheme, but with special handling for bits types.
+    # This is global state, probably best avoided.
     const PYCONVERT_RESULT = Ref{Any}(nothing)
     const PYCONVERT_RESULT_ISBITS = Ref{Bool}(false)
     const PYCONVERT_RESULT_TYPE = Ref{Type}(Union{})
@@ -112,9 +114,9 @@ else
         end
         return true
     end
-    pyconvert_unconverted() = false
-    pyconvert_returntype(::Type{T}) where {T} = Bool
-    pyconvert_isunconverted(r::Bool) = !r
+    @inline pyconvert_unconverted() = false
+    @inline pyconvert_returntype(::Type{T}) where {T} = Bool
+    @inline pyconvert_isunconverted(r::Bool) = !r
     function pyconvert_result(::Type{T}, r::Bool) where {T}
         if isbitstype(T)
             if sizeof(T) ≤ PYCONVERT_RESULT_BITSLEN
@@ -271,7 +273,9 @@ end
 
 pyconvert_fix(::Type{T}, func) where {T} = x -> func(T, x)
 
-const PYCONVERT_RULES_CACHE = Dict{C.PyPtr, Dict{Type, Vector{Function}}}()
+const PYCONVERT_RULES_CACHE = Dict{Type, Dict{C.PyPtr, Vector{Function}}}()
+
+@generated pyconvert_rules_cache(::Type{T}) where {T} = get!(Dict{C.PyPtr, Vector{Function}}, PYCONVERT_RULES_CACHE, T)
 
 function pyconvert_rule_fast(::Type{T}, x::Py) where {T}
     if T isa Union
@@ -279,6 +283,23 @@ function pyconvert_rule_fast(::Type{T}, x::Py) where {T}
         pyconvert_isunconverted(a) || return a
         b = pyconvert_rule_fast(T.b, x) :: pyconvert_returntype(T.b)
         pyconvert_isunconverted(b) || return b
+    elseif (T == Nothing) | (T == Missing)
+        pyisnone(x) && return pyconvert_return(T())
+    elseif (T == Bool)
+        pyisFalse(x) && return pyconvert_return(false)
+        pyisTrue(x) && return pyconvert_return(true)
+    elseif (T == Int) | (T == BigInt)
+        pyisint(x) && return pyconvert_rule_int(T, Py(x))
+    elseif (T == Float64)
+        pyisfloat(x) && return pyconvert_return(T(pyfloat_asdouble(x)))
+    elseif (T == ComplexF64)
+        pyiscomplex(x) && return pyconvert_return(T(pycomplex_ascomplex(x)))
+    elseif (T == String) | (T == Char) | (T == Symbol)
+        pyisstr(x) && return pyconvert_rule_str(T, Py(x))
+    elseif (T == Vector{UInt8}) | (T == Base.CodeUnits{UInt8,String})
+        pyisbytes(x) && return pyconvert_rule_bytes(T, Py(x))
+    elseif (T <: StepRange) | (T <: UnitRange)
+        pyisrange(x) && return pyconvert_rule_range(T, Py(x))
     end
     pyconvert_unconverted()
 end
@@ -286,25 +307,29 @@ end
 function pytryconvert(::Type{T}, x_) where {T}
     # Copy the input
     x = Py(x_)
+
     # We can optimize the conversion for some types by overloading pytryconvert_fast.
     # It MUST give the same results as via the slower route using rules.
-    ans = pyconvert_rule_fast(T, x) :: pyconvert_returntype(T)
-    pyconvert_isunconverted(ans) || return ans
+    ans1 = pyconvert_rule_fast(T, x) :: pyconvert_returntype(T)
+    pyconvert_isunconverted(ans1) || (pydel!(x); return ans1)
+
     # get rules from the cache
     # TODO: we should hold weak references and clear the cache if types get deleted
     tptr = C.Py_Type(getptr(x))
-    trules = get!(Dict{Type, Vector{PyConvertRule}}, PYCONVERT_RULES_CACHE, tptr)
-    if !haskey(trules, T)
+    trules = pyconvert_rules_cache(T)
+    rules = get!(trules, tptr) do
         t = pynew(incref(tptr))
-        trules[T] = pyconvert_get_rules(T, t)
+        ans = pyconvert_get_rules(T, t)::Vector{Function}
         pydel!(t)
+        ans
     end
-    rules = trules[T]
+
     # apply the rules
     for rule in rules
-        ans = rule(x) :: pyconvert_returntype(T)
-        pyconvert_isunconverted(ans) || return ans
+        ans2 = rule(Py(x)) :: pyconvert_returntype(T)
+        pyconvert_isunconverted(ans2) || (pydel!(x); return ans2)
     end
+
     # if no rule succeeded, assume nothing references x
     pydel!(x)
     return pyconvert_unconverted()

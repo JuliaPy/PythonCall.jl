@@ -16,6 +16,7 @@ pyfloat_asdouble(x) = errcheck_ambig(@autopy x C.PyFloat_AsDouble(getptr(x_)))
 
 function pyconvert_rule_float(::Type{T}, x::Py) where {T<:Number}
     val = pyfloat_asdouble(x)
+    pydel!(x)
     if T in (Float16, Float32, Float64, BigFloat)
         pyconvert_return(T(val))
     else
@@ -26,7 +27,9 @@ end
 # NaN is sometimes used to represent missing data of other types
 # so we allow converting it to Nothing or Missing
 function pyconvert_rule_float(::Type{Nothing}, x::Py)
-    if isnan(pyfloat_asdouble(x))
+    val = pyfloat_asdouble(x)
+    pydel!(x)
+    if isnan(val)
         pyconvert_return(nothing)
     else
         pyconvert_unconverted()
@@ -34,16 +37,11 @@ function pyconvert_rule_float(::Type{Nothing}, x::Py)
 end
 
 function pyconvert_rule_float(::Type{Missing}, x::Py)
-    if isnan(pyfloat_asdouble(x))
+    val = pyfloat_asdouble(x)
+    pydel!(x)
+    if isnan(val)
         pyconvert_return(missing)
     else
         pyconvert_unconverted()
     end
 end
-
-pyconvert_rule_fast(::Type{Float64}, x::Py) =
-    if pyisfloat(x)
-        pyconvert_return(pyfloat_asdouble(x))
-    else
-        pyconvert_unconverted()
-    end

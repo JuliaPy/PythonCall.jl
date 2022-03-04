@@ -23,18 +23,10 @@ pybool_asbool(x) =
 
 function pyconvert_rule_bool(::Type{T}, x::Py) where {T<:Number}
     val = pybool_asbool(x)
+    pydel!(x)
     if T in (Bool, Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128, BigInt)
         pyconvert_return(T(val))
     else
         pyconvert_tryconvert(T, val)
     end
 end
-
-pyconvert_rule_fast(::Type{Bool}, x::Py) =
-    if pyisTrue(x)
-        pyconvert_return(true)
-    elseif pyisFalse(x)
-        pyconvert_return(false)
-    else
-        pyconvert_unconverted()
-    end

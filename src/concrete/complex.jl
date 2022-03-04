@@ -31,10 +31,3 @@ function pyconvert_rule_complex(::Type{T}, x::Py) where {T<:Number}
         pyconvert_tryconvert(T, val)
     end
 end
-
-pyconvert_rule_fast(::Type{Complex{Float64}}, x::Py) =
-    if pyiscomplex(x)
-        pyconvert_return(pycomplex_ascomplex(x))
-    else
-        pyconvert_unconverted()
-    end

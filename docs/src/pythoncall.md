@@ -84,7 +84,6 @@ Notable exceptions are:
 - [`pyconvert`](@ref) to convert a Python object to a Julia object.
 - [`pyimport`](@ref) to import a Python module.
 - [`pyjl`](@ref) to directly wrap a Julia object as a Python object.
-- [`pyclass`](@ref) to construct a new class.
 - [`pywith`](@ref) to emulate the Python `with` statement.
 
 If a Julia value is passed as an argument to one of these functions, it is converted to a

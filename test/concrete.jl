@@ -248,11 +248,6 @@ end
     @test pyeq(Bool, x.__name__, "Foo")
     @test pyeq(Bool, x.foo, 1)
     @test pyeq(Bool, x.bar, 2)
-    x = pyclass("Bar", (), foo=3, bar=4)
-    @test pyisinstance(x, pybuiltins.type)
-    @test pyeq(Bool, x.__name__, "Bar")
-    @test pyeq(Bool, x.foo, 3)
-    @test pyeq(Bool, x.bar, 4)
 end
 
 @testset "fraction" begin

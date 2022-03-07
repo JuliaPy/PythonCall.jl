@@ -46,7 +46,7 @@ end
 pyjlcallback(f) = pyjl(pyjlcallbacktype, f)
 
 """
-    pyfunc(f; [name], [doc])
+    pyfunc(f; name=nothing, doc=nothing)
 
 Wrap the callable `f` as an ordinary Python function.
 

@@ -11,53 +11,49 @@ export pytype
 
 Create a new type. Equivalent to `type(name, bases, dict)` in Python.
 
-See [`pyclass`](@ref) for a more convenient syntax.
-"""
-pytype(name, bases, dict) = pybuiltins.type(name, ispy(bases) ? bases : pytuple(bases), ispy(dict) ? dict : pydict(dict))
+If `bases` is not a Python object, it is converted to one using `pytuple`.
 
-"""
-    pyclass(name, bases=(); members...)
+If `dict` is not a Python object, it is converted to one using `pydict`.
 
-Construct a new Python type with the given name, bases and members.
-
-The `bases` may be a Python type or a tuple of Python types.
-
-Any `members` which are Julia functions are interpreted as instance methods (equivalent to
-wrapping the function in [`pyfunc`](@ref)). To create class methods, static methods or
-properties, wrap the function in [`pyclassmethod`](@ref), [`pystaticmethod`](@ref) or
-[`pyproperty`](@ref).
-
-Note that the arguments to any method or property are passed as `Py`, i.e. they are not
-converted first.
+In order to use a Julia `Function` as an instance method, it must be wrapped into a Python
+function with [`pyfunc`](@ref). Similarly, see also [`pyclassmethod`](@ref),
+[`pystaticmethod`](@ref) or [`pyproperty`](@ref). In all these cases, the arguments passed
+to the function always have type `Py`. See the example below.
 
 # Example
 
 ```
-Foo = pyclass("Foo",
-    __init__ = function (self, x, y = nothing)
-        self.x = x
-        self.y = y
-        nothing
-    end,
+Foo = pytype("Foo", (), [
+    "__init__" => pyfunc(
+        doc = \"\"\"
+        Specify x and y to store in the Foo.
 
-    __repr__ = function (self)
-        "Foo(\$(self.x), \$(self.y))"
-    end,
-
-    frompair = function (cls, xy)
-        cls(xy...)
-    end
-    |> pyclassmethod,
-
-    hello = function (name)
-        println("Hello, \$name")
-    end
-    |> pystaticmethod,
-
-    xy = pyproperty(
-        get = function (self)
-            (self.x, self.y)
+        If omitted, y defaults to None.
+        \"\"\",
+        function (self, x, y = nothing)
+            self.x = x
+            self.y = y
+            return
         end,
+    ),
+
+    "__repr__" => function (self)
+        return "Foo(\$(self.x), \$(self.y))"
+    end |> pyfunc,
+
+    "frompair" => pyclassmethod(
+        doc = "Construct a Foo from a tuple of length two.",
+        (cls, xy) -> cls(xy...),
+    ),
+
+    "hello" => pystaticmethod(
+        doc = "Prints a friendly greeting.",
+        (name) -> println("Hello, \$name"),
+    )
+
+    "xy" => pyproperty(
+        doc = "A tuple of x and y.",
+        get = (self) -> (self.x, self.y),
         set = function (self, xy)
             (x, y) = xy
             self.x = x
@@ -65,15 +61,14 @@ Foo = pyclass("Foo",
             nothing
         end,
     ),
-)
+])
 ```
 """
-function pyclass(name, bases=(); members...)
-    bases2 = ispy(bases) && pyistype(bases) ? pytuple((bases,)) : pytuple(bases)
-    members2 = pydict(pystr(k) => v isa Function ? pyfunc(v) : Py(v) for (k, v) in members)
-    pytype(name, bases2, members2)
+function pytype(name, bases, dict)
+    bases2 = ispy(bases) ? bases : pytuple(bases)
+    dict2 = ispy(dict) ? dict : pydict(dict)
+    pybuiltins.type(name, bases2, dict2)
 end
-export pyclass
 
 pyistype(x) = pytypecheckfast(x, C.Py_TPFLAGS_TYPE_SUBCLASS)
 

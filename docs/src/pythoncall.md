@@ -96,21 +96,20 @@ These functions construct Python objects of builtin types from Julia values.
 
 ```@docs
 pybool
-pyint
-pyfloat
-pycomplex
-pystr
-pybytes
-pytuple
-pylist
 pycollist
+pybytes
+pycomplex
+pydict
+pyfloat
+pyfrozenset
+pyint
+pylist
+pyrange
 pyrowlist
 pyset
-pyfrozenset
-pydict
 pyslice
-pyrange
-pytype
+pystr
+pytuple
 ```
 
 ### Builtins
@@ -118,38 +117,39 @@ pytype
 These functions mimic the Python builtin functions or keywords of the same name.
 
 ```@docs
-pyimport
-pywith
-pyis
-pyrepr
-pyascii
-pyhasattr
-pygetattr
-pysetattr
-pydelattr
-pydir
-pycall
-pylen
-pycontains
-pyin
-pygetitem
-pysetitem
-pydelitem
-pyissubclass
-pyisinstance
-pyhash
-pyiter
-pynext
-pyhelp
-pyprint
 pyall
 pyany
+pyascii
+pycall
 pycallable
-pyeval
-pyexec
 pycompile
+pycontains
+pydelattr
+pydelitem
+pydir
+pyeval
 @pyeval
+pyexec
 @pyexec
+pygetattr
+pygetitem
+pyhasattr
+pyhash
+pyhelp
+pyimport
+pyin
+pyis
+pyisinstance
+pyissubclass
+pyiter
+pylen
+pynext
+pyprint
+pyrepr
+pysetattr
+pysetitem
+pytype(::Any)
+pywith
 ```
 
 ### Conversion to Julia
@@ -173,8 +173,8 @@ pyjl
 pyjlraw
 pyisjl
 pyjlvalue
-pytextio
 pybinaryio
+pytextio
 ```
 
 ### Arithmetic
@@ -248,7 +248,7 @@ These functions can be used to create new Python classes where the functions are
 in Julia. You can instead use [`@pyeval`](@ref) etc. to create pure-Python classes.
 
 ```@docs
-pyclass
+pytype(::Any, ::Any, ::Any)
 pyfunc
 pyclassmethod
 pystaticmethod

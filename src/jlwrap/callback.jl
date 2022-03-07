@@ -72,27 +72,27 @@ end
 export pyfunc
 
 """
-    pyclassmethod(f)
+    pyclassmethod(f; ...)
 
 Convert callable `f` to a Python class method.
 
 If `f` is not a Python object (e.g. if `f` is a `Function`) then it is converted to one with
 [`pyfunc`](@ref). In particular this means the arguments passed to `f` are always of type
-`Py`.
+`Py`. Keyword arguments are passed to `pyfunc`.
 """
-pyclassmethod(f) = pybuiltins.classmethod(ispy(f) ? f : pyfunc(f))
+pyclassmethod(f; kw...) = pybuiltins.classmethod(ispy(f) ? f : pyfunc(f; kw...))
 export pyclassmethod
 
 """
-    pystaticmethod(f)
+    pystaticmethod(f; ...)
 
 Convert callable `f` to a Python static method.
 
 If `f` is not a Python object (e.g. if `f` is a `Function`) then it is converted to one with
 [`pyfunc`](@ref). In particular this means the arguments passed to `f` are always of type
-`Py`.
+`Py`. Any keyword arguments are passed to `pyfunc`.
 """
-pystaticmethod(f) = pybuiltins.staticmethod(ispy(f) ? f : pyfunc(f))
+pystaticmethod(f; kw...) = pybuiltins.staticmethod(ispy(f) ? f : pyfunc(f; kw...))
 export pystaticmethod
 
 """

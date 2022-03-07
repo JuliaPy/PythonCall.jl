@@ -110,9 +110,7 @@ pyfrozenset
 pydict
 pyslice
 pyrange
-pymethod
 pytype
-pyclass
 ```
 
 ### Builtins
@@ -242,6 +240,19 @@ pyle
 pylt
 pyge
 pygt
+```
+
+## Create classes
+
+These functions can be used to create new Python classes where the functions are implemented
+in Julia. You can instead use [`@pyeval`](@ref) etc. to create pure-Python classes.
+
+```@docs
+pyclass
+pyfunc
+pyclassmethod
+pystaticmethod
+pyproperty
 ```
 
 ## [Installing Python packages](@id python-deps)

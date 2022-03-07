@@ -1,5 +1,5 @@
 # TODO:
-# - function definition (wrap the function like a pycallback)
+# - function definition (wrap the function like a pyfunc)
 # - class definition (e.g. `struct User <: BaseModel; id::int=0; name::str=""; end`)
 # - property syntax (e.g. `classmethod |> function foo(cls); cls(); end`)
 # - with syntax (`@with`)

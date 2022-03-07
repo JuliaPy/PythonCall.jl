@@ -1,9 +1,12 @@
 # Release Notes
 
 ## Unreleased
+* **Breaking:** Removes `pymethod`.
+* **Breaking:** Any member passed to `pyclass` which is a `Function` is automatically
+  wrapped with `pyfunc`, making it an instance method.
+* Adds `pyfunc`, `pyclassmethod`, `pystaticmethod` and `pyproperty`.
 * `pyconvert_add_rule` is now documented. Its semantics have changed, including the
-  separator of the first argument from `/` to `:` (not breaking because it was previously
-  undocumented).
+  separator of the first argument from `/` to `:`.
 * Bug fixes.
 
 ## v0.6.1 (2022-02-21)

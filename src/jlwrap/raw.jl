@@ -2,7 +2,7 @@ const pyjlrawtype = pynew()
 
 pyjlraw_repr(self) = Py("<jl $(repr(self))>")
 
-pyjlraw_str(self) = Py(string(self))
+pyjlraw_str(self) = Py(sprint(print, self))
 
 pyjl_attr_py2jl(k::String) = replace(k, r"_[b]+$" => (x -> "!"^(length(x) - 1)))
 

@@ -23,7 +23,7 @@ to the function always have type `Py`. See the example below.
 
 # Example
 
-```
+```julia
 Foo = pytype("Foo", (), [
     "__module__" => "__main__",
 

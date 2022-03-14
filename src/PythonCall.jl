@@ -1,6 +1,7 @@
 module PythonCall
 
 const VERSION = v"0.6.1"
+const ROOT_DIR = dirname(@__DIR__)
 
 using Base: @propagate_inbounds
 using MacroTools, Dates, Tables, Markdown, Serialization, Requires, Pkg

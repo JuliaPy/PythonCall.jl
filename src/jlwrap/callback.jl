@@ -46,26 +46,27 @@ end
 pyjlcallback(f) = pyjl(pyjlcallbacktype, f)
 
 """
-    pyfunc(f; name=nothing, doc=nothing)
+    pyfunc(f; name=nothing, qualname=name, doc=nothing, signature=nothing)
 
 Wrap the callable `f` as an ordinary Python function.
 
-Its name and docstring can be given with `name` and `doc`.
+The name, qualname, docstring or signature can optionally be set with `name`, `qualname`,
+`doc` or `signature`.
 
 Unlike `Py(f)` (or `pyjl(f)`), the arguments passed to `f` are always of type `Py`, i.e.
 they are never converted.
 """
-function pyfunc(f; name=nothing, doc=nothing)
+function pyfunc(f; name=nothing, qualname=name, doc=nothing, signature=nothing)
     f2 = ispy(f) ? f : pyjlcallback(f)
     f3 = pywrapcallback(f2)
     pydel!(f2)
-    if name !== nothing
-        f3.__name__ = f3.__qualname__ = name
-    else
-        f3.__name__ = f3.__qualname__ = "<lambda>"
-    end
+    f3.__name__ = name === nothing ? "<lambda>" : name
+    f3.__qualname__ = name === nothing ? "<lambda>" : qualname
     if doc !== nothing
         f3.__doc__ = doc
+    end
+    if signature !== nothing
+        f3.__signature__ = signature
     end
     return f3
 end

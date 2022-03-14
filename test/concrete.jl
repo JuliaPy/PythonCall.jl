@@ -243,7 +243,7 @@ end
     x = pytype(pybuiltins.type)
     @test pyisinstance(x, pybuiltins.type)
     @test pyis(x, pybuiltins.type)
-    x = pytype("Foo", (), (foo=1, bar=2))
+    x = pytype("Foo", (), ["foo"=>1, "bar"=>2])
     @test pyisinstance(x, pybuiltins.type)
     @test pyeq(Bool, x.__name__, "Foo")
     @test pyeq(Bool, x.foo, 1)

@@ -129,7 +129,7 @@
         @test pylen(x) == 0
     end
     @testset "pydir" begin
-        x = pytype("Foo", (), (foo=1, bar=2))()
+        x = pytype("Foo", (), ["foo"=>1, "bar"=>2])()
         d = pydir(x)
         @test pycontains(d, "__class__")
         @test pycontains(d, "foo")

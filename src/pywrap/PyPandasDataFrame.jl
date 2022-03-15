@@ -66,9 +66,15 @@ function Base.getindex(df::PyPandasDataFrame, k::String)
         ans = pyconvert_and_del(AbstractVector{df.columntypes[k]}, c)
     else
         ans = pyconvert_and_del(AbstractVector, c)
+        # narrow the type
+        ans = identity.(ans)
         # convert any Py to something more useful
         if Py <: eltype(ans)
             ans = [x isa Py ? pyconvert(Any, x) : x for x in ans]
+        end
+        # convert NaN to missing
+        if eltype(ans) != Float64 && Float64 <: eltype(ans)
+            ans = [x isa Float64 && isnan(x) ? missing : x for x in ans]
         end
     end
     return ans :: AbstractVector

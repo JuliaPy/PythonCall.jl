@@ -1,7 +1,10 @@
-const pydatetime111 = pynew()
+# We used to use 1/1/1 but pandas.Timestamp is a subclass of datetime and does not include
+# this date, so we use 1970 instead.
+const _base_datetime = DateTime(1970, 1, 1)
+const _base_pydatetime = pynew()
 
 function init_datetime()
-    pycopy!(pydatetime111, pydatetimetype(1, 1, 1))
+    pycopy!(_base_pydatetime, pydatetimetype(1970, 1, 1))
 end
 
 pydate(year, month, day) = pydatetype(year, month, day)
@@ -20,10 +23,10 @@ export pytime
 
 pydatetime(year, month, day, _hour=0, _minute=0, _second=0, _microsecond=0, _tzinfo=nothing; hour=_hour, minute=_minute, second=_second, microsecond=_microsecond, tzinfo=_tzinfo, fold=0) = pydatetimetype(year, month, day, hour, minute, second, microsecond, tzinfo, fold=fold)
 function pydatetime(x::DateTime)
-    # compute time since 1/1/1
+    # compute time since _base_datetime
     # this accounts for fold
-    d = pytimedeltatype(milliseconds = (x - DateTime(1, 1, 1)).value)
-    ans = pydatetime111 + d
+    d = pytimedeltatype(milliseconds = (x - _base_datetime).value)
+    ans = _base_pydatetime + d
     pydel!(d)
     return ans
 end
@@ -80,13 +83,13 @@ end
 
 function pyconvert_rule_datetime(::Type{DateTime}, x::Py)
     pydatetime_isaware(x) && return pyconvert_unconverted()
-    # compute the time since 1/1/1
+    # compute the time since _base_datetime
     # this accounts for fold
-    d = x - pydatetime111
+    d = x - _base_pydatetime
     days = pyconvert_and_del(Int, d.days)
     seconds = pyconvert_and_del(Int, d.seconds)
     microseconds = pyconvert_and_del(Int, d.microseconds)
     pydel!(d)
     iszero(mod(microseconds, 1000)) || return pyconvert_unconverted()
-    return pyconvert_return(DateTime(1,1,1) + Millisecond(div(microseconds, 1000) + 1000 * (seconds + 60 * 60 * 24 * days)))
+    return pyconvert_return(_base_datetime + Millisecond(div(microseconds, 1000) + 1000 * (seconds + 60 * 60 * 24 * days)))
 end

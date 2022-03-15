@@ -6,6 +6,8 @@
 * Adds `pyfunc`, `pyclassmethod`, `pystaticmethod` and `pyproperty`.
 * `pyconvert_add_rule` is now documented. Its semantics have changed, including the
   separator of the first argument from `/` to `:`.
+* A pandas `<NA>` value is now converted to `missing`.
+* A `NaN` in a `PyPandasDataFrame` is converted to `missing`.
 * Bug fixes.
 
 ## v0.6.1 (2022-02-21)

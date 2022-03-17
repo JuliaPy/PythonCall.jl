@@ -1,7 +1,7 @@
 # This module gets modified by PythonCall when it is loaded, e.g. to include Core, Base
 # and Main modules.
 
-__version__ = '0.6.1'
+__version__ = '0.7.0'
 
 def newmodule(name):
     "A new module with the given name."

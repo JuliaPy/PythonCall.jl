@@ -50,8 +50,10 @@ function pyconvert_rule_jlas(::Type{T}, x::Py) where {T}
     S = _pyjl_getvalue(t)
     pydel!(t)
     S isa Type || return pyconvert_unconverted()
-    # convert x to S, then to T
-    r = pytryconvert(S, x)
+    # convert x.value to S, then to T
+    v = x.value
+    r = pytryconvert(S, v)
+    pydel!(v)
     if pyconvert_isunconverted(r)
         return pyconvert_unconverted()
     elseif T == Any || S <: T

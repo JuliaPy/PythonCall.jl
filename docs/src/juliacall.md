@@ -89,27 +89,15 @@ See [JuliaPkg](https://github.com/cjdoris/PyJuliaPkg) for more details.
 ## Utilities
 
 `````@customdoc
-juliacall.using - Function
+juliacall.convert - Function
 
 ```python
-using(globals, module, attrs=None, prefix='jl', rename=None)
+convert(T, x)
 ```
 
-Import the Julia `module` into `globals`.
+Convert `x` to a Julia object of type `T`.
 
-If `attrs` is given, the given attributes are imported from the module instead of the
-module itself. It may be a list of strings or a space-separated string.
-
-Each item imported is renamed before being added to `globals`. By default a `prefix` is
-added. You more generally supply a `rename` function which maps a string to a string.
-
-In the following example we import some items from `Base` to do some vector operations:
-```python
-juliacall.using(locals(), 'Base', 'Vector Int push! pop!', rename=lambda x:'jl'+x.replace('!',''))
-x = jlVector[jlInt]()
-jlpush(x, 1, 2, 3)
-jlpop(x)  # 3
-```
+You can use this to pass an argument to a Julia function of a specific type.
 `````
 
 `````@customdoc
@@ -120,14 +108,4 @@ newmodule(name)
 ```
 
 A new module with the given name.
-`````
-
-`````@customdoc
-juliacall.As - Class
-
-```python
-As(x, T)
-```
-
-When passed as an argument to a Julia function, is interpreted as `x` converted to Julia type `T`.
 `````

@@ -1,6 +1,6 @@
 # Release Notes
 
-## v0.7.0 (2022-03-17)
+## v0.7.1 (2022-03-17)
 * **Breaking:** Removes `pymethod` and `pyclass`. In the future, `pyclass` may become sugar
   for `types.new_class` (namely you can specify a metaclass).
 * Adds `pyfunc`, `pyclassmethod`, `pystaticmethod` and `pyproperty`.
@@ -8,6 +8,8 @@
   separator of the first argument from `/` to `:`.
 * A pandas `<NA>` value is now converted to `missing`.
 * A `NaN` in a `PyPandasDataFrame` is converted to `missing`.
+* **Breaking:** Removes `using` and `As` from JuliaCall.
+* Adds `convert` to JuliaCall (replacing `As`).
 * Bug fixes.
 
 ## v0.6.1 (2022-02-21)

@@ -403,7 +403,6 @@ function init_pyconvert()
     push!(PYCONVERT_EXTRATYPES, pyimport("collections.abc" => ("Iterable", "Sequence", "Set", "Mapping"))...)
 
     priority = PYCONVERT_PRIORITY_WRAP
-    pyconvert_add_rule("juliacall:As", Any, pyconvert_rule_jlas, priority)
     pyconvert_add_rule("juliacall:ValueBase", Any, pyconvert_rule_jlvalue, priority)
 
     priority = PYCONVERT_PRIORITY_ARRAY

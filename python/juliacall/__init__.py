@@ -7,50 +7,14 @@ def newmodule(name):
     "A new module with the given name."
     return Base.Module(Base.Symbol(name))
 
-def using(globals, module, attrs=None, prefix='jl', rename=None):
-    """Import a module into globals.
+_convert = None
 
-    Args:
-        globals: A dict to import into (usually 'locals()').
-        module: The name of the module to import.
-        attrs: If given, import these attributes from the module instead of
-            the module itself. A list of strings or a space-separated string.
-        prefix: A prefix added to the name of each imported item.
-        rename: If given, a function mapping names to the name assigned in globals.
-    """
-    # rename
-    if rename is None:
-        rename = lambda name: prefix + name
-    # import the module
-    path = module.split('.')
-    mname = path[0]
-    if mname == 'Base':
-        module = Base
-    elif mname == 'Core':
-        module = Core
-    elif mname == 'Main':
-        module = Main
-    else:
-        module = Base.require(Base.Main, Base.Symbol(mname))
-    for attr in path[1:]:
-        module = Base.getproperty(module, Base.Symbol(attr))
-    # export
-    if attrs is None:
-        globals[rename(path[-1])] = module
-    else:
-        if isinstance(attrs, str):
-            attrs = attrs.split()
-        for attr in attrs:
-            globals[rename(attr)] = getattr(module, attr)
-
-class As:
-    "Interpret 'value' as type 'type' when converting to Julia."
-    __slots__ = ("value", "type")
-    def __init__(self, value, type):
-        self.value = value
-        self.type = type
-    def __repr__(self):
-        return "juliacall.As({!r}, {!r})".format(self.value, self.type)
+def convert(T, x):
+    "Convert x to a Julia T."
+    global _convert
+    if _convert is None:
+        _convert = PythonCall.seval("pyjlcallback((T,x)->pyjl(pyconvert(pyjlvalue(T)::Type,x)))")
+    return _convert(T, x)
 
 class JuliaError(Exception):
     "An error arising in Julia code."

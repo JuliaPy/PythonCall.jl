@@ -12,7 +12,6 @@ From Python, the arguments to a Julia function will be converted according to th
 | :----------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------- |
 | **Top priority (wrapped values).**                                                                           |                                                             |
 | `juliacall.AnyValue`                                                                                         | `Any`                                                       |
-| `juliacall.As`                                                                                               | `Any`                                                       |
 | **Very high priority (arrays).**                                                                             |                                                             |
 | Objects satisfying the buffer or array interface (inc. `bytes`, `bytearray`, `array.array`, `numpy.ndarray`) | `PyArray`                                                   |
 | **High priority (canonical conversions).**                                                                   |                                                             |

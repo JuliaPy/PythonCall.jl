@@ -36,29 +36,7 @@ function init_juliacall_2()
     jl.Core = Core
     jl.Base = Base
     jl.Pkg = Pkg
+    jl.PythonCall = PythonCall
     pycopy!(pyJuliaError, jl.JuliaError)
     C.POINTERS.PyExc_JuliaError = incref(getptr(pyJuliaError))
-end
-
-function pyconvert_rule_jlas(::Type{T}, x::Py) where {T}
-    # get the type
-    t = x.type
-    if !pyisjl(t)
-        pydel!(t)
-        return pyconvert_unconverted()
-    end
-    S = _pyjl_getvalue(t)
-    pydel!(t)
-    S isa Type || return pyconvert_unconverted()
-    # convert x.value to S, then to T
-    v = x.value
-    r = pytryconvert(S, v)
-    pydel!(v)
-    if pyconvert_isunconverted(r)
-        return pyconvert_unconverted()
-    elseif T == Any || S <: T
-        return r
-    else
-        return pyconvert_tryconvert(T, pyconvert_result(r))
-    end
 end

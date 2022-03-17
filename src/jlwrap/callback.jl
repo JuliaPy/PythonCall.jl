@@ -12,7 +12,15 @@ function pyjlcallback_call(self, args_::Py, kwargs_::Py)
         Py(self(args...; kwargs...))
     elseif pylen(args_) > 0
         args = pyconvert(Vector{Py}, args_)
-        Py(self(args...))
+        if length(args) == 1
+            Py(self(args[1]))
+        elseif length(args) == 2
+            Py(self(args[1], args[2]))
+        elseif length(args) == 3
+            Py(self(args[1], args[2], args[3]))
+        else
+            Py(self(args...))
+        end
     else
         Py(self())
     end

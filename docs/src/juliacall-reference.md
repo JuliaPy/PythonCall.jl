@@ -49,8 +49,8 @@ Python to some [`AnyValue`](#juliacall.AnyValue) object, which wraps the origina
 giving it a Pythonic interface.
 
 Subclasses of [`AnyValue`](#juliacall.AnyValue) provide additional Python semantics. For
-example a Julia vector is converted to a [`VectorValue`] which satisfies the Python sequence
-interface and behaves very similar to a list.
+example a Julia vector is converted to a [`VectorValue`](#juliacall.VectorValue) which
+satisfies the Python sequence interface and behaves very similar to a list.
 
 There is also a [`RawValue`](#juliacall.RawValue) object, which gives a stricter
 "Julia-only" interface, documented below. These types all inherit from `ValueBase`:
@@ -64,7 +64,7 @@ There is also a [`RawValue`](#juliacall.RawValue) object, which gives a stricter
         - `RationalValue`
         - `IntegerValue`
     - [`ArrayValue`](#juliacall.ArrayValue)
-      - `VectorValue`
+      - [`VectorValue`](#juliacall.VectorValue)
     - [`DictValue`](#juliacall.DictValue)
     - [`SetValue`](#juliacall.SetValue)
     - [`IOValue`](#juliacall.IOValue)
@@ -117,9 +117,6 @@ This wraps any Julia `AbstractArray` value. It is a subclass of
 It supports zero-up indexing, and can be indexed with integers or slices. Slicing returns a
 view of the original array.
 
-There is also the subtype `VectorValue` which wraps any `AbstractVector`. It is a subclass
-of `collections.abc.Sequence` and behaves similar to a Python `list`.
-
 If the array is strided and its eltype is supported (i.e. `Bool`, `IntXX`, `UIntXX`,
 `FloatXX`, `Complex{FloatXX}`, `Ptr{Cvoid}` or `Tuple` or `NamedTuple` of these) then it
 supports the buffer protocol and the numpy array interface. This means that
@@ -135,6 +132,26 @@ copy of the original array.
 - `shape`: Tuple of lengths in each dimension.
 - `copy()`: A copy of the array.
 - `reshape(shape)`: A reshaped view of the array.
+`````
+
+`````@customdoc
+juliacall.VectorValue - Class
+
+This wraps any Julia `AbstractVector` value. It is a subclass of `juliacall.ArrayValue` and
+`collections.abc.MutableSequence` and behaves similar to a Python `list`.
+
+###### Members
+- `resize(size)`: Change the length of the vector.
+- `sort(reverse=False, key=None)`: Sort the vector in-place.
+- `reverse()`: Reverse the vector.
+- `clear()`: Empty the vector.
+- `insert(index, value)`: Insert the value at the given index.
+- `append(value)`: Append the value to the end of the vector.
+- `extend(values)`: Append the values to the end of the vector.
+- `pop(index=-1)`: Remove and return the item at the given index.
+- `remove(value)`: Remove the first item equal to the value.
+- `index(value)`: The index of the first item equal to the value.
+- `count(value)`: The number of items equal to the value.
 `````
 
 `````@customdoc

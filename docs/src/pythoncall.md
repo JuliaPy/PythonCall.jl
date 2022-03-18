@@ -17,7 +17,8 @@ julia> using PythonCall
 ```
 
 By default this will initialize a conda environment in your Julia environment, install
-Python into it, load the corresponding Python library and initialize an interpreter.
+Python into it, load the corresponding Python library and initialize an interpreter. See
+[here](@ref pythoncall-config) to configure which Python to use.
 
 Now you can interact with Python as follows:
 
@@ -227,15 +228,64 @@ julia> x.read()
 Python str: 'Hello, world!\n'
 ```
 
+## [Configuration](@id pythoncall-config)
+
+By default, PythonCall uses [CondaPkg.jl](https://github.com/cjdoris/CondaPkg.jl) to manage
+its dependencies. This will install Conda and use it to create a Conda environment specific
+to your current Julia project containing Python and any required Python packages.
+
+#### If you already have Conda, Mamba or MicroMamba
+
+```julia
+ENV["JULIA_CONDAPKG_BACKEND"] = "System"
+ENV["JULIA_CONDAPKG_EXE"] = "/path/to/conda"  # optional
+```
+
+The System backend to CondaPkg will use your preinstalled Conda implementation instead of
+downloading one.
+
+If `conda`, `mamba` or `micromamba` is not in your `PATH` you will also need to set
+`JULIA_CONDAPKG_EXE` to its path.
+
+#### If you don't want to use Conda
+
+```julia
+ENV["JULIA_PYTHONCALL_EXE"] = "/path/to/python"
+ENV["JULIA_PYTHONCALL_EXE"] = "@PyCall" # optional
+ENV["JULIA_CONDAPKG_BACKEND"] = "Null"  # optional
+```
+
+You will need to install Python and any Python packages required yourself, and ensure that
+they are at compatible versions.
+
+If you also use PyCall, you can set `JULIA_PYTHONCALL_EXE=@PyCall` to use the same Python
+interpreter.
+
+You may also set `JULIA_CONDAPKG_BACKEND=Null` to completely disable CondaPkg. This should
+not be necessary because PythonCall will not use CondaPkg if the above settings are used.
+
 ## [Installing Python packages](@id python-deps)
 
-PythonCall uses [CondaPkg.jl](https://github.com/cjdoris/CondaPkg.jl) to manage its
-dependencies. Namely, CondaPkg will automatically install Python and any packages required
-into a Conda environment specific to your current project.
+Assuming you haven't [opted out](@ref pythoncall-config), PythonCall uses
+[CondaPkg.jl](https://github.com/cjdoris/CondaPkg.jl) to automatically install any required
+Python packages.
 
-If your project requires any Python packages, add a `CondaPkg.toml` file to your project
-specifying what you need. Alternatively use `CondaPkg.add()` to add dependencies from the
-REPL.
+This is as simple as
+```julia-repl
+julia> using CondaPkg
+
+julia> # press ] to enter the Pkg REPL
+
+pkg> conda add some_package
+```
+
+This creates a `CondaPkg.toml` file in the active project specifying the dependencies, just
+like a `Project.toml` specifies Julia dependencies. Commit this file along with the rest of
+the project so that dependencies are automatically installed for everyone using it.
+
+To add dependencies to a Julia package, just ensure the package project is activated first.
+
+See the [CondaPkg.jl](https://github.com/cjdoris/CondaPkg.jl) documentation.
 
 ## Writing packages which depend on PythonCall
 
@@ -268,5 +318,5 @@ end
 
 ### Dependencies
 
-If your package depends on some Python packages, you must write a `CondaPkg.toml` file.
+If your package depends on some Python packages, you must generate a `CondaPkg.toml` file.
 See [Installing Python packages](@ref python-deps).

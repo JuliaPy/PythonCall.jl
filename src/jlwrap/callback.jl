@@ -29,8 +29,8 @@ pyjl_handle_error_type(::typeof(pyjlcallback_call), self, exc::MethodError) = ex
 
 function init_jlwrap_callback()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class CallbackValue(ValueBase):
         __slots__ = ()
         __module__ = "juliacall"
@@ -46,7 +46,7 @@ function init_jlwrap_callback()
                 return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_str)))
         def __call__(self, *args, **kwargs):
             return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_call)), args, kwargs)
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlcallbacktype, jl.CallbackValue)
     pycopy!(pywrapcallback, pybuiltins.eval("lambda f: lambda *args, **kwargs: f(*args, **kwargs)", pydict()))
 end

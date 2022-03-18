@@ -289,8 +289,8 @@ pyjl_handle_error_type(::typeof(pyjlarray_array_interface), x, exc) = pybuiltins
 
 function init_jlwrap_array()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class ArrayValue(AnyValue):
         __slots__ = ()
         __module__ = "juliacall"
@@ -330,7 +330,7 @@ function init_jlwrap_array()
             except ImportError:
                 pass
             return arr
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlarraytype, jl.ArrayValue)
 end
 

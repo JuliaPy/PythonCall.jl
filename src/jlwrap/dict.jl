@@ -33,8 +33,8 @@ const pyjldicttype = pynew()
 
 function init_jlwrap_dict()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class DictValue(AnyValue):
         __slots__ = ()
         __module__ = "juliacall"
@@ -100,7 +100,7 @@ function init_jlwrap_dict()
     import collections.abc
     collections.abc.MutableMapping.register(DictValue)
     del collections
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjldicttype, jl.DictValue)
 end
 

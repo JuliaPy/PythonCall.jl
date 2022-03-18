@@ -27,8 +27,8 @@ end
 
 function init_jlwrap_iter()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class IteratorValue(AnyValue):
         __slots__ = ()
         __module__ = "juliacall"
@@ -36,7 +36,7 @@ function init_jlwrap_iter()
             return self
         def __next__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjliter_next)))
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlitertype, jl.IteratorValue)
 end
 

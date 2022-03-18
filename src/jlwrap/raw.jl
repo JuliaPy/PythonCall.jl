@@ -75,8 +75,8 @@ pyjlraw_bool(self) = (errset(pybuiltins.TypeError, "Only Julia 'Bool' can be tes
 
 function init_jlwrap_raw()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class RawValue(ValueBase):
         __slots__ = ()
         __module__ = "juliacall"
@@ -119,7 +119,7 @@ function init_jlwrap_raw()
             return self._jl_callmethod($(pyjl_methodnum(pyjlraw_bool)))
         def _jl_any(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjl)))
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlrawtype, jl.RawValue)
 end
 

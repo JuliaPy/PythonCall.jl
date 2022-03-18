@@ -75,8 +75,8 @@ end
 
 function init_jlwrap_set()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class SetValue(AnyValue):
         __slots__ = ()
         __module__ = "juliacall"
@@ -117,7 +117,7 @@ function init_jlwrap_set()
     import collections.abc
     collections.abc.MutableSet.register(SetValue)
     del collections
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlsettype, jl.SetValue)
 end
 

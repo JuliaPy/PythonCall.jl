@@ -164,8 +164,8 @@ end
 
 function init_jlwrap_any()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class AnyValue(ValueBase):
         __slots__ = ()
         __module__ = "juliacall"
@@ -297,7 +297,7 @@ function init_jlwrap_any()
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_help)), mime)
         def _repr_mimebundle_(self, include=None, exclude=None):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlanytype, jl.AnyValue)
 end
 

@@ -12,8 +12,8 @@ end
 
 function init_jlwrap_type()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class TypeValue(AnyValue):
         __slots__ = ()
         __module__ = "juliacall"
@@ -23,7 +23,7 @@ function init_jlwrap_type()
             raise TypeError("not supported")
         def __delitem__(self, k):
             raise TypeError("not supported")
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjltypetype, jl.TypeValue)
 end
 

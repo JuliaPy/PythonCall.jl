@@ -114,8 +114,8 @@ end
 
 function init_jlwrap_vector()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class VectorValue(ArrayValue):
         __slots__ = ()
         __module__ = "juliacall"
@@ -146,7 +146,7 @@ function init_jlwrap_vector()
     import collections.abc
     collections.abc.MutableSequence.register(VectorValue)
     del collections
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlvectortype, jl.VectorValue)
 end
 

@@ -203,8 +203,8 @@ pyjl_handle_error_type(::typeof(pyjltextio_write), io, exc) = exc isa MethodErro
 
 function init_jlwrap_io()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class IOValueBase(AnyValue):
         __slots__ = ()
         __module__ = "juliacall"
@@ -296,7 +296,7 @@ function init_jlwrap_io()
     io.BufferedIOBase.register(BinaryIOValue)
     io.TextIOBase.register(TextIOValue)
     del io
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjliobasetype, jl.IOValueBase)
     pycopy!(pyjlbinaryiotype, jl.BinaryIOValue)
     pycopy!(pyjltextiotype, jl.TextIOValue)

@@ -78,8 +78,8 @@ pyjl_handle_error_type(::typeof(pyjlreal_round), self, exc::MethodError) = exc.f
 
 function init_jlwrap_number()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class NumberValue(AnyValue):
         __slots__ = ()
         __module__ = "juliacall"
@@ -216,7 +216,7 @@ function init_jlwrap_number()
     numbers.Rational.register(RationalValue)
     numbers.Integral.register(IntegerValue)
     del numbers
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlnumbertype, jl.NumberValue)
     pycopy!(pyjlcomplextype, jl.ComplexValue)
     pycopy!(pyjlrealtype, jl.RealValue)

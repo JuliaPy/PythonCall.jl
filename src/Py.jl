@@ -28,9 +28,18 @@ getptr(x) = getptr(getpy(x)::Py)
 """
     Py(x)
 
-Convert `x` to a Python object.
+Convert `x` to a Python object, of type `Py`.
 
-Do not overload this function. To define a new conversion, overload [`getpy`](@ref).
+Conversion happens according to [`these rules`](@ref jl2py-conversion).
+
+Such an object supports attribute access (`obj.attr`), indexing (`obj[idx]`), calling
+(`obj(arg1, arg2)`), iteration (`for x in obj`), arithmetic (`obj + obj2`) and comparison
+(`obj > obj2`), among other things. These operations convert all their arguments to `Py` and
+return `Py`.
+
+!!! warning
+
+    Do not overload this function. To define a new conversion, overload [`getpy`](@ref).
 """
 mutable struct Py
     ptr :: C.PyPtr
@@ -148,20 +157,22 @@ Py(x) = Py(getpy(x)::Union{Py,NewPy})
 
 Convert `x` to a `Py`.
 
-Overload this function (not `Py`) to define a new conversion to Python.
+Overload this function (not [`Py`](@ref)) to define a new conversion to Python.
 
-If `x` is a simple wrapper around a Python object (such as `PyList` or `PyDict`) then
-`getpy(x)` should return the Python object. You should also define `ispy(x) = true`. This
-means that when `x` is passed back to Python, the underlying object is used directly.
+If `x` is a simple wrapper around a Python object (such as [`PyList`](@ref) or
+[`PyDict`](@ref)) then `getpy(x)` should return the Python object. You should also define
+`ispy(x) = true`. This means that when `x` is passed back to Python, the underlying object
+is used directly.
 
 ### Optional optimization (for experts)
 
-If `ispy(x)` is false and the returned Julia object `ans` is not referenced anywhere else,
-in the sense that `pydel!(ans)` would be safe, you may instead return `NewPy(ans)`.
+If [`ispy(x)`](@ref) is false and the returned Julia object `ans` is not referenced anywhere
+else, in the sense that [`pydel!(ans)`](@ref) would be safe, you may instead return
+`NewPy(ans)`.
 
 This can avoid the Julia garbage collector in performance-critical code.
 
-If `ispy(x)` is true, you **must** return a `Py`.
+If [`ispy(x)`](@ref) is true, you **must** return a [`Py`](@ref).
 """
 getpy(x) = ispy(x) ? throw(MethodError(getpy, (x,))) : NewPy(pyjl(x))
 getpy(x::Nothing) = pybuiltins.None

@@ -85,27 +85,3 @@ Here is an example:
 Alternatively you can use `add`, `rm`, etc. from JuliaPkg to edit this file.
 
 See [JuliaPkg](https://github.com/cjdoris/PyJuliaPkg) for more details.
-
-## Utilities
-
-`````@customdoc
-juliacall.convert - Function
-
-```python
-convert(T, x)
-```
-
-Convert `x` to a Julia object of type `T`.
-
-You can use this to pass an argument to a Julia function of a specific type.
-`````
-
-`````@customdoc
-juliacall.newmodule - Function
-
-```python
-newmodule(name)
-```
-
-A new module with the given name.
-`````

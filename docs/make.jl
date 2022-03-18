@@ -40,6 +40,8 @@ makedocs(
         "conversion-to-python.md",
         "conversion-to-julia.md",
         "compat.md",
+        "pythoncall-reference.md",
+        "juliacall-reference.md",
         "pycall.md",
         "releasenotes.md",
     ]

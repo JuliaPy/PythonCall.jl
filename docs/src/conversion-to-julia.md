@@ -55,9 +55,9 @@ From Python, the arguments to a Julia function will be converted according to th
 | Objects satisfying the buffer interface                                                                      | `PyBuffer`                                                  |
 | Anything                                                                                                     | `PyRef`                                                     |
 
-See below for an explanation of the `Py*` types (`PyList`, `PyIO`, etc).
+See [here](@ref python-wrappers) for an explanation of the `Py*` wrapper types (`PyList`, `PyIO`, etc).
 
-### [Custom rules](@id py2jl-conversion-custom)
+## [Custom rules](@id py2jl-conversion-custom)
 
 To add a custom conversion rule, you must define a function to do the conversion and call
 `pyconvert_add_rule` to register it.
@@ -67,42 +67,4 @@ function of your module.
 
 ```@docs
 PythonCall.pyconvert_add_rule
-```
-
-## [Wrapper types](@id python-wrappers)
-
-The following types wrap a Python object, giving it the semantics of a Julia object. For example `PyList(x)` interprets the Python sequence `x` as a Julia abstract vector.
-
-Apart from a few fundamental immutable types, conversion from Python to Julia `Any` will return a wrapper type such as one of these, or simply `Py` if no wrapper type is suitable.
-
-```@docs
-PyList
-PySet
-PyDict
-PyIterable
-PyArray
-PyIO
-PyTable
-PyPandasDataFrame
-PyObjectArray
-PyException
-```
-
-### [Custom wrappers](@id python-wrappers-custom)
-
-Here is a minimal example of defining a wrapper type. You may add methods, fields and a
-supertype to the type to specialise its behaviour. See any of the above wrapper types for
-examples.
-
-```julia
-# The new type with a field for the Python object being wrapped.
-struct MyType
-    py::Py
-end
-
-# Says that the object is a wrapper.
-ispy(x::MyType) = true
-
-# Says how to access the underlying Python object.
-getpy(x::MyType) = x.py
 ```

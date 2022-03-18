@@ -270,17 +270,3 @@ end
 
 If your package depends on some Python packages, you must write a `CondaPkg.toml` file.
 See [Installing Python packages](@ref python-deps).
-
-## Low-level API
-
-The functions here are not exported. They are mostly unsafe in the sense that you can
-crash Julia by using them incorrectly.
-
-```@docs
-PythonCall.pynew
-PythonCall.pyisnull
-PythonCall.pycopy!
-PythonCall.getptr
-PythonCall.pydel!
-PythonCall.unsafe_pynext
-```

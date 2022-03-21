@@ -36,7 +36,6 @@ function Base.keys(df::PyPandasDataFrame)
             @jl push!(ans, pyconvert(String, c))
             @del c
         else
-            @del c
             @jl error("name of column '$c' is not a string")
         end
     end

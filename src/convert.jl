@@ -155,9 +155,7 @@ function pyconvert_typename(t::Py)
     return "$m:$n"
 end
 
-function pyconvert_get_rules(type::Type, pytype::Py)
-    @nospecialize type
-
+function _pyconvert_get_rules(pytype::Py)
     pyisin(x, ys) = any(pyis(x, y) for y in ys)
 
     # get the MROs of all base types we are considering
@@ -253,7 +251,25 @@ function pyconvert_get_rules(type::Type, pytype::Py)
     order = sort(axes(rules, 1), by = i -> (rules[i].priority, -i), rev = true)
     rules = rules[order]
 
-    # TODO: everything up to here does not depend on the julia type and could be cached
+    @debug "pyconvert" pytype mro=join(mro, " ")
+    return rules
+end
+
+const PYCONVERT_PREFERRED_TYPE = Dict{Py,Type}()
+
+pyconvert_preferred_type(pytype::Py) = get!(PYCONVERT_PREFERRED_TYPE, pytype) do
+    if pyissubclass(pytype, pybuiltins.int)
+        Union{Int,BigInt}
+    else
+        _pyconvert_get_rules(pytype)[1].type
+    end
+end
+
+function pyconvert_get_rules(type::Type, pytype::Py)
+    @nospecialize type
+
+    # this could be cached
+    rules = _pyconvert_get_rules(pytype)
 
     # intersect rules with type
     rules = PyConvertRule[PyConvertRule(typeintersect(rule.type, type), rule.func, rule.priority) for rule in rules]
@@ -267,7 +283,7 @@ function pyconvert_get_rules(type::Type, pytype::Py)
     # filter out repeated rules
     rules = [rule for (i, rule) in enumerate(rules) if !any((rule.func === rules[j].func) && ((rule.type) <: (rules[j].type)) for j in 1:(i-1))]
 
-    @debug "pyconvert" type pytype mro=join(mro, " ") rules
+    @debug "pyconvert" type rules
     return Function[pyconvert_fix(rule.type, rule.func) for rule in rules]
 end
 

@@ -124,7 +124,7 @@ function pyarray_make(::Type{A}, x::Py, info::PyArraySource, ::Type{PyArray{T0,N
     if R0 == R1
         R = R1
         R == R′ || error("incorrect R, got $R, should be $R′")
-    elseif T0 == T1 && T1 in (Bool, Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128, Float16, Float32, Float64, Complex{Float16}, Complex{Float32}, Complex{Float64})
+    elseif T0 == T1 && T1 in (Bool, Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128, Float16, Float32, Float64, ComplexF16, ComplexF32, ComplexF64)
         R = T1
         R == R′ || error("incorrect R, got $R, should be $R′")
         R <: R1 || error("R out of bounds, got $R, should be <: $R1")
@@ -431,19 +431,20 @@ pyarray_offset(x::PyArray{T,N}, i::Vararg{Int,N}) where {T,N} = sum((i .- 1) .* 
 pyarray_offset(x::PyArray{T,0}) where {T} = 0
 
 pyarray_load(::Type{R}, p::Ptr{R}) where {R} = unsafe_load(p)
-pyarray_load(::Type{Py}, p::Ptr{UnsafePyObject}) = begin
-    o = unsafe_load(p)
-    o.ptr == C_NULL ? Py(nothing) : pynew(incref(o.ptr))
+pyarray_load(::Type{T}, p::Ptr{UnsafePyObject}) where {T} = begin
+    u = unsafe_load(p)
+    o = u.ptr == C_NULL ? Py(nothing) : pynew(incref(u.ptr))
+    T == Py ? o : pyconvert_and_del(T, o)
 end
 
 pyarray_store!(p::Ptr{R}, x::R) where {R} = unsafe_store!(p, x)
-pyarray_store!(p::Ptr{UnsafePyObject}, x::Py) = begin
+pyarray_store!(p::Ptr{UnsafePyObject}, x) = @autopy x begin
     decref(unsafe_load(p).ptr)
-    unsafe_store!(p, UnsafePyObject(GC.@preserve x incref(getptr(x))))
+    unsafe_store!(p, UnsafePyObject(incref(getptr(x_))))
 end
 
 pyarray_get_T(::Type{R}, ::Type{T0}, ::Type{T1}) where {R,T0,T1} = T0 <: R <: T1 ? R : error("not possible")
-pyarray_get_T(::Type{UnsafePyObject}, ::Type{T0}, ::Type{T1}) where {T0,T1} = T0 <: Py <: T1 ? Py : T0 <: UnsafePyObject <: T1 ? UnsafePyObject : error("not possible")
+pyarray_get_T(::Type{UnsafePyObject}, ::Type{T0}, ::Type{T1}) where {T0,T1} = T0 <: Py <: T1 ? Py : T1
 
 pyarray_check_T(::Type{T}, ::Type{R}) where {T,R} = T == R ? nothing : error("invalid eltype T=$T for raw eltype R=$R")
-pyarray_check_T(::Type{Py}, ::Type{UnsafePyObject}) = nothing
+pyarray_check_T(::Type{T}, ::Type{UnsafePyObject}) where {T} = nothing

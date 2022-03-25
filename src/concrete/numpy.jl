@@ -39,7 +39,7 @@ function init_numpy()
         rule = pyconvert_rule_numpysimplevalue{T, false}()
         saferule = pyconvert_rule_numpysimplevalue{T, true}()
 
-        pyconvert_add_rule(name, T, saferule, PYCONVERT_PRIORITY_CANONICAL)
+        pyconvert_add_rule(name, T, saferule, PYCONVERT_PRIORITY_ARRAY)
         isuint && pyconvert_add_rule(name, UInt, sizeof(T) ≤ sizeof(UInt) ? saferule : rule)
         isuint && pyconvert_add_rule(name, Int, sizeof(T) < sizeof(Int) ? saferule : rule)
         isint && !isuint && pyconvert_add_rule(name, Int, sizeof(T) ≤ sizeof(Int) ? saferule : rule)

@@ -55,11 +55,11 @@ function _columns(df, columnnames, columntypes)
     pycolumns = Py[]
     if df.indexname !== nothing
         push!(colnames, df.indexname)
-        push!(pycolumns, df.py.index)
+        push!(pycolumns, df.py.index.values)
     end
     for pycolname in df.py.columns
         colname = columnnames(pycolname)::Symbol
-        pycolumn = df.py[pycolname]
+        pycolumn = df.py[pycolname].values
         push!(colnames, colname)
         push!(pycolumns, pycolumn)
     end
@@ -78,20 +78,28 @@ function _columns(df, columnnames, columntypes)
     for (colname, pycolumn) in zip(colnames, pycolumns)
         coltype = columntypes(colname)::Union{Nothing,Type}
         if coltype !== nothing
-            column = pyconvert_and_del(AbstractVector{coltype}, pycolumn)
+            column = pyconvert(AbstractVector{coltype}, pycolumn)
         else
-            column = pyconvert_and_del(AbstractVector, pycolumn)
-            # narrow the type
-            column = identity.(column)
-            # convert any Py to something more useful
-            if Py <: eltype(column)
-                column = [x isa Py ? pyconvert(Any, x) : x for x in column]
-            end
-            # convert NaN to missing
-            if eltype(column) != Float64 && Float64 <: eltype(column)
-                column = [x isa Float64 && isnan(x) ? missing : x for x in column]
+            column = pyconvert(AbstractVector, pycolumn)
+            @show colname typeof(column)
+            if eltype(column) == Py
+                # guess a column type based on the types of the elements
+                ts = pybuiltins.set(pybuiltins.map(pybuiltins.type, pycolumn))
+                Ts = Type[pyconvert_preferred_type(t) for t in ts]
+                T = isempty(Ts) ? Any : reduce(promote_type, Ts)
+                column = pyconvert(AbstractVector{T}, pycolumn)
+                @show ts Ts T typeof(column)
+                # if all items are either NaN or not Float64, convert NaN to missing
+                if T != Float64 && Float64 in Ts && !any(x isa Float64 && !isnan(x) for x in column)
+                    Ts = Type[T for T in Ts if T != Float64]
+                    push!(Ts, Missing)
+                    T = reduce(promote_type, Ts)
+                    column = pyconvert(AbstractVector{T}, pycolumn)
+                    @show Ts T typeof(column)
+                end
             end
         end
+        pydel!(pycolumn)
         push!(columns, column)
         push!(coltypes, eltype(column))
     end

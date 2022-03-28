@@ -6,7 +6,7 @@
     t3 = pyconvert(Tuple{Int,Int}, (6, 7))
     @test t3 === (6, 7)
     # generic case (>16 fields)
-    t4 = pyconvert(Tuple{ntuple(i->Int,20)...,Varag{Int}}, ntuple(i->i, 30))
+    t4 = pyconvert(Tuple{ntuple(i->Int,20)...,Vararg{Int}}, ntuple(i->i, 30))
     @test t4 === ntuple(i->i, 30)
 end
 

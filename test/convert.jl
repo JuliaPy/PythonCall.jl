@@ -4,6 +4,11 @@
     @test_throws Exception pyconvert(Bool, "hello")
 end
 
+@testset "bool -> Integer" begin
+    @test pyconvert(Int, true) === 1
+    @test pyconvert(Int, false) === 0
+end
+
 @testset "bytes -> Vector" begin
     x1 = pyconvert(Vector{UInt8}, pybytes(pylist([1, 2, 3])))
     @test x1 isa Vector{UInt8}
@@ -156,4 +161,19 @@ end
     x2 = pyconvert(Dict{Char,Float32}, pydict(["c"=>3, "d"=>4]))
     @test x2 isa Dict{Char,Float32}
     @test x2 == Dict('c'=>3.0, 'd'=>4.0)
+end
+
+@testset "date -> Date" begin
+    x1 = pyconvert(Date, pydate(2001, 2, 3))
+    @test x1 === Date(2001, 2, 3)
+end
+
+@testset "time -> Time" begin
+    x1 = pyconvert(Time, pytime(12, 3, 4, 5))
+    @test x1 === Time(12, 3, 4, 0, 5)
+end
+
+@testset "datetime -> DateTime" begin
+    x1 = pyconvert(DateTime, pydatetime(2001, 2, 3, 4, 5, 6, 7000))
+    @test x1 === DateTime(2001, 2, 3, 4, 5, 6, 7)
 end

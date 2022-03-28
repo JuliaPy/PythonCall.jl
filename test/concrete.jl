@@ -259,7 +259,28 @@ end
 end
 
 @testset "datetime" begin
-    # TODO
+    dt = pyimport("datetime")
+    x1 = pydate(2001, 2, 3)
+    @test pyisinstance(x1, dt.date)
+    @test pyeq(Bool, x1, dt.date(2001, 2, 3))
+    x2 = pydate(Date(2002, 3, 4))
+    @test pyisinstance(x2, dt.date)
+    @test pyeq(Bool, x2, dt.date(2002, 3, 4))
+    x3 = pytime(12, 3, 4, 5)
+    @test pyisinstance(x3, dt.time)
+    @test pyeq(Bool, x3, dt.time(12, 3, 4, 5))
+    x4 = pytime(Time(23, 4, 5, 0, 6))
+    @test pyisinstance(x4, dt.time)
+    @test pyeq(Bool, x4, dt.time(23, 4, 5, 6))
+    x5 = pydatetime(2001, 2, 3, 4, 5, 6, 7)
+    @test pyisinstance(x5, dt.datetime)
+    @test pyeq(Bool, x5, dt.datetime(2001, 2, 3, 4, 5, 6, 7))
+    x6 = pydatetime(Date(2007, 8, 9))
+    @test pyisinstance(x6, dt.datetime)
+    @test pyeq(Bool, x6, dt.datetime(2007, 8, 9))
+    x7 = pydatetime(DateTime(2001, 2, 3, 4, 5, 6, 7))
+    @test pyisinstance(x7, dt.datetime)
+    @test pyeq(Bool, x7, dt.datetime(2001, 2, 3, 4, 5, 6, 7000))
 end
 
 @testset "code" begin

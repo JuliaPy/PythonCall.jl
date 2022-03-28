@@ -212,6 +212,7 @@ end
 @testset "iter" begin
     @test_throws PyException pyiter(pybuiltins.None)
     @test_throws PyException pyiter(pybuiltins.True)
+    # unsafe_pynext
     it = pyiter(pyrange(2))
     x = PythonCall.unsafe_pynext(it)
     @test !PythonCall.pyisnull(x)
@@ -221,6 +222,13 @@ end
     @test pyeq(Bool, x, 1)
     x = PythonCall.unsafe_pynext(it)
     @test PythonCall.pyisnull(x)
+    # pynext
+    it = pyiter(pyrange(2))
+    x = pynext(it)
+    @test pyeq(Bool, x, 0)
+    x = pynext(it)
+    @test pyeq(Bool, x, 1)
+    @test_throws PyException pynext(it)
 end
 
 @testset "number" begin
@@ -354,4 +362,36 @@ end
         end
     end
     # TODO: in-place operators
+end
+
+@testset "builtins" begin
+    @testset "pyprint" begin
+        buf = pyimport("io").StringIO()
+        ans = pyprint("hello", 12, file=buf)
+        @test ans === nothing
+        buf.seek(0)
+        @test pyeq(Bool, buf.read().strip(), "hello 12")
+    end
+    @testset "pyall" begin
+        for val in [[true, true], [true, false], [false, false]]
+            @test pyall(pylist(val)) === all(val)
+        end
+    end
+    @testset "pyany" begin
+        for val in [[true, true], [true, false], [false, false]]
+            @test pyany(pylist(val)) === any(val)
+        end
+    end
+    @testset "pycallable" begin
+        @test pycallable(pybuiltins.str) === true
+        @test pycallable(pybuiltins.any) === true
+        @test pycallable(pybuiltins.None) === false
+        @test pycallable(pybuiltins.True) === false
+        @test pycallable(pybuiltins.object) === true
+    end
+    @testset "pycompile" begin
+        ans = pycompile("3+4", "foo.py", "eval")
+        @test pyeq(Bool, ans.co_filename, "foo.py")
+        @test pyeq(Bool, pybuiltins.eval(ans, pydict()), 7)
+    end
 end

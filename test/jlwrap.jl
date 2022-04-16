@@ -7,6 +7,9 @@
 end
 
 @testset "dtypes" begin
+    if !pymoduleexists("numpy")
+        PythonCall.C.CondaPkg.add("numpy")
+    end
     np = pyimport("numpy");
     y = range(-5,5,length=11)
     arr = np.asarray(y)

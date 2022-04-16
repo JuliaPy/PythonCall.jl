@@ -1,4 +1,7 @@
 @testset "import" begin
+    @test pymoduleexists("sys")
+    @test pymoduleexists("os")
+    @test !pymoduleexists(randstring(32))
     sys = pyimport("sys")
     os = pyimport("os")
     @test pyeq(Bool, sys.__name__, "sys")

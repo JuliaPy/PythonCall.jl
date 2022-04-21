@@ -86,13 +86,13 @@ function _columns(df, columnnames, columntypes)
                 ts = pybuiltins.set(pybuiltins.map(pybuiltins.type, pycolumn))
                 Ts = Type[pyconvert_preferred_type(t) for t in ts]
                 T = isempty(Ts) ? Any : reduce(promote_type, Ts)
-                column = pyconvert(AbstractVector{<:T}, pycolumn)
+                column = pyconvert(AbstractVector{T}, pycolumn)
                 # if all items are either NaN or not Float64, convert NaN to missing
                 if T != Float64 && Float64 in Ts && !any(x isa Float64 && !isnan(x) for x in column)
                     Ts = Type[T for T in Ts if T != Float64]
                     push!(Ts, Missing)
                     T = reduce(promote_type, Ts)
-                    column = pyconvert(AbstractVector{<:T}, pycolumn)
+                    column = pyconvert(AbstractVector{T}, pycolumn)
                 end
             end
         end

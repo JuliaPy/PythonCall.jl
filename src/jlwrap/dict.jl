@@ -97,6 +97,8 @@ function init_jlwrap_dict()
                 self._jl_callmethod($(pyjl_methodnum(pyjldict_update)), items)
             if kwargs:
                 self.update(kwargs)
+        def copy(self):
+            return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
     import collections.abc
     collections.abc.MutableMapping.register(DictValue)
     del collections

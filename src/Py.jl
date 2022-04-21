@@ -366,7 +366,7 @@ end
 
 Base.in(v, x::Py) = pycontains(x, v)
 
-Base.hash(x::Py) = reinterpret(UInt, Int(pyhash(x)))
+Base.hash(x::Py, h::UInt) = reinterpret(UInt, Int(pyhash(x))) - 3h
 
 (f::Py)(args...; kwargs...) = pycall(f, args...; kwargs...)
 

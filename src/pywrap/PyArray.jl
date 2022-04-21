@@ -438,6 +438,7 @@ pyarray_load(::Type{T}, p::Ptr{UnsafePyObject}) where {T} = begin
 end
 
 pyarray_store!(p::Ptr{R}, x::R) where {R} = unsafe_store!(p, x)
+pyarray_store!(p::Ptr{UnsafePyObject}, x::UnsafePyObject) = unsafe_store!(p, x)
 pyarray_store!(p::Ptr{UnsafePyObject}, x) = @autopy x begin
     decref(unsafe_load(p).ptr)
     unsafe_store!(p, UnsafePyObject(incref(getptr(x_))))

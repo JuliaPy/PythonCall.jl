@@ -313,6 +313,9 @@ Base.showable(mime::MIME, o::Py) = pyshowable(mime, o)
 Base.getproperty(x::Py, k::Symbol) = pygetattr(x, string(k))
 Base.getproperty(x::Py, k::String) = pygetattr(x, k)
 
+Base.hasproperty(x::Py, k::Symbol) = pyhasattr(x, string(k))
+Base.hasproperty(x::Py, k::String) = pyhasattr(x, k)
+
 Base.setproperty!(x::Py, k::Symbol, v) = pysetattr(x, string(k), v)
 Base.setproperty!(x::Py, k::String, v) = pysetattr(x, k, v)
 
@@ -350,6 +353,25 @@ Base.setindex!(x::Py, v, i...) = (pysetitem(x, i, v); x)
 
 Base.delete!(x::Py, i) = (pydelitem(x, i); x)
 
+Base.haskey(x::Py, i) = pyhasitem(x, i)
+
+Base.get(x::Py, i, d) = pygetitem(x, i, d)
+
+function Base.get(f::Base.Callable, x::Py, i)
+    v = pygetitem(x, i, nothing)
+    v === nothing ? f() : v
+end
+
+Base.get!(x::Py, i, d) = get(x, i) do
+    pysetitem(x, i, d)
+    pygetitem(x, i)
+end
+
+Base.get!(f::Base.Callable, x::Py, i) = get(x, i) do
+    pysetitem(x, i, f())
+    pygetitem(x, i)
+end
+
 Base.eltype(::Type{Py}) = Py
 
 Base.IteratorSize(::Type{Py}) = Base.SizeUnknown()
@@ -366,7 +388,7 @@ end
 
 Base.in(v, x::Py) = pycontains(x, v)
 
-Base.hash(x::Py) = reinterpret(UInt, Int(pyhash(x)))
+Base.hash(x::Py, h::UInt) = reinterpret(UInt, Int(pyhash(x))) - 3h
 
 (f::Py)(args...; kwargs...) = pycall(f, args...; kwargs...)
 
@@ -464,7 +486,7 @@ Base.powermod(x::Number, y::Py, z::Number) = pypow(x, y, z)
 Base.powermod(x::Py, y::Number, z::Number) = pypow(x, y, z)
 
 # documentation
-function Base.Docs.getdoc(x::Py)
+function Base.Docs.getdoc(x::Py, @nospecialize(sig))
     parts = []
     inspect = pyimport("inspect")
     # head line
@@ -498,4 +520,5 @@ function Base.Docs.getdoc(x::Py)
     end
     return Markdown.MD(parts)
 end
+Base.Docs.doc(x::Py, sig::Type=Union{}) = Base.Docs.getdoc(x, sig)
 Base.Docs.Binding(x::Py, k::Symbol) = getproperty(x, k)

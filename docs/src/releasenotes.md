@@ -1,6 +1,10 @@
 # Release Notes
 
 ## Unreleased
+* **Breaking.** Improved Tables-interface support for `PyPandasDataFrame`: better inferred
+  column types; better handling of non-string column names; columns are usually wrappers
+  (`PyArray` or `PyList`). Constructor arguments have changed. Dict methods have been
+  removed (basically only the Tables interface is supported).
 * Adds `pyhasitem` and 3-arg `pygetitem`.
 * Extends `Base.get`, `Base.get!`, `Base.haskey` and 2-arg `Base.hash` for `Py`.
 * `PyArray` can now have any element type when the underlying array is of Python objects.

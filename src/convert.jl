@@ -480,10 +480,6 @@ function init_pyconvert()
     pyconvert_add_rule("<arrayinterface>", AbstractArray, pyconvert_rule_array, priority)
     pyconvert_add_rule("<array>", AbstractArray, pyconvert_rule_array, priority)
     pyconvert_add_rule("<buffer>", AbstractArray, pyconvert_rule_array, priority)
-    # more sequence types
-    pyconvert_add_rule("pandas.core.series:Series", PyList, pyconvert_rule_sequence)
-    pyconvert_add_rule("pandas.core.indexes.base:Index", PyList, pyconvert_rule_sequence)
-    pyconvert_add_rule("pandas.core.arrays.base:ExtensionArray", PyList, pyconvert_rule_sequence)
 
     priority = PYCONVERT_PRIORITY_FALLBACK
     pyconvert_add_rule("builtins:object", Py, pyconvert_rule_object, priority)

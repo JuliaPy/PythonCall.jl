@@ -81,21 +81,18 @@ function _columns(df, columnnames, columntypes)
             column = pyconvert(AbstractVector{coltype}, pycolumn)
         else
             column = pyconvert(AbstractVector, pycolumn)
-            @show colname typeof(column)
             if eltype(column) == Py
                 # guess a column type based on the types of the elements
                 ts = pybuiltins.set(pybuiltins.map(pybuiltins.type, pycolumn))
                 Ts = Type[pyconvert_preferred_type(t) for t in ts]
                 T = isempty(Ts) ? Any : reduce(promote_type, Ts)
                 column = pyconvert(AbstractVector{T}, pycolumn)
-                @show ts Ts T typeof(column)
                 # if all items are either NaN or not Float64, convert NaN to missing
                 if T != Float64 && Float64 in Ts && !any(x isa Float64 && !isnan(x) for x in column)
                     Ts = Type[T for T in Ts if T != Float64]
                     push!(Ts, Missing)
                     T = reduce(promote_type, Ts)
                     column = pyconvert(AbstractVector{T}, pycolumn)
-                    @show Ts T typeof(column)
                 end
             end
         end

@@ -464,7 +464,7 @@ Base.powermod(x::Number, y::Py, z::Number) = pypow(x, y, z)
 Base.powermod(x::Py, y::Number, z::Number) = pypow(x, y, z)
 
 # documentation
-function Base.Docs.getdoc(x::Py)
+function Base.Docs.getdoc(x::Py, @nospecialize(sig))
     parts = []
     inspect = pyimport("inspect")
     # head line
@@ -498,4 +498,5 @@ function Base.Docs.getdoc(x::Py)
     end
     return Markdown.MD(parts)
 end
+Base.Docs.doc(x::Py, sig::Type=Union{}) = Base.Docs.getdoc(x, sig)
 Base.Docs.Binding(x::Py, k::Symbol) = getproperty(x, k)

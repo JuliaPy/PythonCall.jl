@@ -134,7 +134,11 @@ end
 
 function pyjlany_help(self, mime_::Py)
     mime = pyconvertarg(Union{Nothing,String}, mime_, "mime")
-    x = Utils.ExtraNewline(Docs.doc(self))
+    doc = Docs.getdoc(self)
+    if doc === nothing
+        doc = Docs.doc(self)
+    end
+    x = Utils.ExtraNewline(doc)
     if mime === nothing
         display(x)
     else

@@ -353,6 +353,25 @@ Base.setindex!(x::Py, v, i...) = (pysetitem(x, i, v); x)
 
 Base.delete!(x::Py, i) = (pydelitem(x, i); x)
 
+Base.haskey(x::Py, i) = pyhasitem(x, i)
+
+Base.get(x::Py, i, d) = pygetitem(x, i, d)
+
+function Base.get(f::Base.Callable, x::Py, i)
+    v = pygetitem(x, i, nothing)
+    v === nothing ? f() : v
+end
+
+Base.get!(x::Py, i, d) = get(x, i) do
+    pysetitem(x, i, d)
+    pygetitem(x, i)
+end
+
+Base.get!(f::Base.Callable, x::Py, i) = get(x, i) do
+    pysetitem(x, i, f())
+    pygetitem(x, i)
+end
+
 Base.eltype(::Type{Py}) = Py
 
 Base.IteratorSize(::Type{Py}) = Base.SizeUnknown()

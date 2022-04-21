@@ -30,8 +30,24 @@ export pyascii
     pyhasattr(x, k)
 
 Equivalent to `hasattr(x, k)` in Python.
+
+Tests if `getattr(x, k)` raises an `AttributeError`.
 """
-pyhasattr(x, k) = errcheck(@autopy x k C.PyObject_HasAttr(getptr(x_), getptr(k_))) == 1
+# pyhasattr(x, k) = errcheck(@autopy x k C.PyObject_HasAttr(getptr(x_), getptr(k_))) == 1
+function pyhasattr(x, k)
+    ptr = @autopy x k C.PyObject_GetAttr(getptr(x_), getptr(k_))
+    if iserrset(ptr)
+        if errmatches(pybuiltins.AttributeError)
+            errclear()
+            return false
+        else
+            pythrow()
+        end
+    else
+        decref(ptr)
+        return true
+    end
+end
 export pyhasattr
 
 """
@@ -45,8 +61,12 @@ pygetattr(x, k) = pynew(errcheck(@autopy x k C.PyObject_GetAttr(getptr(x_), getp
 function pygetattr(x, k, d)
     ptr = @autopy x k C.PyObject_GetAttr(getptr(x_), getptr(k_))
     if iserrset(ptr)
-        errclear()
-        return d
+        if errmatches(pybuiltins.AttributeError)
+            errclear()
+            return d
+        else
+            pythrow()
+        end
     else
         return pynew(ptr)
     end
@@ -118,11 +138,48 @@ pylen(x) = errcheck(@autopy x C.PyObject_Length(getptr(x_)))
 export pylen
 
 """
-    pygetitem(x, k)
+    pyhasitem(x, k)
 
-Equivalent to `getitem(x, k)` or `x[k]` in Python.
+Test if `pygetitem(x, k)` raises a `KeyError` or `AttributeError`.
+"""
+function pyhasitem(x, k)
+    ptr = @autopy x k C.PyObject_GetItem(getptr(x_), getptr(k_))
+    if iserrset(ptr)
+        if errmatches(pybuiltins.KeyError) || errmatches(pybuiltins.IndexError)
+            errclear()
+            return false
+        else
+            pythrow()
+        end
+    else
+        decref(ptr)
+        return true
+    end
+end
+export pyhasitem
+
+"""
+    pygetitem(x, k, [d])
+
+Equivalent `x[k]` in Python.
+
+If `d` is specified, it is returned if the item does not exist (i.e. if `x[k]` raises a
+`KeyError` or `IndexError`).
 """
 pygetitem(x, k) = pynew(errcheck(@autopy x k C.PyObject_GetItem(getptr(x_), getptr(k_))))
+function pygetitem(x, k, d)
+    ptr = @autopy x k C.PyObject_GetItem(getptr(x_), getptr(k_))
+    if iserrset(ptr)
+        if errmatches(pybuiltins.KeyError) || errmatches(pybuiltins.IndexError)
+            errclear()
+            return d
+        else
+            pythrow()
+        end
+    else
+        return pynew(ptr)
+    end
+end
 export pygetitem
 
 """

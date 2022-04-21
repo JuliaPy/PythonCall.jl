@@ -51,6 +51,7 @@ pyexec
 pygetattr
 pygetitem
 pyhasattr
+pyhasitem
 pyhash
 pyhelp
 pyimport

@@ -1,6 +1,9 @@
 # Release Notes
 
 ## Unreleased
+* Adds `pyhasitem` and 3-arg `pygetitem`.
+* Extends `Base.get`, `Base.get!`, `Base.haskey` and 2-arg `Base.hash` for `Py`.
+* `PyArray` can now have any element type when the underlying array is of Python objects.
 * Bug fixes.
 
 ## v0.8.0 (2022-03-17)

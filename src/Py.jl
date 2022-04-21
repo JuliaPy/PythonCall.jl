@@ -313,6 +313,9 @@ Base.showable(mime::MIME, o::Py) = pyshowable(mime, o)
 Base.getproperty(x::Py, k::Symbol) = pygetattr(x, string(k))
 Base.getproperty(x::Py, k::String) = pygetattr(x, k)
 
+Base.hasproperty(x::Py, k::Symbol) = pyhasattr(x, string(k))
+Base.hasproperty(x::Py, k::String) = pyhasattr(x, k)
+
 Base.setproperty!(x::Py, k::Symbol, v) = pysetattr(x, string(k), v)
 Base.setproperty!(x::Py, k::String, v) = pysetattr(x, k, v)
 

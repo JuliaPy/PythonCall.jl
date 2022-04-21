@@ -314,7 +314,7 @@ function init_jlwrap_array()
         @property
         def __array_interface__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlarray_array_interface)))
-        def __array__(self):
+        def __array__(self, dtype=None):
             # convert to an array-like object
             arr = self
             if not (hasattr(arr, "__array_interface__") or hasattr(arr, "__array_struct__")):
@@ -326,7 +326,7 @@ function init_jlwrap_array()
             # convert to a numpy array if numpy is available
             try:
                 import numpy
-                arr = numpy.array(arr)
+                arr = numpy.array(arr, dtype=dtype)
             except ImportError:
                 pass
             return arr

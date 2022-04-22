@@ -71,7 +71,7 @@ function pyjlraw_delitem(self, k_::Py)
 end
 
 pyjlraw_bool(self::Bool) = Py(self)
-pyjlraw_bool(self) = (errset(pybuiltins.TypeError, "Only Julia 'Bool' can be tested for truthyness"); pynew())
+pyjlraw_bool(self) = (errset(pybuiltins.TypeError, "Only Julia 'Bool' can be tested for truthyness"); PyNULL)
 
 function init_jlwrap_raw()
     jl = pyjuliacallmodule

@@ -17,7 +17,7 @@ function pyjliter_next(self::Iterator)
     end
     if z === nothing
         errset(pybuiltins.StopIteration)
-        pynew()
+        PyNULL
     else
         r, newst = z
         self.st = Some(newst)

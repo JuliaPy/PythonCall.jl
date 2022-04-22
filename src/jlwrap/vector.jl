@@ -41,7 +41,7 @@ function pyjlvector_insert(x::AbstractVector, k_::Py, v_::Py)
         return Py(nothing)
     else
         errset(pybuiltins.IndexError, "array index out of bounds");
-        return pynew()
+        return PyNULL
     end
 end
 
@@ -75,20 +75,20 @@ function pyjlvector_pop(x::AbstractVector, k_::Py)
         return Py(v)
     else
         errset(pybuiltins.IndexError, "pop from empty array")
-        return pynew()
+        return PyNULL
     end
 end
 
 function pyjlvector_remove(x::AbstractVector, v_::Py)
     v = @pyconvert eltype(x) v_ begin
         errset(pybuiltins.ValueError, "value not in array")
-        return pynew()
+        return PyNULL
     end
     v = pyconvert_result(r)
     k = findfirst(==(v), x)
     if k === nothing
         errset(pybuiltins.ValueError, "value not in array")
-        return pynew()
+        return PyNULL
     end
     deleteat!(x, k)
     Py(nothing)
@@ -97,12 +97,12 @@ end
 function pyjlvector_index(x::AbstractVector, v_::Py)
     v = @pyconvert eltype(x) v_ begin
         errset(pybuiltins.ValueError, "value not in array")
-        return pynew()
+        return PyNULL
     end
     k = findfirst(==(v), x)
     if k === nothing
         errset(pybuiltins.ValueError, "value not in array")
-        return pynew()
+        return PyNULL
     end
     Py(k - first(axes(x, 1)))
 end

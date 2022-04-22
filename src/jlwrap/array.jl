@@ -283,7 +283,7 @@ function pyjlarray_array_interface(x::AbstractArray{T,N}) where {T,N}
         end
     end
     errset(pybuiltins.AttributeError, "__array_interface__")
-    return pynew()
+    return PyNULL
 end
 pyjl_handle_error_type(::typeof(pyjlarray_array_interface), x, exc) = pybuiltins.AttributeError
 

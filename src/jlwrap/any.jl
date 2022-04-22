@@ -82,7 +82,7 @@ function (op::pyjlany_op)(self, other_::Py)
         other = pyjlvalue(other_)
         Py(op.op(self, other))
     else
-        Py(pybuiltins.NotImplemented)
+        pybuiltins.NotImplemented
     end
 end
 function (op::pyjlany_op)(self, other_::Py, other2_::Py)
@@ -91,7 +91,7 @@ function (op::pyjlany_op)(self, other_::Py, other2_::Py)
         other2 = pyjlvalue(other2_)
         Py(op.op(self, other, other2))
     else
-        Py(pybuiltins.NotImplemented)
+        pybuiltins.NotImplemented
     end
 end
 pyjl_handle_error_type(op::pyjlany_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
@@ -104,7 +104,7 @@ function (op::pyjlany_rev_op)(self, other_::Py)
         other = pyjlvalue(other_)
         Py(op.op(self, other))
     else
-        Py(pybuiltins.NotImplemented)
+        pybuiltins.NotImplemented
     end
 end
 function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
@@ -113,7 +113,7 @@ function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
         other2 = pyjlvalue(other2_)
         Py(op.op(self, other, other2))
     else
-        Py(pybuiltins.NotImplemented)
+        pybuiltins.NotImplemented
     end
 end
 pyjl_handle_error_type(op::pyjlany_rev_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL

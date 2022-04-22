@@ -9,9 +9,9 @@ function _pyeval_args(globals, locals)
         ArgumentError("globals must be a module or a Python dict")
     end
     if locals === nothing
-        locals_ = Py(globals_)
+        locals_ = pynew(Py(globals_))
     elseif ispy(locals)
-        locals_ = Py(locals)
+        locals_ = pynew(Py(locals))
     else
         locals_ = pydict(locals)
     end

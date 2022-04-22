@@ -83,9 +83,7 @@ function C._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssize
         else
             errset(pybuiltins.NotImplementedError, "__jl_callmethod not implemented for this many arguments")
         end
-        ptr = getptr(ans)
-        pystolen!(ans)
-        return ptr
+        return incref(getptr(ans))
     catch exc
         if exc isa PyException
             GC.@preserve exc C.PyErr_Restore(incref(getptr(exc._t)), incref(getptr(exc._v)), incref(getptr(exc._b)))

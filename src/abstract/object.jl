@@ -240,6 +240,7 @@ export pycall
 Equivalent to `x == y` in Python. The second form converts to `Bool`.
 """
 pyeq(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_EQ)))
+
 """
     pyne(x, y)
     pyne(Bool, x, y)
@@ -247,6 +248,7 @@ pyeq(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getpt
 Equivalent to `x != y` in Python. The second form converts to `Bool`.
 """
 pyne(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_NE)))
+
 """
     pyle(x, y)
     pyle(Bool, x, y)
@@ -254,6 +256,7 @@ pyne(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getpt
 Equivalent to `x <= y` in Python. The second form converts to `Bool`.
 """
 pyle(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_LE)))
+
 """
     pylt(x, y)
     pylt(Bool, x, y)
@@ -261,6 +264,7 @@ pyle(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getpt
 Equivalent to `x < y` in Python. The second form converts to `Bool`.
 """
 pylt(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_LT)))
+
 """
     pyge(x, y)
     pyge(Bool, x, y)
@@ -268,6 +272,7 @@ pylt(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getpt
 Equivalent to `x >= y` in Python. The second form converts to `Bool`.
 """
 pyge(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_GE)))
+
 """
     pygt(x, y)
     pygt(Bool, x, y)
@@ -283,7 +288,7 @@ pyge(::Type{Bool}, x, y) = errcheck(@autopy x y C.PyObject_RichCompareBool(getpt
 pygt(::Type{Bool}, x, y) = errcheck(@autopy x y C.PyObject_RichCompareBool(getptr(x_), getptr(y_), C.Py_GT)) == 1
 export pyeq, pyne, pyle, pylt, pyge, pygt
 
-pyconvert_rule_object(::Type{Py}, x) = pyconvert_return(Py(x))
+pyconvert_rule_object(::Type{Py}, x::Py) = pyconvert_return(x)
 
 """
     pycontains(x, v)

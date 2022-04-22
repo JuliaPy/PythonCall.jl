@@ -36,11 +36,12 @@ See [here](@ref julia-wrappers) for an explanation of the `juliacall.*Value` wra
 
 ## [Custom rules](@id jl2py-conversion-custom)
 
-You may define a new conversion rule for your new type `T` by overloading `getpy(::T)` and
-possibly also `ispy(::T)` if it wraps a Python object.
+You may define a new conversion rule for your new type `T` by overloading `Py(::T)`.
+
+If `T` is a wrapper type (such as `PyList`) where `Py(x)` simply returns the stored Python
+object, then also define `ispy(::T) = true`.
 
 ```@docs
-PythonCall.getpy
 PythonCall.ispy
 ```
 

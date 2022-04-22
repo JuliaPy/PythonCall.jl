@@ -55,8 +55,7 @@ end
     @boundscheck checkbounds(x, i...)
     v_ = Py(v)
     @inbounds decref(x.ptrs[i...])
-    @inbounds x.ptrs[i...] = getptr(v_)
-    pystolen!(v_)
+    @inbounds x.ptrs[i...] = incref(getptr(v_))
     return x
 end
 

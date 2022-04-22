@@ -39,7 +39,6 @@ pyconvert_rule_int(::Type{T}, x::Py) where {T<:Number} = begin
     v = T <: Unsigned ? C.PyLong_AsUnsignedLongLong(getptr(x)) : C.PyLong_AsLongLong(getptr(x))
     if !iserrset_ambig(v)
         # success
-        pydel!(x)
         return pyconvert_tryconvert(T, v)
     elseif errmatches(pybuiltins.OverflowError)
         # overflows Clonglong or Culonglong
@@ -60,12 +59,10 @@ pyconvert_rule_int(::Type{T}, x::Py) where {T<:Number} = begin
            typemin(typeof(v)) ≤ typemin(T) &&
            typemax(T) ≤ typemax(typeof(v))
             # definitely overflows S, give up now
-            pydel!(x)
             return pyconvert_unconverted()
         else
             # try converting -> int -> str -> BigInt -> T
             x_int = pyint(x)
-            pydel!(x)
             x_str = pystr(String, x_int)
             pydel!(x_int)
             v = parse(BigInt, x_str)
@@ -73,7 +70,6 @@ pyconvert_rule_int(::Type{T}, x::Py) where {T<:Number} = begin
         end
     else
         # other error
-        pydel!(x)
         pythrow()
     end
 end

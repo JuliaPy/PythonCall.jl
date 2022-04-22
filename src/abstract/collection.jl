@@ -119,7 +119,6 @@ for N in 0:16
             :($z = @pyconvert_and_del($T, pytuple_getitem(xs, $(i-1))))
             for (i, T, z) in zip(1:N, Ts, zs)
         )...)
-        pydel!(xs)
         return pyconvert_return(($(zs...),))
     end
     # Tuple with N elements plus Vararg
@@ -136,7 +135,6 @@ for N in 0:16
             v = @pyconvert_and_del(V, pytuple_getitem(xs, i-1))
             push!(vs, v)
         end
-        pydel!(xs)
         return pyconvert_return(($(zs...), vs...))
     end
 end

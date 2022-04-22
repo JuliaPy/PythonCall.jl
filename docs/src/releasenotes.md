@@ -1,6 +1,9 @@
 # Release Notes
 
 ## Unreleased
+* **Breaking.** Removes `getpy`: you may now overload `Py` directly, which now need not
+  always return a new object (e.g. for singletons or wrappers).
+* **Breaking.** Conversion rules no longer take a new object every time.
 * **Breaking.** Improved Tables-interface support for `PyPandasDataFrame`: better inferred
   column types; better handling of non-string column names; columns are usually wrappers
   (`PyArray` or `PyList`). Constructor arguments have changed. Dict methods have been

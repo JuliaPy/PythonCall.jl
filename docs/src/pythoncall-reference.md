@@ -208,7 +208,7 @@ end
 ispy(x::MyType) = true
 
 # Says how to access the underlying Python object.
-getpy(x::MyType) = x.py
+Py(x::MyType) = x.py
 ```
 
 ## `@py` and `@pyconst`

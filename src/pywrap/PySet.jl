@@ -7,14 +7,14 @@ If `x` is not a Python object, it is converted to one using `pyset`.
 """
 struct PySet{T} <: AbstractSet{T}
     py :: Py
-    PySet{T}(x=pyset()) where {T} = new{T}(ispy(x) ? Py(x) : pyset(x))
+    PySet{T}(x=pyset()) where {T} = new{T}(ispy(x) ? pynew(Py(x)) : pyset(x))
 end
 export PySet
 
 PySet(x=pyset()) = PySet{Py}(x)
 
 ispy(::PySet) = true
-getpy(x::PySet) = x.py
+Py(x::PySet) = x.py
 pydel!(x::PySet) = pydel!(x.py)
 
 pyconvert_rule_set(::Type{T}, x::Py, ::Type{PySet{V}}=Utils._type_ub(T)) where {T<:PySet,V} =

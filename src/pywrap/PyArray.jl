@@ -433,7 +433,7 @@ pyarray_offset(x::PyArray{T,0}) where {T} = 0
 pyarray_load(::Type{R}, p::Ptr{R}) where {R} = unsafe_load(p)
 pyarray_load(::Type{T}, p::Ptr{UnsafePyObject}) where {T} = begin
     u = unsafe_load(p)
-    o = u.ptr == C_NULL ? Py(nothing) : pynew(incref(u.ptr))
+    o = u.ptr == C_NULL ? pynew(Py(nothing)) : pynew(incref(u.ptr))
     T == Py ? o : pyconvert_and_del(T, o)
 end
 

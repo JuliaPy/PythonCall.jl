@@ -1,7 +1,7 @@
 @testset "object" begin
     @testset "pyis" begin
         x = pylist()
-        y = Py(x)
+        y = PythonCall.pynew(x)
         z = pylist()
         @test pyis(x, x)
         @test pyis(x, y)

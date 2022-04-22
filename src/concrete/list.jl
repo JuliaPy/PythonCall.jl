@@ -1,10 +1,7 @@
 pynulllist(len) = pynew(errcheck(C.PyList_New(len)))
 
 function pylist_setitem(xs::Py, i, x)
-    x_ = Py(x)
-    err = C.PyList_SetItem(getptr(xs), i, getptr(x_))
-    pystolen!(x_)
-    errcheck(err)
+    errcheck(C.PyList_SetItem(getptr(xs), i, incref(getptr(Py(x)))))
     return xs
 end
 
@@ -49,7 +46,7 @@ export pylist
 Create a nested Python `list`-of-`list`s from the elements of `x`. For matrices, this is a list of columns.
 """
 function pycollist(x::AbstractArray{T,N}) where {T,N}
-    ndims(x) == 0 && return Py(x[])
+    N == 0 && return pynew(Py(x[]))
     d = N
     ax = axes(x, d)
     ans = pynulllist(length(ax))
@@ -68,7 +65,7 @@ export pycollist
 Create a nested Python `list`-of-`list`s from the elements of `x`. For matrices, this is a list of rows.
 """
 function pyrowlist(x::AbstractArray{T,N}) where {T,N}
-    ndims(x) == 0 && return Py(x[])
+    ndims(x) == 0 && return pynew(Py(x[]))
     d = 1
     ax = axes(x, d)
     ans = pynulllist(length(ax))

@@ -60,16 +60,6 @@ and not to a `Vector`. There should not be more than one canonical conversion ru
 given Python type.
 
 Other priorities are reserved for internal use.
-
-### Optional optimization (for experts)
-
-The `func` is given the only reference to `x`. This means it may call `pydel!(x)` when done
-with `x` provided `x` is not referenced anywhere else, such as in the return value. See
-[`pydel!`](@ref).
-
-If you are returning a wrapper type, such as `PyList(x)`, then the object `x` should be
-duplicated first, as in `Py(x)`. It is recommended to force this in the inner constructor
-of the wrapper type.
 """
 function pyconvert_add_rule(pytypename::String, type::Type, func::Function, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL)
     @nospecialize type func
@@ -305,29 +295,29 @@ function pyconvert_rule_fast(::Type{T}, x::Py) where {T}
         pyisFalse(x) && return pyconvert_return(false)
         pyisTrue(x) && return pyconvert_return(true)
     elseif (T == Int) | (T == BigInt)
-        pyisint(x) && return pyconvert_rule_int(T, Py(x))
+        pyisint(x) && return pyconvert_rule_int(T, x)
     elseif (T == Float64)
         pyisfloat(x) && return pyconvert_return(T(pyfloat_asdouble(x)))
     elseif (T == ComplexF64)
         pyiscomplex(x) && return pyconvert_return(T(pycomplex_ascomplex(x)))
     elseif (T == String) | (T == Char) | (T == Symbol)
-        pyisstr(x) && return pyconvert_rule_str(T, Py(x))
+        pyisstr(x) && return pyconvert_rule_str(T, x)
     elseif (T == Vector{UInt8}) | (T == Base.CodeUnits{UInt8,String})
-        pyisbytes(x) && return pyconvert_rule_bytes(T, Py(x))
+        pyisbytes(x) && return pyconvert_rule_bytes(T, x)
     elseif (T <: StepRange) | (T <: UnitRange)
-        pyisrange(x) && return pyconvert_rule_range(T, Py(x))
+        pyisrange(x) && return pyconvert_rule_range(T, x)
     end
     pyconvert_unconverted()
 end
 
 function pytryconvert(::Type{T}, x_) where {T}
-    # Copy the input
+    # Convert the input to a Py
     x = Py(x_)
 
     # We can optimize the conversion for some types by overloading pytryconvert_fast.
     # It MUST give the same results as via the slower route using rules.
     ans1 = pyconvert_rule_fast(T, x) :: pyconvert_returntype(T)
-    pyconvert_isunconverted(ans1) || (pydel!(x); return ans1)
+    pyconvert_isunconverted(ans1) || return ans1
 
     # get rules from the cache
     # TODO: we should hold weak references and clear the cache if types get deleted
@@ -342,12 +332,10 @@ function pytryconvert(::Type{T}, x_) where {T}
 
     # apply the rules
     for rule in rules
-        ans2 = rule(Py(x)) :: pyconvert_returntype(T)
-        pyconvert_isunconverted(ans2) || (pydel!(x); return ans2)
+        ans2 = rule(x) :: pyconvert_returntype(T)
+        pyconvert_isunconverted(ans2) || return ans2
     end
 
-    # if no rule succeeded, assume nothing references x
-    pydel!(x)
     return pyconvert_unconverted()
 end
 

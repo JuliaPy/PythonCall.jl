@@ -2,7 +2,8 @@
 
 ## Benchmark 1: fill a dict
 
-| **Version** | **Factor** | **Time (microseconds)** | **Allocations** |
+| Version | Factor | Time (microseconds) | Allocations |
+| ------- | ------ | ------------------- | ----------- |
 | Python | 1.0x | 280 | ? |
 | PythonCall | 2.4x | 680 | 5008 |
 | PythonCall + `pydel!` | 1.1x | 300 | 1008 |

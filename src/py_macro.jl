@@ -449,16 +449,8 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
 
         for arg in args
 
-            # @del x
-            if arg isa Symbol
-                if arg in BUILTINS
-                    py_macro_err(st, ex, "can't delete a builtin")
-                else
-                    push!(body, :($pydel!($arg::$Py)))
-                end
-
             # @del x.k
-            elseif isexpr(arg, :.)
+            if isexpr(arg, :.)
                 ax, ak = ex.args
                 @gensym x k
                 tx = py_macro_lower(st, body, x, ax)
@@ -485,7 +477,7 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
                 py_macro_del(body, k, tk)
 
             else
-                py_macro_err(st, ex, "@del argument must be a variable, reference or property")
+                py_macro_err(st, ex, "@del argument must be an attribute or indexing expression")
             end
         end
         py_macro_assign(body, ans, nothing)

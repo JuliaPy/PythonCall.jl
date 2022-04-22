@@ -383,24 +383,6 @@ pyconvertarg(::Type{T}, x, name) where {T} = @autopy x @pyconvert T x_ begin
     pythrow()
 end
 
-macro pyconvert_and_del(T, x, onfail=:(return $pyconvert_unconverted()))
-    quote
-        ans = pytryconvert($(esc(T)), $(esc(x)))
-        pydel!($(esc(x)))
-        if pyconvert_isunconverted(ans)
-            $(esc(onfail))
-        else
-            pyconvert_result($(esc(T)), ans)
-        end
-    end
-end
-
-pyconvert_and_del(::Type{T}, x) where {T} = begin
-    ans = pyconvert(T, x)
-    pydel!(x)
-    ans
-end
-
 function init_pyconvert()
     push!(PYCONVERT_EXTRATYPES, pyimport("io"=>"IOBase"))
     push!(PYCONVERT_EXTRATYPES, pyimport("numbers"=>("Number", "Complex", "Real", "Rational", "Integral"))...)

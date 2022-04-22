@@ -16,14 +16,13 @@ struct PyPandasDataFrame <: PyTable
     columnnames::Function # Py -> Symbol
     columntypes::Function # Symbol -> Union{Type,Nothing}
     function PyPandasDataFrame(x; indexname::Union{Symbol,Nothing}=nothing, columnnames::Function=x->Symbol(x), columntypes::Function=x->nothing)
-        new(pynew(Py(x)), indexname, columnnames, columntypes)
+        new(Py(x), indexname, columnnames, columntypes)
     end
 end
 export PyPandasDataFrame
 
 ispy(x::PyPandasDataFrame) = true
 Py(x::PyPandasDataFrame) = x.py
-pydel!(x::PyPandasDataFrame) = pydel!(x.py)
 
 pyconvert_rule_pandasdataframe(::Type{PyPandasDataFrame}, x::Py) = pyconvert_return(PyPandasDataFrame(x))
 

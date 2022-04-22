@@ -7,7 +7,7 @@ If `x` is not a Python object, it is converted to one using `pydict`.
 """
 struct PyDict{K,V} <: AbstractDict{K,V}
     py :: Py
-    PyDict{K,V}(x=pydict()) where {K,V} = new{K,V}(ispy(x) ? pynew(Py(x)) : pydict(x))
+    PyDict{K,V}(x=pydict()) where {K,V} = new{K,V}(ispy(x) ? Py(x) : pydict(x))
 end
 export PyDict
 
@@ -16,7 +16,6 @@ PyDict(x=pydict()) = PyDict{Py,Py}(x)
 
 ispy(::PyDict) = true
 Py(x::PyDict) = x.py
-pydel!(x::PyDict) = pydel!(x.py)
 
 pyconvert_rule_mapping(::Type{T}, x::Py, ::Type{PyDict{K,V}}=Utils._type_ub(T)) where {T<:PyDict,K,V} =
     if PyDict{Py,Py} <: T

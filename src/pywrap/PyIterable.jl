@@ -5,7 +5,7 @@ This object iterates over iterable Python object `x`, yielding values of type `T
 """
 struct PyIterable{T}
     py :: Py
-    PyIterable{T}(x) where {T} = new{T}(pynew(Py(x)))
+    PyIterable{T}(x) where {T} = new{T}(Py(x))
 end
 export PyIterable
 
@@ -13,7 +13,6 @@ PyIterable(x) = PyIterable{Py}(x)
 
 ispy(x::PyIterable) = true
 Py(x::PyIterable) = x.py
-pydel!(x::PyIterable) = pydel!(x.py)
 
 Base.IteratorSize(::Type{PyIterable{T}}) where {T} = Base.SizeUnknown()
 Base.eltype(::Type{PyIterable{T}}) where {T} = T

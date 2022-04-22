@@ -39,7 +39,7 @@ mutable struct PyIO <: IO
         ibuflen > 0 || error("ibuflen must be positive")
         obuflen = convert(Int, obuflen)
         obuflen > 0 || error("obuflen must be positive")
-        new(pynew(Py(x)), own, text, false, ibuflen, UInt8[], obuflen, UInt8[])
+        new(Py(x), own, text, false, ibuflen, UInt8[], obuflen, UInt8[])
     end
 end
 export PyIO
@@ -47,13 +47,11 @@ export PyIO
 pyio_finalize!(io::PyIO) = begin
     C.CTX.is_initialized || return
     io.own ? close(io) : flush(io)
-    pydel!(io.py)
     return
 end
 
 ispy(io::PyIO) = true
 Py(io::PyIO) = io.py
-pydel!(io::PyIO) = (finalize(io); nothing)
 
 pyconvert_rule_io(::Type{PyIO}, x::Py) = pyconvert_return(PyIO(x))
 

@@ -7,7 +7,7 @@ If `x` is not a Python object, it is converted to one using `pylist`.
 """
 struct PyList{T} <: AbstractVector{T}
     py :: Py
-    PyList{T}(x=pylist()) where {T} = new{T}(ispy(x) ? pynew(Py(x)) : pylist(x))
+    PyList{T}(x=pylist()) where {T} = new{T}(ispy(x) ? Py(x) : pylist(x))
 end
 export PyList
 
@@ -15,7 +15,6 @@ PyList(x=pylist()) = PyList{Py}(x)
 
 ispy(::PyList) = true
 Py(x::PyList) = x.py
-pydel!(x::PyList) = pydel!(x.py)
 
 pyconvert_rule_sequence(::Type{T}, x::Py, ::Type{PyList{V}}=Utils._type_ub(T)) where {T<:PyList,V} =
     if PyList{Py} <: T

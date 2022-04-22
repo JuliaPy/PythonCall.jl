@@ -126,13 +126,13 @@ function Base.eof(io::PyIO)
     end
 end
 
-Base.fd(io::PyIO) = pyconvert_and_del(Int, @py io.fileno())
+Base.fd(io::PyIO) = pyconvert(Int, @py io.fileno())
 
-Base.isreadable(io::PyIO) = pyconvert_and_del(Bool, @py io.readable())
+Base.isreadable(io::PyIO) = pyconvert(Bool, @py io.readable())
 
-Base.iswritable(io::PyIO) = pyconvert_and_del(Bool, @py io.writable())
+Base.iswritable(io::PyIO) = pyconvert(Bool, @py io.writable())
 
-Base.isopen(io::PyIO) = !pyconvert_and_del(Bool, @py io.closed)
+Base.isopen(io::PyIO) = !pyconvert(Bool, @py io.closed)
 
 function Base.unsafe_write(io::PyIO, ptr::Ptr{UInt8}, n::UInt)
     ntodo = n
@@ -235,11 +235,11 @@ function Base.position(io::PyIO)
     putobuf(io)
     if io.text
         if isempty(io.ibuf)
-            return pyconvert_and_del(Int, @py io.tell())
+            return pyconvert(Int, @py io.tell())
         else
             error("`position(io)` text PyIO streams only implemented for empty input buffer (e.g. do `read(io, length(io.ibuf))` first)")
         end
     else
-        return pyconvert_and_del(Int, @py io.tell()) - length(io.ibuf)
+        return pyconvert(Int, @py io.tell()) - length(io.ibuf)
     end
 end

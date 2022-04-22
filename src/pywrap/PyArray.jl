@@ -193,15 +193,15 @@ function PyArraySource_ArrayInterface(x::Py)
     d = x.__array_interface__
     # offset
     # TODO: how is the offset measured?
-    offset = pyconvert_and_del(Int, @py d.get("offset", 0))
+    offset = pyconvert(Int, @py d.get("offset", 0))
     offset == 0 || error("not supported: non-zero offset")
     # mask
     @py("mask" in d) && error("not supported: mask")
     # data
     data = @py d.get("data")
     if pyistuple(data)
-        ptr = Ptr{Cvoid}(pyconvert_and_del(UInt, data[0]))
-        readonly = pyconvert_and_del(Bool, data[1])
+        ptr = Ptr{Cvoid}(pyconvert(UInt, data[0]))
+        readonly = pyconvert(Bool, data[1])
         pydel!(data)
         handle = Py((x, d))
     else
@@ -268,7 +268,7 @@ pyarray_typestrdescr_to_type(ts::String, descr::Py) = begin
 end
 
 function pyarray_get_R(src::PyArraySource_ArrayInterface)
-    typestr = pyconvert_and_del(String, src.dict["typestr"])
+    typestr = pyconvert(String, src.dict["typestr"])
     descr = @py @jl(src.dict).get("descr")
     R = pyarray_typestrdescr_to_type(typestr, descr)::DataType
     pydel!(descr)
@@ -279,7 +279,7 @@ pyarray_get_ptr(src::PyArraySource_ArrayInterface, ::Type{R}) where {R} = Ptr{R}
 
 pyarray_get_N(src::PyArraySource_ArrayInterface) = Int(@py jllen(@jl(src.dict)["shape"]))
 
-pyarray_get_size(src::PyArraySource_ArrayInterface, ::Val{N}) where {N} = pyconvert_and_del(NTuple{N,Int}, src.dict["shape"])
+pyarray_get_size(src::PyArraySource_ArrayInterface, ::Val{N}) where {N} = pyconvert(NTuple{N,Int}, src.dict["shape"])
 
 function pyarray_get_strides(src::PyArraySource_ArrayInterface, ::Val{N}, ::Type{R}, size::NTuple{N,Int}) where {R,N}
     @py strides = @jl(src.dict).get("strides")
@@ -287,7 +287,7 @@ function pyarray_get_strides(src::PyArraySource_ArrayInterface, ::Val{N}, ::Type
         pydel!(strides)
         return Utils.size_to_cstrides(sizeof(R), size)
     else
-        return pyconvert_and_del(NTuple{N,Int}, strides)
+        return pyconvert(NTuple{N,Int}, strides)
     end
 end
 
@@ -434,7 +434,7 @@ pyarray_load(::Type{R}, p::Ptr{R}) where {R} = unsafe_load(p)
 pyarray_load(::Type{T}, p::Ptr{UnsafePyObject}) where {T} = begin
     u = unsafe_load(p)
     o = u.ptr == C_NULL ? pynew(Py(nothing)) : pynew(incref(u.ptr))
-    T == Py ? o : pyconvert_and_del(T, o)
+    T == Py ? o : pyconvert(T, o)
 end
 
 pyarray_store!(p::Ptr{R}, x::R) where {R} = unsafe_store!(p, x)

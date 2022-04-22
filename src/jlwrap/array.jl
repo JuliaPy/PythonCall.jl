@@ -2,15 +2,15 @@ const pyjlarraytype = pynew()
 
 function pyjl_getaxisindex(x::AbstractUnitRange{<:Integer}, k::Py)
     if pyisslice(k)
-        a = @pyconvert_and_del Union{Int,Nothing} k.start begin
+        a = @pyconvert Union{Int,Nothing} k.start begin
             errset(pybuiltins.TypeError, "slice components must be integers")
             pythrow()
         end
-        b = @pyconvert_and_del Union{Int,Nothing} k.step begin
+        b = @pyconvert Union{Int,Nothing} k.step begin
             errset(pybuiltins.TypeError, "slice components must be integers")
             pythrow()
         end
-        c = @pyconvert_and_del Union{Int,Nothing} k.stop begin
+        c = @pyconvert Union{Int,Nothing} k.stop begin
             errset(pybuiltins.TypeError, "slice components must be integers")
             pythrow()
         end

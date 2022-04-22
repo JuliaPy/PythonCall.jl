@@ -29,8 +29,8 @@ pyconvert_rule_pandasdataframe(::Type{PyPandasDataFrame}, x::Py) = pyconvert_ret
 ### Show
 
 function Base.show(io::IO, mime::MIME"text/plain", df::PyPandasDataFrame)
-    nrows = pyconvert_and_del(Int, @py df.shape[0])
-    ncols = pyconvert_and_del(Int, @py df.shape[1])
+    nrows = pyconvert(Int, @py df.shape[0])
+    ncols = pyconvert(Int, @py df.shape[1])
     printstyled(io, nrows, '×', ncols, ' ', typeof(df), '\n', bold=true)
     pyshow(io, mime, df)
 end

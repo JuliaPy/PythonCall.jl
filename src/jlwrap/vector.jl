@@ -53,7 +53,7 @@ end
 
 function pyjlvector_extend(x::AbstractVector, vs_::Py)
     for v_ in vs_
-        v = pyconvert_and_del(eltype(x), v_)
+        v = pyconvert(eltype(x), v_)
         push!(x, v)
     end
     Py(nothing)

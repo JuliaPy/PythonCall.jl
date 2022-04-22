@@ -29,7 +29,7 @@ Base.size(x::PyList) = (length(x),)
 
 Base.@propagate_inbounds function Base.getindex(x::PyList{T}, i::Int) where {T}
     @boundscheck checkbounds(x, i)
-    return pyconvert_and_del(T, @py x[@jl(i-1)])
+    return pyconvert(T, @py x[@jl(i-1)])
 end
 
 Base.@propagate_inbounds function Base.setindex!(x::PyList{T}, v, i::Int) where {T}
@@ -67,19 +67,19 @@ end
 
 Base.@propagate_inbounds function Base.pop!(x::PyList{T}) where {T}
     @boundscheck (isempty(x) && throw(BoundsError(x)))
-    return pyconvert_and_del(T, @py x.pop())
+    return pyconvert(T, @py x.pop())
 end
 
 if isdefined(Base, :popat!)
     Base.@propagate_inbounds function Base.popat!(x::PyList{T}, i::Integer) where {T}
         @boundscheck checkbounds(x, i)
-        return pyconvert_and_del(T, @py x.pop(@jl(i-1)))
+        return pyconvert(T, @py x.pop(@jl(i-1)))
     end
 end
 
 Base.@propagate_inbounds function Base.popfirst!(x::PyList{T}) where {T}
     @boundscheck checkbounds(x, 1)
-    return pyconvert_and_del(T, @py x.pop(0))
+    return pyconvert(T, @py x.pop(0))
 end
 
 function Base.reverse!(x::PyList)

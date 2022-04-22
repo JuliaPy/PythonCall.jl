@@ -23,7 +23,7 @@ function Base.iterate(x::PyIterable{T}, it::Py=pyiter(x)) where {T}
         pydel!(it)
         return nothing
     else
-        return (pyconvert_and_del(T, y), it)
+        return (pyconvert(T, y), it)
     end
 end
 

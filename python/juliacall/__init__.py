@@ -57,7 +57,7 @@ def init():
 
     # Find the Julia executable and project
     CONFIG['exepath'] = exepath = juliapkg.executable()
-    CONFIG['project'] = project = juliapkg.project()
+    CONFIG['project'] = project = os.path.abspath(juliapkg.project())
 
     # Find the Julia library
     cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min', '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))']

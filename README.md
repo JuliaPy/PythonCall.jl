@@ -1,4 +1,4 @@
-<h1><img src="https://raw.githubusercontent.com/cjdoris/PythonCall.jl/main/docs/src/assets/logo.svg" alt="PythonCall.jl logo" style="width: 100px;"><br>PythonCall &amp;&nbsp;JuliaCall</h1>
+<h1><img src="https://raw.githubusercontent.com/cjdoris/PythonCall.jl/main/docs/src/assets/logo.png" alt="PythonCall.jl logo" style="width: 100px;"><br>PythonCall &amp;&nbsp;JuliaCall</h1>
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://cjdoris.github.io/PythonCall.jl/stable)

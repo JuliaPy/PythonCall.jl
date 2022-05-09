@@ -5,6 +5,9 @@ using PythonCall, Test, Dates, Aqua
 Aqua.test_all(PythonCall, unbound_args=false)
 
 @testset "PythonCall.jl" begin
+    @testset "utils" begin
+        include("utils.jl")
+    end
     @testset "abstract" begin
         include("abstract.jl")
     end

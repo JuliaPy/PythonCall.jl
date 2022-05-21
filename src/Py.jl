@@ -481,7 +481,7 @@ function Base.Docs.getdoc(x::Py, @nospecialize(sig))
     # docstring
     doc = pyimport("inspect").getdoc(x)
     if !pyisnone(doc)
-        push!(parts, Text(pystr_asstring(doc)))
+        push!(parts, Markdown.Code("text", pystr_asstring(doc)))
     end
     return Markdown.MD(parts)
 end

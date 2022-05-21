@@ -33,7 +33,6 @@ Equivalent to `hasattr(x, k)` in Python.
 
 Tests if `getattr(x, k)` raises an `AttributeError`.
 """
-# pyhasattr(x, k) = errcheck(@autopy x k C.PyObject_HasAttr(getptr(x_), getptr(k_))) == 1
 function pyhasattr(x, k)
     ptr = @autopy x k C.PyObject_GetAttr(getptr(x_), getptr(k_))
     if iserrset(ptr)
@@ -48,6 +47,7 @@ function pyhasattr(x, k)
         return true
     end
 end
+# pyhasattr(x, k) = errcheck(@autopy x k C.PyObject_HasAttr(getptr(x_), getptr(k_))) == 1
 export pyhasattr
 
 """

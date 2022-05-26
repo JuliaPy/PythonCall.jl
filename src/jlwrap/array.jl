@@ -330,6 +330,9 @@ function init_jlwrap_array()
             except ImportError:
                 pass
             return arr
+        def to_numpy(self, dtype=None):
+            import numpy
+            return numpy.array(self, dtype=dtype)
     """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlarraytype, jl.ArrayValue)
 end

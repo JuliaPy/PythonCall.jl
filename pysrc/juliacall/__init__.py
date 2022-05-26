@@ -3,9 +3,14 @@
 
 __version__ = '0.8.0'
 
+_newmodule = None
+
 def newmodule(name):
     "A new module with the given name."
-    return Base.Module(Base.Symbol(name))
+    global _newmodule
+    if _newmodule is None:
+        _newmodule = Main.seval("name -> (n1=Symbol(name); n2=gensym(n1); Main.@eval(module $n2; module $n1; end; end); Main.@eval $n2.$n1)")
+    return _newmodule(name)
 
 _convert = None
 

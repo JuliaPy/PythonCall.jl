@@ -82,7 +82,6 @@ function init_jlwrap_number()
     $("\n"^(@__LINE__()-1))
     class NumberValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __bool__(self):
             return not self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(iszero))))
         def __add__(self, other):
@@ -153,7 +152,6 @@ function init_jlwrap_number()
             return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(>))), other)
     class ComplexValue(NumberValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __complex__(self):
             return self._jl_callmethod($(pyjl_methodnum(pycomplex)))
         @property
@@ -166,7 +164,6 @@ function init_jlwrap_number()
             return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(conj))))
     class RealValue(ComplexValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __float__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyfloat)))
         @property
@@ -189,7 +186,6 @@ function init_jlwrap_number()
             return self._jl_callmethod($(pyjl_methodnum(pyjlreal_round)), ndigits)
     class RationalValue(RealValue):
         __slots__ = ()
-        __module__ = "juliacall"
         @property
         def numerator(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(numerator))))
@@ -198,7 +194,6 @@ function init_jlwrap_number()
             return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(denominator))))
     class IntegerValue(RationalValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __int__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyint)))
         def __index__(self):

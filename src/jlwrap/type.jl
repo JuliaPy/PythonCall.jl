@@ -16,7 +16,6 @@ function init_jlwrap_type()
     $("\n"^(@__LINE__()-1))
     class TypeValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __getitem__(self, k):
             return self._jl_callmethod($(pyjl_methodnum(pyjltype_getitem)), k)
         def __setitem__(self, k, v):

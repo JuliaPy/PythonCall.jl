@@ -118,7 +118,6 @@ function init_jlwrap_vector()
     $("\n"^(@__LINE__()-1))
     class VectorValue(ArrayValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def resize(self, size):
             return self._jl_callmethod($(pyjl_methodnum(pyjlvector_resize)), size)
         def sort(self, reverse=False, key=None):

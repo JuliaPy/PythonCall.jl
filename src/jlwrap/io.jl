@@ -207,7 +207,6 @@ function init_jlwrap_io()
     $("\n"^(@__LINE__()-1))
     class IOValueBase(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def close(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlio_close)))
         @property
@@ -259,7 +258,6 @@ function init_jlwrap_io()
                 raise StopIteration
     class BinaryIOValue(IOValueBase):
         __slots__ = ()
-        __module__ = "juliacall"
         def detach(self):
             raise ValueError("Cannot detach '{}'.".format(type(self)))
         def read(self, size=-1):
@@ -276,7 +274,6 @@ function init_jlwrap_io()
             return self._jl_callmethod($(pyjl_methodnum(pyjlbinaryio_write)), b)
     class TextIOValue(IOValueBase):
         __slots__ = ()
-        __module__ = "juliacall"
         @property
         def encoding(self):
             return "UTF-8"

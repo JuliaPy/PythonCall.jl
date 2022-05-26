@@ -37,7 +37,6 @@ function init_jlwrap_dict()
     $("\n"^(@__LINE__()-1))
     class DictValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         _jl_undefined_ = object()
         def __iter__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjldict_iter)))

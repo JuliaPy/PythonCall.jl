@@ -293,7 +293,6 @@ function init_jlwrap_array()
     $("\n"^(@__LINE__()-1))
     class ArrayValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         _jl_buffer_info = $(pyjl_methodnum(pyjlarray_buffer_info))
         @property
         def ndim(self):

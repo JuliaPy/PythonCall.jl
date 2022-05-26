@@ -172,7 +172,6 @@ function init_jlwrap_any()
     $("\n"^(@__LINE__()-1))
     class AnyValue(ValueBase):
         __slots__ = ()
-        __module__ = "juliacall"
         def __repr__(self):
             if self._jl_isnull():
                 return "<jl NULL>"

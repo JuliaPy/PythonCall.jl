@@ -31,7 +31,6 @@ function init_jlwrap_iter()
     $("\n"^(@__LINE__()-1))
     class IteratorValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __iter__(self):
             return self
         def __next__(self):

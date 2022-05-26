@@ -79,7 +79,6 @@ function init_jlwrap_raw()
     $("\n"^(@__LINE__()-1))
     class RawValue(ValueBase):
         __slots__ = ()
-        __module__ = "juliacall"
         def __repr__(self):
             if self._jl_isnull():
                 return "<jl NULL>"

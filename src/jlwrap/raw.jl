@@ -71,7 +71,7 @@ function pyjlraw_delitem(self, k_::Py)
 end
 
 pyjlraw_bool(self::Bool) = Py(self)
-pyjlraw_bool(self) = (errset(pybuiltins.TypeError, "Only Julia 'Bool' can be tested for truthyness"); pynew())
+pyjlraw_bool(self) = (errset(pybuiltins.TypeError, "Only Julia 'Bool' can be tested for truthyness"); PyNULL)
 
 function init_jlwrap_raw()
     jl = pyjuliacallmodule
@@ -79,7 +79,6 @@ function init_jlwrap_raw()
     $("\n"^(@__LINE__()-1))
     class RawValue(ValueBase):
         __slots__ = ()
-        __module__ = "juliacall"
         def __repr__(self):
             if self._jl_isnull():
                 return "<jl NULL>"

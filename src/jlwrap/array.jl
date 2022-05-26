@@ -2,15 +2,15 @@ const pyjlarraytype = pynew()
 
 function pyjl_getaxisindex(x::AbstractUnitRange{<:Integer}, k::Py)
     if pyisslice(k)
-        a = @pyconvert_and_del Union{Int,Nothing} k.start begin
+        a = @pyconvert Union{Int,Nothing} k.start begin
             errset(pybuiltins.TypeError, "slice components must be integers")
             pythrow()
         end
-        b = @pyconvert_and_del Union{Int,Nothing} k.step begin
+        b = @pyconvert Union{Int,Nothing} k.step begin
             errset(pybuiltins.TypeError, "slice components must be integers")
             pythrow()
         end
-        c = @pyconvert_and_del Union{Int,Nothing} k.stop begin
+        c = @pyconvert Union{Int,Nothing} k.stop begin
             errset(pybuiltins.TypeError, "slice components must be integers")
             pythrow()
         end
@@ -283,7 +283,7 @@ function pyjlarray_array_interface(x::AbstractArray{T,N}) where {T,N}
         end
     end
     errset(pybuiltins.AttributeError, "__array_interface__")
-    return pynew()
+    return PyNULL
 end
 pyjl_handle_error_type(::typeof(pyjlarray_array_interface), x, exc) = pybuiltins.AttributeError
 
@@ -293,7 +293,6 @@ function init_jlwrap_array()
     $("\n"^(@__LINE__()-1))
     class ArrayValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         _jl_buffer_info = $(pyjl_methodnum(pyjlarray_buffer_info))
         @property
         def ndim(self):
@@ -314,7 +313,7 @@ function init_jlwrap_array()
         @property
         def __array_interface__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlarray_array_interface)))
-        def __array__(self):
+        def __array__(self, dtype=None):
             # convert to an array-like object
             arr = self
             if not (hasattr(arr, "__array_interface__") or hasattr(arr, "__array_struct__")):
@@ -326,10 +325,13 @@ function init_jlwrap_array()
             # convert to a numpy array if numpy is available
             try:
                 import numpy
-                arr = numpy.array(arr)
+                arr = numpy.array(arr, dtype=dtype)
             except ImportError:
                 pass
             return arr
+        def to_numpy(self, dtype=None):
+            import numpy
+            return numpy.array(self, dtype=dtype)
     """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlarraytype, jl.ArrayValue)
 end

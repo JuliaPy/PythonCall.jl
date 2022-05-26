@@ -14,8 +14,7 @@ export PySet
 PySet(x=pyset()) = PySet{Py}(x)
 
 ispy(::PySet) = true
-getpy(x::PySet) = x.py
-pydel!(x::PySet) = pydel!(x.py)
+Py(x::PySet) = x.py
 
 pyconvert_rule_set(::Type{T}, x::Py, ::Type{PySet{V}}=Utils._type_ub(T)) where {T<:PySet,V} =
     if PySet{Py} <: T
@@ -34,7 +33,7 @@ function Base.iterate(x::PySet{T}, it::Py=pyiter(x)) where {T}
         pydel!(it)
         return nothing
     else
-        return (pyconvert_and_del(T, y), it)
+        return (pyconvert(T, y), it)
     end
 end
 
@@ -70,7 +69,7 @@ end
 
 Base.@propagate_inbounds function Base.pop!(x::PySet{T}) where {T}
     @boundscheck (isempty(x) && throw(ArgumentError("set must be non-empty")))
-    return pyconvert_and_del(T, @py x.pop())
+    return pyconvert(T, @py x.pop())
 end
 
 function Base.pop!(x::PySet, v)

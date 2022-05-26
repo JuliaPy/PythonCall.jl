@@ -30,8 +30,24 @@ export pyascii
     pyhasattr(x, k)
 
 Equivalent to `hasattr(x, k)` in Python.
+
+Tests if `getattr(x, k)` raises an `AttributeError`.
 """
-pyhasattr(x, k) = errcheck(@autopy x k C.PyObject_HasAttr(getptr(x_), getptr(k_))) == 1
+function pyhasattr(x, k)
+    ptr = @autopy x k C.PyObject_GetAttr(getptr(x_), getptr(k_))
+    if iserrset(ptr)
+        if errmatches(pybuiltins.AttributeError)
+            errclear()
+            return false
+        else
+            pythrow()
+        end
+    else
+        decref(ptr)
+        return true
+    end
+end
+# pyhasattr(x, k) = errcheck(@autopy x k C.PyObject_HasAttr(getptr(x_), getptr(k_))) == 1
 export pyhasattr
 
 """
@@ -45,8 +61,12 @@ pygetattr(x, k) = pynew(errcheck(@autopy x k C.PyObject_GetAttr(getptr(x_), getp
 function pygetattr(x, k, d)
     ptr = @autopy x k C.PyObject_GetAttr(getptr(x_), getptr(k_))
     if iserrset(ptr)
-        errclear()
-        return d
+        if errmatches(pybuiltins.AttributeError)
+            errclear()
+            return d
+        else
+            pythrow()
+        end
     else
         return pynew(ptr)
     end
@@ -118,11 +138,48 @@ pylen(x) = errcheck(@autopy x C.PyObject_Length(getptr(x_)))
 export pylen
 
 """
-    pygetitem(x, k)
+    pyhasitem(x, k)
 
-Equivalent to `getitem(x, k)` or `x[k]` in Python.
+Test if `pygetitem(x, k)` raises a `KeyError` or `AttributeError`.
+"""
+function pyhasitem(x, k)
+    ptr = @autopy x k C.PyObject_GetItem(getptr(x_), getptr(k_))
+    if iserrset(ptr)
+        if errmatches(pybuiltins.KeyError) || errmatches(pybuiltins.IndexError)
+            errclear()
+            return false
+        else
+            pythrow()
+        end
+    else
+        decref(ptr)
+        return true
+    end
+end
+export pyhasitem
+
+"""
+    pygetitem(x, k, [d])
+
+Equivalent `x[k]` in Python.
+
+If `d` is specified, it is returned if the item does not exist (i.e. if `x[k]` raises a
+`KeyError` or `IndexError`).
 """
 pygetitem(x, k) = pynew(errcheck(@autopy x k C.PyObject_GetItem(getptr(x_), getptr(k_))))
+function pygetitem(x, k, d)
+    ptr = @autopy x k C.PyObject_GetItem(getptr(x_), getptr(k_))
+    if iserrset(ptr)
+        if errmatches(pybuiltins.KeyError) || errmatches(pybuiltins.IndexError)
+            errclear()
+            return d
+        else
+            pythrow()
+        end
+    else
+        return pynew(ptr)
+    end
+end
 export pygetitem
 
 """
@@ -183,6 +240,7 @@ export pycall
 Equivalent to `x == y` in Python. The second form converts to `Bool`.
 """
 pyeq(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_EQ)))
+
 """
     pyne(x, y)
     pyne(Bool, x, y)
@@ -190,6 +248,7 @@ pyeq(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getpt
 Equivalent to `x != y` in Python. The second form converts to `Bool`.
 """
 pyne(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_NE)))
+
 """
     pyle(x, y)
     pyle(Bool, x, y)
@@ -197,6 +256,7 @@ pyne(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getpt
 Equivalent to `x <= y` in Python. The second form converts to `Bool`.
 """
 pyle(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_LE)))
+
 """
     pylt(x, y)
     pylt(Bool, x, y)
@@ -204,6 +264,7 @@ pyle(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getpt
 Equivalent to `x < y` in Python. The second form converts to `Bool`.
 """
 pylt(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_LT)))
+
 """
     pyge(x, y)
     pyge(Bool, x, y)
@@ -211,6 +272,7 @@ pylt(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getpt
 Equivalent to `x >= y` in Python. The second form converts to `Bool`.
 """
 pyge(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(getptr(x_), getptr(y_), C.Py_GE)))
+
 """
     pygt(x, y)
     pygt(Bool, x, y)
@@ -226,7 +288,7 @@ pyge(::Type{Bool}, x, y) = errcheck(@autopy x y C.PyObject_RichCompareBool(getpt
 pygt(::Type{Bool}, x, y) = errcheck(@autopy x y C.PyObject_RichCompareBool(getptr(x_), getptr(y_), C.Py_GT)) == 1
 export pyeq, pyne, pyle, pylt, pyge, pygt
 
-pyconvert_rule_object(::Type{Py}, x) = pyconvert_return(Py(x))
+pyconvert_rule_object(::Type{Py}, x::Py) = pyconvert_return(x)
 
 """
     pycontains(x, v)

@@ -17,7 +17,7 @@ function pyjliter_next(self::Iterator)
     end
     if z === nothing
         errset(pybuiltins.StopIteration)
-        pynew()
+        PyNULL
     else
         r, newst = z
         self.st = Some(newst)
@@ -31,7 +31,6 @@ function init_jlwrap_iter()
     $("\n"^(@__LINE__()-1))
     class IteratorValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __iter__(self):
             return self
         def __next__(self):

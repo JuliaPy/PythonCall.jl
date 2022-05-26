@@ -18,13 +18,13 @@ function init_juliacall()
     else
         # TODO: Is there a more robust way to import juliacall from a specific path?
         # prepend the directory containing juliacall to sys.path
-        sys.path.insert(0, joinpath(ROOT_DIR, "python"))
+        sys.path.insert(0, joinpath(ROOT_DIR, "pysrc"))
         # prevent juliacall from initialising itself
         os.environ["PYTHON_JULIACALL_NOINIT"] = "yes"
         # import juliacall
         pycopy!(jl, pyimport("juliacall"))
         # check the version
-        @assert realpath(pystr_asstring(jl.__path__[0])) == realpath(joinpath(ROOT_DIR, "python", "juliacall"))
+        @assert realpath(pystr_asstring(jl.__path__[0])) == realpath(joinpath(ROOT_DIR, "pysrc", "juliacall"))
         @assert pystr_asstring(jl.__version__) == string(VERSION)
         @assert pybool_asbool(jl.CONFIG["noinit"])
     end

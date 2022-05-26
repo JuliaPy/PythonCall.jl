@@ -23,7 +23,7 @@ pyjldict_delitem(x::AbstractDict, k::Py) = (delete!(x, pyconvert(keytype(x), k))
 
 function pyjldict_update(x::AbstractDict, items_::Py)
     for item_ in items_
-        (k, v) = pyconvert_and_del(Tuple{keytype(x), valtype(x)}, item_)
+        (k, v) = pyconvert(Tuple{keytype(x), valtype(x)}, item_)
         x[k] = v
     end
     Py(nothing)
@@ -37,7 +37,6 @@ function init_jlwrap_dict()
     $("\n"^(@__LINE__()-1))
     class DictValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         _jl_undefined_ = object()
         def __iter__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjldict_iter)))
@@ -97,6 +96,8 @@ function init_jlwrap_dict()
                 self._jl_callmethod($(pyjl_methodnum(pyjldict_update)), items)
             if kwargs:
                 self.update(kwargs)
+        def copy(self):
+            return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
     import collections.abc
     collections.abc.MutableMapping.register(DictValue)
     del collections

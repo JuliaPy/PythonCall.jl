@@ -1,110 +1,36 @@
 """
-    PyPandasDataFrame(x; indexname=nothing, columntypes=())
+    PyPandasDataFrame(x; [indexname::Union{Nothing,Symbol}], [columnnames::Function], [columntypes::Function])
 
 Wraps the pandas DataFrame `x` as a Tables.jl-compatible table.
 
-`indexname` is the name of the column to contain the index. It may be `nothing` to exclude the index.
-
-`columntypes` is a mapping of column names to column element types, in case automatic deduction does not work.
+- `indexname`: The name of the column including the index. The default is `nothing`, meaning
+  to exclude the index.
+- `columnnames`: A function mapping the Python column name (a `Py`) to the Julia one (a
+  `Symbol`). The default is `x -> Symbol(x)`.
+- `columntypes`: A function taking the column name (a `Symbol`) and returning either the
+  desired element type of the column, or `nothing` to indicate automatic inference.
 """
 struct PyPandasDataFrame <: PyTable
     py::Py
-    indexname::Union{String,Nothing}
-    columntypes::Dict{String,Type}
-    function PyPandasDataFrame(x; indexname=nothing, columntypes=())
-        if indexname !== nothing
-            indexname = convert(String, indexname)
-        end
-        columntypes = Dict{String,Type}(columntypes)
-        new(Py(x), indexname, columntypes)
+    indexname::Union{Symbol,Nothing}
+    columnnames::Function # Py -> Symbol
+    columntypes::Function # Symbol -> Union{Type,Nothing}
+    function PyPandasDataFrame(x; indexname::Union{Symbol,Nothing}=nothing, columnnames::Function=x->Symbol(x), columntypes::Function=x->nothing)
+        new(Py(x), indexname, columnnames, columntypes)
     end
 end
 export PyPandasDataFrame
 
 ispy(x::PyPandasDataFrame) = true
-getpy(x::PyPandasDataFrame) = x.py
-pydel!(x::PyPandasDataFrame) = pydel!(x.py)
+Py(x::PyPandasDataFrame) = x.py
 
 pyconvert_rule_pandasdataframe(::Type{PyPandasDataFrame}, x::Py) = pyconvert_return(PyPandasDataFrame(x))
-
-### Dict interface
-
-function Base.keys(df::PyPandasDataFrame)
-    ans = String[]
-    @py for c in df.columns
-        if isinstance(c, str)
-            @jl push!(ans, pyconvert(String, c))
-            @del c
-        else
-            @jl error("name of column '$c' is not a string")
-        end
-    end
-    if df.indexname !== nothing
-        if df.indexname in ans
-            error("dataframe already includes a column called '$(df.indexname)'")
-        else
-            pushfirst!(ans, df.indexname)
-        end
-    end
-    return ans
-end
-
-Base.haskey(df::PyPandasDataFrame, k::String) = (df.indexname !== nothing && k == df.indexname) || @py k in df.columns
-Base.haskey(df::PyPandasDataFrame, k::Symbol) = haskey(df, string(k))
-Base.haskey(df::PyPandasDataFrame, k) = haskey(df, convert(String, k))
-
-function Base.getindex(df::PyPandasDataFrame, k::String)
-    # get the given column
-    if df.indexname !== nothing && k == df.indexname
-        c = @py df.index
-    else
-        c = @py df[k]
-    end
-    # convert to a vector
-    if haskey(df.columntypes, k)
-        ans = pyconvert_and_del(AbstractVector{df.columntypes[k]}, c)
-    else
-        ans = pyconvert_and_del(AbstractVector, c)
-        # narrow the type
-        ans = identity.(ans)
-        # convert any Py to something more useful
-        if Py <: eltype(ans)
-            ans = [x isa Py ? pyconvert(Any, x) : x for x in ans]
-        end
-        # convert NaN to missing
-        if eltype(ans) != Float64 && Float64 <: eltype(ans)
-            ans = [x isa Float64 && isnan(x) ? missing : x for x in ans]
-        end
-    end
-    return ans :: AbstractVector
-end
-Base.getindex(df::PyPandasDataFrame, k::Symbol) = getindex(df, string(k))
-Base.getindex(df::PyPandasDataFrame, k) = getindex(df, convert(String, k))
-
-Base.get(df::PyPandasDataFrame, k, d) = haskey(df, k) ? df[k] : d
-
-Base.values(df::PyPandasDataFrame) = (df[k] for k in keys(df))
-
-Base.pairs(df::PyPandasDataFrame) = (Pair{String, AbstractVector}(k, df[k]) for k in keys(df))
-
-Base.getproperty(df::PyPandasDataFrame, k::Symbol) = hasfield(PyPandasDataFrame, k) ? getfield(df, k) : df[k]
-Base.getproperty(df::PyPandasDataFrame, k::String) = getproperty(df, Symbol(k))
-
-function Base.propertynames(df::PyPandasDataFrame, private::Bool=false)
-    ans = Symbol.(keys(df))
-    if private
-        append!(ans, fieldnames(PyPandasDataFrame))
-    else
-        push!(ans, :indexname, :columntypes)
-    end
-    return ans
-end
 
 ### Show
 
 function Base.show(io::IO, mime::MIME"text/plain", df::PyPandasDataFrame)
-    nrows = pyconvert_and_del(Int, @py df.shape[0])
-    ncols = pyconvert_and_del(Int, @py df.shape[1])
+    nrows = pyconvert(Int, @py df.shape[0])
+    ncols = pyconvert(Int, @py df.shape[1])
     printstyled(io, nrows, '×', ncols, ' ', typeof(df), '\n', bold=true)
     pyshow(io, mime, df)
 end
@@ -117,9 +43,65 @@ Base.showable(mime::MIME, df::PyPandasDataFrame) = pyshowable(mime, df)
 ### Tables
 
 Tables.istable(::Type{PyPandasDataFrame}) = true
+
 Tables.columnaccess(::Type{PyPandasDataFrame}) = true
-function Tables.columns(df::PyPandasDataFrame)
-    ns = Tuple(Symbol.(keys(df)))
-    cs = values(df)
-    return NamedTuple{ns}(cs)
+
+Tables.columns(df::PyPandasDataFrame) = _columns(df, df.columnnames, df.columntypes)
+
+function _columns(df, columnnames, columntypes)
+    # collect columns
+    colnames = Symbol[]
+    pycolumns = Py[]
+    if df.indexname !== nothing
+        push!(colnames, df.indexname)
+        push!(pycolumns, df.py.index.values)
+    end
+    for pycolname in df.py.columns
+        colname = columnnames(pycolname)::Symbol
+        pycolumn = df.py[pycolname].values
+        push!(colnames, colname)
+        push!(pycolumns, pycolumn)
+    end
+    # ensure column names are unique by appending a _N suffix
+    colnamecount = Dict{Symbol,Int}()
+    for (i, colname) in pairs(colnames)
+        n = get(colnamecount, colname, 0) + 1
+        colnamecount[colname] = n
+        if n > 1
+            colnames[i] = Symbol(colname, :_, n)
+        end
+    end
+    # convert columns to vectors
+    columns = AbstractVector[]
+    coltypes = Type[]
+    for (colname, pycolumn) in zip(colnames, pycolumns)
+        coltype = columntypes(colname)::Union{Nothing,Type}
+        if coltype !== nothing
+            column = pyconvert(AbstractVector{coltype}, pycolumn)
+        else
+            column = pyconvert(AbstractVector, pycolumn)
+            if eltype(column) == Py
+                # guess a column type based on the types of the elements
+                ts = pybuiltins.set(pybuiltins.map(pybuiltins.type, pycolumn))
+                Ts = Type[pyconvert_preferred_type(t) for t in ts]
+                T = isempty(Ts) ? Any : reduce(promote_type, Ts)
+                column = pyconvert(AbstractVector{T}, pycolumn)
+                # if all items are either NaN or not Float64, convert NaN to missing
+                if T != Float64 && Float64 in Ts && !any(x isa Float64 && !isnan(x) for x in column)
+                    Ts = Type[T for T in Ts if T != Float64]
+                    push!(Ts, Missing)
+                    T = reduce(promote_type, Ts)
+                    column = pyconvert(AbstractVector{T}, pycolumn)
+                end
+            end
+        end
+        pydel!(pycolumn)
+        push!(columns, column)
+        push!(coltypes, eltype(column))
+    end
+    # output a table
+    # TODO: realising columns to vectors could be done lazily with a different table type
+    schema = Tables.Schema(colnames, coltypes)
+    coldict = Dict(k=>v for (k,v) in zip(colnames, columns))
+    Tables.DictColumnTable(schema, coldict)
 end

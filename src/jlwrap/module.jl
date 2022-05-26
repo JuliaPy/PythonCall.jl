@@ -10,7 +10,7 @@ function pyjlmodule_dir(self::Module)
 end
 
 function pyjlmodule_seval(self::Module, expr::Py)
-    Py(self.eval(Meta.parse(pyconvert(String, expr))))
+    Py(Base.eval(self, Meta.parse(pyconvert(String, expr))))
 end
 
 function init_jlwrap_module()
@@ -19,7 +19,6 @@ function init_jlwrap_module()
     $("\n"^(@__LINE__()-1))
     class ModuleValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __dir__(self):
             return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlmodule_dir)))
         def seval(self, expr):

@@ -7,7 +7,7 @@ function _pyconvert_rule_iterable(ans::Vector{T0}, it::Py, ::Type{T1}) where {T0
         pydel!(it)
         return pyconvert_return(ans)
     end
-    x = @pyconvert_and_del(T1, x_)
+    x = @pyconvert(T1, x_)
     if x isa T0
         push!(ans, x)
         @goto again
@@ -33,7 +33,7 @@ function _pyconvert_rule_iterable(ans::Set{T0}, it::Py, ::Type{T1}) where {T0,T1
         pydel!(it)
         return pyconvert_return(ans)
     end
-    x = @pyconvert_and_del(T1, x_)
+    x = @pyconvert(T1, x_)
     if x isa T0
         push!(ans, x)
         @goto again
@@ -60,8 +60,8 @@ function _pyconvert_rule_mapping(ans::Dict{K0,V0}, x::Py, it::Py, ::Type{K1}, ::
         return pyconvert_return(ans)
     end
     v_ = pygetitem(x, k_)
-    k = @pyconvert_and_del(K1, k_)
-    v = @pyconvert_and_del(V1, v_)
+    k = @pyconvert(K1, k_)
+    v = @pyconvert(V1, v_)
     if k isa K0 && v isa V0
         push!(ans, k => v)
         @goto again
@@ -101,7 +101,7 @@ function pyconvert_rule_iterable(::Type{T}, xs::Py) where {T<:Tuple}
         else
             return pyconvert_unconverted()
         end
-        z = @pyconvert_and_del(t, x)
+        z = @pyconvert(t, x)
         push!(zs, z)
     end
     return length(zs) < length(ts) ? pyconvert_unconverted() : pyconvert_return(T(zs))
@@ -116,10 +116,9 @@ for N in 0:16
         n = pylen(xs)
         n == $N || return pyconvert_unconverted()
         $((
-            :($z = @pyconvert_and_del($T, pytuple_getitem(xs, $(i-1))))
+            :($z = @pyconvert($T, pytuple_getitem(xs, $(i-1))))
             for (i, T, z) in zip(1:N, Ts, zs)
         )...)
-        pydel!(xs)
         return pyconvert_return(($(zs...),))
     end
     # Tuple with N elements plus Vararg
@@ -128,15 +127,14 @@ for N in 0:16
         n = pylen(xs)
         n ≥ $N || return pyconvert_unconverted()
         $((
-            :($z = @pyconvert_and_del($T, pytuple_getitem(xs, $(i-1))))
+            :($z = @pyconvert($T, pytuple_getitem(xs, $(i-1))))
             for (i, T, z) in zip(1:N, Ts, zs)
         )...)
         vs = V[]
         for i in $(N+1):n
-            v = @pyconvert_and_del(V, pytuple_getitem(xs, i-1))
+            v = @pyconvert(V, pytuple_getitem(xs, i-1))
             push!(vs, v)
         end
-        pydel!(xs)
         return pyconvert_return(($(zs...), vs...))
     end
 end
@@ -151,14 +149,14 @@ function pyconvert_rule_iterable(::Type{R}, x::Py, ::Type{Pair{K0,V0}}=Utils._ty
         pydel!(k_)
         return pyconvert_unconverted()
     end
-    k = @pyconvert_and_del(K1, k_)
+    k = @pyconvert(K1, k_)
     v_ = unsafe_pynext(it)
     if pyisnull(v_)
         pydel!(it)
         pydel!(v_)
         return pyconvert_unconverted()
     end
-    v = @pyconvert_and_del(V1, v_)
+    v = @pyconvert(V1, v_)
     z_ = unsafe_pynext(it)
     pydel!(it)
     if pyisnull(z_)

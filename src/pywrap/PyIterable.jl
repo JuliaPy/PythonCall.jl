@@ -12,8 +12,7 @@ export PyIterable
 PyIterable(x) = PyIterable{Py}(x)
 
 ispy(x::PyIterable) = true
-getpy(x::PyIterable) = x.py
-pydel!(x::PyIterable) = pydel!(x.py)
+Py(x::PyIterable) = x.py
 
 Base.IteratorSize(::Type{PyIterable{T}}) where {T} = Base.SizeUnknown()
 Base.eltype(::Type{PyIterable{T}}) where {T} = T
@@ -24,7 +23,7 @@ function Base.iterate(x::PyIterable{T}, it::Py=pyiter(x)) where {T}
         pydel!(it)
         return nothing
     else
-        return (pyconvert_and_del(T, y), it)
+        return (pyconvert(T, y), it)
     end
 end
 

@@ -15,8 +15,7 @@ PyDict{K}(x=pydict()) where {K} = PyDict{K,Py}(x)
 PyDict(x=pydict()) = PyDict{Py,Py}(x)
 
 ispy(::PyDict) = true
-getpy(x::PyDict) = x.py
-pydel!(x::PyDict) = pydel!(x.py)
+Py(x::PyDict) = x.py
 
 pyconvert_rule_mapping(::Type{T}, x::Py, ::Type{PyDict{K,V}}=Utils._type_ub(T)) where {T<:PyDict,K,V} =
     if PyDict{Py,Py} <: T
@@ -35,20 +34,20 @@ function Base.iterate(x::PyDict{K,V}, it::Py=pyiter(x)) where {K,V}
     k_ = unsafe_pynext(it)
     pyisnull(k_) && return nothing
     v_ = pygetitem(x, k_)
-    k = pyconvert_and_del(K, k_)
-    v = pyconvert_and_del(V, v_)
+    k = pyconvert(K, k_)
+    v = pyconvert(V, v_)
     return (k => v, it)
 end
 
 function Base.iterate(x::Base.KeySet{K,PyDict{K,V}}, it::Py=pyiter(x.dict)) where {K,V}
     k_ = unsafe_pynext(it)
     pyisnull(k_) && return nothing
-    k = pyconvert_and_del(K, k_)
+    k = pyconvert(K, k_)
     return (k, it)
 end
 
 function Base.getindex(x::PyDict{K,V}, k) where {K,V}
-    return pyconvert_and_del(V, pygetitem(x, convert(K, k)))
+    return pyconvert(V, pygetitem(x, convert(K, k)))
 end
 
 function Base.setindex!(x::PyDict{K,V}, v, k) where {K,V}

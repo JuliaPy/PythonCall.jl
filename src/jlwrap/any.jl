@@ -82,7 +82,7 @@ function (op::pyjlany_op)(self, other_::Py)
         other = pyjlvalue(other_)
         Py(op.op(self, other))
     else
-        Py(pybuiltins.NotImplemented)
+        pybuiltins.NotImplemented
     end
 end
 function (op::pyjlany_op)(self, other_::Py, other2_::Py)
@@ -91,7 +91,7 @@ function (op::pyjlany_op)(self, other_::Py, other2_::Py)
         other2 = pyjlvalue(other2_)
         Py(op.op(self, other, other2))
     else
-        Py(pybuiltins.NotImplemented)
+        pybuiltins.NotImplemented
     end
 end
 pyjl_handle_error_type(op::pyjlany_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
@@ -104,7 +104,7 @@ function (op::pyjlany_rev_op)(self, other_::Py)
         other = pyjlvalue(other_)
         Py(op.op(self, other))
     else
-        Py(pybuiltins.NotImplemented)
+        pybuiltins.NotImplemented
     end
 end
 function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
@@ -113,7 +113,7 @@ function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
         other2 = pyjlvalue(other2_)
         Py(op.op(self, other, other2))
     else
-        Py(pybuiltins.NotImplemented)
+        pybuiltins.NotImplemented
     end
 end
 pyjl_handle_error_type(op::pyjlany_rev_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
@@ -134,7 +134,11 @@ end
 
 function pyjlany_help(self, mime_::Py)
     mime = pyconvertarg(Union{Nothing,String}, mime_, "mime")
-    x = Utils.ExtraNewline(Docs.doc(self))
+    doc = Docs.getdoc(self)
+    if doc === nothing
+        doc = Docs.doc(self)
+    end
+    x = Utils.ExtraNewline(doc)
     if mime === nothing
         display(x)
     else
@@ -168,7 +172,6 @@ function init_jlwrap_any()
     $("\n"^(@__LINE__()-1))
     class AnyValue(ValueBase):
         __slots__ = ()
-        __module__ = "juliacall"
         def __repr__(self):
             if self._jl_isnull():
                 return "<jl NULL>"

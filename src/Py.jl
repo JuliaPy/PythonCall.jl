@@ -23,7 +23,7 @@ pyisnull(x) = getptr(x) == C.PyNULL
 
 Get the underlying pointer from the Python object `x`.
 """
-getptr(x) = getptr(getpy(x)::Py)
+getptr(x) = ispy(x) ? getptr(Py(x)::Py) : throw(MethodError(getptr, (x,)))
 
 """
     Py(x)
@@ -36,10 +36,6 @@ Such an object supports attribute access (`obj.attr`), indexing (`obj[idx]`), ca
 (`obj(arg1, arg2)`), iteration (`for x in obj`), arithmetic (`obj + obj2`) and comparison
 (`obj > obj2`), among other things. These operations convert all their arguments to `Py` and
 return `Py`.
-
-!!! warning
-
-    Do not overload this function. To define a new conversion, overload [`getpy`](@ref).
 """
 mutable struct Py
     ptr :: C.PyPtr
@@ -56,7 +52,6 @@ function py_finalizer(x::Py)
 end
 
 ispy(::Py) = true
-getpy(x::Py) = x
 getptr(x::Py) = getfield(x, :ptr)
 
 setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, ptr); x)
@@ -85,6 +80,8 @@ const PyNULL = pynew()
 
 pynew(ptr::C.PyPtr) = setptr!(pynew(), ptr)
 
+pynew(x::Py) = pynew(incref(getptr(x)))
+
 """
     pycopy!(dst::Py, src)
 
@@ -97,7 +94,7 @@ the top level then `pycopy!(x, pything())` inside `__init__()`.
 
 Assumes `dst` is NULL, otherwise a memory leak will occur.
 """
-pycopy!(dst, src) = GC.@preserve src setptr!(dst, incref(getptr(src)))
+pycopy!(dst::Py, src) = GC.@preserve src setptr!(dst, incref(getptr(src)))
 
 """
     pydel!(x::Py)
@@ -120,76 +117,44 @@ function pydel!(x::Py)
     ptr = getptr(x)
     if ptr != C.PyNULL
         C.Py_DecRef(ptr)
+        setptr!(x, C.PyNULL)
     end
-    pystolen!(x)
-end
-
-function pystolen!(x::Py)
-    setptr!(x, C.PyNULL)
     push!(PYNULL_CACHE, x)
-    nothing
+    return
 end
 
 macro autopy(args...)
     vs = args[1:end-1]
     ts = [Symbol(v, "_") for v in vs]
     body = args[end]
-    ans = gensym("ans")
+    # ans = gensym("ans")
     esc(quote
-        $([:($t = $ispy($v) ? $v : $Py($v)) for (t, v) in zip(ts, vs)]...)
-        $ans = $body
-        $([:($ispy($v) || $pydel!($t)) for (t, v) in zip(ts, vs)]...)
-        $ans
+        # $([:($t = $ispy($v) ? $v : $Py($v)) for (t, v) in zip(ts, vs)]...)
+        # $ans = $body
+        # $([:($ispy($v) || $pydel!($t)) for (t, v) in zip(ts, vs)]...)
+        # $ans
+        $([:($t = $Py($v)) for (t, v) in zip(ts, vs)]...)
+        $body
     end)
 end
 
-struct NewPy
-    py::Py
-    NewPy(py::Py) = new(py)
-end
-
-Py(x::Py) = GC.@preserve x pynew(incref(getptr(x))) # copy, because Py must always return a new object
-Py(x::NewPy) = x.py
-Py(x) = Py(getpy(x)::Union{Py,NewPy})
-
-"""
-    getpy(x)
-
-Convert `x` to a `Py`.
-
-Overload this function (not [`Py`](@ref)) to define a new conversion to Python.
-
-If `x` is a simple wrapper around a Python object (such as [`PyList`](@ref) or
-[`PyDict`](@ref)) then `getpy(x)` should return the Python object. You should also define
-`ispy(x) = true`. This means that when `x` is passed back to Python, the underlying object
-is used directly.
-
-### Optional optimization (for experts)
-
-If [`ispy(x)`](@ref) is false and the returned Julia object `ans` is not referenced anywhere
-else, in the sense that [`pydel!(ans)`](@ref) would be safe, you may instead return
-`NewPy(ans)`.
-
-This can avoid the Julia garbage collector in performance-critical code.
-
-If [`ispy(x)`](@ref) is true, you **must** return a [`Py`](@ref).
-"""
-getpy(x) = ispy(x) ? throw(MethodError(getpy, (x,))) : NewPy(pyjl(x))
-getpy(x::Nothing) = pybuiltins.None
-getpy(x::Bool) = NewPy(pybool(x))
-getpy(x::Union{String, SubString{String}, Char}) = NewPy(pystr(x))
-getpy(x::Base.CodeUnits{UInt8, String}) = NewPy(pybytes(x))
-getpy(x::Base.CodeUnits{UInt8, SubString{String}}) = NewPy(pybytes(x))
-getpy(x::Tuple) = NewPy(pytuple_fromiter(x))
-getpy(x::Pair) = NewPy(pytuple_fromiter(x))
-getpy(x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}) = NewPy(pyint(x))
-getpy(x::Rational{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = NewPy(pyfraction(x))
-getpy(x::Union{Float16,Float32,Float64}) = NewPy(pyfloat(x))
-getpy(x::Complex{<:Union{Float16,Float32,Float64}}) = NewPy(pycomplex(x))
-getpy(x::AbstractRange{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = NewPy(pyrange_fromrange(x))
-getpy(x::Date) = NewPy(pydate(x))
-getpy(x::Time) = NewPy(pytime(x))
-getpy(x::DateTime) = NewPy(pydatetime(x))
+Py(x::Py) = x
+Py(x::Nothing) = pybuiltins.None
+Py(x::Bool) = x ? pybuiltins.True : pybuiltins.False
+Py(x::Union{String, SubString{String}, Char}) = pystr(x)
+Py(x::Base.CodeUnits{UInt8, String}) = pybytes(x)
+Py(x::Base.CodeUnits{UInt8, SubString{String}}) = pybytes(x)
+Py(x::Tuple) = pytuple_fromiter(x)
+Py(x::Pair) = pytuple_fromiter(x)
+Py(x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}) = pyint(x)
+Py(x::Rational{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = pyfraction(x)
+Py(x::Union{Float16,Float32,Float64}) = pyfloat(x)
+Py(x::Complex{<:Union{Float16,Float32,Float64}}) = pycomplex(x)
+Py(x::AbstractRange{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = pyrange_fromrange(x)
+Py(x::Date) = pydate(x)
+Py(x::Time) = pytime(x)
+Py(x::DateTime) = pydatetime(x)
+Py(x) = ispy(x) ? throw(MethodError(Py, (x,))) : pyjl(x)
 
 Base.string(x::Py) = pyisnull(x) ? "<py NULL>" : pystr(String, x)
 Base.print(io::IO, x::Py) = print(io, string(x))
@@ -313,6 +278,9 @@ Base.showable(mime::MIME, o::Py) = pyshowable(mime, o)
 Base.getproperty(x::Py, k::Symbol) = pygetattr(x, string(k))
 Base.getproperty(x::Py, k::String) = pygetattr(x, k)
 
+Base.hasproperty(x::Py, k::Symbol) = pyhasattr(x, string(k))
+Base.hasproperty(x::Py, k::String) = pyhasattr(x, k)
+
 Base.setproperty!(x::Py, k::Symbol, v) = pysetattr(x, string(k), v)
 Base.setproperty!(x::Py, k::String, v) = pysetattr(x, k, v)
 
@@ -350,6 +318,25 @@ Base.setindex!(x::Py, v, i...) = (pysetitem(x, i, v); x)
 
 Base.delete!(x::Py, i) = (pydelitem(x, i); x)
 
+Base.haskey(x::Py, i) = pyhasitem(x, i)
+
+Base.get(x::Py, i, d) = pygetitem(x, i, d)
+
+function Base.get(f::Base.Callable, x::Py, i)
+    v = pygetitem(x, i, nothing)
+    v === nothing ? f() : v
+end
+
+Base.get!(x::Py, i, d) = get(x, i) do
+    pysetitem(x, i, d)
+    pygetitem(x, i)
+end
+
+Base.get!(f::Base.Callable, x::Py, i) = get(x, i) do
+    pysetitem(x, i, f())
+    pygetitem(x, i)
+end
+
 Base.eltype(::Type{Py}) = Py
 
 Base.IteratorSize(::Type{Py}) = Base.SizeUnknown()
@@ -366,7 +353,7 @@ end
 
 Base.in(v, x::Py) = pycontains(x, v)
 
-Base.hash(x::Py) = reinterpret(UInt, Int(pyhash(x)))
+Base.hash(x::Py, h::UInt) = reinterpret(UInt, Int(pyhash(x))) - 3h
 
 (f::Py)(args...; kwargs...) = pycall(f, args...; kwargs...)
 
@@ -464,7 +451,7 @@ Base.powermod(x::Number, y::Py, z::Number) = pypow(x, y, z)
 Base.powermod(x::Py, y::Number, z::Number) = pypow(x, y, z)
 
 # documentation
-function Base.Docs.getdoc(x::Py)
+function Base.Docs.getdoc(x::Py, @nospecialize(sig))
     parts = []
     inspect = pyimport("inspect")
     # head line
@@ -494,8 +481,9 @@ function Base.Docs.getdoc(x::Py)
     # docstring
     doc = pyimport("inspect").getdoc(x)
     if !pyisnone(doc)
-        push!(parts, Text(pystr_asstring(doc)))
+        push!(parts, Markdown.Code("text", pystr_asstring(doc)))
     end
     return Markdown.MD(parts)
 end
+Base.Docs.doc(x::Py, sig::Type=Union{}) = Base.Docs.getdoc(x, sig)
 Base.Docs.Binding(x::Py, k::Symbol) = getproperty(x, k)

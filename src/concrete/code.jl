@@ -9,9 +9,9 @@ function _pyeval_args(globals, locals)
         ArgumentError("globals must be a module or a Python dict")
     end
     if locals === nothing
-        locals_ = Py(globals_)
+        locals_ = pynew(Py(globals_))
     elseif ispy(locals)
-        locals_ = Py(locals)
+        locals_ = pynew(Py(locals))
     else
         locals_ = pydict(locals)
     end
@@ -42,7 +42,7 @@ function pyeval(::Type{T}, code, globals, locals=nothing) where {T}
     globals_, locals_ = _pyeval_args(globals, locals)
     ans = pybuiltins.eval(code, globals_, locals_)
     pydel!(locals_)
-    return T == Py ? ans : pyconvert_and_del(T, ans)
+    return T == Py ? ans : pyconvert(T, ans)
 end
 pyeval(code, globals, locals=nothing) = pyeval(Py, code, globals, locals)
 export pyeval
@@ -57,7 +57,7 @@ _pyexec_ans(::Type{Nothing}, globals, locals) = nothing
     for i in 1:n
         v = Symbol(:ans, i)
         push!(vars, v)
-        push!(code, :($v = pyconvert_and_del($(types.parameters[i]), pygetitem(locals, $(string(names[i]))))))
+        push!(code, :($v = pyconvert($(types.parameters[i]), pygetitem(locals, $(string(names[i]))))))
     end
     push!(code, :(return $(NamedTuple{names, types})(($(vars...),))))
     return Expr(:block, code...)

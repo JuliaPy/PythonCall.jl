@@ -1,10 +1,7 @@
 pynulltuple(len) = pynew(errcheck(C.PyTuple_New(len)))
 
 function pytuple_setitem(xs::Py, i, x)
-    x_ = Py(x)
-    err = C.PyTuple_SetItem(getptr(xs), i, getptr(x_))
-    pystolen!(x_)
-    errcheck(err)
+    errcheck(C.PyTuple_SetItem(getptr(xs), i, incref(getptr(Py(x)))))
     return xs
 end
 

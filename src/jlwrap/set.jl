@@ -13,7 +13,7 @@ pyjlset_clear(x::AbstractSet) = (empty!(x); Py(nothing))
 function pyjlset_pop(x::AbstractSet)
     if isempty(x)
         errset(pybuiltins.KeyError, "pop from an empty set")
-        pynew()
+        PyNULL
     else
         Py(pop!(x))
     end
@@ -22,14 +22,14 @@ end
 function pyjlset_remove(x::AbstractSet, v_::Py)
     v = @pyconvert eltype(x) v_ begin
         errset(pybuiltins.KeyError, v_)
-        return pynew()
+        return PyNULL
     end
     if v in x
         delete!(x, v)
         return Py(nothing)
     else
         errset(pybuiltins.KeyError, v_)
-        return pynew()
+        return PyNULL
     end
 end
 
@@ -79,7 +79,6 @@ function init_jlwrap_set()
     $("\n"^(@__LINE__()-1))
     class SetValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def add(self, value):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_add)), value)
         def discard(self, value):

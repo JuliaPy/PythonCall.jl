@@ -33,7 +33,6 @@ function init_jlwrap_callback()
     $("\n"^(@__LINE__()-1))
     class CallbackValue(ValueBase):
         __slots__ = ()
-        __module__ = "juliacall"
         def __repr__(self):
             if self._jl_isnull():
                 return "<jl NULL>"

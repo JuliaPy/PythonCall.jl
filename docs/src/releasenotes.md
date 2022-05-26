@@ -1,6 +1,19 @@
 # Release Notes
 
 ## Unreleased
+* **Breaking.** Removes `getpy`: you may now overload `Py` directly, which now need not
+  always return a new object (e.g. for singletons or wrappers).
+* **Breaking.** Conversion rules no longer take a new object every time.
+* **Breaking.** Improved Tables-interface support for `PyPandasDataFrame`: better inferred
+  column types; better handling of non-string column names; columns are usually wrappers
+  (`PyArray` or `PyList`). Constructor arguments have changed. Dict methods have been
+  removed (basically only the Tables interface is supported).
+* **Breaking.** A `Py` which is convertible to `PyTable` is no longer considered to be a
+  table itself; you must convert explicitly.
+* Adds `pyhasitem` and 3-arg `pygetitem`.
+* Extends `Base.get`, `Base.get!`, `Base.haskey` and 2-arg `Base.hash` for `Py`.
+* `PyArray` can now have any element type when the underlying array is of Python objects.
+* Adds `ArrayValue.to_numpy()`.
 * Bug fixes.
 
 ## v0.8.0 (2022-03-17)

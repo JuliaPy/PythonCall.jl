@@ -8,6 +8,8 @@
   column types; better handling of non-string column names; columns are usually wrappers
   (`PyArray` or `PyList`). Constructor arguments have changed. Dict methods have been
   removed (basically only the Tables interface is supported).
+* **Breaking.** A `Py` which is convertible to `PyTable` is no longer considered to be a
+  table itself; you must convert explicitly.
 * Adds `pyhasitem` and 3-arg `pygetitem`.
 * Extends `Base.get`, `Base.get!`, `Base.haskey` and 2-arg `Base.hash` for `Py`.
 * `PyArray` can now have any element type when the underlying array is of Python objects.

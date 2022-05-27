@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased
+## 0.9.0 (2022-05-27)
 * **Breaking.** Removes `getpy`: you may now overload `Py` directly, which now need not
   always return a new object (e.g. for singletons or wrappers).
 * **Breaking.** Conversion rules no longer take a new object every time.

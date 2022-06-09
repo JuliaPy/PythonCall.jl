@@ -5,6 +5,7 @@
 [![Dev Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://cjdoris.github.io/PythonCall.jl/dev)
 [![Test Status](https://github.com/cjdoris/PythonCall.jl/workflows/Tests/badge.svg)](https://github.com/cjdoris/PythonCall.jl/actions?query=workflow%3ATests)
 [![Codecov](https://codecov.io/gh/cjdoris/PythonCall.jl/branch/main/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/cjdoris/PythonCall.jl)
+[![PkgEval][https://juliaci.github.io/NanosoldierReports/pkgeval_badges/P/PythonCall.svg]][https://juliaci.github.io/NanosoldierReports/pkgeval_badges/P/PythonCall.html]
 
 Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://julialang.org/) together in seamless harmony:
 - Call Python code from Julia and Julia code from Python via a symmetric interface.

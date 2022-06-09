@@ -10,11 +10,17 @@ Whenever a Python exception is displayed by Julia, `sys.last_traceback` and frie
 
 ## Tabular data & Pandas
 
-A `pandas.DataFrame` can be wrapped in Julia as a [`PyPandasDataFrame`](@ref), providing a `Tables.jl`-compatible interface.
+The abstract type [`PyTable`](@ref) is for wrapper types around Python tables, providing the
+[Tables.jl](https://github.com/JuliaData/Tables.jl) interface. `PyTable(x)` is shorthand
+for `pyconvert(PyTable, x)`.
 
-Furthermore, any Python object which can be converted to a `PyTable` (e.g. `pandas.DataFrame` can be converted to `PyPandasDataFrame`) satisfies the Tables.jl interface.
+The subtype [`PyPandasDataFrame`](@ref) wraps a `pandas.DataFrame`.
 
-In the other direction, the following functions can be used to convert any `Tables.jl`-compatible table to a Python table.
+For example, if `x` is a `pandas.DataFrame` then `PyTable(x)` is a `PyPandasDataFrame` and
+`DataFrame(PyTable(x))` is a [`DataFrame`](https://github.com/JuliaData/DataFrames.jl).
+
+In the other direction, the following functions can be used to convert any
+`Tables.jl`-compatible table to a Python table.
 
 ```@docs
 pytable

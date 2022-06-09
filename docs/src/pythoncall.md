@@ -64,7 +64,7 @@ Python list: [3, 4, 1, 2]
 We have just seen the functions [`pylist`](@ref) (for constructing a Python list) and
 [`pyslice`](@ref) (for constructing a Python slice). There are many such functions,
 mirroring most of the Python builtin functions and types. The
-[API Reference](@ref PythonCall API Reference) documents them all.
+[API Reference](@ref py-reference) documents them all.
 
 Most of these functions are essentially Python builtins with a `py` prefix. For example
 `pyint(x)` converts `x` to a Python `int` and is equivalent to `int(x)` in Python when `x`
@@ -132,10 +132,10 @@ In the above example, we converted a Python list to a Julia vector in three ways
 See [here](@ref py2jl) for the rules regarding how `pyconvert(T, x)` works. If `x` is an
 immutable scalar type (such as an `int` or `str`) then `pyconvert(Any, x)` may return the
 corresponding Julia object (such as an `Integer` or `String`). Otherwise it will typically
-return either a [wrapper type](@ref Wrapper types) (such as `PyList{Py}` in the above
+return either a [wrapper type](@ref py-wrappers) (such as `PyList{Py}` in the above
 example) or will fall back to returning a [`Py`](@ref).
 
-## Wrapper types
+## [Wrapper types](@id py-wrappers)
 
 A wrapper is a type which wraps a Python object but provides it with the semantics of some
 other Julia type.

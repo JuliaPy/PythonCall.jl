@@ -30,7 +30,7 @@ getptr(x) = ispy(x) ? getptr(Py(x)::Py) : throw(MethodError(getptr, (x,)))
 
 Convert `x` to a Python object, of type `Py`.
 
-Conversion happens according to [`these rules`](@ref jl2py-conversion).
+Conversion happens according to [these rules](@ref jl2py-conversion).
 
 Such an object supports attribute access (`obj.attr`), indexing (`obj[idx]`), calling
 (`obj(arg1, arg2)`), iteration (`for x in obj`), arithmetic (`obj + obj2`) and comparison

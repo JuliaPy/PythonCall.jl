@@ -1,4 +1,4 @@
-# PythonCall API Reference
+# [PythonCall API Reference](@id py-reference)
 
 ## `Py` objects
 

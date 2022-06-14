@@ -186,6 +186,12 @@ module Utils
 
     StaticString{T,N}(x::AbstractString) where {T,N} = convert(StaticString{T,N}, x)
 
+    Base.ncodeunits(x::StaticString{T,N}) where {T,N} = N
+
+    Base.codeunit(x::StaticString, i::Integer) = x.codeunits[i]
+
+    Base.codeunit(x::StaticString{T}) where {T} = T
+
     function Base.iterate(x::StaticString, st::Union{Nothing,Tuple}=nothing)
         if st === nothing
             s = String(x)

@@ -78,12 +78,16 @@ abstract type PyArraySource end
 function pyarray_make(::Type{A}, x::Py; array::Bool=true, buffer::Bool=true, copy::Bool=true) where {A<:PyArray}
     # TODO: try/catch is SLOW if an error is thrown, think about sending errors via return values instead
     A == Union{} && return pyconvert_unconverted()
-    if array && pyhasattr(x, "__array_struct__")
-        @debug "not implemented: creating PyArray from __array_struct__"
-    end
-    if array && pyhasattr(x, "__array_interface__")
+    if array && (xa = pygetattr(x, "__array_struct__", PyNULL); !pyisnull(xa))
         try
-            return pyarray_make(A, x, PyArraySource_ArrayInterface(x))
+            return pyarray_make(A, x, PyArraySource_ArrayStruct(x, xa))
+        catch exc
+            @debug "failed to make PyArray from __array_struct__" exc=exc
+        end
+    end
+    if array && (xi = pygetattr(x, "__array_interface__", PyNULL); !pyisnull(xi))
+        try
+            return pyarray_make(A, x, PyArraySource_ArrayInterface(x, xi))
         catch exc
             @debug "failed to make PyArray from __array_interface__" exc=exc
         end
@@ -97,12 +101,16 @@ function pyarray_make(::Type{A}, x::Py; array::Bool=true, buffer::Bool=true, cop
     end
     if copy && array && pyhasattr(x, "__array__")
         y = x.__array__()
-        if pyhasattr(y, "__array_struct__")
-            @debug "not implemented: creating PyArray from __array__().__array_struct__"
-        end
-        if pyhasattr(y, "__array_interface__")
+        if (ya = pygetattr(y, "__array_struct__", PyNULL); !pyisnull(ya))
             try
-                return pyarray_make(A, y, PyArraySource_ArrayInterface(y))
+                return pyarray_make(A, y, PyArraySource_ArrayStruct(y, ya))
+            catch exc
+                @debug "failed to make PyArray from __array__().__array_interface__" exc=exc
+            end
+        end
+        if (yi = pygetattr(y, "__array_interface__", PyNULL); !pyisnull(yi))
+            try
+                return pyarray_make(A, y, PyArraySource_ArrayInterface(y, yi))
             catch exc
                 @debug "failed to make PyArray from __array__().__array_interface__" exc=exc
             end
@@ -182,8 +190,7 @@ struct PyArraySource_ArrayInterface <: PyArraySource
     readonly :: Bool
     handle :: Py
 end
-function PyArraySource_ArrayInterface(x::Py)
-    d = x.__array_interface__
+function PyArraySource_ArrayInterface(x::Py, d::Py=x.__array_interface__)
     # offset
     # TODO: how is the offset measured?
     offset = pyconvert(Int, @py d.get("offset", 0))
@@ -288,15 +295,125 @@ pyarray_get_M(src::PyArraySource_ArrayInterface) = !src.readonly
 
 pyarray_get_handle(src::PyArraySource_ArrayInterface) = src.handle
 
-# TODO: array struct
+# array struct
 
 struct PyArraySource_ArrayStruct <: PyArraySource
     obj :: Py
     capsule :: Py
+    info :: C.PyArrayInterface
 end
-PyArraySource_ArrayStruct(x::Py) = PyArraySource_ArrayStruct(x, x.__array_struct__)
+function PyArraySource_ArrayStruct(x::Py, capsule::Py=x.__array_struct__)
+    name = C.PyCapsule_GetName(getptr(capsule))
+    ptr = C.PyCapsule_GetPointer(getptr(capsule), name)
+    info = unsafe_load(Ptr{C.PyArrayInterface}(ptr))
+    @assert info.two == 2
+    return PyArraySource_ArrayStruct(x, capsule, info)
+end
 
-# TODO: buffer protocol
+function pyarray_get_R(src::PyArraySource_ArrayStruct)
+    swapped = !Utils.isflagset(src.info.flags, C.NPY_ARRAY_NOTSWAPPED)
+    hasdescr = Utils.isflagset(src.info.flags, C.NPY_ARR_HAS_DESCR)
+    swapped && error("byte-swapping not supported")
+    kind = src.info.typekind
+    size = src.info.itemsize
+    if kind == 98  # b = bool
+        if size == sizeof(Bool)
+            return Bool
+        else
+            error("bool of this size not supported: $size")
+        end
+    elseif kind == 105  # i = int
+        if size == 1
+            return Int8
+        elseif size == 2
+            return Int16
+        elseif size == 4
+            return Int32
+        elseif size == 8
+            return Int64
+        else
+            error("int of this size not supported: $size")
+        end
+    elseif kind == 117  # u = uint
+        if size == 1
+            return UInt8
+        elseif size == 2
+            return UInt16
+        elseif size == 4
+            return UInt32
+        elseif size == 8
+            return UInt64
+        else
+            error("uint of this size not supported: $size")
+        end
+    elseif kind == 102  # f = float
+        if size == 2
+            return Float16
+        elseif size == 4
+            return Float32
+        elseif size == 8
+            return Float64
+        else
+            error("float of this size not supported: $size")
+        end
+    elseif kind == 99  # c = complex
+        if size == 4
+            return ComplexF16
+        elseif size == 8
+            return ComplexF32
+        elseif size == 16
+            return ComplexF64
+        end
+    elseif kind == 109  # m = timedelta
+        error("timedelta not supported")
+    elseif kind == 77  # M = datetime
+        error("datetime not supported")
+    elseif kind == 79  # O = object
+        if size == sizeof(C.PyPtr)
+            return UnsafePyObject
+        else
+            error("object pointer of this size not supported: $size")
+        end
+    elseif kind == 83  # S = byte string
+        error("byte strings not supported")
+    elseif kind == 85  # U = unicode string
+        mod(size, 4) == 0 || error("unicode size must be a multiple of 4: $size")
+        return Utils.StaticString{UInt32,div(size, 4)}
+    elseif kind == 86  # V = void (should have descr)
+        error("dtype not supported")
+    else
+        error("unexpected kind ($(Char(kind)))")
+    end
+    @assert false
+end
+
+function pyarray_get_ptr(src::PyArraySource_ArrayStruct, ::Type{R}) where {R}
+    return Ptr{R}(src.info.data)
+end
+
+function pyarray_get_N(src::PyArraySource_ArrayStruct)
+    return Int(src.info.nd)
+end
+
+function pyarray_get_size(src::PyArraySource_ArrayStruct, ::Val{N}) where {N}
+    ptr = src.info.shape
+    return ntuple(i->Int(unsafe_load(ptr, i)), Val(N))
+end
+
+function pyarray_get_strides(src::PyArraySource_ArrayStruct, ::Val{N}, ::Type{R}, size::NTuple{N,Int}) where {N,R}
+    ptr = src.info.strides
+    return ntuple(i->Int(unsafe_load(ptr, i)), Val(N))
+end
+
+function pyarray_get_M(src::PyArraySource_ArrayStruct)
+    return Utils.isflagset(src.info.flags, C.NPY_ARRAY_WRITEABLE)
+end
+
+function pyarray_get_handle(src::PyArraySource_ArrayStruct)
+    return src.capsule
+end
+
+# buffer protocol
 
 struct PyArraySource_Buffer <: PyArraySource
     obj :: Py
@@ -398,6 +515,14 @@ Base.strides(x::PyArray{T,N,M,L,R}) where {T,N,M,L,R} =
     else
         error("strides are not a multiple of element size")
     end
+
+function Base.showarg(io::IO, x::PyArray{T,N}, toplevel::Bool) where {T, N}
+    toplevel || print(io, "::")
+    print(io, "PyArray{")
+    show(io, T)
+    print(io, ", ", N, "}")
+    return
+end
 
 @propagate_inbounds Base.getindex(x::PyArray{T,N}, i::Vararg{Int,N}) where {T,N} = pyarray_getindex(x, i...)
 @propagate_inbounds Base.getindex(x::PyArray{T,N,M,true}, i::Int) where {T,N,M} = pyarray_getindex(x, i)

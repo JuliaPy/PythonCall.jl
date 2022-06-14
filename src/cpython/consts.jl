@@ -329,3 +329,22 @@ end
     value::Int = 0
     weaklist::PyPtr = C_NULL
 end
+
+@kwdef struct PyArrayInterface
+    two::Cint = 0
+    nd::Cint = 0
+    typekind::Cchar = 0
+    itemsize::Cint = 0
+    flags::Cint = 0
+    shape::Ptr{Cssize_t} = C_NULL
+    strides::Ptr{Cssize_t} = C_NULL
+    data::Ptr{Cvoid} = C_NULL
+    descr::PyPtr = C_NULL
+end
+
+const NPY_ARRAY_C_CONTIGUOUS = 0x0001
+const NPY_ARRAY_F_CONTIGUOUS = 0x0002
+const NPY_ARRAY_ALIGNED = 0x0100
+const NPY_ARRAY_NOTSWAPPED = 0x0200
+const NPY_ARRAY_WRITEABLE = 0x0400
+const NPY_ARR_HAS_DESCR = 0x0800

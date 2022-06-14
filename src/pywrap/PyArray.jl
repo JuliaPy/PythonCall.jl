@@ -76,13 +76,10 @@ end
 abstract type PyArraySource end
 
 function pyarray_make(::Type{A}, x::Py; array::Bool=true, buffer::Bool=true, copy::Bool=true) where {A<:PyArray}
+    # TODO: try/catch is SLOW if an error is thrown, think about sending errors via return values instead
     A == Union{} && return pyconvert_unconverted()
     if array && pyhasattr(x, "__array_struct__")
-        try
-            return pyarray_make(A, x, PyArraySource_ArrayStruct(x))
-        catch exc
-            @debug "failed to make PyArray from __array_struct__" exc=exc
-        end
+        @debug "not implemented: creating PyArray from __array_struct__"
     end
     if array && pyhasattr(x, "__array_interface__")
         try
@@ -101,11 +98,7 @@ function pyarray_make(::Type{A}, x::Py; array::Bool=true, buffer::Bool=true, cop
     if copy && array && pyhasattr(x, "__array__")
         y = x.__array__()
         if pyhasattr(y, "__array_struct__")
-            try
-                return pyarray_make(A, y, PyArraySource_ArrayStruct(y))
-            catch exc
-                @debug "failed to make PyArray from __array__().__array_struct__" exc=exc
-            end
+            @debug "not implemented: creating PyArray from __array__().__array_struct__"
         end
         if pyhasattr(y, "__array_interface__")
             try

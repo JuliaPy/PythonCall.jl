@@ -26,7 +26,7 @@ function init_juliacall()
         # check the version
         @assert realpath(pystr_asstring(jl.__path__[0])) == realpath(joinpath(ROOT_DIR, "pysrc", "juliacall"))
         @assert pystr_asstring(jl.__version__) == string(VERSION)
-        @assert pybool_asbool(jl.CONFIG["init"])
+        @assert !pybool_asbool(jl.CONFIG["init"])
     end
 end
 

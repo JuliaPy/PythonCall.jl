@@ -47,10 +47,54 @@ def init():
     import sys
     import subprocess
 
+    def option(name, default=None):
+        """Get an option.
+
+        Options can be set as command line arguments '-X juliacall_{name}={value}' or as
+        environment variables 'PYTHON_JULIACALL_{NAME}={value}'.
+        """
+        k = 'juliacall_'+name.lower()
+        v = sys._xoptions.get(k)
+        if v is not None:
+            return v
+        k = 'PYTHON_JULIACALL_'+name.upper()
+        v = os.getenv(k)
+        if v is not None:
+            return v
+        return default
+
+    def choice(name, choices, default=None):
+        k = option(name)
+        if k is None:
+            return default
+        if k in choices:
+            if isinstance(k, dict):
+                return choices[k]
+            else:
+                return k
+        raise ValueError(f'invalid value for option: JULIACALL_{name.upper()}={k}, expecting one of {", ".join(choices)}')
+
+    def path_option(name, default=None):
+        path = option(name)
+        if path is not None:
+            return os.path.abspath(path)
+        return default
+
     # Determine if we should skip initialising.
-    CONFIG['noinit'] = os.getenv('PYTHON_JULIACALL_NOINIT', '') == 'yes'
-    if CONFIG['noinit']:
+    CONFIG['init'] = choice('init', ['yes', 'no'], default='yes') == 'yes'
+    if not CONFIG['init']:
         return
+
+    # Parse some more options
+    CONFIG['opt_bindir'] = path_option('bindir')  # TODO
+    CONFIG['opt_check_bounds'] = choice('check_bounds', ['yes', 'no'])  # TODO
+    CONFIG['opt_compile'] = choice('compile', ['yes', 'no', 'all', 'min'])  # TODO
+    CONFIG['opt_compiled_modules'] = choice('compiled_modules', ['yes', 'no'])  # TODO
+    CONFIG['opt_depwarn'] = choice('depwarn', ['yes', 'no', 'error'])  # TODO
+    CONFIG['opt_inline'] = choice('inline', ['yes', 'no'])  # TODO
+    CONFIG['opt_optimize'] = choice('optimize', ['0', '1', '2', '3'])  # TODO
+    CONFIG['opt_sysimage'] = path_option('sysimage')  # TODO
+    CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])  # TODO
 
     # Stop if we already initialised
     if CONFIG['inited']:

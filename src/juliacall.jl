@@ -20,13 +20,13 @@ function init_juliacall()
         # prepend the directory containing juliacall to sys.path
         sys.path.insert(0, joinpath(ROOT_DIR, "pysrc"))
         # prevent juliacall from initialising itself
-        os.environ["PYTHON_JULIACALL_NOINIT"] = "yes"
+        os.environ["PYTHON_JULIACALL_INIT"] = "no"
         # import juliacall
         pycopy!(jl, pyimport("juliacall"))
         # check the version
         @assert realpath(pystr_asstring(jl.__path__[0])) == realpath(joinpath(ROOT_DIR, "pysrc", "juliacall"))
         @assert pystr_asstring(jl.__version__) == string(VERSION)
-        @assert pybool_asbool(jl.CONFIG["noinit"])
+        @assert pybool_asbool(jl.CONFIG["init"])
     end
 end
 

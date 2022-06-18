@@ -1,9 +1,10 @@
 # Release Notes
 
-## Unreleased
+## 0.9.1 (2022-06-18)
 * `PyArray` can be constructed using the `__array_struct__` part of the Numpy array
   interface. Constructing `PyArray(x)` is now about 50x faster, or 175x faster if you fully
   specify the type.
+* JuliaCall can now be imported on Apple M1.
 
 ## 0.9.0 (2022-05-27)
 * **Breaking.** Removes `getpy`: you may now overload `Py` directly, which now need not

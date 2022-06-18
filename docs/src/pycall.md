@@ -1,4 +1,4 @@
-# Coming from *PyCall*?
+# Coming from PyCall/PyJulia?
 
 Another similar interface to Python is provided by [PyCall](https://github.com/JuliaPy/PyCall.jl).
 

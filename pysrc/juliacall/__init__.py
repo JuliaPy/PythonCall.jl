@@ -118,7 +118,7 @@ def init():
     try:
         # Open the library
         os.chdir(os.path.dirname(libpath))
-        CONFIG['lib'] = lib = c.CDLL(libpath)
+        CONFIG['lib'] = lib = c.CDLL(libpath, mode=c.RTLD_GLOBAL)
         lib.jl_init__threading.argtypes = []
         lib.jl_init__threading.restype = None
         lib.jl_init__threading()

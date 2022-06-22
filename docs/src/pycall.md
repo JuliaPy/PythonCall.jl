@@ -72,4 +72,4 @@ Note also that JuliaCall will use a separate Julia project for each virtual/cond
 
 ### Compatibility
 
-PyCall supports Julia 0.7+ and Python 2.7+, whereas PythonCall supports Julia 1.4+ and Python 3.5+. PyCall requires numpy to be installed, PythonCall doesn't (it provides the same fast array access through the buffer protocol and array interface).
+PyCall supports Julia 0.7+ and Python 2.7+, whereas PythonCall supports Julia 1.6.1+ and Python 3.7+. PyCall requires numpy to be installed, PythonCall doesn't (it provides the same fast array access through the buffer protocol and array interface).

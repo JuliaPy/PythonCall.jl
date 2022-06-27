@@ -41,6 +41,13 @@ class JuliaError(Exception):
 
 CONFIG = {'inited': False}
 
+julia_info_query = r"""
+import Libdl
+println(Base.Sys.BINDIR)
+println(abspath(Libdl.dlpath("libjulia")))
+println(unsafe_string(Base.JLOptions().image_file))
+"""
+
 def init():
     import os
     import ctypes as c
@@ -86,14 +93,14 @@ def init():
         return
 
     # Parse some more options
-    CONFIG['opt_bindir'] = path_option('bindir')  # TODO
+    CONFIG['opt_bindir'] = path_option('bindir')
     CONFIG['opt_check_bounds'] = choice('check_bounds', ['yes', 'no'])  # TODO
     CONFIG['opt_compile'] = choice('compile', ['yes', 'no', 'all', 'min'])  # TODO
     CONFIG['opt_compiled_modules'] = choice('compiled_modules', ['yes', 'no'])  # TODO
     CONFIG['opt_depwarn'] = choice('depwarn', ['yes', 'no', 'error'])  # TODO
     CONFIG['opt_inline'] = choice('inline', ['yes', 'no'])  # TODO
     CONFIG['opt_optimize'] = choice('optimize', ['0', '1', '2', '3'])  # TODO
-    CONFIG['opt_sysimage'] = path_option('sysimage')  # TODO
+    CONFIG['opt_sysimage'] = path_option('sysimage')
     CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])  # TODO
 
     # Stop if we already initialised
@@ -109,9 +116,16 @@ def init():
     CONFIG['project'] = project = juliapkg.project()
 
     # Find the Julia library
-    cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min', '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))']
-    CONFIG['libpath'] = libpath = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout
+    cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min', '-e', julia_info_query]
+
+    default_bindir, default_libpath, default_sysimage = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout.splitlines()
+    CONFIG['libpath'] = libpath = default_libpath
     assert os.path.exists(libpath)
+
+    if not CONFIG.get('opt_bindir'):
+        CONFIG['opt_bindir'] = default_bindir
+    if not CONFIG.get("opt_sysimage"):
+        CONFIG['opt_sysimage'] = default_sysimage
 
     # Initialise Julia
     d = os.getcwd()
@@ -119,9 +133,18 @@ def init():
         # Open the library
         os.chdir(os.path.dirname(libpath))
         CONFIG['lib'] = lib = c.CDLL(libpath, mode=c.RTLD_GLOBAL)
-        lib.jl_init__threading.argtypes = []
-        lib.jl_init__threading.restype = None
-        lib.jl_init__threading()
+        try:
+            init_func = lib.jl_init_with_image
+        except AttributeError:
+            init_func = lib.jl_init_with_image__threading
+
+        init_func.argtypes = [c.c_char_p, c.c_char_p]
+        init_func.restype = None
+        init_func(
+            str(CONFIG['opt_bindir']).encode('utf-8'),
+            str(CONFIG['opt_sysimage']).encode('utf-8')
+        )
+
         lib.jl_eval_string.argtypes = [c.c_char_p]
         lib.jl_eval_string.restype = c.c_void_p
         os.environ['JULIA_PYTHONCALL_LIBPTR'] = str(c.pythonapi._handle)

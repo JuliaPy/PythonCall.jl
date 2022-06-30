@@ -127,18 +127,14 @@ def init():
         os.environ['JULIA_PYTHONCALL_LIBPTR'] = str(c.pythonapi._handle)
         os.environ['JULIA_PYTHONCALL_EXE'] = sys.executable or ''
         os.environ['JULIA_PYTHONCALL_PROJECT'] = project
+        os.environ['JULIA_PYTHONCALL_INIT_JL'] = os.path.join(os.path.dirname(__file__), 'init.jl')
         script = '''
-            try
-                import Pkg
-                Pkg.activate(ENV["JULIA_PYTHONCALL_PROJECT"], io=devnull)
-                import PythonCall
-            catch err
-                print(stderr, "ERROR: ")
-                showerror(stderr, err, catch_backtrace())
-                flush(stderr)
-                rethrow()
-            end
-            '''
+        # This uses some internals, but Base._start() gets the state more like Julia
+        # is if you call the executable directly, in particular it creates workers when
+        # the --procs argument is given.
+        push!(Core.ARGS, ENV["JULIA_PYTHONCALL_INIT_JL"])
+        Base._start()
+        '''
         res = lib.jl_eval_string(script.encode('utf8'))
         if res is None:
             raise Exception('PythonCall.jl did not start properly')

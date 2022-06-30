@@ -129,11 +129,22 @@ def init():
         os.environ['JULIA_PYTHONCALL_PROJECT'] = project
         os.environ['JULIA_PYTHONCALL_INIT_JL'] = os.path.join(os.path.dirname(__file__), 'init.jl')
         script = '''
-        # This uses some internals, but Base._start() gets the state more like Julia
-        # is if you call the executable directly, in particular it creates workers when
-        # the --procs argument is given.
-        push!(Core.ARGS, ENV["JULIA_PYTHONCALL_INIT_JL"])
-        Base._start()
+        try
+            import Pkg
+            Pkg.activate(ENV["JULIA_PYTHONCALL_PROJECT"], io=devnull)
+            import PythonCall
+            # This uses some internals, but Base._start() gets the state more like Julia
+            # is if you call the executable directly, in particular it creates workers when
+            # the --procs argument is given.
+            push!(Core.ARGS, ENV["JULIA_PYTHONCALL_INIT_JL"])
+            Base._start()
+            @eval Base PROGRAM_FILE=""
+        catch err
+            print(stderr, "ERROR: ")
+            showerror(stderr, err, catch_backtrace())
+            flush(stderr)
+            rethrow()
+        end
         '''
         res = lib.jl_eval_string(script.encode('utf8'))
         if res is None:

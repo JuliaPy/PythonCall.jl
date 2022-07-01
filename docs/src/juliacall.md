@@ -95,7 +95,7 @@ be configured in two ways:
 
 | `-X` option | Environment Variable | Description |
 | :---------- | :------------------- | :---------- |
-| `-X juliacall-home=<dir> | `PYTHON_JULIACALL_BINDIR=<dir>` | The directory containing the julia executable. |
+| `-X juliacall-home=<dir>` | `PYTHON_JULIACALL_BINDIR=<dir>` | The directory containing the julia executable. |
 | `-X juliacall-check-bounds=<yes|no|auto>` | `PYTHON_JULIACALL_CHECK_BOUNDS=<yes|no|auto>` | Enable or disable bounds checking. |
 | `-X juliacall-compile=<yes|no|all|min>` | `PYTHON_JULIACALL_COMPILE=<yes|no|all|min>` | Enable or disable JIT compilation. |
 | `-X juliacall-compiled-modules=<yes|no>` | `PYTHON_JULIACALL_COMPILED_MODULES=<yes|no>` | Enable or disable incrementally compiling modules. |

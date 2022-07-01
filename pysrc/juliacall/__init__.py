@@ -3,9 +3,6 @@
 
 __version__ = '0.9.1'
 
-from ctypes import pointer, c_int, POINTER, c_char_p
-from typing import Any
-
 _newmodule = None
 
 def newmodule(name):
@@ -50,52 +47,53 @@ def init():
     import sys
     import subprocess
 
-    def option(name, default=None):
+    def option(name, default=None, xkey=None, envkey=None):
         """Get an option.
 
         Options can be set as command line arguments '-X juliacall_{name}={value}' or as
         environment variables 'PYTHON_JULIACALL_{NAME}={value}'.
         """
-        k = 'juliacall_'+name.lower()
+        k = xkey or 'juliacall_'+name.lower()
         v = sys._xoptions.get(k)
         if v is not None:
-            return v
-        k = 'PYTHON_JULIACALL_'+name.upper()
+            return v, f'-X{k}={v}'
+        k = envkey or 'PYTHON_JULIACALL_'+name.upper()
         v = os.getenv(k)
         if v is not None:
-            return v
-        return default
+            return v, f'{k}={v}'
+        return default, f'<default>={v}'
 
-    def choice(name, choices, default=None):
-        v = option(name)
+    def choice(name, choices, default=None, **kw):
+        v, s = option(name, **kw)
         if v is None:
-            return default
+            return default, s
         if v in choices:
             if isinstance(choices, dict):
-                return choices[v]
+                return choices[v], s
             else:
-                return v
+                return v, s
         raise ValueError(
-            f'invalid value for option: JULIACALL_{name.upper()}={v}, expecting one of {", ".join(choices)}')
+            f'{s}: expecting one of {", ".join(choices)}')
 
-    def path_option(name, default=None):
-        path = option(name)
+    def path_option(name, default=None, check_exists=False, **kw):
+        path, s = option(name, **kw)
         if path is not None:
-            return os.path.abspath(path)
-        return default
+            if check_exists and not os.path.exists(path):
+                raise ValueError(f'{s}: path does not exist')
+            return os.path.abspath(path), s
+        return default, s
 
-    def int_option(name, *, accept_auto=False):
-        val = option(name)
+    def int_option(name, *, accept_auto=False, **kw):
+        val, s = option(name, **kw)
         if val is None:
-            return None
+            return None, s
         if accept_auto and val == "auto":
-            return "auto"
+            return "auto", s
         try:
             int(val)
-            return val
+            return val, s
         except ValueError:
-            raise ValueError(f'invalid value for option: JULIACALL_{name.upper()}={val}, '
-                             f'expecting an int'+' or auto' if accept_auto else "")
+            raise ValueError(f'{s}: expecting an int'+(' or auto' if accept_auto else ""))
 
     def args_from_config():
         argv = ["--"+opt[4:].replace("_", "-")+"="+val for opt, val in CONFIG.items()
@@ -105,28 +103,28 @@ def init():
             argv = [s.encode("utf-8") for s in argv]
 
         argc = len(argv)
-        c = c_int(argc)
-        v = POINTER(c_char_p)((c_char_p * len(argv))(*argv))
-        return c, v
+        argc = c.c_int(argc)
+        argv = c.POINTER(c.c_char_p)((c.c_char_p * len(argv))(*argv))
+        return argc, argv
 
     # Determine if we should skip initialising.
-    CONFIG['init'] = choice('init', ['yes', 'no'], default='yes') == 'yes'
+    CONFIG['init'] = choice('init', ['yes', 'no'], default='yes')[0] == 'yes'
     if not CONFIG['init']:
         return
 
     # Parse some more options
-    CONFIG['opt_bindir'] = path_option('bindir')
-    CONFIG['opt_check_bounds'] = choice('check_bounds', ['yes', 'no', 'auto'])
-    CONFIG['opt_compile'] = choice('compile', ['yes', 'no', 'all', 'min'])
-    CONFIG['opt_compiled_modules'] = choice('compiled_modules', ['yes', 'no'])
-    CONFIG['opt_depwarn'] = choice('depwarn', ['yes', 'no', 'error'])
-    CONFIG['opt_inline'] = choice('inline', ['yes', 'no'])
-    CONFIG['opt_min_optlevel'] = choice('min_optlevel', ['0', '1', '2', '3'])
-    CONFIG['opt_optimize'] = choice('optimize', ['0', '1', '2', '3'])
-    CONFIG['opt_procs'] = int_option('procs', accept_auto=True)
-    CONFIG['opt_sysimage'] = path_option('sysimage')
-    CONFIG['opt_threads'] = int_option('threads', accept_auto=True)
-    CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])
+    CONFIG['opt_home'] = path_option('home', check_exists=True, envkey='PYTHON_JULIACALL_BINDIR')[0]
+    CONFIG['opt_check_bounds'] = choice('check_bounds', ['yes', 'no', 'auto'])[0]
+    CONFIG['opt_compile'] = choice('compile', ['yes', 'no', 'all', 'min'])[0]
+    CONFIG['opt_compiled_modules'] = choice('compiled_modules', ['yes', 'no'])[0]
+    CONFIG['opt_depwarn'] = choice('depwarn', ['yes', 'no', 'error'])[0]
+    CONFIG['opt_inline'] = choice('inline', ['yes', 'no'])[0]
+    CONFIG['opt_min_optlevel'] = choice('min_optlevel', ['0', '1', '2', '3'])[0]
+    CONFIG['opt_optimize'] = choice('optimize', ['0', '1', '2', '3'])[0]
+    CONFIG['opt_procs'] = int_option('procs', accept_auto=True)[0]
+    CONFIG['opt_sysimage'] = path_option('sysimage', check_exists=True)[0]
+    CONFIG['opt_threads'] = int_option('threads', accept_auto=True)[0]
+    CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])[0]
 
     # Stop if we already initialised
     if CONFIG['inited']:
@@ -155,7 +153,8 @@ def init():
         lib.jl_init__threading.argtypes = []
         lib.jl_init__threading.restype = None
         argc, argv = args_from_config()
-        lib.jl_parse_opts(pointer(argc), pointer(argv))
+        lib.jl_parse_opts(c.pointer(argc), c.pointer(argv))
+        assert argc.value == 0
         lib.jl_init__threading()
         lib.jl_eval_string.argtypes = [c.c_char_p]
         lib.jl_eval_string.restype = c.c_void_p

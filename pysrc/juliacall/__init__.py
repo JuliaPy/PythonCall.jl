@@ -61,17 +61,14 @@ def init():
         v = os.getenv(k)
         if v is not None:
             return v, f'{k}={v}'
-        return default, f'<default>={v}'
+        return default, f'<default>={default}'
 
     def choice(name, choices, default=None, **kw):
         v, s = option(name, **kw)
         if v is None:
             return default, s
         if v in choices:
-            if isinstance(choices, dict):
-                return choices[v], s
-            else:
-                return v, s
+            return v, s
         raise ValueError(
             f'{s}: expecting one of {", ".join(choices)}')
 
@@ -113,7 +110,7 @@ def init():
         return
 
     # Parse some more options
-    CONFIG['opt_home'] = path_option('home', check_exists=True, envkey='PYTHON_JULIACALL_BINDIR')[0]
+    CONFIG['opt_home'] = bindir = path_option('home', check_exists=True, envkey='PYTHON_JULIACALL_BINDIR')[0]
     CONFIG['opt_check_bounds'] = choice('check_bounds', ['yes', 'no', 'auto'])[0]
     CONFIG['opt_compile'] = choice('compile', ['yes', 'no', 'all', 'min'])[0]
     CONFIG['opt_compiled_modules'] = choice('compiled_modules', ['yes', 'no'])[0]
@@ -122,7 +119,7 @@ def init():
     CONFIG['opt_min_optlevel'] = choice('min_optlevel', ['0', '1', '2', '3'])[0]
     CONFIG['opt_optimize'] = choice('optimize', ['0', '1', '2', '3'])[0]
     CONFIG['opt_procs'] = int_option('procs', accept_auto=True)[0]
-    CONFIG['opt_sysimage'] = path_option('sysimage', check_exists=True)[0]
+    CONFIG['opt_sysimage'] = sysimg = path_option('sysimage', check_exists=True)[0]
     CONFIG['opt_threads'] = int_option('threads', accept_auto=True)[0]
     CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])[0]
 
@@ -150,27 +147,44 @@ def init():
         # Open the library
         os.chdir(os.path.dirname(libpath))
         CONFIG['lib'] = lib = c.CDLL(libpath, mode=c.RTLD_GLOBAL)
-        lib.jl_init__threading.argtypes = []
-        lib.jl_init__threading.restype = None
+
+        # parse options
         argc, argv = args_from_config()
-        lib.jl_parse_opts(c.pointer(argc), c.pointer(argv))
+        jl_parse_opts = lib.jl_parse_opts
+        jl_parse_opts.argtypes = [c.c_void_p, c.c_void_p]
+        jl_parse_opts.restype = None
+        jl_parse_opts(c.pointer(argc), c.pointer(argv))
         assert argc.value == 0
-        lib.jl_init__threading()
-        lib.jl_eval_string.argtypes = [c.c_char_p]
-        lib.jl_eval_string.restype = c.c_void_p
-        os.environ['JULIA_PYTHONCALL_LIBPTR'] = str(c.pythonapi._handle)
-        os.environ['JULIA_PYTHONCALL_EXE'] = sys.executable or ''
-        os.environ['JULIA_PYTHONCALL_PROJECT'] = project
-        os.environ['JULIA_PYTHONCALL_INIT_JL'] = os.path.join(os.path.dirname(__file__), 'init.jl')
+
+        # initialise julia
+        try:
+            jl_init = lib.jl_init_with_image__threading
+        except AttributeError:
+            jl_init = lib.jl_init_with_image
+        jl_init.argtypes = [c.c_char_p, c.c_char_p]
+        jl_init.restype = None
+        jl_init(
+            (os.path.dirname(exepath) if bindir is None else bindir).encode('utf8'),
+            None if sysimg is None else sysimg.encode('utf8'),
+        )
+
+        # initialise PythonCall
+        jl_eval = lib.jl_eval_string
+        jl_eval.argtypes = [c.c_char_p]
+        jl_eval.restype = c.c_void_p
+        def jlstr(x):
+            return 'raw"' + x.replace('"', '\\"').replace('\\', '\\\\') + '"'
         script = '''
         try
             import Pkg
-            Pkg.activate(ENV["JULIA_PYTHONCALL_PROJECT"], io=devnull)
+            ENV["JULIA_PYTHONCALL_LIBPTR"] = {}
+            ENV["JULIA_PYTHONCALL_EXE"] = {}
+            Pkg.activate({}, io=devnull)
             import PythonCall
             # This uses some internals, but Base._start() gets the state more like Julia
             # is if you call the executable directly, in particular it creates workers when
             # the --procs argument is given.
-            push!(Core.ARGS, ENV["JULIA_PYTHONCALL_INIT_JL"])
+            push!(Core.ARGS, {})
             Base._start()
             @eval Base PROGRAM_FILE=""
         catch err
@@ -179,8 +193,13 @@ def init():
             flush(stderr)
             rethrow()
         end
-        '''
-        res = lib.jl_eval_string(script.encode('utf8'))
+        '''.format(
+            jlstr(str(c.pythonapi._handle)),
+            jlstr(sys.executable or ''),
+            jlstr(project),
+            jlstr(os.path.join(os.path.dirname(__file__), 'init.jl')),
+        )
+        res = jl_eval(script.encode('utf8'))
         if res is None:
             raise Exception('PythonCall.jl did not start properly')
     finally:

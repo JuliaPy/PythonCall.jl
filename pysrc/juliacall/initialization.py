@@ -110,8 +110,12 @@ def _get_option(option_name: 'str'):
 def config(*,
             aliases: 'typing.Iterable[str]' = (), 
             validator: 'Predicate',
-            transform_if_set: 'None | TransformArg' = None):
-
+            transform_if_set: 'None | TransformArg' = None) -> 'typing.Callable[[str], str | None]':
+    """
+    @param aliases: (optional): A list of aliases for the option. Options are tried in the order of the list.
+    @param validator: A predicate to check if the input string is valid.
+    @param transform_if_set: A function to transform the input string if the option is set.
+    """
     def apply(name) -> 'str | None':
         names = [name, *aliases]
         opt_name = "|".join(names)

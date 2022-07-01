@@ -3,6 +3,9 @@
 
 __version__ = '0.9.1'
 
+from ctypes import pointer, c_int, POINTER, c_char_p
+from typing import Any
+
 _newmodule = None
 
 def newmodule(name):
@@ -64,15 +67,16 @@ def init():
         return default
 
     def choice(name, choices, default=None):
-        k = option(name)
-        if k is None:
+        v = option(name)
+        if v is None:
             return default
-        if k in choices:
-            if isinstance(k, dict):
-                return choices[k]
+        if v in choices:
+            if isinstance(choices, dict):
+                return choices[v]
             else:
-                return k
-        raise ValueError(f'invalid value for option: JULIACALL_{name.upper()}={k}, expecting one of {", ".join(choices)}')
+                return v
+        raise ValueError(
+            f'invalid value for option: JULIACALL_{name.upper()}={v}, expecting one of {", ".join(choices)}')
 
     def path_option(name, default=None):
         path = option(name)
@@ -80,21 +84,49 @@ def init():
             return os.path.abspath(path)
         return default
 
+    def int_option(name, *, accept_auto=False):
+        val = option(name)
+        if val is None:
+            return None
+        if accept_auto and val == "auto":
+            return "auto"
+        try:
+            int(val)
+            return val
+        except ValueError:
+            raise ValueError(f'invalid value for option: JULIACALL_{name.upper()}={val}, '
+                             f'expecting an int'+' or auto' if accept_auto else "")
+
+    def args_from_config():
+        argv = ["--"+opt[4:].replace("_", "-")+"="+val for opt, val in CONFIG.items()
+                if val is not None and opt.startswith("opt_")]
+        argv = [CONFIG['exepath']]+argv
+        if sys.version_info[0] >= 3:
+            argv = [s.encode("utf-8") for s in argv]
+
+        argc = len(argv)
+        c = c_int(argc)
+        v = POINTER(c_char_p)((c_char_p * len(argv))(*argv))
+        return c, v
+
     # Determine if we should skip initialising.
     CONFIG['init'] = choice('init', ['yes', 'no'], default='yes') == 'yes'
     if not CONFIG['init']:
         return
 
     # Parse some more options
-    CONFIG['opt_bindir'] = path_option('bindir')  # TODO
-    CONFIG['opt_check_bounds'] = choice('check_bounds', ['yes', 'no'])  # TODO
-    CONFIG['opt_compile'] = choice('compile', ['yes', 'no', 'all', 'min'])  # TODO
-    CONFIG['opt_compiled_modules'] = choice('compiled_modules', ['yes', 'no'])  # TODO
-    CONFIG['opt_depwarn'] = choice('depwarn', ['yes', 'no', 'error'])  # TODO
-    CONFIG['opt_inline'] = choice('inline', ['yes', 'no'])  # TODO
-    CONFIG['opt_optimize'] = choice('optimize', ['0', '1', '2', '3'])  # TODO
-    CONFIG['opt_sysimage'] = path_option('sysimage')  # TODO
-    CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])  # TODO
+    CONFIG['opt_bindir'] = path_option('bindir')
+    CONFIG['opt_check_bounds'] = choice('check_bounds', ['yes', 'no', 'auto'])
+    CONFIG['opt_compile'] = choice('compile', ['yes', 'no', 'all', 'min'])
+    CONFIG['opt_compiled_modules'] = choice('compiled_modules', ['yes', 'no'])
+    CONFIG['opt_depwarn'] = choice('depwarn', ['yes', 'no', 'error'])
+    CONFIG['opt_inline'] = choice('inline', ['yes', 'no'])
+    CONFIG['opt_min_optlevel'] = choice('min_optlevel', ['0', '1', '2', '3'])
+    CONFIG['opt_optimize'] = choice('optimize', ['0', '1', '2', '3'])
+    CONFIG['opt_procs'] = int_option('procs', accept_auto=True)
+    CONFIG['opt_sysimage'] = path_option('sysimage')
+    CONFIG['opt_threads'] = int_option('threads', accept_auto=True)
+    CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])
 
     # Stop if we already initialised
     if CONFIG['inited']:
@@ -109,7 +141,8 @@ def init():
     CONFIG['project'] = project = juliapkg.project()
 
     # Find the Julia library
-    cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min', '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))']
+    cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min',
+           '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))']
     CONFIG['libpath'] = libpath = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout
     assert os.path.exists(libpath)
 
@@ -121,6 +154,8 @@ def init():
         CONFIG['lib'] = lib = c.CDLL(libpath, mode=c.RTLD_GLOBAL)
         lib.jl_init__threading.argtypes = []
         lib.jl_init__threading.restype = None
+        argc, argv = args_from_config()
+        lib.jl_parse_opts(pointer(argc), pointer(argv))
         lib.jl_init__threading()
         lib.jl_eval_string.argtypes = [c.c_char_p]
         lib.jl_eval_string.restype = c.c_void_p

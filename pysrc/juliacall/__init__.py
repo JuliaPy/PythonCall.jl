@@ -1,6 +1,5 @@
 # This module gets modified by PythonCall when it is loaded, e.g. to include Core, Base
 # and Main modules.
-
 __version__ = '0.9.1'
 
 _newmodule = None
@@ -41,133 +40,8 @@ class JuliaError(Exception):
 
 CONFIG = {'inited': False}
 
-julia_info_query = r"""
-import Libdl
-println(Base.Sys.BINDIR)
-println(abspath(Libdl.dlpath("libjulia")))
-println(unsafe_string(Base.JLOptions().image_file))
-"""
-
 def init():
-    import os
-    import ctypes as c
-    import sys
-    import subprocess
-
-    def option(name, default=None):
-        """Get an option.
-
-        Options can be set as command line arguments '-X juliacall_{name}={value}' or as
-        environment variables 'PYTHON_JULIACALL_{NAME}={value}'.
-        """
-        k = 'juliacall_'+name.lower()
-        v = sys._xoptions.get(k)
-        if v is not None:
-            return v
-        k = 'PYTHON_JULIACALL_'+name.upper()
-        v = os.getenv(k)
-        if v is not None:
-            return v
-        return default
-
-    def choice(name, choices, default=None):
-        k = option(name)
-        if k is None:
-            return default
-        if k in choices:
-            if isinstance(k, dict):
-                return choices[k]
-            else:
-                return k
-        raise ValueError(f'invalid value for option: JULIACALL_{name.upper()}={k}, expecting one of {", ".join(choices)}')
-
-    def path_option(name, default=None):
-        path = option(name)
-        if path is not None:
-            return os.path.abspath(path)
-        return default
-
-    # Determine if we should skip initialising.
-    CONFIG['init'] = choice('init', ['yes', 'no'], default='yes') == 'yes'
-    if not CONFIG['init']:
-        return
-
-    # Parse some more options
-    CONFIG['opt_bindir'] = path_option('bindir')
-    CONFIG['opt_check_bounds'] = choice('check_bounds', ['yes', 'no'])  # TODO
-    CONFIG['opt_compile'] = choice('compile', ['yes', 'no', 'all', 'min'])  # TODO
-    CONFIG['opt_compiled_modules'] = choice('compiled_modules', ['yes', 'no'])  # TODO
-    CONFIG['opt_depwarn'] = choice('depwarn', ['yes', 'no', 'error'])  # TODO
-    CONFIG['opt_inline'] = choice('inline', ['yes', 'no'])  # TODO
-    CONFIG['opt_optimize'] = choice('optimize', ['0', '1', '2', '3'])  # TODO
-    CONFIG['opt_sysimage'] = path_option('sysimage')
-    CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])  # TODO
-
-    # Stop if we already initialised
-    if CONFIG['inited']:
-        return
-
-    # we don't import this at the top level because it is not required when juliacall is
-    # loaded by PythonCall and won't be available
-    import juliapkg
-
-    # Find the Julia executable and project
-    CONFIG['exepath'] = exepath = juliapkg.executable()
-    CONFIG['project'] = project = juliapkg.project()
-
-    # Find the Julia library
-    cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min', '-e', julia_info_query]
-
-    default_bindir, default_libpath, default_sysimage = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout.splitlines()
-    CONFIG['libpath'] = libpath = default_libpath
-    assert os.path.exists(libpath)
-
-    if not CONFIG.get('opt_bindir'):
-        CONFIG['opt_bindir'] = default_bindir
-    if not CONFIG.get("opt_sysimage"):
-        CONFIG['opt_sysimage'] = default_sysimage
-
-    # Initialise Julia
-    d = os.getcwd()
-    try:
-        # Open the library
-        os.chdir(os.path.dirname(libpath))
-        CONFIG['lib'] = lib = c.CDLL(libpath, mode=c.RTLD_GLOBAL)
-        try:
-            init_func = lib.jl_init_with_image
-        except AttributeError:
-            init_func = lib.jl_init_with_image__threading
-
-        init_func.argtypes = [c.c_char_p, c.c_char_p]
-        init_func.restype = None
-        init_func(
-            str(CONFIG['opt_bindir']).encode('utf-8'),
-            str(CONFIG['opt_sysimage']).encode('utf-8')
-        )
-
-        lib.jl_eval_string.argtypes = [c.c_char_p]
-        lib.jl_eval_string.restype = c.c_void_p
-        os.environ['JULIA_PYTHONCALL_LIBPTR'] = str(c.pythonapi._handle)
-        os.environ['JULIA_PYTHONCALL_EXE'] = sys.executable or ''
-        os.environ['JULIA_PYTHONCALL_PROJECT'] = project
-        script = '''
-            try
-                import Pkg
-                Pkg.activate(ENV["JULIA_PYTHONCALL_PROJECT"], io=devnull)
-                import PythonCall
-            catch err
-                print(stderr, "ERROR: ")
-                showerror(stderr, err, catch_backtrace())
-                flush(stderr)
-                rethrow()
-            end
-            '''
-        res = lib.jl_eval_string(script.encode('utf8'))
-        if res is None:
-            raise Exception('PythonCall.jl did not start properly')
-    finally:
-        os.chdir(d)
-
-    CONFIG['inited'] = True
+    from .initialization import initialize
+    initialize()
 
 init()

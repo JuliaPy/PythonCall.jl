@@ -42,6 +42,6 @@ CONFIG = {'inited': False}
 
 def init():
     from .initialization import initialize
-    initialize()
+    initialize(CONFIG)
 
 init()

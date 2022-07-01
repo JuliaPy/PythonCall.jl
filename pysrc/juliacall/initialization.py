@@ -163,7 +163,7 @@ def args_from_config(exepath: str, config: 'dict[str, str | None]'):
     return argc, argv
 
 
-def initialize():
+def initialize(CONFIG: dict):
     global _initialized
     
     if _initialized:
@@ -173,7 +173,9 @@ def initialize():
     if not init:
         init = 'yes'
 
-    if init == 'no':
+    CONFIG['init'] = init == 'yes'
+
+    if not CONFIG['init']:
         return
     
     # read settings

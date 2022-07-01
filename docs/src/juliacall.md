@@ -85,3 +85,25 @@ Here is an example:
 Alternatively you can use `add`, `rm`, etc. from JuliaPkg to edit this file.
 
 See [JuliaPkg](https://github.com/cjdoris/PyJuliaPkg) for more details.
+
+## [Configuration](@id julia-config)
+
+Some features of the Julia process, such as the optimization level or number of threads, may
+be configured in two ways:
+- As an `-X` argument to Python, such as `-X juliacall-optlevel=3`; or
+- As an environment variable, such as `PYTHON_JULIACALL_OPTLEVEL=3`.
+
+| `-X` option | Environment Variable | Description |
+| :---------- | :------------------- | :---------- |
+| `-X juliacall-home=<dir> | `PYTHON_JULIACALL_BINDIR=<dir>` | The directory containing the julia executable. |
+| `-X juliacall-check-bounds=<yes|no|auto>` | `PYTHON_JULIACALL_CHECK_BOUNDS=<yes|no|auto>` | Enable or disable bounds checking. |
+| `-X juliacall-compile=<yes|no|all|min>` | `PYTHON_JULIACALL_COMPILE=<yes|no|all|min>` | Enable or disable JIT compilation. |
+| `-X juliacall-compiled-modules=<yes|no>` | `PYTHON_JULIACALL_COMPILED_MODULES=<yes|no>` | Enable or disable incrementally compiling modules. |
+| `-X juliacall-depwarn=<yes|no|error>` | `PYTHON_JULIACALL_DEPWARN=<yes|no|error>` | Enable or disable deprecation warnings. |
+| `-X juliacall-inline=<yes|no>` | `PYTHON_JULIACALL_INLINE=<yes|no>` | Enable or disable inlining. |
+| `-X juliacall-min-optlevel=<0|1|2|3>` | `PYTHON_JULIACALL_MIN_OPTLEVEL=<0|1|2|3>` | Optimization level. |
+| `-X juliacall-optimize=<0|1|2|3>` | `PYTHON_JULIACALL_OPTIMIZE=<0|1|2|3>` | Minimum optimization level. |
+| `-X juliacall-procs=<N|auto>` | `PYTHON_JULIACALL_PROCS=<N|auto>` | Launch N local worker process. |
+| `-X juliacall-sysimage=<file>` | `PYTHON_JULIACALL_SYSIMAGE=<file>` | Use the given system image. |
+| `-X juliacall-threads=<N|auto>` | `PYTHON_JULIACALL_THREADS=<N|auto>` | Launch N threads. |
+| `-X juliacall-warn-overwrite=<yes|no>` | `PYTHON_JULIACALL_WARN_OVERWRITE=<yes|no>` | Enable or disable method overwrite warnings. |

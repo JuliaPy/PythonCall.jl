@@ -50,10 +50,10 @@ def init():
     def option(name, default=None, xkey=None, envkey=None):
         """Get an option.
 
-        Options can be set as command line arguments '-X juliacall_{name}={value}' or as
+        Options can be set as command line arguments '-X juliacall-{name}={value}' or as
         environment variables 'PYTHON_JULIACALL_{NAME}={value}'.
         """
-        k = xkey or 'juliacall_'+name.lower()
+        k = xkey or 'juliacall-'+name.lower().replace('_', '-')
         v = sys._xoptions.get(k)
         if v is not None:
             return v, f'-X{k}={v}'

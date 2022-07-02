@@ -1,2 +1,5 @@
-[deps]
-python = ">=3.7,<4"
+
+[deps.python]
+channel = "conda-forge"
+build = "*cpython*"
+version = ">=3.7,<4"

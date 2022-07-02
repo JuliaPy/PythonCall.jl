@@ -1,5 +1,7 @@
 # Release Notes
 
+## 0.9.3 (2022-07-02)
+* Bug fixes.
 
 ## 0.9.2 (2022-07-02)
 * Many Julia CLI options (such sysimage or number of threads) can be set from JuliaCall.

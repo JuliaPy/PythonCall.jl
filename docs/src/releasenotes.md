@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.9.2 (2022-07-02)
+* Many Julia CLI options (such sysimage or number of threads) can be set from JuliaCall.
+* Bug fixes.
+
 ## 0.9.1 (2022-06-18)
 * `PyArray` can be constructed using the `__array_struct__` part of the Numpy array
   interface. Constructing `PyArray(x)` is now about 50x faster, or 175x faster if you fully

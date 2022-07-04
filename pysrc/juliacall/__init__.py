@@ -137,9 +137,11 @@ def init():
 
     # Find the Julia library
     cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min',
-           '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")))']
-    CONFIG['libpath'] = libpath = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout
+           '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")), "\\0", Sys.BINDIR)']
+    libpath, default_bindir = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout.split('\0')
     assert os.path.exists(libpath)
+    assert os.path.exists(default_bindir)
+    CONFIG['libpath'] = libpath
 
     # Initialise Julia
     d = os.getcwd()
@@ -164,7 +166,7 @@ def init():
         jl_init.argtypes = [c.c_char_p, c.c_char_p]
         jl_init.restype = None
         jl_init(
-            (os.path.dirname(exepath) if bindir is None else bindir).encode('utf8'),
+            (default_bindir if bindir is None else bindir).encode('utf8'),
             None if sysimg is None else sysimg.encode('utf8'),
         )
 

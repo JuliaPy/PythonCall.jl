@@ -43,13 +43,7 @@ mutable struct Py
 end
 export Py
 
-function py_finalizer(x::Py)
-    if C.CTX.is_initialized
-        C.with_gil(false) do
-            C.Py_DecRef(getptr(x))
-        end
-    end
-end
+py_finalizer(x::Py) = C.gc_enqueue(getptr(x))
 
 ispy(::Py) = true
 getptr(x::Py) = getfield(x, :ptr)

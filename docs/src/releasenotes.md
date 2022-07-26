@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased
+## 0.9.4 (2022-07-26)
 * Bug fixes.
 
 ## 0.9.3 (2022-07-02)

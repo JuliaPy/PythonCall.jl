@@ -90,7 +90,7 @@ module Utils
         mimes = copy(ALL_MIMES)
         # look for mimes on show methods for this type
         for meth in methods(show, Tuple{IO, MIME, typeof(x)}).ms
-            mimetype = meth.sig.parameters[3]
+            mimetype = _type_ub(meth.sig).parameters[3]
             mimetype isa DataType || continue
             mime = string(mimetype.parameters[1])
             push!(mimes, mime)

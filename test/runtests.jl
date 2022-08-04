@@ -20,4 +20,7 @@ Aqua.test_all(PythonCall, unbound_args=false)
     @testset "jlwrap" begin
         include("jlwrap.jl")
     end
+    @testset "pywrap" begin
+        include("pywrap.jl")
+    end
 end

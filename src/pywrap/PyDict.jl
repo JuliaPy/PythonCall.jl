@@ -69,10 +69,7 @@ function Base.empty!(x::PyDict)
 end
 
 function Base.copy(x::PyDict{K,V}) where {K,V}
-    o = @py x.copy()
-    c = PyDict{K,V}(o)
-    pydel!(o)
-    return c
+    return PyDict{K,V}(@py x.copy())
 end
 
 function Base.haskey(x::PyDict{K,V}, k) where {K,V}

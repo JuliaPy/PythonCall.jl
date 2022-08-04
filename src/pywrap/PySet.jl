@@ -96,8 +96,5 @@ function Base.empty!(x::PySet)
 end
 
 function Base.copy(x::PySet{T}) where {T}
-    o = @py x.copy()
-    c = PySet{T}(o)
-    pydel!(o)
-    return c
+    return PySet{T}(@py x.copy())
 end

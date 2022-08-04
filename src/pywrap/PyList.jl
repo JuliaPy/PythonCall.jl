@@ -93,8 +93,5 @@ function Base.empty!(x::PyList)
 end
 
 function Base.copy(x::PyList{T}) where {T}
-    o = @py x.copy()
-    c = PyList{T}(o)
-    pydel!(o)
-    return c
+    return PyList{T}(@py x.copy())
 end

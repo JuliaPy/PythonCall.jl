@@ -1,4 +1,4 @@
-using PythonCall, Test, Dates, Aqua
+using PythonCall, Test, Dates, Aqua, Markdown
 
 # The unbound_args test fails on methods with signature like foo(::Type{Tuple{Vararg{V}}}) where V
 # Seems like a bug.

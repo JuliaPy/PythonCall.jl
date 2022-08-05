@@ -47,7 +47,9 @@ function Base.iterate(x::Base.KeySet{K,PyDict{K,V}}, it::Py=pyiter(x.dict)) wher
 end
 
 function Base.getindex(x::PyDict{K,V}, k) where {K,V}
-    return pyconvert(V, pygetitem(x, convert(K, k)))
+    k2 = convert(K, k)
+    pycontains(x, k2) || throw(KeyError(k))
+    return pyconvert(V, pygetitem(x, k2))
 end
 
 function Base.setindex!(x::PyDict{K,V}, v, k) where {K,V}
@@ -58,7 +60,8 @@ end
 function Base.delete!(x::PyDict{K,V}, k) where {K,V}
     r = pyconvert_tryconvert(K, k)
     if !pyconvert_isunconverted(r)
-        pydelitem(x, pyconvert_result(K, r))
+        k2 = pyconvert_result(K, r)
+        pycontains(x, k2) && pydelitem(x, k2)
     end
     return x
 end

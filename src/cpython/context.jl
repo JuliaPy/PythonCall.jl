@@ -52,6 +52,25 @@ function init_context()
         # Find Python executable
         exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
         if exe_path == "" || exe_path == "@CondaPkg"
+            if Sys.islinux()
+                # Ensure libstdc++ in the Conda environment is compatible with the one
+                # linked in Julia. This is platform/version dependent, so needs to occur at
+                # runtime.
+                #
+                # To figure out cxx_version for a given Julia version, run
+                #   strings /path/to/julia/lib/julia/libstdc++.so.6 | grep GLIBCXX
+                # then look at
+                #   https://gcc.gnu.org/onlinedocs/gcc-12.1.0/libstdc++/manual/manual/abi.html
+                # for the highest GCC version compatible with the highest GLIBCXX version.
+                if Base.VERSION <= v"1.6.2"
+                    # GLIBCXX_3.4.26
+                    cxx_version = ">=3.4,<9.2"
+                else
+                    # GLIBCXX_3.4.29
+                    cxx_version = ">=3.4,<11.4"
+                end
+                CondaPkg.add("libstdcxx-ng", version=cxx_version, channel="conda-forge", temp=true, file=joinpath(@__DIR__, "..", "..", "CondaPkg.toml"), resolve=false)
+            end
             # By default, we use Python installed by CondaPkg.
             exe_path = Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") : joinpath(CondaPkg.envdir(), "bin", "python")
             # It's not sufficient to only activate the env while Python is initialising,

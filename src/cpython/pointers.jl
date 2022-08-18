@@ -273,6 +273,7 @@ const CAPI_OBJECTS = Set([
     $([:($name :: Ptr{Cvoid} = C_NULL) for name in CAPI_FUNCS]...)
     $([:($name :: PyPtr = C_NULL) for name in CAPI_EXCEPTIONS]...)
     $([:($name :: PyPtr = C_NULL) for name in CAPI_OBJECTS]...)
+    PyOS_InputHookPtr :: Ptr{Ptr{Cvoid}} = C_NULL
     PyJuliaBase_Type :: PyPtr = C_NULL
     PyExc_JuliaError :: PyPtr = C_NULL
 end
@@ -290,6 +291,7 @@ const POINTERS = CAPIPointers()
     ]...)
     $([:(p.$name = Base.unsafe_load(Ptr{PyPtr}(dlsym(lib, $(QuoteNode(name)))))) for name in CAPI_EXCEPTIONS]...)
     $([:(p.$name = dlsym(lib, $(QuoteNode(name)))) for name in CAPI_OBJECTS]...)
+    p.PyOS_InputHookPtr = dlsym(CTX.lib_ptr, :PyOS_InputHook)
 end
 
 for (name, (argtypes, rettype)) in CAPI_FUNC_SIGS

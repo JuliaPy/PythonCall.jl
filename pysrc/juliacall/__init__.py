@@ -21,6 +21,13 @@ def convert(T, x):
         _convert = PythonCall.seval("pyjlcallback((T,x)->pyjl(pyconvert(pyjlvalue(T)::Type,x)))")
     return _convert(T, x)
 
+def interactive(enable=True):
+    "Allow the Julia event loop to run in the background of the Python REPL."
+    if enable:
+        PythonCall._set_python_input_hook()
+    else:
+        PythonCall._unset_python_input_hook()
+
 class JuliaError(Exception):
     "An error arising in Julia code."
     def __init__(self, exception, backtrace=None):

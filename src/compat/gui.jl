@@ -165,3 +165,30 @@ function event_loop_on(g::Symbol; interval::Real = 0.04, fix::Bool = false)
     callback = new_event_loop_callback(string(g), Float64(interval))
     EVENT_LOOPS[g] = Timer(t -> callback(), 0; interval = interval)
 end
+
+function _python_input_hook()
+    try
+        while true
+            yield()
+            @static if Sys.iswindows()
+                if ccall(:_kbhit, Cint, ()) != 0
+                    break
+                end
+            end
+            sleep(0.001)
+        end
+    catch
+        return Cint(1)
+    end
+    return Cint(0)
+end
+
+function _set_python_input_hook()
+    C.PyOS_SetInputHook(@cfunction(_python_input_hook, Cint, ()))
+    return
+end
+
+function _unset_python_input_hook()
+    C.PyOS_SetInputHook(C_NULL)
+    return
+end

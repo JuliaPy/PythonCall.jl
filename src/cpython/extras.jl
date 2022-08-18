@@ -41,8 +41,17 @@ PyBuffer_Release(_b) = begin
     return
 end
 
+function PyOS_SetInputHook(hook::Ptr{Cvoid})
+    Base.unsafe_store!(POINTERS.PyOS_InputHookPtr, hook)
+    return
+end
+
+function PyOS_GetInputHook()
+    return Base.unsafe_load(POINTERS.PyOS_InputHookPtr)
+end
+
 function PyOS_RunInputHook()
-    hook = Base.unsafe_load(Ptr{Ptr{Cvoid}}(dlsym(CTX.lib_ptr, :PyOS_InputHook)))
+    hook = PyOS_GetInputHook()
     if hook == C_NULL
         return false
     else

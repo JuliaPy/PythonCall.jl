@@ -168,14 +168,20 @@ end
 
 function _python_input_hook()
     try
-        while true
-            yield()
-            @static if Sys.iswindows()
+        @static if Sys.iswindows()
+            # on windows, we can call yield in a loop because _kbhit() lets us know
+            # when to stop
+            while true
+                yield()
                 if ccall(:_kbhit, Cint, ()) != 0
                     break
                 end
+                sleep(0.01)
             end
-            sleep(0.001)
+        else
+            # on other platforms, if readline is enabled, the input hook is called
+            # repeatedly so the loop is not required
+            yield()
         end
     catch
         return Cint(1)

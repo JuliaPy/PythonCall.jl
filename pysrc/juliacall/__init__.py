@@ -129,6 +129,7 @@ def init():
     CONFIG['opt_sysimage'] = sysimg = path_option('sysimage', check_exists=True)[0]
     CONFIG['opt_threads'] = int_option('threads', accept_auto=True)[0]
     CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])[0]
+    CONFIG['opt_handle_signals'] = 'no'
 
     # Stop if we already initialised
     if CONFIG['inited']:
@@ -185,6 +186,7 @@ def init():
             return 'raw"' + x.replace('"', '\\"').replace('\\', '\\\\') + '"'
         script = '''
         try
+            Base.require(Main, :CompilerSupportLibraries_jll)
             import Pkg
             ENV["JULIA_PYTHONCALL_LIBPTR"] = {}
             ENV["JULIA_PYTHONCALL_EXE"] = {}

@@ -67,6 +67,7 @@ function init_context()
                     cxx_version = ">=3.4,<9.2"
                 else
                     # GLIBCXX_3.4.29
+                    # checked up to v1.8.0
                     cxx_version = ">=3.4,<11.4"
                 end
                 CondaPkg.add("libstdcxx-ng", version=cxx_version, channel="conda-forge", temp=true, file=joinpath(@__DIR__, "..", "..", "CondaPkg.toml"), resolve=false)

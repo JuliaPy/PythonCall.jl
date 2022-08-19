@@ -70,11 +70,9 @@ Base.@propagate_inbounds function Base.pop!(x::PyList{T}) where {T}
     return pyconvert(T, @py x.pop())
 end
 
-if isdefined(Base, :popat!)
-    Base.@propagate_inbounds function Base.popat!(x::PyList{T}, i::Integer) where {T}
-        @boundscheck checkbounds(x, i)
-        return pyconvert(T, @py x.pop(@jl(i-1)))
-    end
+Base.@propagate_inbounds function Base.popat!(x::PyList{T}, i::Integer) where {T}
+    @boundscheck checkbounds(x, i)
+    return pyconvert(T, @py x.pop(@jl(i-1)))
 end
 
 Base.@propagate_inbounds function Base.popfirst!(x::PyList{T}) where {T}
@@ -93,8 +91,5 @@ function Base.empty!(x::PyList)
 end
 
 function Base.copy(x::PyList{T}) where {T}
-    o = @py x.copy()
-    c = PyList{T}(o)
-    pydel!(o)
-    return c
+    return PyList{T}(@py x.copy())
 end

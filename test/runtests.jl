@@ -1,10 +1,13 @@
-using PythonCall, Test, Dates, Aqua
+using PythonCall, Test, Dates, Aqua, Markdown
 
 # The unbound_args test fails on methods with signature like foo(::Type{Tuple{Vararg{V}}}) where V
 # Seems like a bug.
 Aqua.test_all(PythonCall, unbound_args=false)
 
 @testset "PythonCall.jl" begin
+    @testset "utils" begin
+        include("utils.jl")
+    end
     @testset "abstract" begin
         include("abstract.jl")
     end
@@ -16,5 +19,8 @@ Aqua.test_all(PythonCall, unbound_args=false)
     end
     @testset "jlwrap" begin
         include("jlwrap.jl")
+    end
+    @testset "pywrap" begin
+        include("pywrap.jl")
     end
 end

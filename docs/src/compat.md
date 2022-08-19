@@ -2,7 +2,8 @@
 
 Some packages require a little extra help to work nicely with PythonCall.
 
-Some of these are "fixes" that are silently applied for you, and some are just extra functions to bridge a gap. We aim to keep these as minimal as possible.
+Some of these are "fixes" that are silently applied for you, and some are just extra
+functions to bridge a gap. We aim to keep these as minimal as possible.
 
 ## Stdlib
 
@@ -58,6 +59,11 @@ PythonCall.fix_qt_plugin_path
 
 ## IPython
 
-If Python is running an IPython kernel, then:
-- Currently disabled: Julia's `Base.stdout` is set to Python's `sys.stdout`.
-- A `PythonDisplay` and `IPythonDisplay` are pushed onto Julia's display stack, so that `display(x)` goes to IPython if possible.
+The `juliacall.ipython` IPython extension adds these features to your IPython session:
+- The line magic `%jl code` executes the given Julia code in-line.
+- The cell magic `%%jl` executes a cell of Julia code.
+- Julia's `stdout` and `stderr` are redirected to IPython.
+- Calling `display(x)` from Julia will display `x` in IPython.
+
+Enable the extension with `%load_ext juliacall.ipython`.
+See https://ipython.readthedocs.io/en/stable/config/extensions/.

@@ -10,14 +10,19 @@ function pyjlcallback_call(self, args_::Py, kwargs_::Py)
         args = pyconvert(Vector{Py}, args_)
         kwargs = pyconvert(Dict{Symbol,Py}, kwargs_)
         Py(self(args...; kwargs...))
-    elseif pylen(args_) > 0
+    elseif (nargs = pylen(args_)) > 0
         args = pyconvert(Vector{Py}, args_)
-        if length(args) == 1
+        @assert length(args) == nargs
+        if nargs == 1
             Py(self(args[1]))
-        elseif length(args) == 2
+        elseif nargs == 2
             Py(self(args[1], args[2]))
-        elseif length(args) == 3
+        elseif nargs == 3
             Py(self(args[1], args[2], args[3]))
+        elseif nargs == 4
+            Py(self(args[1], args[2], args[3], args[4]))
+        elseif nargs == 5
+            Py(self(args[1], args[2], args[3], args[4], args[5]))
         else
             Py(self(args...))
         end
@@ -53,7 +58,7 @@ end
 pyjlcallback(f) = pyjl(pyjlcallbacktype, f)
 
 """
-    pyfunc(f; name=nothing, qualname=name, doc=nothing, signature=nothing)
+    pyfunc(f; [name], [qualname], [doc], [signature])
 
 Wrap the callable `f` as an ordinary Python function.
 
@@ -63,10 +68,18 @@ The name, qualname, docstring or signature can optionally be set with `name`, `q
 Unlike `Py(f)` (or `pyjl(f)`), the arguments passed to `f` are always of type `Py`, i.e.
 they are never converted.
 """
-function pyfunc(f; name=nothing, qualname=name, doc=nothing, signature=nothing)
+function pyfunc(f; name=nothing, qualname=name, doc=nothing, signature=nothing, wrap=pywrapcallback)
     f2 = ispy(f) ? f : pyjlcallback(f)
-    f3 = pywrapcallback(f2)
-    pydel!(f2)
+    if wrap isa Pair
+        wrapargs, wrapfunc = wrap
+    else
+        wrapargs, wrapfunc = (), wrap
+    end
+    if wrapfunc isa AbstractString
+        f3 = pybuiltins.eval(wrapfunc, pydict())(f2, wrapargs...)
+    else
+        f3 = wrapfunc(f2, wrapargs...)
+    end
     f3.__name__ = name === nothing ? "<lambda>" : name
     f3.__qualname__ = name === nothing ? "<lambda>" : qualname
     if doc !== nothing

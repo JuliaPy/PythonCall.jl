@@ -43,7 +43,7 @@ mutable struct Py
 end
 export Py
 
-py_finalizer(x::Py) = C.gc_enqueue(getptr(x))
+py_finalizer(x::Py) = GC.enqueue(getptr(x))
 
 ispy(::Py) = true
 getptr(x::Py) = getfield(x, :ptr)

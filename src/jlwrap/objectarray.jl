@@ -23,7 +23,7 @@ PyObjectArray(undef::UndefInitializer, dims::Vararg{Integer,N}) where {N} = PyOb
 PyObjectArray{N}(x::AbstractArray{T,N}) where {T,N} = copyto!(PyObjectArray{N}(undef, size(x)), x)
 PyObjectArray(x::AbstractArray{T,N}) where {T,N} = PyObjectArray{N}(x)
 
-pyobjectarray_finalizer(x::PyObjectArray) = C.gc_enqueue_all(x.ptrs)
+pyobjectarray_finalizer(x::PyObjectArray) = GC.enqueue_all(x.ptrs)
 
 Base.IndexStyle(x) = Base.IndexStyle(x.ptrs)
 

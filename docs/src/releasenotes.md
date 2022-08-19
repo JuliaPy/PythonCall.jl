@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Unreleased
+* Adds `PythonCall.GC.disable()` and `PythonCall.GC.enable()`.
 * Experimental new function `juliacall.interactive()` allows the Julia async event loop to
   run in the background of the Python REPL.
 * Experimental new IPython extension `juliacall.ipython` providing the `%jl` and `%%jl`

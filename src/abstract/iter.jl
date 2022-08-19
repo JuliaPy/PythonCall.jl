@@ -19,4 +19,4 @@ export pynext
 
 Return the next item in the iterator `x`. When there are no more items, return NULL.
 """
-unsafe_pynext(x::Py) = GC.@preserve x pynew(errcheck_ambig(C.PyIter_Next(getptr(x))))
+unsafe_pynext(x::Py) = Base.GC.@preserve x pynew(errcheck_ambig(C.PyIter_Next(getptr(x))))

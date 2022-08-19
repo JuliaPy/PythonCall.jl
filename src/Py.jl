@@ -88,7 +88,7 @@ the top level then `pycopy!(x, pything())` inside `__init__()`.
 
 Assumes `dst` is NULL, otherwise a memory leak will occur.
 """
-pycopy!(dst::Py, src) = GC.@preserve src setptr!(dst, incref(getptr(src)))
+pycopy!(dst::Py, src) = Base.GC.@preserve src setptr!(dst, incref(getptr(src)))
 
 """
     pydel!(x::Py)

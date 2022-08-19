@@ -25,9 +25,9 @@ function errget()
     (pynew(t[]), pynew(v[]), pynew(b[]))
 end
 
-errset(t::Py) = GC.@preserve t C.PyErr_SetNone(getptr(t))
-errset(t::Py, v::Py) = GC.@preserve t v C.PyErr_SetObject(getptr(t), getptr(v))
-errset(t::Py, v::String) = GC.@preserve t C.PyErr_SetString(getptr(t), v)
+errset(t::Py) = Base.GC.@preserve t C.PyErr_SetNone(getptr(t))
+errset(t::Py, v::Py) = Base.GC.@preserve t v C.PyErr_SetObject(getptr(t), getptr(v))
+errset(t::Py, v::String) = Base.GC.@preserve t C.PyErr_SetString(getptr(t), v)
 
 function errnormalize!(t::Py, v::Py, b::Py)
     tptr = getptr(t)

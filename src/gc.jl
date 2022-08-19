@@ -8,7 +8,7 @@ module GC
 import ..PythonCall.C
 
 const ENABLED = Ref(true)
-const QUEUE = PyPtr[]
+const QUEUE = C.PyPtr[]
 
 """
     PythonCall.GC.disable()

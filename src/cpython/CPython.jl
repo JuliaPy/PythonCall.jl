@@ -16,7 +16,6 @@ include("extras.jl")
 include("context.jl")
 include("gil.jl")
 include("jlwrap.jl")
-include("gc.jl")
 
 function __init__()
     init_context()

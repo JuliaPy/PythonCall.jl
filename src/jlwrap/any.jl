@@ -102,7 +102,7 @@ end
 function (op::pyjlany_rev_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
-        Py(op.op(self, other))
+        Py(op.op(other, self))
     else
         pybuiltins.NotImplemented
     end
@@ -111,7 +111,7 @@ function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_) && pyisjl(other2_)
         other = pyjlvalue(other_)
         other2 = pyjlvalue(other2_)
-        Py(op.op(self, other, other2))
+        Py(op.op(other, self, other2))
     else
         pybuiltins.NotImplemented
     end

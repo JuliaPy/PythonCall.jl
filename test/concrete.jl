@@ -1,4 +1,4 @@
-@testset "import" begin
+@testitem "import" begin
     sys = pyimport("sys")
     os = pyimport("os")
     @test pyeq(Bool, sys.__name__, "sys")
@@ -17,12 +17,12 @@
     @test pyis(verpath[2], path)
 end
 
-@testset "consts" begin
+@testitem "consts" begin
     @test pybuiltins.None isa Py
     @test pystr(String, pybuiltins.None) == "None"
 end
 
-@testset "str" begin
+@testitem "str" begin
     @test pyisinstance(pystr("foo"), pybuiltins.str)
     @test pyeq(Bool, pystr(pystr("foo")), pystr("foo"))
     @test pyeq(Bool, pystr(SubString("foobarbaz", 4:6)), pystr("bar"))
@@ -32,7 +32,7 @@ end
     @test pystr(String, pystr("foo")) === "foo"
 end
 
-@testset "bytes" begin
+@testitem "bytes" begin
     @test pyisinstance(pybytes(UInt8[1,2,3]), pybuiltins.bytes)
     @test pyeq(Bool, pybytes(pylist([1,2,3])), pybytes(UInt8[1,2,3]))
     @test pyeq(Bool, pybytes(b"foo"), pystr("foo").encode("ascii"))
@@ -43,7 +43,7 @@ end
     @test pybytes(Base.CodeUnits{UInt8,String}, pystr("bar").encode("ascii")) == b"bar"
 end
 
-@testset "tuple" begin
+@testitem "tuple" begin
     z = pytuple()
     @test pyisinstance(z, pybuiltins.tuple)
     @test pylen(z) == 0
@@ -59,7 +59,7 @@ end
     @test pyeq(Bool, pytuple(pylist([1,2,3])), x)
 end
 
-@testset "list" begin
+@testitem "list" begin
     z = pylist()
     @test pyisinstance(z, pybuiltins.list)
     @test pylen(z) == 0
@@ -79,7 +79,7 @@ end
     @test pyeq(Bool, pyrowlist([1 2; 3 4]), pylist((pylist([1,2]), pylist([3,4]))))
 end
 
-@testset "dict" begin
+@testitem "dict" begin
     z = pydict()
     @test pyisinstance(z, pybuiltins.dict)
     @test pylen(z) == 0
@@ -95,7 +95,7 @@ end
     @test pyeq(Bool, pydict(x), x)
 end
 
-@testset "bool" begin
+@testitem "bool" begin
     @test pyis(pybool(), pybuiltins.False)
     @test pyis(pybool(false), pybuiltins.False)
     @test pyis(pybool(true), pybuiltins.True)
@@ -106,7 +106,7 @@ end
     @test pyis(pybool(pylist([1,2,3])), pybuiltins.True)
 end
 
-@testset "int" begin
+@testitem "int" begin
     @test pyisinstance(pyint(), pybuiltins.int)
     @test pystr(String, pyint()) == "0"
     x = 123
@@ -129,7 +129,7 @@ end
     @test pyeq(Bool, pyint(pyfloat(12.3)), pyint(12))
 end
 
-@testset "float" begin
+@testitem "float" begin
     y = pyfloat()
     @test pyisinstance(y, pybuiltins.float)
     @test pyeq(Bool, y, pyint(0))
@@ -149,7 +149,7 @@ end
     @test pyeq(Bool, pyfloat(pyint(123)), pyfloat(123))
 end
 
-@testset "complex" begin
+@testitem "complex" begin
     y = pycomplex()
     @test pyisinstance(y, pybuiltins.complex)
     @test pyeq(Bool, y, pyint(0))
@@ -171,7 +171,7 @@ end
     @test pyeq(Bool, pycomplex(pyint(12), pyint(34)), y)
 end
 
-@testset "set" begin
+@testitem "set" begin
     y = pyset()
     yf = pyfrozenset()
     @test pyisinstance(y, pybuiltins.set)
@@ -197,7 +197,7 @@ end
     @test pyeq(Bool, y, yf)
 end
 
-@testset "slice" begin
+@testitem "slice" begin
     x = pyslice(12)
     @test pyisinstance(x, pybuiltins.slice)
     @test pyeq(Bool, x.start, pybuiltins.None)
@@ -215,7 +215,7 @@ end
     @test pyeq(Bool, x.step, 56)
 end
 
-@testset "range" begin
+@testitem "range" begin
     x = pyrange(123)
     @test pyisinstance(x, pybuiltins.range)
     @test pyeq(Bool, x.start, 0)
@@ -233,10 +233,11 @@ end
     @test pyeq(Bool, x.step, 3)
 end
 
-@testset "none" begin
+@testitem "none" begin
+    # TODO
 end
 
-@testset "type" begin
+@testitem "type" begin
     x = pytype(pyint())
     @test pyisinstance(x, pybuiltins.type)
     @test pyis(x, pybuiltins.int)
@@ -250,15 +251,16 @@ end
     @test pyeq(Bool, x.bar, 2)
 end
 
-@testset "fraction" begin
+@testitem "fraction" begin
     # TODO
 end
 
-@testset "method" begin
+@testitem "method" begin
     # TODO
 end
 
-@testset "datetime" begin
+@testitem "datetime" begin
+    using Dates
     dt = pyimport("datetime")
     x1 = pydate(2001, 2, 3)
     @test pyisinstance(x1, dt.date)
@@ -283,6 +285,6 @@ end
     @test pyeq(Bool, x7, dt.datetime(2001, 2, 3, 4, 5, 6, 7000))
 end
 
-@testset "code" begin
+@testitem "code" begin
     # TODO
 end

@@ -1,4 +1,5 @@
-@testset "object" begin
+@testitem "object" begin
+    import Markdown
     @testset "pyis" begin
         x = pylist()
         y = PythonCall.pynew(x)
@@ -215,7 +216,7 @@
     end
 end
 
-@testset "iter" begin
+@testitem "iter" begin
     @test_throws PyException pyiter(pybuiltins.None)
     @test_throws PyException pyiter(pybuiltins.True)
     # unsafe_pynext
@@ -237,7 +238,7 @@ end
     @test_throws PyException pynext(it)
 end
 
-@testset "number" begin
+@testitem "number" begin
     @testset "pyneg" begin
         for n in -2:2
             @test pyeq(Bool, pyneg(pyint(n)), pyint(-n))
@@ -370,7 +371,7 @@ end
     # TODO: in-place operators
 end
 
-@testset "builtins" begin
+@testitem "builtins" begin
     @testset "pyprint" begin
         buf = pyimport("io").StringIO()
         ans = pyprint("hello", 12, file=buf)

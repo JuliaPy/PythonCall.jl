@@ -1,7 +1,7 @@
-@testset "PyArray" begin
+@testitem "PyArray" begin
 end
 
-@testset "PyDict" begin
+@testitem "PyDict" begin
     x = pydict(["foo"=>12])
     y = PyDict(x)
     z = PyDict{String,Int}(x)
@@ -100,10 +100,10 @@ end
     end
 end
 
-@testset "PyIO" begin
+@testitem "PyIO" begin
 end
 
-@testset "PyIterable" begin
+@testitem "PyIterable" begin
     x = pylist([1, 2, 3])
     y = PyIterable(x)
     z = PyIterable{Int}(x)
@@ -124,7 +124,7 @@ end
     end
 end
 
-@testset "PyList" begin
+@testitem "PyList" begin
     x = pylist([1, 2, 3])
     y = PyList(x)
     z = PyList{Int}(x)
@@ -268,10 +268,10 @@ end
     end
 end
 
-@testset "PyPandasDataFrame" begin
+@testitem "PyPandasDataFrame" begin
 end
 
-@testset "PySet" begin
+@testitem "PySet" begin
     @testset "copy" begin
         x = PySet{Int}([1,2,3])
         y = copy(x)
@@ -282,5 +282,5 @@ end
     end
 end
 
-@testset "PyTable" begin
+@testitem "PyTable" begin
 end

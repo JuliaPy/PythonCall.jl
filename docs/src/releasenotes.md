@@ -1,5 +1,8 @@
 # Release Notes
 
+## Unreleased
+* Bug fixes.
+
 ## 0.9.5 (2022-08-19)
 * Adds `PythonCall.GC.disable()` and `PythonCall.GC.enable()`.
 * Experimental new function `juliacall.interactive()` allows the Julia async event loop to

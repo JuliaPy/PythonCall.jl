@@ -1,6 +1,8 @@
 # Release Notes
 
 ## Unreleased
+* Python named tuples can be converted to Julia named tuples. So can Python iterables, if
+  the target `NamedTuple` type specifies field names.
 * Bug fixes.
 
 ## 0.9.5 (2022-08-19)

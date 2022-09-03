@@ -154,6 +154,21 @@ end
     @test x2 === ("foo" => missing)
 end
 
+@testitem "named tuple → NamedTuple" begin
+    NT = pyimport("collections" => "namedtuple")
+    t1 = pyconvert(NamedTuple, NT("NT", "x y")(1, 2))
+    @test t1 === (x=1, y=2)
+    @test_throws Exception pyconvert(NamedTuple, (2, 3))
+    t2 = pyconvert(NamedTuple{(:x, :y)}, NT("NT", "x y")(3, 4))
+    @test t2 === (x=3, y=4)
+    @test_throws Exception pyconvert(NamedTuple{(:y, :x)}, NT("NT", "x y")(3, 4))
+    t3 = pyconvert(NamedTuple{names,Tuple{Int,Int}} where {names}, NT("NT", "x y")(4, 5))
+    @test t3 === (x=4, y=5)
+    @test_throws Exception pyconvert(NamedTuple{names,Tuple{Int,Int}} where {names}, (5, 6))
+    t4 = pyconvert(NamedTuple{(:x, :y),Tuple{Int,Int}}, NT("NT", "x y")(6, 7))
+    @test t4 === (x=6, y=7)
+end
+
 @testitem "mapping → Dict" begin
     x1 = pyconvert(Dict, pydict(["a"=>1, "b"=>2]))
     @test x1 isa Dict{String, Int}

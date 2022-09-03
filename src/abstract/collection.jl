@@ -169,3 +169,29 @@ function pyconvert_rule_iterable(::Type{R}, x::Py, ::Type{Pair{K0,V0}}=Utils._ty
     V2 = Utils._promote_type_bounded(V0, typeof(v), V1)
     return pyconvert_return(Pair{K2,V2}(k, v))
 end
+
+# NamedTuple
+
+_nt_names_types(::Type) = nothing
+_nt_names_types(::Type{NamedTuple}) = (nothing, nothing)
+_nt_names_types(::Type{NamedTuple{names}}) where {names} = (names, nothing)
+_nt_names_types(::Type{NamedTuple{names,types} where {names}}) where {types} = (nothing, types)
+_nt_names_types(::Type{NamedTuple{names,types}}) where {names,types} = (names, types)
+
+function pyconvert_rule_iterable(::Type{R}, x::Py) where {R<:NamedTuple}
+    # this is actually strict and only converts python named tuples (i.e. tuples with a
+    # _fields attribute) where the field names match those from R (if specified).
+    names_types = _nt_names_types(R)
+    names_types === nothing && return pyconvert_unconverted()
+    names, types = names_types
+    PythonCall.pyistuple(x) || return pyconvert_unconverted()
+    names2_ = pygetattr(x, "_fields", pybuiltins.None)
+    names2 = @pyconvert(names === nothing ? Tuple{Vararg{Symbol}} : typeof(names), names2_)
+    pydel!(names2_)
+    names === nothing || names === names2 || return pyconvert_unconverted()
+    types2 = types === nothing ? NTuple{length(names2),Any} : types
+    vals = @pyconvert(types2, x)
+    length(vals) == length(names2) || return pyconvert_unconverted()
+    types3 = types === nothing ? typeof(vals) : types
+    return pyconvert_return(NamedTuple{names2,types3}(vals))
+end

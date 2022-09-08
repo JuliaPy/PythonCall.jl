@@ -272,13 +272,101 @@ end
 end
 
 @testitem "PySet" begin
+    x = pyset([1, 2, 3])
+    y = PySet(x)
+    z = PySet{Int}(x)
+    e = PySet{String}()
+    @testset "construct" begin
+        @test y isa PySet{Py}
+        @test z isa PySet{Int}
+        @test e isa PySet{String}
+        @test PythonCall.ispy(y)
+        @test PythonCall.ispy(z)
+        @test PythonCall.ispy(e)
+        @test Py(y) === x
+        @test Py(z) === x
+        @test Py(e) !== x
+    end
+    @testset "length" begin
+        @test length(y) == 3
+        @test length(z) == 3
+        @test length(e) == 0
+    end
+    @testset "isempty" begin
+        @test !isempty(y)
+        @test !isempty(z)
+        @test isempty(e)
+    end
+    @testset "in" begin
+        @test 1 in z
+        @test 3 in z
+        @test !(4 in z)
+        @test !(1 in e)
+        @test 2.0 in z
+        @test !(2.1 in z)
+    end
+    @testset "push!" begin
+        a = PySet{String}(["a"])
+        @test a == Set(["a"])
+        push!(a, "b")
+        @test a == Set(["a", "b"])
+        push!(a, "a")
+        @test a == Set(["a", "b"])
+    end
+    @testset "delete!" begin
+        a = PySet{Int}()
+        @test a == Set()
+        delete!(a, 0)
+        @test a == Set()
+        delete!(a, nothing)
+        @test a == Set()
+        push!(a, 1, 2, 3)
+        @test a == Set([1, 2, 3])
+        delete!(a, 2)
+        @test a == Set([1, 3])
+        delete!(a, 1.2)
+        @test a == Set([1, 3])
+        delete!(a, 3.0)
+        @test a == Set([1])
+        delete!(a, nothing)
+        @test a == Set([1])
+    end
+    @testset "pop!" begin
+        a = PySet{Int}()
+        @test_throws Exception pop!(a)
+        push!(a, 1, -1)
+        x = pop!(a)
+        @test x in [1, -1]
+        @test a == Set([-x])
+        y = pop!(a)
+        @test x == -y
+        @test a == Set()
+        @test_throws Exception pop!(a)
+        push!(a, 1, 2, 3)
+        @test pop!(a, 1) == 1
+        @test a == Set([2, 3])
+        @test pop!(a, 2.0) == 2
+        @test a == Set([3])
+        @test_throws Exception pop!(a, 1)
+        @test_throws Exception pop!(a, 1.0)
+        @test_throws Exception pop!(a, nothing)
+        @test a == Set([3])
+        @test pop!(a, 1, 99) === 99
+        @test pop!(a, 1.0, 99) === 99
+        @test pop!(a, nothing, 99) === 99
+    end
+    @testset "empty!" begin
+        a = PySet{Int}([1, 2, 3])
+        @test a == Set([1, 2, 3])
+        @test empty!(a) === a
+        @test a == Set()
+    end
     @testset "copy" begin
-        x = PySet{Int}([1,2,3])
-        y = copy(x)
-        @test y isa PySet{Int}
-        push!(y, 99)
-        @test x == Set([1, 2, 3])
-        @test y == Set([1, 2, 3, 99])
+        z2 = copy(z)
+        @test z2 isa PySet{Int}
+        push!(z2, 99)
+        @test z == Set([1, 2, 3])
+        @test z2 == Set([1, 2, 3, 99])
     end
 end
 

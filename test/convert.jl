@@ -169,6 +169,15 @@ end
     @test t4 === (x=6, y=7)
 end
 
+@testitem "mapping → PyDict" begin
+    x1 = pyconvert(PyDict, pydict([1=>11, 2=>22, 3=>33]))
+    @test x1 isa PyDict{Py,Py}
+    @test isequal(x1, Dict([Py(1)=>Py(11), Py(2)=>Py(22), Py(3)=>Py(33)]))
+    x2 = pyconvert(PyDict{Int,Int}, pydict([1=>11, 2=>22, 3=>33]))
+    @test x2 isa PyDict{Int,Int}
+    @test x2 == Dict(1=>11, 2=>22, 3=>33)
+end
+
 @testitem "mapping → Dict" begin
     x1 = pyconvert(Dict, pydict(["a"=>1, "b"=>2]))
     @test x1 isa Dict{String, Int}
@@ -176,6 +185,24 @@ end
     x2 = pyconvert(Dict{Char,Float32}, pydict(["c"=>3, "d"=>4]))
     @test x2 isa Dict{Char,Float32}
     @test x2 == Dict('c'=>3.0, 'd'=>4.0)
+end
+
+@testitem "sequence → PyList" begin
+    x1 = pyconvert(PyList, pylist([1, 2, 3]))
+    @test x1 isa PyList{Py}
+    @test isequal(x1, [Py(1), Py(2), Py(3)])
+    x2 = pyconvert(PyList{Int}, pylist([1, 2, 3]))
+    @test x2 isa PyList{Int}
+    @test x2 == [1, 2, 3]
+end
+
+@testitem "set → PySet" begin
+    x1 = pyconvert(PySet, pyset([1, 2, 3]))
+    @test x1 isa PySet{Py}
+    @test isequal(x1, Set([Py(1), Py(2), Py(3)]))
+    x2 = pyconvert(PySet{Int}, pyset([1, 2, 3]))
+    @test x2 isa PySet{Int}
+    @test x2 == Set([1, 2, 3])
 end
 
 @testitem "date → Date" begin

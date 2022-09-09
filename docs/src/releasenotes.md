@@ -3,6 +3,7 @@
 ## Unreleased
 * When using JuliaCall from an interactive Python session, Julia is put into interactive
   mode: `isinteractive()` is true, InteractiveUtils is loaded, and a nicer display is used.
+* Wrapped Julia values now truncate their output when displayed via `_repr_mimebundle_`.
 * Python named tuples can be converted to Julia named tuples.
 * Bug fixes.
 

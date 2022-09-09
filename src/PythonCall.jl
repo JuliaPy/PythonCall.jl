@@ -4,7 +4,7 @@ const VERSION = v"0.9.5"
 const ROOT_DIR = dirname(@__DIR__)
 
 using Base: @propagate_inbounds
-using MacroTools, Dates, Tables, Markdown, Serialization, Requires, Pkg
+using MacroTools, Dates, Tables, Markdown, Serialization, Requires, Pkg, REPL
 
 include("utils.jl")
 

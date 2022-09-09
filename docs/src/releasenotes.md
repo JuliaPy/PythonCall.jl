@@ -1,6 +1,8 @@
 # Release Notes
 
 ## Unreleased
+* When using JuliaCall from an interactive Python session, Julia is put into interactive
+  mode: `isinteractive()` is true, InteractiveUtils is loaded, and a nicer display is used.
 * Python named tuples can be converted to Julia named tuples.
 * Bug fixes.
 

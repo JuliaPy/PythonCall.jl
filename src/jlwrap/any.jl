@@ -155,7 +155,7 @@ function pyjlany_mimebundle(self, include::Py, exclude::Py)
     for m in mimes
         try
             io = IOBuffer()
-            show(io, MIME(m), self)
+            show(IOContext(io, :limit=>true), MIME(m), self)
             v = take!(io)
             ans[m] = vo = istextmime(m) ? pystr(String(v)) : pybytes(v)
             pydel!(vo)

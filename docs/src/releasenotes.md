@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased
+## 0.9.6 (2022-09-09)
 * When using JuliaCall from an interactive Python session, Julia is put into interactive
   mode: `isinteractive()` is true, InteractiveUtils is loaded, and a nicer display is used.
 * Wrapped Julia values now truncate their output when displayed via `_repr_mimebundle_`.

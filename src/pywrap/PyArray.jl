@@ -262,8 +262,70 @@ pyarray_typestrdescr_to_type(ts::String, descr::Py) = begin
         return Utils.StaticString{UInt32,sz}
     elseif etc == 'O'
         return UnsafePyObject
+    elseif etc == 'V'
+        pyisnull(descr) && error("not supported: void dtype with null descr")
+        sz = parse(Int, ts[3:end])
+        T = pyarray_descr_to_type(descr)
+        sizeof(T) == sz || error("size mismatch: itemsize=$sz but sizeof(descr)=$(sizeof(T))")
+        return T
     else
-        error("type not supported: $ts")
+        error("not supported: dtype of kind: $(repr(etc))")
+    end
+end
+
+function pyarray_descr_to_type(descr::Py)
+    fnames = Symbol[]
+    foffsets = Int[]
+    ftypes = DataType[]
+    curoffset = 0
+    for item in descr
+        # get the name
+        name = item[0]
+        if pyistuple(name)
+            name = name[0]
+        end
+        fname = Symbol(pyconvert(String, name))
+        # get the shape
+        if length(item) > 2
+            shape = pyconvert(Vector{Int}, item[2])
+        else
+            shape = Int[]
+        end
+        # get the type
+        descr2 = item[1]
+        if pyisstr(descr2)
+            typestr = pyconvert(String, descr2)
+            # void entries are just padding to ignore
+            if typestr[2] == 'V'
+                curoffset += parse(Int, typestr[3:end]) * prod(shape)
+                continue
+            end
+            ftype = pyarray_typestrdescr_to_type(typestr, PyNULL)
+        else
+            ftype = pyarray_descr_to_type(descr2)
+        end
+        # apply the shape
+        for n in reverse(shape)
+            ftype = NTuple{n,ftype}
+        end
+        # save the field
+        push!(fnames, fname)
+        push!(foffsets, curoffset)
+        push!(ftypes, ftype)
+        curoffset += sizeof(ftype)
+    end
+    # construct the tuple type and check its offsets and size
+    # TODO: support non-aligned dtypes by packing them into a custom type and reinterpreting
+    T = Tuple{ftypes...}
+    for (i, o) in pairs(foffsets)
+        fieldoffset(T, i) == o || error("not supported: dtype that is not aligned: $descr")
+    end
+    sizeof(T) == curoffset || error("not supported: dtype with end padding: $descr")
+    # return the tuple type if the field names are f0, f1, ..., else return a named tuple
+    if fnames == [Symbol(:f, i-1) for i in 1:length(fnames)]
+        return T
+    else
+        return NamedTuple{Tuple(fnames), T}
     end
 end
 
@@ -380,9 +442,13 @@ function pyarray_get_R(src::PyArraySource_ArrayStruct)
         mod(size, 4) == 0 || error("unicode size must be a multiple of 4: $size")
         return Utils.StaticString{UInt32,div(size, 4)}
     elseif kind == 86  # V = void (should have descr)
-        error("dtype not supported")
+        hasdescr || error("not supported: void dtype with no descr")
+        descr = pynew(incref(src.info.descr))
+        T = pyarray_descr_to_type(descr)
+        sizeof(T) == size || error("size mismatch: itemsize=$size but sizeof(descr)=$(sizeof(T))")
+        return T
     else
-        error("unexpected kind ($(Char(kind)))")
+        error("not supported: dtype of kind: $(Char(kind))")
     end
     @assert false
 end

@@ -102,6 +102,6 @@ function _columns(df, columnnames, columntypes)
     # output a table
     # TODO: realising columns to vectors could be done lazily with a different table type
     schema = Tables.Schema(colnames, coltypes)
-    coldict = Dict(k=>v for (k,v) in zip(colnames, columns))
+    coldict = Tables.OrderedDict(k=>v for (k,v) in zip(colnames, columns))
     Tables.DictColumnTable(schema, coldict)
 end

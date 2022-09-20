@@ -95,7 +95,6 @@ function _columns(df, columnnames, columntypes)
                 end
             end
         end
-        pydel!(pycolumn)
         push!(columns, column)
         push!(coltypes, eltype(column))
     end

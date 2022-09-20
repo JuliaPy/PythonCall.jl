@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.9.7
+* If CondaPkg is using the Null backend, PythonCall will now use `python` from the PATH.
+* Bug fixes.
+
 ## 0.9.6 (2022-09-09)
 * When using JuliaCall from an interactive Python session, Julia is put into interactive
   mode: `isinteractive()` is true, InteractiveUtils is loaded, and a nicer display is used.

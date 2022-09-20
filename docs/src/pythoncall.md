@@ -252,6 +252,23 @@ path.
 If you also use PyCall, you can set `JULIA_PYTHONCALL_EXE=@PyCall` to use the same Python
 interpreter.
 
+#### If you already have a Conda environment
+
+```julia
+ENV["JULIA_CONDAPKG_BACKEND"] = "Current"
+ENV["JULIA_CONDAPKG_EXE"] = "/path/to/conda"  # optional
+```
+
+The Current backand to CondaPkg will use the currently activated Conda environment instead
+of creating a new one.
+
+Note that this will still install any required Conda packages into your Conda environment.
+If you already have your dependencies installed and do not want the environment to be
+modified, then see the previous section.
+
+If `conda`, `mamba` or `micromamba` is not in your `PATH` you will also need to set
+`JULIA_CONDAPKG_EXE` to its path.
+
 #### If you already have Conda, Mamba or MicroMamba
 
 ```julia

@@ -234,6 +234,24 @@ By default, PythonCall uses [CondaPkg.jl](https://github.com/cjdoris/CondaPkg.jl
 its dependencies. This will install Conda and use it to create a Conda environment specific
 to your current Julia project containing Python and any required Python packages.
 
+#### If you already have Python and required Python packages installed
+
+```julia
+ENV["JULIA_CONDAPKG_BACKEND"] = "Null"
+ENV["JULIA_PYTHONCALL_EXE"] = "/path/to/python"  # optional
+ENV["JULIA_PYTHONCALL_EXE"] = "@PyCall"  # optional
+```
+
+By setting the CondaPkg backend to Null, it will never install any Conda packages. In this
+case, PythonCall will use whichever Python is currently installed and in your `PATH`. You
+must have already installed any Python packages that you need.
+
+If `python` is not in your `PATH`, you will also need to set `JULIA_PYTHONCALL_EXE` to its
+path.
+
+If you also use PyCall, you can set `JULIA_PYTHONCALL_EXE=@PyCall` to use the same Python
+interpreter.
+
 #### If you already have Conda, Mamba or MicroMamba
 
 ```julia
@@ -244,25 +262,11 @@ ENV["JULIA_CONDAPKG_EXE"] = "/path/to/conda"  # optional
 The System backend to CondaPkg will use your preinstalled Conda implementation instead of
 downloading one.
 
+Note that this will still create a new Conda environment and install any required packages
+into it. If you want to use a pre-existing Conda environment, see the previous section.
+
 If `conda`, `mamba` or `micromamba` is not in your `PATH` you will also need to set
 `JULIA_CONDAPKG_EXE` to its path.
-
-#### If you don't want to use Conda
-
-```julia
-ENV["JULIA_PYTHONCALL_EXE"] = "/path/to/python"
-ENV["JULIA_PYTHONCALL_EXE"] = "@PyCall" # optional
-ENV["JULIA_CONDAPKG_BACKEND"] = "Null"  # optional
-```
-
-You will need to install Python and any Python packages required yourself, and ensure that
-they are at compatible versions.
-
-If you also use PyCall, you can set `JULIA_PYTHONCALL_EXE=@PyCall` to use the same Python
-interpreter.
-
-You may also set `JULIA_CONDAPKG_BACKEND=Null` to completely disable CondaPkg. This should
-not be necessary because PythonCall will not use CondaPkg if the above settings are used.
 
 ## [Installing Python packages](@id python-deps)
 

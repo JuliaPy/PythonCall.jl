@@ -192,9 +192,10 @@ function init_jlwrap_any()
                 ValueBase.__setattr__(self, k, v)
             except AttributeError:
                 if k.startswith("__") and k.endswith("__"):
-                    raise AttributeError(k)
-                else:
-                    self._jl_callmethod($(pyjl_methodnum(pyjlany_setattr)), k, v)
+                    raise
+            else:
+                return
+            self._jl_callmethod($(pyjl_methodnum(pyjlany_setattr)), k, v)
         def __dir__(self):
             return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlany_dir)))
         def __call__(self, *args, **kwargs):

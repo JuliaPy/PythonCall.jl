@@ -1,6 +1,6 @@
 # Release Notes
 
-## 0.9.7
+## 0.9.7 (Unreleased)
 * If CondaPkg is using the Null backend, PythonCall will now use `python` from the PATH.
 * Bug fixes.
 

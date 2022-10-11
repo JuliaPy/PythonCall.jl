@@ -1,6 +1,12 @@
 name: Register to PyPI
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+    tags:
+    - v0.*
 
 jobs:
   register:

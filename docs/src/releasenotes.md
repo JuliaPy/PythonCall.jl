@@ -1,5 +1,9 @@
 # Release Notes
 
+## Unreleased
+* Adds `line_buffering` option to `PyIO`.
+* Improvements to stdout when using `juliacall.ipython` includng line-buffering.
+
 ## 0.9.7 (2022-10-11)
 * If CondaPkg is using the Null backend, PythonCall will now use `python` from the PATH.
 * Bug fixes.

@@ -34,8 +34,8 @@ def load_ipython_extension(ip):
     PythonCall.seval("""begin
         const _redirected_stdout = redirect_stdout()
         const _redirected_stderr = redirect_stderr()
-        const _py_stdout = PyIO(pyimport("sys" => "stdout"))
-        const _py_stderr = PyIO(pyimport("sys" => "stderr"))
+        const _py_stdout = PyIO(pyimport("sys" => "stdout"); line_buffering=true)
+        const _py_stderr = PyIO(pyimport("sys" => "stderr"); line_buffering=true)
         const _redirect_stdout_task = @async write($_py_stdout, $_redirected_stdout)
         const _redirect_stderr_task = @async write($_py_stderr, $_redirected_stderr)
         function _flush_stdio()

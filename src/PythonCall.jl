@@ -1,6 +1,6 @@
 module PythonCall
 
-const VERSION = v"0.9.7"
+const VERSION = v"0.9.8"
 const ROOT_DIR = dirname(@__DIR__)
 
 using Base: @propagate_inbounds

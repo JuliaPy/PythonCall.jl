@@ -2,9 +2,6 @@ name: Register to PyPI
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-    - main
 
 jobs:
   register:
@@ -30,7 +27,6 @@ jobs:
         --outdir dist/
         .
     - name: Publish to PyPI
-      if: startsWith(github.ref, 'refs/tags/v0.')
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}

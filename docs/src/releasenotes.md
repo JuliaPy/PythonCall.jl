@@ -1,5 +1,8 @@
 # Release Notes
 
+## 0.9.9 (2022-10-20)
+* Bug fixes.
+
 ## 0.9.8 (2022-10-18)
 * Adds `line_buffering` option to `PyIO`.
 * Improvements to stdout when using `juliacall.ipython` includng line-buffering.

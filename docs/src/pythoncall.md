@@ -285,6 +285,24 @@ into it. If you want to use a pre-existing Conda environment, see the previous s
 If `conda`, `mamba` or `micromamba` is not in your `PATH` you will also need to set
 `JULIA_CONDAPKG_EXE` to its path.
 
+#### If you installed a newer version of libstdc++
+On Linux, Julia comes bundled with its own copy of *libstdc++*.  Therefore, when interacting with
+CondaPkg, PythonCall injects a dependency to bound the allowed versions of the `libstdcxx-ng`
+Conda package. To override this value (e.g. if the user replaced the bundled libstdc++ with something
+newer), use:
+
+```julia
+[PythonCall]
+ENV["JULIA_CONDAPKG_LIBSTDCXX_VERSION_BOUND"] = ">=3.4,<=12"
+```
+
+To figure out installed version, run
+```bash
+strings /path/to/julia/lib/julia/libstdc++.so.6 | grep GLIBCXX
+```
+Then look at <https://gcc.gnu.org/onlinedocs/gcc-12.1.0/libstdc++/manual/manual/abi.html>
+for the GCC version compatible with the GLIBCXX version.
+
 ## [Installing Python packages](@id python-deps)
 
 Assuming you haven't [opted out](@ref pythoncall-config), PythonCall uses

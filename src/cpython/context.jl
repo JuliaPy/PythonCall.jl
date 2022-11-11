@@ -44,14 +44,29 @@ end
 #   https://gcc.gnu.org/onlinedocs/gcc-12.1.0/libstdc++/manual/manual/abi.html
 # for the highest GCC version compatible with the highest GLIBCXX version.
 function get_libstdcxx_version_bound()
-    if Base.VERSION <= v"1.6.2"
-        # GLIBCXX_3.4.26
-        cxx_version = ">=3.4,<9.2"
-    else
-        # GLIBCXX_3.4.29
-        # checked up to v1.8.0
-        cxx_version = ">=3.4,<11.4"
-    end
+    # This list comes from: https://gcc.gnu.org/onlinedocs/libstdc++/manual/abi.html
+    # Start with GCC 4.8, as it's extremely difficult to build Julia with anything older
+    vers_mapping = Dict(
+        18 => v"4.8.0",
+        19 => v"4.8.3",
+        21 => v"5.1.0",
+        22 => v"6.1.0",
+        23 => v"7.1.0",
+        24 => v"7.2.0",
+        25 => v"8.1.0",
+        26 => v"9.1.0",
+        27 => v"9.2.0",
+        28 => v"9.3.0",
+        29 => v"11.1.0",
+        30 => v"12.1.0",
+        31 => v"13.1.0",
+    )
+    # Get the libstdcxx version that is currently loaded in this Julia process
+    loaded_libstdcxx_version = Base.BinaryPlatforms.detect_libstdcxx_version()
+    # Map it through to get a GCC version; if the version is unknown, we simply return
+    # the highest GCC version we know about, which should be a fairly safe choice.
+    max_version = get(vers_mapping, loaded_libstdcxx_version.patch, vers_mapping[maximum(keys(vers_mapping))])
+    cxx_version = ">=3.4,<=$(max_version.major).$(max_version.minor)"
     get(ENV, "JULIA_CONDAPKG_LIBSTDCXX_VERSION_BOUND", cxx_version)
 end
 

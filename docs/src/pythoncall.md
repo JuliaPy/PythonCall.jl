@@ -286,10 +286,10 @@ If `conda`, `mamba` or `micromamba` is not in your `PATH` you will also need to 
 `JULIA_CONDAPKG_EXE` to its path.
 
 #### If you installed a newer version of libstdc++
-On Linux, Julia comes bundled with its own copy of *libstdc++*.  Therefore, when interacting with
-CondaPkg, PythonCall injects a dependency to bound the allowed versions of the `libstdcxx-ng`
-Conda package. To override this value (e.g. if the user replaced the bundled libstdc++ with something
-newer), use:
+PythonCall injects a dependency to bound the allowed versions of the `libstdcxx-ng`
+Conda package. It finds the bound by runtime discovery of the libstdcxx version.  To
+override this value (e.g. if the user replaced the bundled libstdc++ with something
+else, use:
 
 ```julia
 [PythonCall]

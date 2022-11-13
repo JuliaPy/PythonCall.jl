@@ -288,8 +288,7 @@ If `conda`, `mamba` or `micromamba` is not in your `PATH` you will also need to 
 #### If you installed a newer version of libstdc++
 PythonCall injects a dependency to bound the allowed versions of the `libstdcxx-ng`
 Conda package. It finds the bound by runtime discovery of the libstdcxx version.  To
-override this value (e.g. if the user replaced the bundled libstdc++ with something
-else, use:
+override this value, use:
 
 ```julia
 [PythonCall]

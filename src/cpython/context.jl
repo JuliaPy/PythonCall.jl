@@ -67,7 +67,7 @@ function get_libstdcxx_version_bound()
     # the highest GCC version we know about, which should be a fairly safe choice.
     max_version = get(vers_mapping, loaded_libstdcxx_version.patch, vers_mapping[maximum(keys(vers_mapping))])
     cxx_version = ">=3.4,<=$(max_version.major).$(max_version.minor)"
-    get(ENV, "JULIA_CONDAPKG_LIBSTDCXX_VERSION_BOUND", cxx_version)
+    get(ENV, "JULIA_PYTHONCALL_LIBSTDCXX_VERSION_BOUND", cxx_version)
 end
 
 function init_context()

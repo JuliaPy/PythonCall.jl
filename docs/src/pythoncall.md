@@ -292,7 +292,7 @@ override this value, use:
 
 ```julia
 [PythonCall]
-ENV["JULIA_CONDAPKG_LIBSTDCXX_VERSION_BOUND"] = ">=3.4,<=12"
+ENV["JULIA_PYTHONCALL_LIBSTDCXX_VERSION_BOUND"] = ">=3.4,<=12"
 ```
 
 To figure out installed version, run

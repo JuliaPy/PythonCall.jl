@@ -112,7 +112,7 @@ function init_context()
                     if cxx_version !== nothing
                         CondaPkg.add("libstdcxx-ng", version=cxx_version, channel="conda-forge", temp=true, file=joinpath(@__DIR__, "..", "..", "CondaPkg.toml"), resolve=false)
                     end
-                    # if cxx_version is nothing, then we assume that Julia does not link against libstdcxx-ng, and so we do not
+                    # if cxx_version is nothing, then we assume that Julia does not link against any version ob libstdc++ known by Julia, and so we do not
                     # enforce a version bound.
                 end
                 # By default, we use Python installed by CondaPkg.

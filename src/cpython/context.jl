@@ -49,6 +49,7 @@ function get_libstdcxx_version_bound()
     vers_mapping = Dict(
         18 => v"4.8.0",
         19 => v"4.8.3",
+        20 => v"4.9.0",
         21 => v"5.1.0",
         22 => v"6.1.0",
         23 => v"7.1.0",
@@ -56,9 +57,9 @@ function get_libstdcxx_version_bound()
         25 => v"8.1.0",
         26 => v"9.1.0",
         27 => v"9.2.0",
-        28 => v"9.3.0",
-        29 => v"11.1.0",
-        30 => v"12.1.0",
+        28 => v"9.5.0",
+        29 => v"11.3.0",
+        30 => v"12.2.0",
         31 => v"13.1.0",
     )
     # Get the libstdcxx version that is currently loaded in this Julia process

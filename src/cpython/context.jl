@@ -34,48 +34,60 @@ end
 # the one linked in Julia. This is platform/version dependent, so needs to
 # occur at runtime.
 #
-# Allow the user to override the default.  This is useful when the version
-# of libstdcxx linked in Julia is customized in the local installation of
-# Julia.
-#
-# To figure out cxx_version for a given Julia version, run
-#   strings /path/to/julia/lib/julia/libstdc++.so.6 | grep GLIBCXX
-# then look at
-#   https://gcc.gnu.org/onlinedocs/gcc-12.1.0/libstdc++/manual/manual/abi.html
-# for the highest GCC version compatible with the highest GLIBCXX version.
+# The following lists the mapping from GLIBCXX versions to GCC versions.
+# Start with GCC 4.8, as it's extremely difficult to build Julia with anything older.
+# See https://gcc.gnu.org/onlinedocs/libstdc++/manual/abi.html.
+# See https://gcc.gnu.org/develop.html#timeline.
+# 3.4.18 => 4.8.0 - 4.8.2
+# 3.4.19 => 4.8.3 - 4.8.5
+# 3.4.20 => 4.9.0 - 4.9.4
+# 3.4.21 => 5.1.0 - 5.5.0
+# 3.4.22 => 6.1.0 - 6.5.0
+# 3.4.23 => 7.1.0 - 7.1.0
+# 3.4.24 => 7.2.0 - 7.5.0
+# 3.4.25 => 8.1.0 - 8.5.0
+# 3.4.26 => 9.1.0 - 9.1.0
+# 3.4.27 => 9.2.0 - 9.2.0
+# 3.4.28 => 9.3.0 - 9.5.0
+# 3.4.29 => 11.1.0 - 11.3.0
+# 3.4.30 => 12.1.0 - 12.2.0
+# 3.4.31 => 13.1.0 - 13.1.0
 function get_libstdcxx_version_bound()
-    # This list comes from: https://gcc.gnu.org/onlinedocs/libstdc++/manual/abi.html
-    # Start with GCC 4.8, as it's extremely difficult to build Julia with anything older
-    vers_mapping = Dict(
-        18 => v"4.8.0",
-        19 => v"4.8.3",
-        20 => v"4.9.0",
-        21 => v"5.1.0",
-        22 => v"6.1.0",
-        23 => v"7.1.0",
-        24 => v"7.2.0",
-        25 => v"8.1.0",
-        26 => v"9.1.0",
-        27 => v"9.2.0",
-        28 => v"9.5.0",
-        29 => v"11.3.0",
-        30 => v"12.2.0",
-        31 => v"13.1.0",
-    )
-    # Get the libstdcxx version that is currently loaded in this Julia process
-    loaded_libstdcxx_version = Base.BinaryPlatforms.detect_libstdcxx_version()
-
-    if loaded_libstdcxx_version !== nothing
-        # Map it through to get a GCC version; if the version is unknown, we simply return
-        # the highest GCC version we know about, which should be a fairly safe choice.
-        max_version = get(vers_mapping, loaded_libstdcxx_version.patch, vers_mapping[maximum(keys(vers_mapping))])
-        return get(ENV, "JULIA_PYTHONCALL_LIBSTDCXX_VERSION_BOUND", ">=3.4,<=$(max_version.major).$(max_version.minor)")
-    elseif haskey(ENV, "JULIA_PYTHONCALL_LIBSTDCXX_VERSION_BOUND")
-        return ENV["JULIA_PYTHONCALL_LIBSTDCXX_VERSION_BOUND"]
-    else
-        # Julia does not link against any version of libstdc++ known to Julia (e.g. using clang instead, or something not in the 3.4.x series)
-        return nothing
+    bound = get(ENV, "JULIA_PYTHONCALL_LIBSTDCXX_VERSION_BOUND", "")
+    if bound != ""
+        return bound
     end
+    loaded_libstdcxx_version = Base.BinaryPlatforms.detect_libstdcxx_version()
+    if loaded_libstdcxx_version === nothing
+        return nothing
+    elseif loaded_libstdcxx_version ≥ v"3.4.31"
+        bound = "13.1"
+    elseif loaded_libstdcxx_version ≥ v"3.4.30"
+        bound = "12.2"
+    elseif loaded_libstdcxx_version ≥ v"3.4.29"
+        bound = "11.3"
+    elseif loaded_libstdcxx_version ≥ v"3.4.28"
+        bound = "9.5"
+    elseif loaded_libstdcxx_version ≥ v"3.4.27"
+        bound = "9.2"
+    elseif loaded_libstdcxx_version ≥ v"3.4.26"
+        bound = "9.1"
+    elseif loaded_libstdcxx_version ≥ v"3.4.25"
+        bound = "8.5"
+    elseif loaded_libstdcxx_version ≥ v"3.4.24"
+        bound = "7.5"
+    elseif loaded_libstdcxx_version ≥ v"3.4.23"
+        bound = "7.1"
+    elseif loaded_libstdcxx_version ≥ v"3.4.22"
+        bound = "6.5"
+    elseif loaded_libstdcxx_version ≥ v"3.4.21"
+        bound = "5.5"
+    elseif loaded_libstdcxx_version ≥ v"3.4.20"
+        bound = "4.9"
+    else
+        bound = "4.8"
+    end
+    return ">=3.4,<=$bound"
 end
 
 function init_context()

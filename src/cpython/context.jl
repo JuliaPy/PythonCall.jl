@@ -30,6 +30,54 @@ function _atpyexit()
     return
 end
 
+# By default, ensure libstdc++ in the Conda environment is compatible with
+# the one linked in Julia. This is platform/version dependent, so needs to
+# occur at runtime.
+#
+# Allow the user to override the default.  This is useful when the version
+# of libstdcxx linked in Julia is customized in the local installation of
+# Julia.
+#
+# To figure out cxx_version for a given Julia version, run
+#   strings /path/to/julia/lib/julia/libstdc++.so.6 | grep GLIBCXX
+# then look at
+#   https://gcc.gnu.org/onlinedocs/gcc-12.1.0/libstdc++/manual/manual/abi.html
+# for the highest GCC version compatible with the highest GLIBCXX version.
+function get_libstdcxx_version_bound()
+    # This list comes from: https://gcc.gnu.org/onlinedocs/libstdc++/manual/abi.html
+    # Start with GCC 4.8, as it's extremely difficult to build Julia with anything older
+    vers_mapping = Dict(
+        18 => v"4.8.0",
+        19 => v"4.8.3",
+        20 => v"4.9.0",
+        21 => v"5.1.0",
+        22 => v"6.1.0",
+        23 => v"7.1.0",
+        24 => v"7.2.0",
+        25 => v"8.1.0",
+        26 => v"9.1.0",
+        27 => v"9.2.0",
+        28 => v"9.5.0",
+        29 => v"11.3.0",
+        30 => v"12.2.0",
+        31 => v"13.1.0",
+    )
+    # Get the libstdcxx version that is currently loaded in this Julia process
+    loaded_libstdcxx_version = Base.BinaryPlatforms.detect_libstdcxx_version()
+
+    if loaded_libstdcxx_version !== nothing
+        # Map it through to get a GCC version; if the version is unknown, we simply return
+        # the highest GCC version we know about, which should be a fairly safe choice.
+        max_version = get(vers_mapping, loaded_libstdcxx_version.patch, vers_mapping[maximum(keys(vers_mapping))])
+        return get(ENV, "JULIA_PYTHONCALL_LIBSTDCXX_VERSION_BOUND", ">=3.4,<=$(max_version.major).$(max_version.minor)")
+    elseif haskey(ENV, "JULIA_PYTHONCALL_LIBSTDCXX_VERSION_BOUND")
+        return ENV["JULIA_PYTHONCALL_LIBSTDCXX_VERSION_BOUND"]
+    else
+        # Julia does not link against any version of libstdc++ known to Julia (e.g. using clang instead, or something not in the 3.4.x series)
+        return nothing
+    end
+end
+
 function init_context()
 
     CTX.is_embedded = haskey(ENV, "JULIA_PYTHONCALL_LIBPTR")
@@ -60,24 +108,12 @@ function init_context()
                 exe_path::String
             else
                 if Sys.islinux()
-                    # Ensure libstdc++ in the Conda environment is compatible with the one
-                    # linked in Julia. This is platform/version dependent, so needs to occur at
-                    # runtime.
-                    #
-                    # To figure out cxx_version for a given Julia version, run
-                    #   strings /path/to/julia/lib/julia/libstdc++.so.6 | grep GLIBCXX
-                    # then look at
-                    #   https://gcc.gnu.org/onlinedocs/gcc-12.1.0/libstdc++/manual/manual/abi.html
-                    # for the highest GCC version compatible with the highest GLIBCXX version.
-                    if Base.VERSION <= v"1.6.2"
-                        # GLIBCXX_3.4.26
-                        cxx_version = ">=3.4,<9.2"
-                    else
-                        # GLIBCXX_3.4.29
-                        # checked up to v1.8.0
-                        cxx_version = ">=3.4,<11.4"
+                    cxx_version = get_libstdcxx_version_bound()
+                    if cxx_version !== nothing
+                        CondaPkg.add("libstdcxx-ng", version=cxx_version, channel="conda-forge", temp=true, file=joinpath(@__DIR__, "..", "..", "CondaPkg.toml"), resolve=false)
                     end
-                    CondaPkg.add("libstdcxx-ng", version=cxx_version, channel="conda-forge", temp=true, file=joinpath(@__DIR__, "..", "..", "CondaPkg.toml"), resolve=false)
+                    # if cxx_version is nothing, then we assume that Julia does not link against any version ob libstdc++ known by Julia, and so we do not
+                    # enforce a version bound.
                 end
                 # By default, we use Python installed by CondaPkg.
                 exe_path = Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") : joinpath(CondaPkg.envdir(), "bin", "python")

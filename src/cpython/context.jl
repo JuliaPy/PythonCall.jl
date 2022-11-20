@@ -48,7 +48,7 @@ end
 # 3.4.25 => 8.1.0 - 8.5.0
 # 3.4.26 => 9.1.0 - 9.1.0
 # 3.4.27 => 9.2.0 - 9.2.0
-# 3.4.28 => 9.3.0 - 9.5.0
+# 3.4.28 => 9.3.0 - 10.4.0
 # 3.4.29 => 11.1.0 - 11.3.0
 # 3.4.30 => 12.1.0 - 12.2.0
 # 3.4.31 => 13.1.0 - 13.1.0
@@ -67,7 +67,7 @@ function get_libstdcxx_version_bound()
     elseif loaded_libstdcxx_version ≥ v"3.4.29"
         bound = "11.3"
     elseif loaded_libstdcxx_version ≥ v"3.4.28"
-        bound = "9.5"
+        bound = "10.4"
     elseif loaded_libstdcxx_version ≥ v"3.4.27"
         bound = "9.2"
     elseif loaded_libstdcxx_version ≥ v"3.4.26"

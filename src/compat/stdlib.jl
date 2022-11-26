@@ -6,7 +6,7 @@ function init_stdlib()
     pywordsize = @py(jlbool(pysysmodule.maxsize > 2^32)) ? 64 : 32
     pywordsize == Sys.WORD_SIZE || error("Julia is $(Sys.WORD_SIZE)-bit but Python is $(pywordsize)-bit")
 
-    if C.CTX.is_embedded
+    if C.CTX[].is_embedded
 
         # This uses some internals, but Base._start() gets the state more like Julia
         # is if you call the executable directly, in particular it creates workers when

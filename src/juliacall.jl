@@ -8,7 +8,7 @@ function init_juliacall()
     jl = pyjuliacallmodule
     sys = pysysmodule
     os = pyosmodule
-    if C.CTX.is_embedded
+    if C.CTX[].is_embedded
         # in this case, Julia is being embedded into Python by juliacall, which already exists
         pycopy!(jl, sys.modules["juliacall"])
         @assert pystr_asstring(jl.__version__) == string(VERSION)

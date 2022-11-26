@@ -81,6 +81,7 @@ include("compat/serialization.jl")
 include("compat/gui.jl")
 include("compat/ipython.jl")
 include("compat/tables.jl")
+include("precompile.jl")
 
 function __init__()
     C.with_gil() do
@@ -124,15 +125,15 @@ function init_pycall(PyCall::Module)
     There are two ways to achieve this:
     - Set the environment variable `JULIA_PYTHONCALL_EXE` to `"@PyCall"`. This forces PythonCall to use the same
       interpreter as PyCall, but PythonCall loses the ability to manage its own dependencies.
-    - Set the environment variable `PYTHON` to `PythonCall.C.CTX.exe_path` and rebuild PyCall. This forces PyCall
+    - Set the environment variable `PYTHON` to `PythonCall.C.CTX[].exe_path` and rebuild PyCall. This forces PyCall
       to use the same interpreter as PythonCall, but needs to be repeated whenever you switch Julia environment.
     """
     @eval function Py(x::$PyCall.PyObject)
-        C.CTX.matches_pycall::Bool || error($errmsg)
+        C.CTX[].matches_pycall::Bool || error($errmsg)
         return pynew(C.PyPtr($PyCall.pyreturn(x)))
     end
     @eval function $PyCall.PyObject(x::Py)
-        C.CTX.matches_pycall::Bool || error($errmsg)
+        C.CTX[].matches_pycall::Bool || error($errmsg)
         return $PyCall.PyObject($PyCall.PyPtr(incref(getptr(x))))
     end
 end

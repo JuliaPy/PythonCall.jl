@@ -280,7 +280,7 @@ end
 
 const POINTERS = CAPIPointers()
 
-@eval init_pointers(p::CAPIPointers=POINTERS, lib::Ptr=CTX.lib_ptr) = begin
+@eval init_pointers(p::CAPIPointers=POINTERS, lib::Ptr=CTX[].lib_ptr) = begin
     $([
         if name == :Py_FinalizeEx
             :(p.$name = dlsym_e(lib, $(QuoteNode(name))))
@@ -291,7 +291,7 @@ const POINTERS = CAPIPointers()
     ]...)
     $([:(p.$name = Base.unsafe_load(Ptr{PyPtr}(dlsym(lib, $(QuoteNode(name)))))) for name in CAPI_EXCEPTIONS]...)
     $([:(p.$name = dlsym(lib, $(QuoteNode(name)))) for name in CAPI_OBJECTS]...)
-    p.PyOS_InputHookPtr = dlsym(CTX.lib_ptr, :PyOS_InputHook)
+    p.PyOS_InputHookPtr = dlsym(CTX[].lib_ptr, :PyOS_InputHook)
 end
 
 for (name, (argtypes, rettype)) in CAPI_FUNC_SIGS

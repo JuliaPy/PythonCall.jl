@@ -10,10 +10,10 @@ one when using this package.
 If `CONFIG.auto_fix_qt_plugin_path` is true, then this is run automatically before `PyQt4`, `PyQt5`, `PySide` or `PySide2` are imported.
 """
 function fix_qt_plugin_path()
-    C.CTX.exe_path === nothing && return false
+    C.CTX[].exe_path === nothing && return false
     e = pyosmodule.environ
     "QT_PLUGIN_PATH" in e && return false
-    qtconf = joinpath(dirname(C.CTX.exe_path), "qt.conf")
+    qtconf = joinpath(dirname(C.CTX[].exe_path), "qt.conf")
     isfile(qtconf) || return false
     for line in eachline(qtconf)
         m = match(r"^\s*prefix\s*=(.*)$"i, line)
@@ -59,7 +59,7 @@ const EVENT_LOOPS = Dict{Symbol,Base.Timer}()
 const new_event_loop_callback = pynew()
 
 function init_gui()
-    if !C.CTX.is_embedded
+    if !C.CTX[].is_embedded
         # define callbacks
         @py g = {}
         @py @exec """

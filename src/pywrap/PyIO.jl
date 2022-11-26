@@ -49,7 +49,7 @@ end
 export PyIO
 
 pyio_finalize!(io::PyIO) = begin
-    C.CTX.is_initialized || return
+    C.CTX[].is_initialized || return
     io.own ? close(io) : flush(io)
     return
 end

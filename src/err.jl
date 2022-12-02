@@ -115,6 +115,9 @@ function _showerror(io::IO, e::PyException, bt; backtrace=true)
 
     if pyisnone(e.t)
         print(io, "mysterious error (no error was actually set)")
+        if backtrace
+            Base.show_backtrace(io, bt)
+        end
         return
     end
 

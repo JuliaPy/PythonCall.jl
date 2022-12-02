@@ -30,66 +30,6 @@ function _atpyexit()
     return
 end
 
-# By default, ensure libstdc++ in the Conda environment is compatible with
-# the one linked in Julia. This is platform/version dependent, so needs to
-# occur at runtime.
-#
-# The following lists the mapping from GLIBCXX versions to GCC versions.
-# Start with GCC 4.8, as it's extremely difficult to build Julia with anything older.
-# See https://gcc.gnu.org/onlinedocs/libstdc++/manual/abi.html.
-# See https://gcc.gnu.org/develop.html#timeline.
-# 3.4.18 => 4.8.0 - 4.8.2
-# 3.4.19 => 4.8.3 - 4.8.5
-# 3.4.20 => 4.9.0 - 4.9.4
-# 3.4.21 => 5.1.0 - 5.5.0
-# 3.4.22 => 6.1.0 - 6.5.0
-# 3.4.23 => 7.1.0 - 7.1.0
-# 3.4.24 => 7.2.0 - 7.5.0
-# 3.4.25 => 8.1.0 - 8.5.0
-# 3.4.26 => 9.1.0 - 9.1.0
-# 3.4.27 => 9.2.0 - 9.2.0
-# 3.4.28 => 9.3.0 - 10.4.0
-# 3.4.29 => 11.1.0 - 11.3.0
-# 3.4.30 => 12.1.0 - 12.2.0
-# 3.4.31 => 13.1.0 - 13.1.0
-function get_libstdcxx_version_bound()
-    bound = get(ENV, "JULIA_PYTHONCALL_LIBSTDCXX_VERSION_BOUND", "")
-    if bound != ""
-        return bound
-    end
-    loaded_libstdcxx_version = Base.BinaryPlatforms.detect_libstdcxx_version()
-    if loaded_libstdcxx_version === nothing
-        return nothing
-    elseif loaded_libstdcxx_version ≥ v"3.4.31"
-        bound = "13.1"
-    elseif loaded_libstdcxx_version ≥ v"3.4.30"
-        bound = "12.2"
-    elseif loaded_libstdcxx_version ≥ v"3.4.29"
-        bound = "11.3"
-    elseif loaded_libstdcxx_version ≥ v"3.4.28"
-        bound = "10.4"
-    elseif loaded_libstdcxx_version ≥ v"3.4.27"
-        bound = "9.2"
-    elseif loaded_libstdcxx_version ≥ v"3.4.26"
-        bound = "9.1"
-    elseif loaded_libstdcxx_version ≥ v"3.4.25"
-        bound = "8.5"
-    elseif loaded_libstdcxx_version ≥ v"3.4.24"
-        bound = "7.5"
-    elseif loaded_libstdcxx_version ≥ v"3.4.23"
-        bound = "7.1"
-    elseif loaded_libstdcxx_version ≥ v"3.4.22"
-        bound = "6.5"
-    elseif loaded_libstdcxx_version ≥ v"3.4.21"
-        bound = "5.5"
-    elseif loaded_libstdcxx_version ≥ v"3.4.20"
-        bound = "4.9"
-    else
-        bound = "4.8"
-    end
-    return ">=3.4,<=$bound"
-end
-
 function init_context()
 
     CTX.is_embedded = haskey(ENV, "JULIA_PYTHONCALL_LIBPTR")
@@ -119,14 +59,6 @@ function init_context()
                 end
                 exe_path::String
             else
-                if Sys.islinux()
-                    cxx_version = get_libstdcxx_version_bound()
-                    if cxx_version !== nothing
-                        CondaPkg.add("libstdcxx-ng", version=cxx_version, channel="conda-forge", temp=true, file=joinpath(@__DIR__, "..", "..", "CondaPkg.toml"), resolve=false)
-                    end
-                    # if cxx_version is nothing, then we assume that Julia does not link against any version ob libstdc++ known by Julia, and so we do not
-                    # enforce a version bound.
-                end
                 # By default, we use Python installed by CondaPkg.
                 exe_path = Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") : joinpath(CondaPkg.envdir(), "bin", "python")
                 # It's not sufficient to only activate the env while Python is initialising,

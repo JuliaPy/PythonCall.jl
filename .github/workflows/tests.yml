@@ -11,8 +11,8 @@ on:
     - '*'
 
 jobs:
-  tests:
-    name: Test (${{ matrix.os }}-${{ matrix.arch }}, julia ${{ matrix.jlversion }})
+  julia:
+    name: Test (${{ matrix.os }}, julia ${{ matrix.jlversion }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -22,7 +22,8 @@ jobs:
         jlversion: ['1','1.6']
     steps:
       - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - name: Set up Julia ${{ matrix.jlversion }}
+        uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.jlversion }}
           arch: ${{ matrix.arch }}
@@ -36,11 +37,43 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-runtest@v1
+      - name: Build package
+        uses: julia-actions/julia-buildpkg@v1
+      - name: Run tests
+        uses: julia-actions/julia-runtest@v1
         env:
           JULIA_DEBUG: PythonCall
-      - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v1
+      - name: Process coverage
+        uses: julia-actions/julia-processcoverage@v1
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
+  python:
+    name: Test (${{ matrix.os }}, python ${{ matrix.pyversion }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        pyversion: ["3.7", "3.10"]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.pyversion }}
+        uses: actions/setup-python@v4
         with:
-          file: lcov.info
+          python-version: ${{ matrix.pyversion }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest pytest-cov
+          cp pysrc/juliacall/juliapkg-dev.json pysrc/juliacall/juliapkg.json
+          pip install -e .
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Run tests
+        run: |
+          pytest --cov=src
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2

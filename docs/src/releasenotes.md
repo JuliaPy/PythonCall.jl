@@ -1,5 +1,10 @@
 # Release Notes
 
+## Unreleased
+* In `PyArray{T}(x)`, the eltype `T` no longer needs to exactly match the stored data type.
+  If `x` has numeric elements, then any number type `T` is allowed. If `x` has string
+  elements, then any string type `T` is allowed.
+
 ## 0.9.10 (2022-12-02)
 * Bug fixes.
 

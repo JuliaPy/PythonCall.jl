@@ -169,10 +169,11 @@ module Utils
         StaticString{T,N}(codeunits::NTuple{N,T}) where {T,N} = new{T,N}(codeunits)
     end
 
-    function Base.print(io::IO, x::StaticString)
-        cs = collect(x.codeunits)
-        i = findfirst(==(0), cs)
-        print(io, transcode(String, i===nothing ? cs : cs[1:i-1]))
+    function Base.String(x::StaticString{T,N}) where {T,N}
+        i = findfirst(iszero, x.codeunits)
+        j = i === nothing ? N : i - 1
+        cs = T[x.codeunits[i] for i in 1:j]
+        transcode(String, cs)
     end
 
     function Base.convert(::Type{StaticString{T,N}}, x::AbstractString) where {T,N}

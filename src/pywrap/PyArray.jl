@@ -16,7 +16,7 @@ The type parameters are all optional, and are:
 - `N`: The number of dimensions.
 - `M`: True if the array is mutable.
 - `L`: True if the array supports fast linear indexing.
-- `R`: The element type of the underlying buffer. Equal to `T` for scalar numeric types.
+- `R`: The element type of the underlying buffer. Often equal to `T`.
 """
 struct PyArray{T,N,M,L,R} <: AbstractArray{T,N}
     ptr::Ptr{R}             # pointer to the data
@@ -39,18 +39,21 @@ export PyArray
 for N in (missing, 1, 2)
     for M in (missing, true, false)
         for L in (missing, true, false)
+            for R in (true, false)
             name = Symbol(
                 "Py",
                 M === missing ? "" : M ? "Mutable" : "Immutable",
                 L === missing ? "" : L ? "Linear" : "Cartesian",
+                    R ? "Raw" : "",
                 N === missing ? "Array" : N == 1 ? "Vector" : "Matrix",
             )
             name == :PyArray && continue
-            vars = Any[:T, N===missing ? :N : N, M===missing ? :M : M, L===missing ? :L : L, :R]
-            @eval const $name{$([v for v in vars if v isa Symbol]...)} = PyArray{$(vars...)}
+                vars = Any[:T, N===missing ? :N : N, M===missing ? :M : M, L===missing ? :L : L, R ? :T : :R]
+                @eval const $name{$(unique([v for v in vars if v isa Symbol])...)} = PyArray{$(vars...)}
             @eval export $name
         end
     end
+end
 end
 
 (::Type{A})(x; array::Bool=true, buffer::Bool=true, copy::Bool=true) where {A<:PyArray} = @autopy x begin
@@ -125,11 +128,11 @@ function pyarray_make(::Type{A}, x::Py, info::PyArraySource, ::Type{PyArray{T0,N
     if R0 == R1
         R = R1
         R == R′ || error("incorrect R, got $R, should be $R′")
-    elseif T0 == T1 && T1 in (Bool, Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128, Float16, Float32, Float64, ComplexF16, ComplexF32, ComplexF64)
-        R = T1
-        R == R′ || error("incorrect R, got $R, should be $R′")
-        R <: R1 || error("R out of bounds, got $R, should be <: $R1")
-        R >: R0 || error("R out of bounds, got $R, should be >: $R0")
+    # elseif T0 == T1 && T1 in (Bool, Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128, Float16, Float32, Float64, ComplexF16, ComplexF32, ComplexF64)
+    #     R = T1
+    #     R == R′ || error("incorrect R, got $R, should be $R′")
+    #     R <: R1 || error("R out of bounds, got $R, should be <: $R1")
+    #     R >: R0 || error("R out of bounds, got $R, should be >: $R0")
     else
         R = R′
     end

@@ -170,9 +170,12 @@ module Utils
     end
 
     function Base.String(x::StaticString{T,N}) where {T,N}
-        i = findfirst(iszero, x.codeunits)
-        j = i === nothing ? N : i - 1
-        cs = T[x.codeunits[i] for i in 1:j]
+        ts = x.codeunits
+        n = N
+        while n > 0 && iszero(ts[n])
+            n -= 1
+        end
+        cs = T[ts[i] for i in 1:n]
         transcode(String, cs)
     end
 

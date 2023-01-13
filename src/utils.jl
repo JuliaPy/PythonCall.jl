@@ -197,19 +197,71 @@ module Utils
 
     Base.codeunit(x::StaticString{T}) where {T} = T
 
-    function Base.iterate(x::StaticString, st::Union{Nothing,Tuple}=nothing)
-        if st === nothing
-            s = String(x)
-            z = iterate(s)
-        else
-            s, st0 = st
-            z = iterate(s, st0)
+    function Base.isvalid(x::StaticString{UInt8,N}, i::Int) where {N}
+        if i < 1 || i > N
+            return false
         end
-        if z === nothing
-            nothing
+        cs = x.codeunits
+        c = @inbounds cs[i]
+        if all(iszero, (cs[j] for j in i:N))
+            return false
+        elseif (c & 0x80) == 0x00
+            return true
+        elseif (c & 0x40) == 0x00
+            return false
+        elseif (c & 0x20) == 0x00
+            return @inbounds (i ≤ N-1) && ((cs[i+1] & 0xC0) == 0x80)
+        elseif (c & 0x10) == 0x00
+            return @inbounds (i ≤ N-2) && ((cs[i+1] & 0xC0) == 0x80) && ((cs[i+2] & 0xC0) == 0x80)
+        elseif (c & 0x08) == 0x00
+            return @inbounds (i ≤ N-3) && ((cs[i+1] & 0xC0) == 0x80) && ((cs[i+2] & 0xC0) == 0x80) && ((cs[i+3] & 0xC0) == 0x80)
         else
-            c, newst0 = z
-            (c, (s, newst0))
+            return false
+        end
+        return false
+    end
+
+    function Base.iterate(x::StaticString{UInt8,N}, i::Int=1) where {N}
+        i > N && return
+        cs = x.codeunits
+        c = @inbounds cs[i]
+        if all(iszero, (cs[j] for j in i:N))
+            return
+        elseif (c & 0x80) == 0x00
+            return (reinterpret(Char, UInt32(c) << 24), i+1)
+        elseif (c & 0x40) == 0x00
+            nothing
+        elseif (c & 0x20) == 0x00
+            if @inbounds (i ≤ N-1) && ((cs[i+1] & 0xC0) == 0x80)
+                return (reinterpret(Char, (UInt32(cs[i]) << 24) | (UInt32(cs[i+1]) << 16)), i+2)
+            end
+        elseif (c & 0x10) == 0x00
+            if @inbounds (i ≤ N-2) && ((cs[i+1] & 0xC0) == 0x80) && ((cs[i+2] & 0xC0) == 0x80)
+                return (reinterpret(Char, (UInt32(cs[i]) << 24) | (UInt32(cs[i+1]) << 16) | (UInt32(cs[i+2]) << 8)), i+3)
+            end
+        elseif (c & 0x08) == 0x00
+            if @inbounds (i ≤ N-3) && ((cs[i+1] & 0xC0) == 0x80) && ((cs[i+2] & 0xC0) == 0x80) && ((cs[i+3] & 0xC0) == 0x80)
+                return (reinterpret(Char, (UInt32(cs[i]) << 24) | (UInt32(cs[i+1]) << 16) | (UInt32(cs[i+2]) << 8) | UInt32(cs[i+3])), i+4)
+            end
+        end
+        throw(StringIndexError(x, i))
+    end
+
+    function Base.isvalid(x::StaticString{UInt32,N}, i::Int) where {N}
+        i < 1 && return false
+        cs = x.codeunits
+        return !all(iszero, (cs[j] for j in i:N))
+    end
+
+    function Base.iterate(x::StaticString{UInt32,N}, i::Int=1) where {N}
+        i > N && return
+        cs = x.codeunits
+        c = @inbounds cs[i]
+        if all(iszero, (cs[j] for j in i:N))
+            return
+        else
+            return (Char(c), i+1)
         end
     end
+
 end

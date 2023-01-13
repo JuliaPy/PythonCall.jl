@@ -180,12 +180,13 @@ module Utils
     end
 
     function Base.convert(::Type{StaticString{T,N}}, x::AbstractString) where {T,N}
-        cs = collect(transcode(T, convert(String, x)))
-        length(cs) > N && throw(InexactError(:convert, StaticString{T,N}, x))
-        while length(cs) < N
-            push!(cs, 0)
-        end
-        StaticString{T,N}(NTuple{N,T}(cs))
+        ts = transcode(T, convert(String, x))
+        n = length(ts)
+        n > N && throw(InexactError(:convert, StaticString{T,N}, x))
+        n > 0 && iszero(ts[n]) && throw(InexactError(:convert, StaticString{T,N}, x))
+        z = zero(T)
+        cs = ntuple(i -> i > n ? z : @inbounds(ts[i]), N)
+        StaticString{T,N}(cs)
     end
 
     StaticString{T,N}(x::AbstractString) where {T,N} = convert(StaticString{T,N}, x)

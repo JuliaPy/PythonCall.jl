@@ -259,7 +259,7 @@ ENV["JULIA_CONDAPKG_BACKEND"] = "Current"
 ENV["JULIA_CONDAPKG_EXE"] = "/path/to/conda"  # optional
 ```
 
-The Current backand to CondaPkg will use the currently activated Conda environment instead
+The Current backend to CondaPkg will use the currently activated Conda environment instead
 of creating a new one.
 
 Note that this will still install any required Conda packages into your Conda environment.

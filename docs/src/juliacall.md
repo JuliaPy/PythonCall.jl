@@ -46,7 +46,21 @@ In this example:
 If you are writing a package which uses Julia, then to avoid polluting the global `Main`
 namespace you instead should start with:
 ```python
-import juliacall; jl = juliacall.newmodule("SomeName");
+import juliacall
+jl = juliacall.newmodule("SomeName")
+```
+
+Julia modules have a special method `seval` which will evaluate a given piece of code given
+as a string in the module. This is most frequently used to import modules:
+```python
+from array import array
+jl.seval("using Statistics")
+x = array('i', [1, 2, 3])
+jl.mean(x)
+# 2.0
+y = array('i', [2,4,8])
+jl.cor(x, y)
+# 0.9819805060619657
 ```
 
 What to read next:

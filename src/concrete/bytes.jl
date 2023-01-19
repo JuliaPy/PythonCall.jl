@@ -19,7 +19,7 @@ pyisbytes(x) = pytypecheckfast(x, C.Py_TPFLAGS_BYTES_SUBCLASS)
 function pybytes_asdata(x::Py)
     ptr = Ref(Ptr{Cchar}(0))
     len = Ref(C.Py_ssize_t(0))
-    GC.@preserve x errcheck(C.PyBytes_AsStringAndSize(getptr(x), ptr, len))
+    Base.GC.@preserve x errcheck(C.PyBytes_AsStringAndSize(getptr(x), ptr, len))
     ptr[], len[]
 end
 

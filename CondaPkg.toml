@@ -1,4 +1,8 @@
 
+[deps.libstdcxx-ng]
+channel = "conda-forge"
+version = "<=julia"
+
 [deps.python]
 channel = "conda-forge"
 build = "*cpython*"

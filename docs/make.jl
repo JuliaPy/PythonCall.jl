@@ -48,6 +48,7 @@ makedocs(
             "Python to Julia" => "conversion-to-julia.md",
         ],
         "compat.md",
+        "faq.md",
         "pycall.md",
         "releasenotes.md",
     ]

@@ -1,15 +1,16 @@
 module PythonCall
 
-const VERSION = v"0.9.3"
+const VERSION = v"0.9.10"
 const ROOT_DIR = dirname(@__DIR__)
 
 using Base: @propagate_inbounds
-using MacroTools, Dates, Tables, Markdown, Serialization, Requires, Pkg
+using MacroTools, Dates, Tables, Markdown, Serialization, Requires, Pkg, REPL
 
 include("utils.jl")
 
 include("cpython/CPython.jl")
 
+include("gc.jl")
 include("Py.jl")
 include("err.jl")
 include("config.jl")
@@ -106,7 +107,6 @@ function __init__()
         init_stdlib()
         init_pyshow()
         init_gui()
-        init_ipython()
         init_tables()
         init_ctypes()
         init_numpy()

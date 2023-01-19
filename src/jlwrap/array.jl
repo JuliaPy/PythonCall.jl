@@ -250,7 +250,7 @@ pytypestrdescr(::Type{T}) where {T} = get!(PYTYPESTRDESCR, T) do
             isempty(ts) && return ("", PyNULL)
             push!(
                 flds,
-                (nm isa Integer ? "f$(nm-1)" : string(nm), ds === nothing ? ts : ds),
+                (nm isa Integer ? "f$(nm-1)" : string(nm), pyisnull(ds) ? ts : ds),
             )
             d = (i == n ? sizeof(T) : fieldoffset(T, i + 1)) - (fieldoffset(T, i) + sizeof(tp))
             @assert d ≥ 0

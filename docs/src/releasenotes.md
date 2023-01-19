@@ -1,6 +1,44 @@
 # Release Notes
 
 ## Unreleased
+* In `PyArray{T}(x)`, the eltype `T` no longer needs to exactly match the stored data type.
+  If `x` has numeric elements, then any number type `T` is allowed. If `x` has string
+  elements, then any string type `T` is allowed.
+
+## 0.9.10 (2022-12-02)
+* Bug fixes.
+
+## 0.9.9 (2022-10-20)
+* Bug fixes.
+
+## 0.9.8 (2022-10-18)
+* Adds `line_buffering` option to `PyIO`.
+* Improvements to stdout when using `juliacall.ipython` includng line-buffering.
+
+## 0.9.7 (2022-10-11)
+* If CondaPkg is using the Null backend, PythonCall will now use `python` from the PATH.
+* Bug fixes.
+
+## 0.9.6 (2022-09-09)
+* When using JuliaCall from an interactive Python session, Julia is put into interactive
+  mode: `isinteractive()` is true, InteractiveUtils is loaded, and a nicer display is used.
+* Wrapped Julia values now truncate their output when displayed via `_repr_mimebundle_`.
+* Numpy arrays with structured dtypes can now be converted to `PyArray`, provided the fields
+  are aligned.
+* Python named tuples can be converted to Julia named tuples.
+* Bug fixes.
+
+## 0.9.5 (2022-08-19)
+* Adds `PythonCall.GC.disable()` and `PythonCall.GC.enable()`.
+* Experimental new function `juliacall.interactive()` allows the Julia async event loop to
+  run in the background of the Python REPL.
+* Experimental new IPython extension `juliacall.ipython` providing the `%jl` and `%%jl`
+  magics for executing Julia code.
+* Experimental new module `juliacall.importer` allowing you to write Python modules in
+  Julia.
+* Bug fixes.
+
+## 0.9.4 (2022-07-26)
 * Bug fixes.
 
 ## 0.9.3 (2022-07-02)

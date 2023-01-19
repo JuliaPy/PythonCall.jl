@@ -43,13 +43,7 @@ mutable struct Py
 end
 export Py
 
-function py_finalizer(x::Py)
-    if C.CTX.is_initialized
-        C.with_gil(false) do
-            C.Py_DecRef(getptr(x))
-        end
-    end
-end
+py_finalizer(x::Py) = GC.enqueue(getptr(x))
 
 ispy(::Py) = true
 getptr(x::Py) = getfield(x, :ptr)
@@ -94,7 +88,7 @@ the top level then `pycopy!(x, pything())` inside `__init__()`.
 
 Assumes `dst` is NULL, otherwise a memory leak will occur.
 """
-pycopy!(dst::Py, src) = GC.@preserve src setptr!(dst, incref(getptr(src)))
+pycopy!(dst::Py, src) = Base.GC.@preserve src setptr!(dst, incref(getptr(src)))
 
 """
     pydel!(x::Py)
@@ -451,7 +445,8 @@ Base.powermod(x::Number, y::Py, z::Number) = pypow(x, y, z)
 Base.powermod(x::Py, y::Number, z::Number) = pypow(x, y, z)
 
 # documentation
-function Base.Docs.getdoc(x::Py, @nospecialize(sig))
+function Base.Docs.getdoc(x::Py, @nospecialize(sig)=Union{})
+    pyisnull(x) && return nothing
     parts = []
     inspect = pyimport("inspect")
     # head line

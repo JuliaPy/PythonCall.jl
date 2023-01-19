@@ -14,18 +14,15 @@ function pywith(f, o, d = nothing)
     value = t.__enter__(o)
     exited = false
     try
-        f(value)
+        return f(value)
     catch exc
         if exc isa PyException
             exited = true
             if pytruth(exit(o, exc.t, exc.v, exc.b))
-                rethrow()
-            else
-                d
+                return d
             end
-        else
-            rethrow()
         end
+        rethrow()
     finally
         exited || exit(o, pybuiltins.None, pybuiltins.None, pybuiltins.None)
     end

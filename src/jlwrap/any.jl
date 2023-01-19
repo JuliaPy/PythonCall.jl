@@ -102,7 +102,7 @@ end
 function (op::pyjlany_rev_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
-        Py(op.op(self, other))
+        Py(op.op(other, self))
     else
         pybuiltins.NotImplemented
     end
@@ -111,7 +111,7 @@ function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_) && pyisjl(other2_)
         other = pyjlvalue(other_)
         other2 = pyjlvalue(other2_)
-        Py(op.op(self, other, other2))
+        Py(op.op(other, self, other2))
     else
         pybuiltins.NotImplemented
     end
@@ -155,7 +155,7 @@ function pyjlany_mimebundle(self, include::Py, exclude::Py)
     for m in mimes
         try
             io = IOBuffer()
-            show(io, MIME(m), self)
+            show(IOContext(io, :limit=>true), MIME(m), self)
             v = take!(io)
             ans[m] = vo = istextmime(m) ? pystr(String(v)) : pybytes(v)
             pydel!(vo)
@@ -192,9 +192,10 @@ function init_jlwrap_any()
                 ValueBase.__setattr__(self, k, v)
             except AttributeError:
                 if k.startswith("__") and k.endswith("__"):
-                    raise AttributeError(k)
-                else:
-                    self._jl_callmethod($(pyjl_methodnum(pyjlany_setattr)), k, v)
+                    raise
+            else:
+                return
+            self._jl_callmethod($(pyjl_methodnum(pyjlany_setattr)), k, v)
         def __dir__(self):
             return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlany_dir)))
         def __call__(self, *args, **kwargs):

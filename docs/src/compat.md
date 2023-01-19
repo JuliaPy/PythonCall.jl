@@ -2,13 +2,14 @@
 
 Some packages require a little extra help to work nicely with PythonCall.
 
-Some of these are "fixes" that are silently applied for you, and some are just extra functions to bridge a gap. We aim to keep these as minimal as possible.
+Some of these are "fixes" that are silently applied for you, and some are just extra
+functions to bridge a gap. We aim to keep these as minimal as possible.
 
-## Stdlib
+## Python standard library
 
 Whenever a Python exception is displayed by Julia, `sys.last_traceback` and friends are set. This allows the post-mortem debugger `pdb.pm()` to work. Disable by setting `PythonCall.CONFIG.auto_sys_last_traceback = false`.
 
-## Tabular data & Pandas
+## Tabular data / Pandas
 
 The abstract type [`PyTable`](@ref) is for wrapper types around Python tables, providing the
 [Tables.jl](https://github.com/JuliaData/Tables.jl) interface. `PyTable(x)` is shorthand
@@ -38,7 +39,7 @@ We also provide a simple MatPlotLib backend: `mpl.use("module://juliacall.matplo
 Now you can call `plt.show()` to display the figure with Julia's display mechanism.
 You can specify the format like `plt.show(format="png")`.
 
-## GUIs (including MatPlotLib)
+## Python GUIs (including MatPlotLib)
 
 ### Event loops
 
@@ -58,6 +59,23 @@ PythonCall.fix_qt_plugin_path
 
 ## IPython
 
-If Python is running an IPython kernel, then:
-- Currently disabled: Julia's `Base.stdout` is set to Python's `sys.stdout`.
-- A `PythonDisplay` and `IPythonDisplay` are pushed onto Julia's display stack, so that `display(x)` goes to IPython if possible.
+The `juliacall.ipython` IPython extension adds these features to your IPython session:
+- The line magic `%jl code` executes the given Julia code in-line.
+- The cell magic `%%jl` executes a cell of Julia code.
+- Julia's `stdout` and `stderr` are redirected to IPython.
+- Calling `display(x)` from Julia will display `x` in IPython.
+
+Enable the extension with `%load_ext juliacall.ipython`.
+See [the IPython docs](https://ipython.readthedocs.io/en/stable/config/extensions/).
+
+## Asynchronous Julia code (including Makie)
+
+Asynchronous Julia code will not normally run while Python is executing, unless it is in a
+separate thread.
+
+This can be fixed by calling `jl.yield()` periodically from Python code, allowing the
+Julia scheduler to run.
+
+When working at the Python REPL, you may call `juliacall.interactive()` which will allow
+Julia async code to run while the prompt is showing. This will allow interactive plots such
+as Makie to work.

@@ -1,7 +1,7 @@
 # This module gets modified by PythonCall when it is loaded, e.g. to include Core, Base
 # and Main modules.
 
-__version__ = '0.9.3'
+__version__ = '0.9.10'
 
 _newmodule = None
 
@@ -20,6 +20,13 @@ def convert(T, x):
     if _convert is None:
         _convert = PythonCall.seval("pyjlcallback((T,x)->pyjl(pyconvert(pyjlvalue(T)::Type,x)))")
     return _convert(T, x)
+
+def interactive(enable=True):
+    "Allow the Julia event loop to run in the background of the Python REPL."
+    if enable:
+        PythonCall._set_python_input_hook()
+    else:
+        PythonCall._unset_python_input_hook()
 
 class JuliaError(Exception):
     "An error arising in Julia code."
@@ -122,6 +129,7 @@ def init():
     CONFIG['opt_sysimage'] = sysimg = path_option('sysimage', check_exists=True)[0]
     CONFIG['opt_threads'] = int_option('threads', accept_auto=True)[0]
     CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])[0]
+    CONFIG['opt_handle_signals'] = 'no'
 
     # Stop if we already initialised
     if CONFIG['inited']:
@@ -143,69 +151,67 @@ def init():
     assert os.path.exists(default_bindir)
     CONFIG['libpath'] = libpath
 
-    # Initialise Julia
-    d = os.getcwd()
+    # Add the Julia library directory to the PATH on Windows so Julia's system libraries can
+    # be found. They are normally found because they are in the same directory as julia.exe,
+    # but python.exe is somewhere else!
+    if os.name == 'nt':
+        libdir = os.path.dirname(libpath)
+        if 'PATH' in os.environ:
+            os.environ['PATH'] = libdir + ';' + os.environ['PATH']
+        else:
+            os.environ['PATH'] = libdir
+
+    # Open the library
+    CONFIG['lib'] = lib = c.CDLL(libpath, mode=c.RTLD_GLOBAL)
+
+    # parse options
+    argc, argv = args_from_config()
+    jl_parse_opts = lib.jl_parse_opts
+    jl_parse_opts.argtypes = [c.c_void_p, c.c_void_p]
+    jl_parse_opts.restype = None
+    jl_parse_opts(c.pointer(argc), c.pointer(argv))
+    assert argc.value == 0
+
+    # initialise julia
     try:
-        # Open the library
-        os.chdir(os.path.dirname(libpath))
-        CONFIG['lib'] = lib = c.CDLL(libpath, mode=c.RTLD_GLOBAL)
+        jl_init = lib.jl_init_with_image__threading
+    except AttributeError:
+        jl_init = lib.jl_init_with_image
+    jl_init.argtypes = [c.c_char_p, c.c_char_p]
+    jl_init.restype = None
+    jl_init(
+        (default_bindir if bindir is None else bindir).encode('utf8'),
+        None if sysimg is None else sysimg.encode('utf8'),
+    )
 
-        # parse options
-        argc, argv = args_from_config()
-        jl_parse_opts = lib.jl_parse_opts
-        jl_parse_opts.argtypes = [c.c_void_p, c.c_void_p]
-        jl_parse_opts.restype = None
-        jl_parse_opts(c.pointer(argc), c.pointer(argv))
-        assert argc.value == 0
-
-        # initialise julia
-        try:
-            jl_init = lib.jl_init_with_image__threading
-        except AttributeError:
-            jl_init = lib.jl_init_with_image
-        jl_init.argtypes = [c.c_char_p, c.c_char_p]
-        jl_init.restype = None
-        jl_init(
-            (default_bindir if bindir is None else bindir).encode('utf8'),
-            None if sysimg is None else sysimg.encode('utf8'),
-        )
-
-        # initialise PythonCall
-        jl_eval = lib.jl_eval_string
-        jl_eval.argtypes = [c.c_char_p]
-        jl_eval.restype = c.c_void_p
-        def jlstr(x):
-            return 'raw"' + x.replace('"', '\\"').replace('\\', '\\\\') + '"'
-        script = '''
-        try
-            import Pkg
-            ENV["JULIA_PYTHONCALL_LIBPTR"] = {}
-            ENV["JULIA_PYTHONCALL_EXE"] = {}
-            Pkg.activate({}, io=devnull)
-            import PythonCall
-            # This uses some internals, but Base._start() gets the state more like Julia
-            # is if you call the executable directly, in particular it creates workers when
-            # the --procs argument is given.
-            push!(Core.ARGS, {})
-            Base._start()
-            @eval Base PROGRAM_FILE=""
-        catch err
-            print(stderr, "ERROR: ")
-            showerror(stderr, err, catch_backtrace())
-            flush(stderr)
-            rethrow()
-        end
-        '''.format(
-            jlstr(str(c.pythonapi._handle)),
-            jlstr(sys.executable or ''),
-            jlstr(project),
-            jlstr(os.path.join(os.path.dirname(__file__), 'init.jl')),
-        )
-        res = jl_eval(script.encode('utf8'))
-        if res is None:
-            raise Exception('PythonCall.jl did not start properly')
-    finally:
-        os.chdir(d)
+    # initialise PythonCall
+    jl_eval = lib.jl_eval_string
+    jl_eval.argtypes = [c.c_char_p]
+    jl_eval.restype = c.c_void_p
+    def jlstr(x):
+        return 'raw"' + x.replace('"', '\\"').replace('\\', '\\\\') + '"'
+    script = '''
+    try
+        Base.require(Main, :CompilerSupportLibraries_jll)
+        import Pkg
+        ENV["JULIA_PYTHONCALL_LIBPTR"] = {}
+        ENV["JULIA_PYTHONCALL_EXE"] = {}
+        Pkg.activate({}, io=devnull)
+        import PythonCall
+    catch err
+        print(stderr, "ERROR: ")
+        showerror(stderr, err, catch_backtrace())
+        flush(stderr)
+        rethrow()
+    end
+    '''.format(
+        jlstr(str(c.pythonapi._handle)),
+        jlstr(sys.executable or ''),
+        jlstr(project),
+    )
+    res = jl_eval(script.encode('utf8'))
+    if res is None:
+        raise Exception('PythonCall.jl did not start properly')
 
     CONFIG['inited'] = True
 

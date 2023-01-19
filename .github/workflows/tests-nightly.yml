@@ -2,10 +2,13 @@ name: Tests (nightly)
 
 on:
   pull_request:
-    branches: [main]
+    branches:
+    - main
   push:
-    branches: [main]
-    tags: '*'
+    branches:
+    - main
+    tags:
+    - '*'
 
 jobs:
   tests:

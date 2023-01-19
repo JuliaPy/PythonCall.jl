@@ -52,13 +52,21 @@ function init_context()
         # Find Python executable
         exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
         if exe_path == "" || exe_path == "@CondaPkg"
-            # By default, we use Python installed by CondaPkg.
-            exe_path = Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") : joinpath(CondaPkg.envdir(), "bin", "python")
-            # It's not sufficient to only activate the env while Python is initialising,
-            # it must also be active when loading extension modules (e.g. numpy). So we
-            # activate the environment globally.
-            # TODO: is this really necessary?
-            CondaPkg.activate!(ENV)
+            if CondaPkg.backend() == :Null
+                exe_path = Sys.which("python")
+                if exe_path === nothing
+                    error("CondaPkg is using the Null backend but Python is not installed")
+                end
+                exe_path::String
+            else
+                # By default, we use Python installed by CondaPkg.
+                exe_path = Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") : joinpath(CondaPkg.envdir(), "bin", "python")
+                # It's not sufficient to only activate the env while Python is initialising,
+                # it must also be active when loading extension modules (e.g. numpy). So we
+                # activate the environment globally.
+                # TODO: is this really necessary?
+                CondaPkg.activate!(ENV)
+            end
             CTX.which = :CondaPkg
         elseif exe_path == "@PyCall"
             # PyCall compatibility mode

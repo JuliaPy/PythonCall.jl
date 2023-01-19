@@ -6,7 +6,7 @@ function pytuple_setitem(xs::Py, i, x)
 end
 
 function pytuple_getitem(xs::Py, i)
-    GC.@preserve xs pynew(incref(errcheck(C.PyTuple_GetItem(getptr(xs), i))))
+    Base.GC.@preserve xs pynew(incref(errcheck(C.PyTuple_GetItem(getptr(xs), i))))
 end
 
 function pytuple_fromiter(xs)

@@ -1,7 +1,7 @@
 struct pyconvert_rule_numpysimplevalue{R,S} <: Function end
 
 function (::pyconvert_rule_numpysimplevalue{R,SAFE})(::Type{T}, x::Py) where {R,SAFE,T}
-    ans = GC.@preserve x C.PySimpleObject_GetValue(R, getptr(x))
+    ans = Base.GC.@preserve x C.PySimpleObject_GetValue(R, getptr(x))
     if SAFE
         pyconvert_return(convert(T, ans))
     else

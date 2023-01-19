@@ -68,14 +68,3 @@ function Base.display(d::IPythonDisplay, @nospecialize(x))
     ipy.display.display(dict, raw=true)
     return
 end
-
-function init_ipython()
-    # EXPERIMENTAL: IPython integration
-    if C.CTX.is_embedded && CONFIG.auto_ipython_display
-        is_ipython = ("IPython" in pysysmodule.modules) && !pyisnone(pysysmodule.modules["IPython"].get_ipython())
-        if is_ipython
-            pushdisplay(PythonDisplay())
-            pushdisplay(IPythonDisplay())
-        end
-    end
-end

@@ -1,5 +1,5 @@
 """
-Garbarge collection of Python objects.
+Garbage collection of Python objects.
 
 See `disable` and `enable`.
 """

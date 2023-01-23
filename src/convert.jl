@@ -186,7 +186,7 @@ function _pyconvert_get_rules(pytype::Py)
                 break
             end
         end
-        ok || error("Fatal inheritence error: could not merge MROs (mro=$mro, basemros=$basemros)")
+        ok || error("Fatal inheritance error: could not merge MROs (mro=$mro, basemros=$basemros)")
         # add it to the list
         push!(mro, b)
         # remove it from consideration

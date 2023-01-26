@@ -93,6 +93,7 @@ function init_context()
         function python_cmd(args)
             env = copy(ENV)
             env["PYTHONIOENCODING"] = "UTF-8"
+            delete!(env, "PYTHONHOME")
             setenv(`$(CTX.exe_path) $args`, env)
         end
 

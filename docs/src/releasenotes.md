@@ -1,9 +1,11 @@
 # Release Notes
 
-## Unreleased
+## 0.9.11 (2023-02-15)
 * In `PyArray{T}(x)`, the eltype `T` no longer needs to exactly match the stored data type.
   If `x` has numeric elements, then any number type `T` is allowed. If `x` has string
   elements, then any string type `T` is allowed.
+* `StaticString` (the inline string type used by `PyArray`) supports the `AbstractString`
+  interface better.
 
 ## 0.9.10 (2022-12-02)
 * Bug fixes.

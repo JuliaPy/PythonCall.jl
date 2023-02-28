@@ -202,6 +202,19 @@ function init_context()
         end
     end
 
+    # HACK: If we are using CondaPkg, prevent child processes from using it by explicitly
+    # setting the executable. Our tests sometimes fail on Windows because Aqua launches a
+    # child process which causes CondaPkg to re-resolve (should work out why, I assume it's
+    # a filesystem timestamp thing) which causes some stdlibs to disappear for a bit.
+    #
+    # A better solution may be to use some environment variable to "freeze" CondaPkg in
+    # child processes.
+    # 
+    # Only done when CI=true since it's a hack.
+    if (get(ENV, "CI", "false") == "true") && (CTX.which !== :CondaPkg)
+        ENV["JULIA_PYTHONCALL_EXE"] = CTX.exe_path::String
+    end
+
     # Compare libpath with PyCall
     @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
 

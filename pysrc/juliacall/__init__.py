@@ -189,7 +189,7 @@ def init():
     jl_eval.argtypes = [c.c_char_p]
     jl_eval.restype = c.c_void_p
     def jlstr(x):
-        return 'raw"' + x.replace('"', '\\"').replace('\\', '\\\\') + '"'
+        return 'raw"' + x + '"'
     script = '''
     try
         Base.require(Main, :CompilerSupportLibraries_jll)

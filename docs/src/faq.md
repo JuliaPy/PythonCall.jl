@@ -9,7 +9,9 @@ Some rules if you are writing multithreaded code:
 - You probably also need to call `PythonCall.GC.disable()` on the main thread before any
   threaded block of code. Remember to call `PythonCall.GC.enable()` again afterwards.
   (This is because Julia finalizers can be called from any thread.)
-- You may still encounter problems (see [#201](https://github.com/cjdoris/PythonCall.jl/issues/201), [#202](https://github.com/cjdoris/PythonCall.jl/issues/202)).
+- You may still encounter problems.
+
+Related issues: [#201](https://github.com/cjdoris/PythonCall.jl/issues/201), [#202](https://github.com/cjdoris/PythonCall.jl/issues/202))
 
 ## Does it work on Apple silicon (ARM, M1, M2, ...)?
 
@@ -22,7 +24,7 @@ Currently, Apple silicon is Tier 2, so is not supported.
 Due to time constraints, issues affecting only unsupported platforms will not be
 investigated. It is much more likely to be an issue with Julia itself than PythonCall.
 
-## Heap corruption when using PyTorch ([#215](https://github.com/cjdoris/PythonCall.jl/issues/215))
+## Heap corruption when using PyTorch
 
 On some systems, you may see an error like the following when using `torch` and `juliacall`:
 ```text
@@ -34,7 +36,9 @@ Python(65251,0x104cf8580) malloc: *** set a breakpoint in malloc_error_break to 
 
 A solution is to ensure that `juliacall` is imported before `torch`.
 
-## `ccall requries the compiler` error when importing some Python libraries ([#255](https://github.com/cjdoris/PythonCall.jl/issues/255))
+Related issues: ([#215](https://github.com/cjdoris/PythonCall.jl/issues/215))
+
+## `ccall requries the compiler` error when importing some Python libraries
 On some systems, you may see an error like the following when import e.g. `matplotlib` before `juliacall`:
 
 ```
@@ -57,3 +61,5 @@ The solution is to either:
   * use a Linux distribution with a more recent `libstdc++`
   * import `juliacall` before the other Python library, so that Julia's `libstdc++` is loaded
   * use a Python from a conda environment, which will have a newer `libstdc++` that is compatible with Julia's
+
+Related issues: ([#255](https://github.com/cjdoris/PythonCall.jl/issues/255))

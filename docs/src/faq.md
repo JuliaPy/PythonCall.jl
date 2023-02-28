@@ -1,6 +1,28 @@
 # FAQ & Troubleshooting
 
-## Heap corruption when using PyTorch ([issue 215](https://github.com/cjdoris/PythonCall.jl/issues/215))
+## Is PythonCall/JuliaCall thread safe?
+
+No.
+
+Some rules if you are writing multithreaded code:
+- Only call Python functions from the first thread.
+- You probably also need to call `PythonCall.GC.disable()` on the main thread before any
+  threaded block of code. Remember to call `PythonCall.GC.enable()` again afterwards.
+  (This is because Julia finalizers can be called from any thread.)
+- You may still encounter problems (see [#201](https://github.com/cjdoris/PythonCall.jl/issues/201), [#202](https://github.com/cjdoris/PythonCall.jl/issues/202)).
+
+## Does it work on Apple silicon (ARM, M1, M2, ...)?
+
+Maybe. Your mileage may vary.
+
+In general, PythonCall and JuliaCall are only supported on platforms with
+[Tier 1](https://julialang.org/downloads/#supported_platforms) level of support by Julia.
+Currently, Apple silicon is Tier 2, so is not supported.
+
+Due to time constraints, issues affecting only unsupported platforms will not be
+investigated. It is much more likely to be an issue with Julia itself than PythonCall.
+
+## Heap corruption when using PyTorch ([#215](https://github.com/cjdoris/PythonCall.jl/issues/215))
 
 On some systems, you may see an error like the following when using `torch` and `juliacall`:
 ```text
@@ -12,7 +34,7 @@ Python(65251,0x104cf8580) malloc: *** set a breakpoint in malloc_error_break to 
 
 A solution is to ensure that `juliacall` is imported before `torch`.
 
-## `ccall requries the compiler` error when importing some Python libraries
+## `ccall requries the compiler` error when importing some Python libraries ([#255](https://github.com/cjdoris/PythonCall.jl/issues/255))
 On some systems, you may see an error like the following when import e.g. `matplotlib` before `juliacall`:
 
 ```
@@ -28,7 +50,7 @@ ERROR: `ccall` requires the compilerTraceback (most recent call last):
 Exception: PythonCall.jl did not start properly
 ```
 
-As described in [issue 255](https://github.com/cjdoris/PythonCall.jl/issues/255), the likely problem is that the "other" Python library (`matplotlib`, whatever) is loading the system `libstdc++.so`, which isn't compatible with the `libstdc++.so` that Julia ships with.
+The likely problem is that the "other" Python library (`matplotlib`, whatever) is loading the system `libstdc++.so`, which isn't compatible with the `libstdc++.so` that Julia ships with.
 Linux distributions with older `libstdc++` versions seem more likely to suffer from this issue.
 The solution is to either:
 

@@ -211,7 +211,7 @@ function init_context()
     # child processes.
     # 
     # Only done when CI=true since it's a hack.
-    if (get(ENV, "CI", "false") == "true") && (CTX.which !== :CondaPkg)
+    if (get(ENV, "CI", "false") == "true") && (CTX.which === :CondaPkg)
         ENV["JULIA_PYTHONCALL_EXE"] = CTX.exe_path::String
     end
 

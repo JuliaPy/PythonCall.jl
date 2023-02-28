@@ -6,8 +6,8 @@ in any release.
 Enable the extension by calling the magic '%load_ext juliacall.ipython'.
 
 Features:
-- Magic `%jl code` to evaluate a piece of Julia code in-line.
-- Cell magic `%%jl` to evaluate a cell of Julia code.
+- Magic `%julia code` to evaluate a piece of Julia code in-line.
+- Cell magic `%%julia` to evaluate a cell of Julia code.
 - Julia's stdin and stdout are redirected to Python's stdin and stdout.
 - Calling Julia's 'display(x)' function will display 'x' in IPython.
 """

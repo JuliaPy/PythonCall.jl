@@ -60,8 +60,8 @@ PythonCall.fix_qt_plugin_path
 ## IPython
 
 The `juliacall.ipython` IPython extension adds these features to your IPython session:
-- The line magic `%jl code` executes the given Julia code in-line.
-- The cell magic `%%jl` executes a cell of Julia code.
+- The line magic `%julia code` executes the given Julia code in-line.
+- The cell magic `%%julia` executes a cell of Julia code.
 - Julia's `stdout` and `stderr` are redirected to IPython.
 - Calling `display(x)` from Julia will display `x` in IPython.
 

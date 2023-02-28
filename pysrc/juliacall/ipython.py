@@ -30,25 +30,38 @@ def load_ipython_extension(ip):
     # register magics
     ip.register_magics(JuliaMagics(ip))
     # redirect stdout/stderr
+    if ip.__class__.__name__ == 'TerminalInteractiveShell':
+        # no redirection in the terminal
+        PythonCall.seval("""begin
+            function _flush_stdio()
+            end
+        end""")
+    else:
+        PythonCall.seval("""begin
+            const _redirected_stdout = redirect_stdout()
+            const _redirected_stderr = redirect_stderr()
+            const _py_stdout = PyIO(pyimport("sys" => "stdout"); line_buffering=true)
+            const _py_stderr = PyIO(pyimport("sys" => "stderr"); line_buffering=true)
+            const _redirect_stdout_task = @async write($_py_stdout, $_redirected_stdout)
+            const _redirect_stderr_task = @async write($_py_stderr, $_redirected_stderr)
+            function _flush_stdio()
+                flush(stderr)
+                flush(stdout)
+                flush(_redirected_stderr)
+                flush(_redirected_stdout)
+                flush(_py_stderr)
+                flush(_py_stdout)
+                nothing
+            end
+            nothing
+        end""")
+    ip.events.register('post_execute', PythonCall._flush_stdio)
     # push displays
     PythonCall.seval("""begin
-        const _redirected_stdout = redirect_stdout()
-        const _redirected_stderr = redirect_stderr()
-        const _py_stdout = PyIO(pyimport("sys" => "stdout"); line_buffering=true)
-        const _py_stderr = PyIO(pyimport("sys" => "stderr"); line_buffering=true)
-        const _redirect_stdout_task = @async write($_py_stdout, $_redirected_stdout)
-        const _redirect_stderr_task = @async write($_py_stderr, $_redirected_stderr)
-        function _flush_stdio()
-            flush(stderr)
-            flush(stdout)
-            flush(_redirected_stderr)
-            flush(_redirected_stdout)
-            flush(_py_stderr)
-            flush(_py_stdout)
-            nothing
-        end
         pushdisplay(PythonDisplay())
         pushdisplay(IPythonDisplay())
         nothing
     end""")
-    ip.events.register('post_execute', PythonCall._flush_stdio)
+
+def unload_ipython_extension(ip):
+    pass

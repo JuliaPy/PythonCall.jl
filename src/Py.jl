@@ -175,28 +175,17 @@ function Base.show(io::IO, x::Py)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", o::Py)
-    hasprefix = get(io, :typeinfo, Any) != Py
     if pyisnull(o)
-        if hasprefix
-            printstyled(io, "Python NULL", bold=true)
-        else
-            print(io, "NULL")
-        end
-        return
-    elseif pyisnone(o)
-        if hasprefix
-            printstyled(io, "Python None", bold=true)
-        else
-            print(io, "None")
-        end
-        return
+        str = "NULL"
+    else
+        str = pyrepr(String, o)
     end
-    h, w = displaysize(io)
-    compact = get(io, :compact, false)
-    str = pyrepr(String, o)
+    hasprefix = (get(io, :typeinfo, Any) != Py)::Bool
+    compact = get(io, :compact, false)::Bool
     multiline = '\n' in str
-    prefix = hasprefix ? compact ? "Py:$(multiline ? '\n' : ' ')" : "Python $(pytype(o).__name__):$(multiline ? '\n' : ' ')" : ""
-    printstyled(io, prefix, bold=true)
+    prefix = hasprefix ? compact ? "Py:$(multiline ? '\n' : ' ')" : "Python:$(multiline ? '\n' : ' ')" : ""
+    print(io, prefix)
+    h, w = displaysize(io)
     if get(io, :limit, true)
         h, w = displaysize(io)
         h = max(h-3, 5) # use 3 fewer lines to allow for the prompt, but always allow at least 5 lines

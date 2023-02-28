@@ -1,5 +1,9 @@
 # Release Notes
 
+## Unreleased
+* The `__repr__` method of wrapped Julia objects now uses the 3-arg show method for nicer
+  (richer and truncated) display at the Python REPL.
+
 ## 0.9.12 (2023-02-28)
 * Bug fixes.
 

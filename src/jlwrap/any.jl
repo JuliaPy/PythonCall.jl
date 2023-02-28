@@ -1,6 +1,12 @@
 const pyjlanytype = pynew()
 
-pyjlany_repr(self) = Py("<jl $(repr(self))>")
+# pyjlany_repr(self) = Py("<jl $(repr(self))>")
+function pyjlany_repr(self)
+    str = repr(MIME("text/plain"), self; context=IOContext(devnull, :limit=>true, :displaysize=>(23,80)))
+    # type = self isa Function ? "Function" : self isa Type ? "Type" : nameof(typeof(self))
+    sep = '\n' in str ? '\n' : ' '
+    Py("Julia:$sep$str")
+end
 
 # Note: string(self) doesn't always return a String
 pyjlany_str(self) = Py(sprint(print, self))

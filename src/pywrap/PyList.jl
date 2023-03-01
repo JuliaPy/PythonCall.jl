@@ -16,12 +16,9 @@ PyList(x=pylist()) = PyList{Py}(x)
 ispy(::PyList) = true
 Py(x::PyList) = x.py
 
-pyconvert_rule_sequence(::Type{T}, x::Py, ::Type{PyList{V}}=Utils._type_ub(T)) where {T<:PyList,V} =
-    if PyList{Py} <: T
-        pyconvert_return(PyList{Py}(x))
-    else
-        pyconvert_return(PyList{V}(x))
-    end
+function pyconvert_rule_sequence(::Type{T}, x::Py, ::Type{T1}=Utils._type_ub(T)) where {T<:PyList,T1}
+    pyconvert_return(T1(x))
+end
 
 Base.length(x::PyList) = Int(pylen(x))
 

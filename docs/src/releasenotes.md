@@ -1,6 +1,8 @@
 # Release Notes
 
 ## Unreleased
+* Conversion to wrapper types `PyList`, `PySet`, `PyDict` or `PyIterable` now default to
+  having element type `Any` instead of `Py`.
 * The `__repr__` method of wrapped Julia objects now uses the 3-arg show method for nicer
   (richer and truncated) display at the Python REPL.
 * Bug fixes.

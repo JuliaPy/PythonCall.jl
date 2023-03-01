@@ -16,12 +16,9 @@ PySet(x=pyset()) = PySet{Py}(x)
 ispy(::PySet) = true
 Py(x::PySet) = x.py
 
-pyconvert_rule_set(::Type{T}, x::Py, ::Type{PySet{V}}=Utils._type_ub(T)) where {T<:PySet,V} =
-    if PySet{Py} <: T
-        pyconvert_return(PySet{Py}(x))
-    else
-        pyconvert_return(PySet{V}(x))
-    end
+function pyconvert_rule_set(::Type{T}, x::Py, ::Type{T1}=Utils._type_ub(T)) where {T<:PySet,T1}
+    pyconvert_return(T1(x))
+end
 
 Base.length(x::PySet) = Int(pylen(x))
 

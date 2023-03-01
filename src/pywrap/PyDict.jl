@@ -17,16 +17,9 @@ PyDict(x=pydict()) = PyDict{Py,Py}(x)
 ispy(::PyDict) = true
 Py(x::PyDict) = x.py
 
-pyconvert_rule_mapping(::Type{T}, x::Py, ::Type{PyDict{K,V}}=Utils._type_ub(T)) where {T<:PyDict,K,V} =
-    if PyDict{Py,Py} <: T
-        pyconvert_return(PyDict{Py,Py}(x))
-    elseif PyDict{K,Py} <: T
-        pyconvert_return(PyDict{K,Py}(x))
-    elseif PyDict{Py,V} <: T
-        pyconvert_return(PyDict{Py,V}(x))
-    else
-        pyconvert_return(PyDict{K,V}(x))
-    end
+function pyconvert_rule_mapping(::Type{T}, x::Py, ::Type{T1}=Utils._type_ub(T)) where {T<:PyDict,T1}
+    pyconvert_return(T1(x))
+end
 
 Base.length(x::PyDict) = Int(pylen(x))
 

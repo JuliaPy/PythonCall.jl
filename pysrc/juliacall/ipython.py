@@ -3,7 +3,7 @@
 Being experimental, it does not form part of the JuliaCall API. It may be changed or removed
 in any release.
 
-Enable the extension by calling the magic '%load_ext juliacall.ipython'.
+Enable the extension by calling the magic '%load_ext juliacall'.
 
 Features:
 - Magic `%julia code` to evaluate a piece of Julia code in-line.
@@ -17,15 +17,18 @@ from . import Main, Base, PythonCall
 import __main__
 
 _set_var = Main.seval("(k, v) -> @eval $(Symbol(k)) = $v")
-_get_var = Main.seval("k -> @eval $(Symbol(k))")
+_get_var = Main.seval("k -> hasproperty(Main, Symbol(k)) ? PythonCall.pyjlraw(getproperty(Main, Symbol(k))) : nothing")
+_egal = Main.seval("===")
 
 @magics_class
 class JuliaMagics(Magics):
     
     @line_cell_magic
     def julia(self, line, cell=None):
+        # parse the line and cell into code and variables
         invars = []
         outvars = []
+        syncvars = []
         if cell is None:
             code = line
         else:
@@ -36,15 +39,28 @@ class JuliaMagics(Magics):
                 elif k.startswith('>'):
                     outvars.append(k[1:])
                 else:
-                    invars.append(k)
-                    outvars.append(k)
-        for k in invars:
+                    syncvars.append(k)
+        # copy variables to Julia
+        # keep a cache of variables we may want to copy out again
+        cachevars = {}
+        for k in invars + syncvars:
             if k in __main__.__dict__:
                 _set_var(k, __main__.__dict__[k])
+                if k in syncvars:
+                    cachevars[k] = _get_var(k)
+        # run the code
         ans = Main.seval('begin\n' + code + '\nend')
+        # flush stderr/stdout
         PythonCall._flush_stdio()
-        for k in outvars:
-            __main__.__dict__[k] = _get_var(k)
+        # copy variables back to Python
+        # only copy those which are new or have changed value
+        for k in outvars + syncvars:
+            v0 = cachevars.get(k)
+            v1 = _get_var(k)
+            if v1 is not None and (v0 is None or not _egal(v0, v1)):
+                print(k)
+                __main__.__dict__[k] = v1._jl_any()
+        # return the value unless suppressed with trailing ";"
         if not code.strip().endswith(';'):
             return ans
 
@@ -84,6 +100,3 @@ def load_ipython_extension(ip):
         pushdisplay(IPythonDisplay())
         nothing
     end""")
-
-def unload_ipython_extension(ip):
-    pass

@@ -5,6 +5,8 @@
   having element type `Any` instead of `Py`.
 * The `__repr__` method of wrapped Julia objects now uses the 3-arg show method for nicer
   (richer and truncated) display at the Python REPL.
+* The IPython extension can now be loaded as just `%load_ext juliacall`.
+* The `%%julia` IPython magic can now synchronise variables between Python and Julia.
 * Bug fixes.
 
 ## 0.9.12 (2023-02-28)

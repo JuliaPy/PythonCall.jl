@@ -216,3 +216,7 @@ def init():
     CONFIG['inited'] = True
 
 init()
+
+def load_ipython_extension(ip):
+    import juliacall.ipython
+    juliacall.ipython.load_ipython_extension(ip)

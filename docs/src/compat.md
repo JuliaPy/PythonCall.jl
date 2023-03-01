@@ -59,14 +59,34 @@ PythonCall.fix_qt_plugin_path
 
 ## IPython
 
-The `juliacall.ipython` IPython extension adds these features to your IPython session:
+The `juliacall` IPython extension adds these features to your IPython session:
 - The line magic `%julia code` executes the given Julia code in-line.
 - The cell magic `%%julia` executes a cell of Julia code.
 - Julia's `stdout` and `stderr` are redirected to IPython.
 - Calling `display(x)` from Julia will display `x` in IPython.
 
-Enable the extension with `%load_ext juliacall.ipython`.
+The extension is experimental and unstable - the API can change at any time.
+
+Enable the extension with `%load_ext juliacall`.
 See [the IPython docs](https://ipython.readthedocs.io/en/stable/config/extensions/).
+
+The `%%julia` cell magic can synchronise variables between Julia and Python by listing them
+on the first line:
+```python
+In [1]: %load_ext juliacall
+
+In [2]: x = 2
+
+In [3]: y = 8
+
+In [4]: %%julia x y z
+   ...: z = "$x^$y = $(x^y)";
+   ...:
+   ...:
+
+In [5]: z
+Out[5]: '2^8 = 256'
+```
 
 ## Asynchronous Julia code (including Makie)
 

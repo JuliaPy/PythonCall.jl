@@ -24,13 +24,13 @@ Now you can interact with Python as follows:
 
 ```julia-repl
 julia> re = pyimport("re")
-Python module: <module 're' from '[...]/lib/re.py'>
+Python: <module 're' from '[...]/lib/re.py'>
 
 julia> words = re.findall("[a-zA-Z]+", "PythonCall.jl is very useful!")
-Python list: ['PythonCall', 'jl', 'is', 'very', 'useful']
+Python: ['PythonCall', 'jl', 'is', 'very', 'useful']
 
 julia> sentence = Py(" ").join(words)
-Python str: 'PythonCall jl is very useful'
+Python: 'PythonCall jl is very useful'
 
 julia> pyconvert(String, sentence)
 "PythonCall jl is very useful"
@@ -52,13 +52,13 @@ comparison and arithmetic:
 
 ```julia-repl
 julia> x = pylist([3, 4, 5])
-Python list: [3, 4, 5]
+Python: [3, 4, 5]
 
 julia> x[2] == 5
-Python bool: True
+Python: True
 
 julia> x[pyslice(0,2)] + pylist([1,2])
-Python list: [3, 4, 1, 2]
+Python: [3, 4, 1, 2]
 ```
 
 We have just seen the functions [`pylist`](@ref) (for constructing a Python list) and
@@ -79,13 +79,13 @@ Notable exceptions are:
 To access the Python builtins directly, you can access the fields of [`pybuiltins`](@ref):
 ```julia-repl
 julia> pybuiltins.None
-Python None
+Python: None
 
 julia> pybuiltins.True
-Python bool: True
+Python: True
 
 julia> pybuiltins.ValueError("some error")
-Python ValueError: ValueError('some error')
+Python: ValueError('some error')
 ```
 
 With the functions introduced so far, you have access to the vast majority of Python's
@@ -103,7 +103,7 @@ converted to another Julia type. Instead, you can explicitly convert using
 
 ```julia-repl
 julia> x = pylist([3.4, 5.6])
-Python list: [3.4, 5.6]
+Python: [3.4, 5.6]
 
 julia> pyconvert(Vector, x)
 2-element Vector{Float64}:
@@ -116,7 +116,7 @@ julia> pyconvert(Vector{Float32}, x)
  5.6
 
 julia> pyconvert(Any, x)
-2-element PyList{Py}:
+2-element PyList{Any}:
  3.4
  5.6
 ```
@@ -151,7 +151,7 @@ a Julia vector:
 
 ```julia-repl
 julia> x = pylist([3,4,5])
-Python list: [3, 4, 5]
+Python: [3, 4, 5]
 
 julia> y = PyList{Union{Int,Nothing}}(x)
 3-element PyList{Union{Nothing, Int64}}:
@@ -176,7 +176,7 @@ julia> append!(y, 1:2)
  2
 
 julia> x
-Python list: [3, 4, 5, None, 1, 2]
+Python: [3, 4, 5, None, 1, 2]
 ```
 
 There are wrappers for other container types, such as [`PyDict`](@ref) and [`PySet`](@ref).
@@ -187,7 +187,7 @@ like `bytes`, `bytearray`, `array.array` and `numpy.ndarray`:
 
 ```julia-repl
 julia> x = pyimport("array").array("i", [3, 4, 5])
-Python array: array('i', [3, 4, 5])
+Python: array('i', [3, 4, 5])
 
 julia> y = PyArray(x)
 3-element PyArray{Int32, 1, true, true, Int32}:
@@ -202,7 +202,7 @@ julia> y[1] = 0
 0
 
 julia> x
-Python array: array('i', [0, 4, 5])
+Python: array('i', [0, 4, 5])
 ```
 
 It directly wraps the underlying data buffer, so array operations such as indexing are about
@@ -212,7 +212,7 @@ The [`PyIO`](@ref) wrapper type views a Python file object as a Julia IO object:
 
 ```julia-repl
 julia> x = pyimport("io").StringIO()
-Python StringIO: <_io.StringIO object at 0x000000006579BC70>
+Python: <_io.StringIO object at 0x000000006579BC70>
 
 julia> y = PyIO(x)
 PyIO(<py _io.StringIO object at 0x000000006579BC70>, false, true, false, 4096, UInt8[], 4096, UInt8[])
@@ -222,10 +222,10 @@ julia> println(y, "Hello, world!")
 julia> flush(y)
 
 julia> x.seek(0)
-Python int: 0
+Python: 0
 
 julia> x.read()
-Python str: 'Hello, world!\n'
+Python: 'Hello, world!\n'
 ```
 
 ## [Configuration](@id pythoncall-config)
@@ -317,7 +317,7 @@ example package which wraps the Python FAISS package.
 
 ### Precompilation
 
-You may not interact with Python during module precompilation. Therefore, instead of
+You must not interact with Python during module precompilation. Therefore, instead of
 ```julia
 module MyModule
   using PythonCall
@@ -325,15 +325,36 @@ module MyModule
   bar() = foo.bar() # will crash when called
 end
 ```
-you must do
+you can do the import when the module is loaded, saving the result in a `Ref`
 ```julia
 module MyModule
   using PythonCall
-  const foo = PythonCall.pynew() # initially NULL
+  const foo = Ref{Py}()
   function __init__()
-    PythonCall.pycopy!(foo, pyimport("foo"))
+    foo[] = pyimport("foo")
   end
-  bar() = foo.bar() # now ok
+  bar() = foo[].bar()
+end
+```
+or you can perform any imports dynamically
+```julia
+module MyModule
+  using PythonCall
+  bar() = pyimport("foo").bar()
+end
+```
+or if that is too slow, you can cache the import
+```julia
+module MyModule
+  using PythonCall
+  bar() = @pyconst(pyimport("foo")).bar()
+end
+```
+or even cache the imported function
+```julia
+module MyModule
+  using PythonCall
+  bar() = @pyconst(pyimport("foo").bar)()
 end
 ```
 

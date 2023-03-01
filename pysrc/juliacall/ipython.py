@@ -14,15 +14,37 @@ Features:
 
 from IPython.core.magic import Magics, magics_class, line_cell_magic
 from . import Main, Base, PythonCall
+import __main__
+
+_set_var = Main.seval("(k, v) -> @eval $(Symbol(k)) = $v")
+_get_var = Main.seval("k -> @eval $(Symbol(k))")
 
 @magics_class
 class JuliaMagics(Magics):
     
     @line_cell_magic
     def julia(self, line, cell=None):
-        code = line if cell is None else cell
+        invars = []
+        outvars = []
+        if cell is None:
+            code = line
+        else:
+            code = cell
+            for k in line.split():
+                if k.startswith('<'):
+                    invars.append(k[1:])
+                elif k.startswith('>'):
+                    outvars.append(k[1:])
+                else:
+                    invars.append(k)
+                    outvars.append(k)
+        for k in invars:
+            if k in __main__.__dict__:
+                _set_var(k, __main__.__dict__[k])
         ans = Main.seval('begin\n' + code + '\nend')
         PythonCall._flush_stdio()
+        for k in outvars:
+            __main__.__dict__[k] = _get_var(k)
         if not code.strip().endswith(';'):
             return ans
 

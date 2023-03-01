@@ -81,17 +81,12 @@ function _columns(df, columnnames, columntypes)
         else
             column = pyconvert(AbstractVector, pycolumn)
             if eltype(column) == Py
-                # guess a column type based on the types of the elements
-                ts = pybuiltins.set(pybuiltins.map(pybuiltins.type, pycolumn))
-                Ts = Type[pyconvert_preferred_type(t) for t in ts]
-                T = isempty(Ts) ? Any : reduce(promote_type, Ts)
-                column = pyconvert(AbstractVector{T}, pycolumn)
-                # if all items are either NaN or not Float64, convert NaN to missing
-                if T != Float64 && Float64 in Ts && !any(x isa Float64 && !isnan(x) for x in column)
-                    Ts = Type[T for T in Ts if T != Float64]
-                    push!(Ts, Missing)
-                    T = reduce(promote_type, Ts)
-                    column = pyconvert(AbstractVector{T}, pycolumn)
+                column = pyconvert(AbstractVector{Any}, pycolumn)
+            end
+            if !isconcretetype(eltype(column))
+                column = [(x === nothing) ? missing : x for x in column]
+                if eltype(column) != Float64 && Float64 <: eltype(column)
+                    column = [x === NaN ? missing : x for x in column]
                 end
             end
         end
@@ -102,5 +97,6 @@ function _columns(df, columnnames, columntypes)
     # TODO: realising columns to vectors could be done lazily with a different table type
     schema = Tables.Schema(colnames, coltypes)
     coldict = Tables.OrderedDict(k=>v for (k,v) in zip(colnames, columns))
-    Tables.DictColumnTable(schema, coldict)
+    table = Tables.DictColumnTable(schema, coldict)
+    Tables.columns(table)
 end

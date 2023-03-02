@@ -194,7 +194,7 @@ def init():
     try
         Base.require(Main, :CompilerSupportLibraries_jll)
         import Pkg
-        ENV["JULIA_PYTHONCALL_LIBPTR"] = {}
+        global __PythonCall_libptr = Ptr{{Cvoid}}(UInt({}))
         ENV["JULIA_PYTHONCALL_EXE"] = {}
         Pkg.activate({}, io=devnull)
         import PythonCall
@@ -205,7 +205,7 @@ def init():
         rethrow()
     end
     '''.format(
-        jlstr(str(c.pythonapi._handle)),
+        hex(c.pythonapi._handle),
         jlstr(sys.executable or ''),
         jlstr(project),
     )

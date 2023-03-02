@@ -32,11 +32,11 @@ end
 
 function init_context()
 
-    CTX.is_embedded = haskey(ENV, "JULIA_PYTHONCALL_LIBPTR")
+    CTX.is_embedded = hasproperty(Base.Main, :__PythonCall_libptr)
 
     if CTX.is_embedded
         # In this case, getting a handle to libpython is easy
-        CTX.lib_ptr = Ptr{Cvoid}(parse(UInt, ENV["JULIA_PYTHONCALL_LIBPTR"]))
+        CTX.lib_ptr = Base.Main.__PythonCall_libptr::Ptr{Cvoid}
         init_pointers()
         # Check Python is initialized
         Py_IsInitialized() == 0 && error("Python is not already initialized.")
@@ -48,10 +48,6 @@ function init_context()
             # this ensures PyCall uses the same Python interpreter
             get!(ENV, "PYTHON", exe_path)
         end
-        # On success, delete JULIA_PYTHONCALL_LIBPTR so that further processes do not think
-        # they are embedded in Python (e.g. this can happen when precompiling).
-        # See https://github.com/cjdoris/PythonCall.jl/issues/235
-        delete!(ENV, "JULIA_PYTHONCALL_LIBPTR")
     else
         # Find Python executable
         exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")

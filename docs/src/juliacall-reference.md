@@ -132,7 +132,7 @@ copy of the original array.
 - `shape`: Tuple of lengths in each dimension.
 - `copy()`: A copy of the array.
 - `reshape(shape)`: A reshaped view of the array.
-- `to_numpy()`: Convert to a numpy array.
+- `to_numpy(dtype=None, copy=True, order="K")`: Convert to a numpy array.
 `````
 
 `````@customdoc

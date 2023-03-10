@@ -24,6 +24,27 @@ Currently, Apple silicon is Tier 2, so is not supported.
 Due to time constraints, issues affecting only unsupported platforms will not be
 investigated. It is much more likely to be an issue with Julia itself than PythonCall.
 
+## Issues when Numpy arrays are expected
+
+When a Julia array is passed to Python, it is wrapped as a [`ArrayValue`](#juliacall.ArrayValue).
+This type satisfies the Numpy array interface and the buffer protocol, so can be used in
+most places where a numpy array is valid.
+
+However, some Python packages have functions which assume the input is an actual Numpy array.
+You may see errors such as:
+```
+AttributeError: Julia: type Array has no field dtype
+```
+
+To fix this you can convert the array `x` to a Numpy array as follows
+```julia
+Py(x).to_numpy()
+```
+
+If the array is being mutated, you will need to pass the argument `copy=false`.
+
+Related issues: [#280](https://github.com/cjdoris/PythonCall.jl/issues/280)
+
 ## Heap corruption when using PyTorch
 
 On some systems, you may see an error like the following when using `torch` and `juliacall`:

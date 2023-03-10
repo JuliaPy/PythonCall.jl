@@ -13,7 +13,7 @@ Features:
 """
 
 from IPython.core.magic import Magics, magics_class, line_cell_magic
-from . import Main, Base, PythonCall
+from . import Main, PythonCall
 import __main__
 
 _set_var = Main.seval("(k, v) -> @eval $(Symbol(k)) = $v")
@@ -58,7 +58,6 @@ class JuliaMagics(Magics):
             v0 = cachevars.get(k)
             v1 = _get_var(k)
             if v1 is not None and (v0 is None or not _egal(v0, v1)):
-                print(k)
                 __main__.__dict__[k] = v1._jl_any()
         # return the value unless suppressed with trailing ";"
         if not code.strip().endswith(';'):

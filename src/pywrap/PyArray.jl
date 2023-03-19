@@ -36,24 +36,27 @@ struct PyArray{T,N,M,L,R} <: AbstractArray{T,N}
 end
 export PyArray
 
+ispy(::PyArray) = true
+Py(x::PyArray) = x.py
+
 for N in (missing, 1, 2)
     for M in (missing, true, false)
         for L in (missing, true, false)
             for R in (true, false)
-            name = Symbol(
-                "Py",
-                M === missing ? "" : M ? "Mutable" : "Immutable",
-                L === missing ? "" : L ? "Linear" : "Cartesian",
-                    R ? "Raw" : "",
-                N === missing ? "Array" : N == 1 ? "Vector" : "Matrix",
-            )
-            name == :PyArray && continue
-                vars = Any[:T, N===missing ? :N : N, M===missing ? :M : M, L===missing ? :L : L, R ? :T : :R]
-                @eval const $name{$(unique([v for v in vars if v isa Symbol])...)} = PyArray{$(vars...)}
-            @eval export $name
+                name = Symbol(
+                    "Py",
+                    M === missing ? "" : M ? "Mutable" : "Immutable",
+                    L === missing ? "" : L ? "Linear" : "Cartesian",
+                        R ? "Raw" : "",
+                    N === missing ? "Array" : N == 1 ? "Vector" : "Matrix",
+                )
+                name == :PyArray && continue
+                    vars = Any[:T, N===missing ? :N : N, M===missing ? :M : M, L===missing ? :L : L, R ? :T : :R]
+                    @eval const $name{$(unique([v for v in vars if v isa Symbol])...)} = PyArray{$(vars...)}
+                @eval export $name
+            end
         end
     end
-end
 end
 
 (::Type{A})(x; array::Bool=true, buffer::Bool=true, copy::Bool=true) where {A<:PyArray} = @autopy x begin

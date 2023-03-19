@@ -1,4 +1,74 @@
 @testitem "PyArray" begin
+    x = pyimport("array").array("i", [1,2,3])
+    y = PyArray(x)
+    z = PyArray{Cint,1,false,false,Cint}(x)
+    @testset "construct" begin
+        @test y isa PyArray{Cint,1,true,true,Cint}
+        @test z isa PyArray{Cint,1,false,false,Cint}
+        @test PythonCall.ispy(y)
+        @test PythonCall.ispy(z)
+        @test Py(y) === x
+        @test Py(z) === x
+    end
+    @testset "length" begin
+        @test length(y) === 3
+        @test length(z) === 3
+    end
+    @testset "size" begin
+        @test size(y) === (3,)
+        @test size(z) === (3,)
+    end
+    @testset "IndexStyle" begin
+        @test Base.IndexStyle(y) === Base.IndexLinear()
+        @test Base.IndexStyle(z) === Base.IndexCartesian()
+    end
+    @testset "strides" begin
+        @test strides(y) === (1,)
+        @test strides(z) === (1,)
+    end
+    @testset "getindex" begin
+        @test_throws BoundsError y[0]
+        @test y[1] == 1
+        @test y[2] == 2
+        @test y[3] == 3
+        @test_throws BoundsError y[4]
+        @test_throws BoundsError z[0]
+        @test z[1] == 1
+        @test z[2] == 2
+        @test z[3] == 3
+        @test_throws BoundsError z[4]
+    end
+    @testset "copy" begin
+        @test copy(y) == [1, 2, 3]
+        @test copy(z) == [1, 2, 3]
+    end
+    @testset "setindex!" begin
+        @test_throws BoundsError y[0] = 0
+        y[2] = 22
+        @test y[2] == 22
+        y[2] = 2
+        @test y[2] == 2
+        @test_throws BoundsError y[4] = 0
+        @test_throws Exception z[0] = 0
+        @test_throws Exception z[1] = 0
+        @test_throws Exception z[2] = 0
+        @test_throws Exception z[3] = 0
+        @test_throws Exception z[4] = 0
+    end
+    @testset "mutate" begin
+        y[2] = 22
+        @test pyconvert(Int, x[1]) == 22
+        @test y[2] == 22
+        @test z[2] == 22
+        y[2] = 2
+        x[2] = 33
+        @test pyconvert(Int, x[2]) == 33
+        @test y[3] == 33
+        @test z[3] == 33
+        x[2] = 3
+        @test y == [1, 2, 3]
+        @test z == [1, 2, 3]
+    end
 end
 
 @testitem "PyDict" begin

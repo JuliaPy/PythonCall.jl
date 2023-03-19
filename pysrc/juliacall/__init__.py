@@ -197,7 +197,7 @@ def init():
         global __PythonCall_libptr = Ptr{{Cvoid}}(UInt({}))
         ENV["JULIA_PYTHONCALL_EXE"] = {}
         Pkg.activate({}, io=devnull)
-        import PythonCall
+        using PythonCall
     catch err
         print(stderr, "ERROR: ")
         showerror(stderr, err, catch_backtrace())

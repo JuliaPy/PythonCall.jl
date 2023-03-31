@@ -84,3 +84,7 @@ The solution is to either:
   * use a Python from a conda environment, which will have a newer `libstdc++` that is compatible with Julia's
 
 Related issues: [#255](https://github.com/cjdoris/PythonCall.jl/issues/255)
+
+## Can I use JuliaCall to run Julia inside applications with embeded Python?
+
+Yes, it may be possible. See an example of how to have Julia running inside the Python that is running inside Blender here https://discourse.julialang.org/t/running-julia-inside-blender-through-vscode-using-pythoncall-juliacall/96838.

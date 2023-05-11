@@ -59,7 +59,7 @@ A solution is to ensure that `juliacall` is imported before `torch`.
 
 Related issues: [#215](https://github.com/cjdoris/PythonCall.jl/issues/215)
 
-## `ccall requries the compiler` error when importing some Python libraries
+## `ccall requires the compiler` error when importing some Python libraries
 On some systems, you may see an error like the following when import e.g. `matplotlib` before `juliacall`:
 
 ```

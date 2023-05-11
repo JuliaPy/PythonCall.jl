@@ -35,7 +35,7 @@ then by the specificity of `t` (e.g. `bool` is more specific than `int` is more 
 than `object`) then by the order they were added. The rules are tried in turn until one
 succeeds.
 
-### Implemeting `func`
+### Implementing `func`
 
 `func` is called as `func(S, x::Py)` for some `S <: T`.
 

@@ -1,0 +1,4 @@
+channels = ["anaconda", "conda-forge"]
+
+[pip.deps]
+pyperf = "==2.6.0"

@@ -79,6 +79,8 @@ function init_jlwrap_set()
     $("\n"^(@__LINE__()-1))
     class SetValue(AnyValue):
         __slots__ = ()
+        def __bool__(self):
+            return bool(len(self))
         def add(self, value):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_add)), value)
         def discard(self, value):

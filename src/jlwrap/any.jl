@@ -206,6 +206,8 @@ function init_jlwrap_any()
             return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlany_dir)))
         def __call__(self, *args, **kwargs):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_call)), args, kwargs)
+        def __bool__(self):
+            return True
         def __len__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(length))))
         def __getitem__(self, k):

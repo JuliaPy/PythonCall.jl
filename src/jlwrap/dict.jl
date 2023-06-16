@@ -38,6 +38,8 @@ function init_jlwrap_dict()
     class DictValue(AnyValue):
         __slots__ = ()
         _jl_undefined_ = object()
+        def __bool__(self):
+            return bool(len(self))
         def __iter__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjldict_iter)))
         def __contains__(self, key):

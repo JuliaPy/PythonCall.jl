@@ -304,6 +304,8 @@ function init_jlwrap_array()
             return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
         def reshape(self, shape):
             return self._jl_callmethod($(pyjl_methodnum(pyjlarray_reshape)), shape)
+        def __bool__(self):
+            return bool(len(self))
         def __getitem__(self, k):
             return self._jl_callmethod($(pyjl_methodnum(pyjlarray_getitem)), k)
         def __setitem__(self, k, v):

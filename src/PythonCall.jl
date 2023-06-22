@@ -83,6 +83,8 @@ include("compat/ipython.jl")
 include("compat/tables.jl")
 
 function __init__()
+    ccall(:jl_generating_output, Cint, ()) == 1 && return nothing
+
     C.with_gil() do
         init_consts()
         init_pyconvert()

@@ -205,7 +205,10 @@ function _pyjl_serialize(self::PyPtr, ::PyPtr)
         b = take!(io)
         return PyBytes_FromStringAndSize(pointer(b), sizeof(b))
     catch e
-        PyErr_SetString(POINTERS.PyExc_Exception, "error serializing this value")
+        PyErr_SetString(
+            POINTERS.PyExc_Exception,
+            "error serializing this value. Caught exception $e"
+        )
         return PyNULL
     end
 end
@@ -220,7 +223,10 @@ function _pyjl_deserialize(t::PyPtr, v::PyPtr)
         x = deserialize(io)
         return PyJuliaValue_New(t, x)
     catch e
-        PyErr_SetString(POINTERS.PyExc_Exception, "error deserializing this value")
+        PyErr_SetString(
+            POINTERS.PyExc_Exception,
+            "error deserializing this value. Caught exception $e"
+        )
         return PyNULL
     end
 end

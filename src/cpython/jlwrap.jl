@@ -207,7 +207,7 @@ function _pyjl_serialize(self::PyPtr, ::PyPtr)
     catch e
         PyErr_SetString(
             POINTERS.PyExc_Exception,
-            "error serializing this value. Caught exception $e"
+            "error serializing this value. Caught exception $(sprint(showerror, e. catch_backtrace()))"
         )
         return PyNULL
     end

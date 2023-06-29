@@ -207,7 +207,7 @@ function _pyjl_serialize(self::PyPtr, ::PyPtr)
     catch e
         PyErr_SetString(
             POINTERS.PyExc_Exception,
-            "error serializing this value. Caught exception $(sprint(showerror, e. catch_backtrace()))"
+            "error serializing this value. Caught exception $(sprint(showerror, e, catch_backtrace()))"
         )
         return PyNULL
     end
@@ -225,7 +225,7 @@ function _pyjl_deserialize(t::PyPtr, v::PyPtr)
     catch e
         PyErr_SetString(
             POINTERS.PyExc_Exception,
-            "error deserializing this value. Caught exception $(sprint(showerror, e. catch_backtrace()))"
+            "error deserializing this value. Caught exception $(sprint(showerror, e, catch_backtrace()))"
         )
         return PyNULL
     end

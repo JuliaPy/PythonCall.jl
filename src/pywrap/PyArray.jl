@@ -435,7 +435,7 @@ function pyarray_get_R(src::PyArraySource_ArrayStruct)
     elseif kind == 109  # m = timedelta
         error("timedelta not supported")
     elseif kind == 77  # M = datetime
-        error("datetime not supported")
+        return DateTime
     elseif kind == 79  # O = object
         if size == sizeof(C.PyPtr)
             return UnsafePyObject

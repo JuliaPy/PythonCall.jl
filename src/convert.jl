@@ -420,6 +420,7 @@ function init_pyconvert()
     pyconvert_add_rule("datetime:datetime", DateTime, pyconvert_rule_datetime, priority)
     pyconvert_add_rule("datetime:date", Date, pyconvert_rule_date, priority)
     pyconvert_add_rule("datetime:time", Time, pyconvert_rule_time, priority)
+    pyconvert_add_rule("numpy:datetime64", DateTime, pyconvert_rule_datetime64, priority)
     pyconvert_add_rule("builtins:BaseException", PyException, pyconvert_rule_exception, priority)
 
     priority = PYCONVERT_PRIORITY_NORMAL

@@ -93,3 +93,7 @@ function pyconvert_rule_datetime(::Type{DateTime}, x::Py)
     iszero(mod(microseconds, 1000)) || return pyconvert_unconverted()
     return pyconvert_return(_base_datetime + Millisecond(div(microseconds, 1000) + 1000 * (seconds + 60 * 60 * 24 * days)))
 end
+
+function pyconvert_rule_datetime64(::Type{DateTime}, x::Py)
+    pyconvert(DateTime, pyimport("pandas").to_datetime(x))
+end

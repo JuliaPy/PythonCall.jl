@@ -339,6 +339,15 @@ end
 end
 
 @testitem "PyPandasDataFrame" begin
+    using Dates
+    using DataFrames
+    using CondaPkg
+    CondaPkg.add("pandas")
+    jdf = DataFrame(x = [now() + Second(rand(1:1000)) for _ in 1:100])
+    pdf = pytable(jdf)
+    @test PyTable(pdf) isa PyPandasDataFrame
+    jdf2 = DataFrame(PyTable(pdf))
+    @test all((jdf .== jdf2).x)
 end
 
 @testitem "PySet" begin

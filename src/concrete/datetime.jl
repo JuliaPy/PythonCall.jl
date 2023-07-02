@@ -97,3 +97,16 @@ end
 function pyconvert_rule_datetime64(::Type{DateTime}, x::Py)
     pyconvert(DateTime, pyimport("pandas").to_datetime(x))
 end
+
+function pyconvert_rule_timedelta(::Type{<:Dates.CompoundPeriod}, x::Py)
+    days = pyconvert(Int, x.days)
+    seconds = pyconvert(Int, x.seconds)
+    microseconds = pyconvert(Int, x.microseconds)
+    nanoseconds = pyconvert(Int, x.nanoseconds)
+    iszero(mod(microseconds, 1000)) || return pyconvert_unconverted()
+    return pyconvert_return(Day(days) + Second(seconds) + Microsecond(microseconds) + Nanosecond(nanoseconds))
+end
+
+function pyconvert_rule_timedelta64(::Type{Dates.CompoundPeriod}, x::Py)
+    pyconvert_rule_timedelta(Dates.CompoundPeriod, pyimport("pandas").to_timedelta(x))
+end

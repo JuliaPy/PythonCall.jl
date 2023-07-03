@@ -102,9 +102,9 @@ function pyconvert_rule_timedelta(::Type{<:Dates.CompoundPeriod}, x::Py)
     days = pyconvert(Int, x.days)
     seconds = pyconvert(Int, x.seconds)
     microseconds = pyconvert(Int, x.microseconds)
-    nanoseconds = pyconvert(Int, x.nanoseconds)
-    iszero(mod(microseconds, 1000)) || return pyconvert_unconverted()
-    return pyconvert_return(Day(days) + Second(seconds) + Microsecond(microseconds) + Nanosecond(nanoseconds))
+    nanoseconds = pyhasattr(x, "nanoseconds") ? pyconvert(Int, x.nanoseconds) : 0
+    timedelta = Day(days) + Second(seconds) + Microsecond(microseconds) + Nanosecond(nanoseconds)
+    return pyconvert_return(timedelta)
 end
 
 function pyconvert_rule_timedelta64(::Type{Dates.CompoundPeriod}, x::Py)

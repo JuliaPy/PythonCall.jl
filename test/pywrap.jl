@@ -346,8 +346,8 @@ end
     jdf = DataFrame(x = [now() + Second(rand(1:1000)) for _ in 1:100], y = [Second(n) for n in 1:100])
     pdf = pytable(jdf)
     @test PyTable(pdf) isa PyPandasDataFrame
-    @test pyconvert_typename(pt.x[0]) == "pandas._libs.tslibs.timestamps:<name>"
-    @test pyconvert_typename(pt.y[0]) == "pandas._libs.tslibs.timedeltas:<name>"
+    @test PythonCall.pyconvert_typename(pdf.x[0]) == "pandas._libs.tslibs.timestamps:<name>"
+    @test PythonCall.pyconvert_typename(pdf.y[0]) == "pandas._libs.tslibs.timedeltas:<name>"
     jdf2 = DataFrame(PyTable(pdf))
     @test all((jdf .== jdf2).x)
     @test all((jdf .== jdf2).y)

@@ -148,6 +148,7 @@ Py(x::AbstractRange{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UI
 Py(x::Date) = pydate(x)
 Py(x::Time) = pytime(x)
 Py(x::DateTime) = pydatetime(x)
+Py(x::Union{Period, Dates.CompoundPeriod}) = pytimedelta64(x)
 Py(x) = ispy(x) ? throw(MethodError(Py, (x,))) : pyjl(x)
 
 Base.string(x::Py) = pyisnull(x) ? "<py NULL>" : pystr(String, x)

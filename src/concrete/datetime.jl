@@ -33,6 +33,34 @@ end
 pydatetime(x::Date) = pydatetime(year(x), month(x), day(x))
 export pydatetime
 
+pytimedelta64(_year=0, _month=0, _day=0, _hour=0, _minute=0, _second=0, _microsecond=0, _nanosecond=0; year=_year, month=_month, day=_day, hour=_hour, minute=_minute, second=_second, microsecond=_microsecond, nanosecond=_nanosecond) = _pytimedelta64(year, month, day, hour, minute, second, microsecond, nanosecond)
+function pytimedelta64(@nospecialize(x::T)) where T <: Period
+    unit = if T==Year
+        "Y"
+    elseif T==Month
+        "M"
+    elseif T==Day
+        "D"
+    elseif T==Hour
+        "h"
+    elseif T==Minute
+        "m"
+    elseif T==Second
+        "s"
+    elseif T==Millisecond
+        "ms"
+    elseif T==Microsecond
+        "us"
+    elseif T==Nanosecond
+        "ns"
+    else
+        ""
+    end
+    pyimport("numpy").timedelta64(x.value, unit)
+end
+pytimedelta64(x::Dates.CompoundPeriod) = isempty(x.periods) ? pytimedelta64(Second(0)) : sum(pytimedelta64.(x.periods))
+export pytimedelta64
+
 function pytime_isaware(x)
     tzinfo = pygetattr(x, "tzinfo")
     if pyisnone(tzinfo)

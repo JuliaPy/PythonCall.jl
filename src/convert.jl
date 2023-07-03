@@ -398,7 +398,14 @@ function init_pyconvert()
     pyconvert_add_rule("<buffer>", PyArray, pyconvert_rule_array_nocopy, priority)
     pyconvert_add_rule("numpy:datetime64", DateTime, pyconvert_rule_datetime64, priority)
     pyconvert_add_rule("numpy:timedelta64", Dates.CompoundPeriod, pyconvert_rule_timedelta64, priority)
-    
+    pyconvert_add_rule("numpy:timedelta64", Year, pyconvert_rule_timedelta64, priority)
+    pyconvert_add_rule("numpy:timedelta64", Month, pyconvert_rule_timedelta64, priority)
+    pyconvert_add_rule("numpy:timedelta64", Day, pyconvert_rule_timedelta64, priority)
+    pyconvert_add_rule("numpy:timedelta64", Second, pyconvert_rule_timedelta64, priority)
+    pyconvert_add_rule("numpy:timedelta64", Millisecond, pyconvert_rule_timedelta64, priority)
+    pyconvert_add_rule("numpy:timedelta64", Microsecond, pyconvert_rule_timedelta64, priority)
+    pyconvert_add_rule("numpy:timedelta64", Nanosecond, pyconvert_rule_timedelta64, priority)
+
     priority = PYCONVERT_PRIORITY_CANONICAL
     pyconvert_add_rule("builtins:NoneType", Nothing, pyconvert_rule_none, priority)
     pyconvert_add_rule("builtins:bool", Bool, pyconvert_rule_bool, priority)

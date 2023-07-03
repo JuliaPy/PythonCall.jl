@@ -135,6 +135,14 @@ function pyconvert_rule_timedelta(::Type{<:Dates.CompoundPeriod}, x::Py)
     return pyconvert_return(timedelta)
 end
 
+function pyconvert_rule_timedelta(::Type{T}, x::Py) where T<:Period
+    pyconvert_return(convert(T, pyconvert_rule_timedelta(Dates.CompoundPeriod, x)))
+end
+
 function pyconvert_rule_timedelta64(::Type{Dates.CompoundPeriod}, x::Py)
     pyconvert_rule_timedelta(Dates.CompoundPeriod, pyimport("pandas").to_timedelta(x))
+end
+
+function pyconvert_rule_timedelta64(::Type{T}, x::Py) where T<:Period
+    pyconvert_return(convert(T, pyconvert_rule_timedelta64(Dates.CompoundPeriod, x)))
 end

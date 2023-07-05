@@ -1,2 +1,9 @@
-[deps]
-python = ">=3.5,<4"
+
+[deps.libstdcxx-ng]
+channel = "conda-forge"
+version = "<=julia"
+
+[deps.python]
+channel = "conda-forge"
+build = "*cpython*"
+version = ">=3.7,<4"

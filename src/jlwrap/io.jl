@@ -31,7 +31,7 @@ function pyjlio_seek(io::IO, offset_::Py, whence_::Py)
         pos = position(io) + offset
     else
         errset(pybuiltins.ValueError, "Argument 'whence' must be 0, 1 or 2")
-        return pynew()
+        return PyNULL
     end
     seek(io, pos)
     Py(position(io))
@@ -86,14 +86,14 @@ function pyjlbinaryio_readinto(io::IO, b::Py)
     if !pytruth(c)
         pydel!(c)
         errset(pybuiltins.ValueError, "input buffer is not contiguous")
-        return pynew()
+        return PyNULL
     end
     pydel!(c)
     buf = unsafe_load(C.PyMemoryView_GET_BUFFER(getptr(m)))
     if buf.readonly != 0
         pydel!(m)
         errset(pybuiltins.ValueError, "output buffer is read-only")
-        return pynew()
+        return PyNULL
     end
     data = unsafe_wrap(Array, Ptr{UInt8}(buf.buf), buf.len)
     nb = readbytes!(io, data)
@@ -108,7 +108,7 @@ function pyjlbinaryio_write(io::IO, b::Py)
     if !pytruth(c)
         pydel!(c)
         errset(pybuiltins.ValueError, "input buffer is not contiguous")
-        return pynew()
+        return PyNULL
     end
     pydel!(c)
     buf = unsafe_load(C.PyMemoryView_GET_BUFFER(getptr(m)))
@@ -196,18 +196,17 @@ function pyjltextio_write(io::IO, s_::Py)
         Py(length(s))
     else
         errset(pybuiltins.TypeError, "Argument 's' must be a 'str', got a '$(pytype(s_).__name__)'")
-        pynew()
+        PyNULL
     end
 end
 pyjl_handle_error_type(::typeof(pyjltextio_write), io, exc) = exc isa MethodError && exc.f === write ? pybuiltins.ValueError : PyNULL
 
 function init_jlwrap_io()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class IOValueBase(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def close(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlio_close)))
         @property
@@ -259,7 +258,6 @@ function init_jlwrap_io()
                 raise StopIteration
     class BinaryIOValue(IOValueBase):
         __slots__ = ()
-        __module__ = "juliacall"
         def detach(self):
             raise ValueError("Cannot detach '{}'.".format(type(self)))
         def read(self, size=-1):
@@ -276,7 +274,6 @@ function init_jlwrap_io()
             return self._jl_callmethod($(pyjl_methodnum(pyjlbinaryio_write)), b)
     class TextIOValue(IOValueBase):
         __slots__ = ()
-        __module__ = "juliacall"
         @property
         def encoding(self):
             return "UTF-8"
@@ -296,7 +293,7 @@ function init_jlwrap_io()
     io.BufferedIOBase.register(BinaryIOValue)
     io.TextIOBase.register(TextIOValue)
     del io
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjliobasetype, jl.IOValueBase)
     pycopy!(pyjlbinaryiotype, jl.BinaryIOValue)
     pycopy!(pyjltextiotype, jl.TextIOValue)
@@ -322,4 +319,4 @@ Wrap `io` as a Python text IO object.
 pytextio(v::IO) = pyjl(pyjltextiotype, v)
 export pytextio
 
-pyjl(v::IO) = pybinaryio(v)
+pyjltype(::IO) = pyjlbinaryiotype

@@ -7,23 +7,18 @@ If `x` is not a Python object, it is converted to one using `pyset`.
 """
 struct PySet{T} <: AbstractSet{T}
     py :: Py
-    PySet{T}(::Val{:new}, py::Py) where {T} = new{T}(py)
+    PySet{T}(x=pyset()) where {T} = new{T}(ispy(x) ? Py(x) : pyset(x))
 end
 export PySet
 
-PySet{T}(x=pyset()) where {T} = PySet{T}(Val(:new), ispy(x) ? Py(x) : pyset(x))
 PySet(x=pyset()) = PySet{Py}(x)
 
 ispy(::PySet) = true
-getpy(x::PySet) = x.py
-pydel!(x::PySet) = pydel!(x.py)
+Py(x::PySet) = x.py
 
-pyconvert_rule_set(::Type{T}, x::Py, ::Type{PySet{V}}=Utils._type_ub(T)) where {T<:PySet,V} =
-    if PySet{Py} <: T
-        pyconvert_return(PySet{Py}(x))
-    else
-        pyconvert_return(PySet{V}(x))
-    end
+function pyconvert_rule_set(::Type{T}, x::Py, ::Type{T1}=Utils._type_ub(T)) where {T<:PySet,T1}
+    pyconvert_return(T1(x))
+end
 
 Base.length(x::PySet) = Int(pylen(x))
 
@@ -35,7 +30,7 @@ function Base.iterate(x::PySet{T}, it::Py=pyiter(x)) where {T}
         pydel!(it)
         return nothing
     else
-        return (pyconvert_and_del(T, y), it)
+        return (pyconvert(T, y), it)
     end
 end
 
@@ -71,7 +66,7 @@ end
 
 Base.@propagate_inbounds function Base.pop!(x::PySet{T}) where {T}
     @boundscheck (isempty(x) && throw(ArgumentError("set must be non-empty")))
-    return pyconvert_and_del(T, @py x.pop())
+    return pyconvert(T, @py x.pop())
 end
 
 function Base.pop!(x::PySet, v)
@@ -98,5 +93,5 @@ function Base.empty!(x::PySet)
 end
 
 function Base.copy(x::PySet{T}) where {T}
-    return PySet{T}(Val(:new), @py x.copy())
+    return PySet{T}(@py x.copy())
 end

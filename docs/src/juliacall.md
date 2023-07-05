@@ -46,7 +46,21 @@ In this example:
 If you are writing a package which uses Julia, then to avoid polluting the global `Main`
 namespace you instead should start with:
 ```python
-import juliacall; jl = juliacall.newmodule("SomeName");
+import juliacall
+jl = juliacall.newmodule("SomeName")
+```
+
+Julia modules have a special method `seval` which will evaluate a given piece of code given
+as a string in the module. This is most frequently used to import modules:
+```python
+from array import array
+jl.seval("using Statistics")
+x = array('i', [1, 2, 3])
+jl.mean(x)
+# 2.0
+y = array('i', [2,4,8])
+jl.cor(x, y)
+# 0.9819805060619657
 ```
 
 What to read next:
@@ -86,48 +100,24 @@ Alternatively you can use `add`, `rm`, etc. from JuliaPkg to edit this file.
 
 See [JuliaPkg](https://github.com/cjdoris/PyJuliaPkg) for more details.
 
-## Utilities
+## [Configuration](@id julia-config)
 
-`````@customdoc
-juliacall.using - Function
+Some features of the Julia process, such as the optimization level or number of threads, may
+be configured in two ways:
+- As an `-X` argument to Python, such as `-X juliacall-optlevel=3`; or
+- As an environment variable, such as `PYTHON_JULIACALL_OPTLEVEL=3`.
 
-```python
-using(globals, module, attrs=None, prefix='jl', rename=None)
-```
-
-Import the Julia `module` into `globals`.
-
-If `attrs` is given, the given attributes are imported from the module instead of the
-module itself. It may be a list of strings or a space-separated string.
-
-Each item imported is renamed before being added to `globals`. By default a `prefix` is
-added. You more generally supply a `rename` function which maps a string to a string.
-
-In the following example we import some items from `Base` to do some vector operations:
-```python
-juliacall.using(locals(), 'Base', 'Vector Int push! pop!', rename=lambda x:'jl'+x.replace('!',''))
-x = jlVector[jlInt]()
-jlpush(x, 1, 2, 3)
-jlpop(x)  # 3
-```
-`````
-
-`````@customdoc
-juliacall.newmodule - Function
-
-```python
-newmodule(name)
-```
-
-A new module with the given name.
-`````
-
-`````@customdoc
-juliacall.As - Class
-
-```python
-As(x, T)
-```
-
-When passed as an argument to a Julia function, is interpreted as `x` converted to Julia type `T`.
-`````
+| `-X` option | Environment Variable | Description |
+| :---------- | :------------------- | :---------- |
+| `-X juliacall-home=<dir>` | `PYTHON_JULIACALL_BINDIR=<dir>` | The directory containing the julia executable. |
+| `-X juliacall-check-bounds=<yes\|no\|auto>` | `PYTHON_JULIACALL_CHECK_BOUNDS=<yes\|no\|auto>` | Enable or disable bounds checking. |
+| `-X juliacall-compile=<yes\|no\|all\|min>` | `PYTHON_JULIACALL_COMPILE=<yes\|no\|all\|min>` | Enable or disable JIT compilation. |
+| `-X juliacall-compiled-modules=<yes\|no>` | `PYTHON_JULIACALL_COMPILED_MODULES=<yes\|no>` | Enable or disable incrementally compiling modules. |
+| `-X juliacall-depwarn=<yes\|no\|error>` | `PYTHON_JULIACALL_DEPWARN=<yes\|no\|error>` | Enable or disable deprecation warnings. |
+| `-X juliacall-inline=<yes\|no>` | `PYTHON_JULIACALL_INLINE=<yes\|no>` | Enable or disable inlining. |
+| `-X juliacall-min-optlevel=<0\|1\|2\|3>` | `PYTHON_JULIACALL_MIN_OPTLEVEL=<0\|1\|2\|3>` | Optimization level. |
+| `-X juliacall-optimize=<0\|1\|2\|3>` | `PYTHON_JULIACALL_OPTIMIZE=<0\|1\|2\|3>` | Minimum optimization level. |
+| `-X juliacall-procs=<N\|auto>` | `PYTHON_JULIACALL_PROCS=<N\|auto>` | Launch N local worker process. |
+| `-X juliacall-sysimage=<file>` | `PYTHON_JULIACALL_SYSIMAGE=<file>` | Use the given system image. |
+| `-X juliacall-threads=<N\|auto>` | `PYTHON_JULIACALL_THREADS=<N\|auto>` | Launch N threads. |
+| `-X juliacall-warn-overwrite=<yes\|no>` | `PYTHON_JULIACALL_WARN_OVERWRITE=<yes\|no>` | Enable or disable method overwrite warnings. |

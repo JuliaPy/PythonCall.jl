@@ -32,11 +32,11 @@ end
 
 function init_context()
 
-    CTX.is_embedded = haskey(ENV, "JULIA_PYTHONCALL_LIBPTR")
+    CTX.is_embedded = hasproperty(Base.Main, :__PythonCall_libptr)
 
     if CTX.is_embedded
         # In this case, getting a handle to libpython is easy
-        CTX.lib_ptr = Ptr{Cvoid}(parse(UInt, ENV["JULIA_PYTHONCALL_LIBPTR"]))
+        CTX.lib_ptr = Base.Main.__PythonCall_libptr::Ptr{Cvoid}
         init_pointers()
         # Check Python is initialized
         Py_IsInitialized() == 0 && error("Python is not already initialized.")
@@ -52,13 +52,21 @@ function init_context()
         # Find Python executable
         exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
         if exe_path == "" || exe_path == "@CondaPkg"
-            # By default, we use Python installed by CondaPkg.
-            exe_path = Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") : joinpath(CondaPkg.envdir(), "bin", "python")
-            # It's not sufficient to only activate the env while Python is initialising,
-            # it must also be active when loading extension modules (e.g. numpy). So we
-            # activate the environment globally.
-            # TODO: is this really necessary?
-            CondaPkg.activate!(ENV)
+            if CondaPkg.backend() == :Null
+                exe_path = Sys.which("python")
+                if exe_path === nothing
+                    error("CondaPkg is using the Null backend but Python is not installed")
+                end
+                exe_path::String
+            else
+                # By default, we use Python installed by CondaPkg.
+                exe_path = Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") : joinpath(CondaPkg.envdir(), "bin", "python")
+                # It's not sufficient to only activate the env while Python is initialising,
+                # it must also be active when loading extension modules (e.g. numpy). So we
+                # activate the environment globally.
+                # TODO: is this really necessary?
+                CondaPkg.activate!(ENV)
+            end
             CTX.which = :CondaPkg
         elseif exe_path == "@PyCall"
             # PyCall compatibility mode
@@ -85,6 +93,7 @@ function init_context()
         function python_cmd(args)
             env = copy(ENV)
             env["PYTHONIOENCODING"] = "UTF-8"
+            delete!(env, "PYTHONHOME")
             setenv(`$(CTX.exe_path) $args`, env)
         end
 
@@ -187,6 +196,19 @@ function init_context()
                 @warn "Py_AtExit() error"
             end
         end
+    end
+
+    # HACK: If we are using CondaPkg, prevent child processes from using it by explicitly
+    # setting the executable. Our tests sometimes fail on Windows because Aqua launches a
+    # child process which causes CondaPkg to re-resolve (should work out why, I assume it's
+    # a filesystem timestamp thing) which causes some stdlibs to disappear for a bit.
+    #
+    # A better solution may be to use some environment variable to "freeze" CondaPkg in
+    # child processes.
+    # 
+    # Only done when CI=true since it's a hack.
+    if (get(ENV, "CI", "false") == "true") && (CTX.which === :CondaPkg)
+        ENV["JULIA_PYTHONCALL_EXE"] = CTX.exe_path::String
     end
 
     # Compare libpath with PyCall

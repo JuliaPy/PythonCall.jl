@@ -1,8 +1,15 @@
 const pyjlanytype = pynew()
 
-pyjlany_repr(self) = Py("<jl $(repr(self))>")
+# pyjlany_repr(self) = Py("<jl $(repr(self))>")
+function pyjlany_repr(self)
+    str = repr(MIME("text/plain"), self; context=IOContext(devnull, :limit=>true, :displaysize=>(23,80)))
+    # type = self isa Function ? "Function" : self isa Type ? "Type" : nameof(typeof(self))
+    sep = '\n' in str ? '\n' : ' '
+    Py("Julia:$sep$str")
+end
 
-pyjlany_str(self) = Py(string(self))
+# Note: string(self) doesn't always return a String
+pyjlany_str(self) = Py(sprint(print, self))
 
 function pyjlany_getattr(self, k_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))
@@ -81,7 +88,7 @@ function (op::pyjlany_op)(self, other_::Py)
         other = pyjlvalue(other_)
         Py(op.op(self, other))
     else
-        Py(pybuiltins.NotImplemented)
+        pybuiltins.NotImplemented
     end
 end
 function (op::pyjlany_op)(self, other_::Py, other2_::Py)
@@ -90,7 +97,7 @@ function (op::pyjlany_op)(self, other_::Py, other2_::Py)
         other2 = pyjlvalue(other2_)
         Py(op.op(self, other, other2))
     else
-        Py(pybuiltins.NotImplemented)
+        pybuiltins.NotImplemented
     end
 end
 pyjl_handle_error_type(op::pyjlany_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
@@ -101,18 +108,18 @@ end
 function (op::pyjlany_rev_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
-        Py(op.op(self, other))
+        Py(op.op(other, self))
     else
-        Py(pybuiltins.NotImplemented)
+        pybuiltins.NotImplemented
     end
 end
 function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_) && pyisjl(other2_)
         other = pyjlvalue(other_)
         other2 = pyjlvalue(other2_)
-        Py(op.op(self, other, other2))
+        Py(op.op(other, self, other2))
     else
-        Py(pybuiltins.NotImplemented)
+        pybuiltins.NotImplemented
     end
 end
 pyjl_handle_error_type(op::pyjlany_rev_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
@@ -133,7 +140,11 @@ end
 
 function pyjlany_help(self, mime_::Py)
     mime = pyconvertarg(Union{Nothing,String}, mime_, "mime")
-    x = Utils.ExtraNewline(Docs.doc(self))
+    doc = Docs.getdoc(self)
+    if doc === nothing
+        doc = Docs.doc(self)
+    end
+    x = Utils.ExtraNewline(doc)
     if mime === nothing
         display(x)
     else
@@ -150,7 +161,7 @@ function pyjlany_mimebundle(self, include::Py, exclude::Py)
     for m in mimes
         try
             io = IOBuffer()
-            show(io, MIME(m), self)
+            show(IOContext(io, :limit=>true), MIME(m), self)
             v = take!(io)
             ans[m] = vo = istextmime(m) ? pystr(String(v)) : pybytes(v)
             pydel!(vo)
@@ -163,11 +174,10 @@ end
 
 function init_jlwrap_any()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class AnyValue(ValueBase):
         __slots__ = ()
-        __module__ = "juliacall"
         def __repr__(self):
             if self._jl_isnull():
                 return "<jl NULL>"
@@ -188,13 +198,16 @@ function init_jlwrap_any()
                 ValueBase.__setattr__(self, k, v)
             except AttributeError:
                 if k.startswith("__") and k.endswith("__"):
-                    raise AttributeError(k)
-                else:
-                    self._jl_callmethod($(pyjl_methodnum(pyjlany_setattr)), k, v)
+                    raise
+            else:
+                return
+            self._jl_callmethod($(pyjl_methodnum(pyjlany_setattr)), k, v)
         def __dir__(self):
             return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlany_dir)))
         def __call__(self, *args, **kwargs):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_call)), args, kwargs)
+        def __bool__(self):
+            return True
         def __len__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(length))))
         def __getitem__(self, k):
@@ -296,12 +309,12 @@ function init_jlwrap_any()
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_help)), mime)
         def _repr_mimebundle_(self, include=None, exclude=None):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlanytype, jl.AnyValue)
 end
 
 """
-    pyjl([t], x)
+    pyjl([t=pyjltype(x)], x)
 
 Create a Python object wrapping the Julia object `x`.
 
@@ -311,5 +324,18 @@ Its Python type is normally inferred from the type of `x`, but can be specified 
 
 For example if `x` is an `AbstractVector` then the object will have type `juliacall.VectorValue`.
 This object will satisfy the Python sequence interface, so for example uses 0-up indexing.
+
+To define a custom conversion for your type `T`, overload `pyjltype(::T)`.
 """
-pyjl(v) = pyjl(pyjlanytype, v)
+pyjl(v) = pyjl(pyjltype(v), v)
+export pyjl
+
+"""
+    pyjltype(x)
+
+The subtype of `juliacall.AnyValue` which the Julia object `x` is wrapped as by `pyjl(x)`.
+
+Overload `pyjltype(::T)` to define a custom conversion for your type `T`.
+"""
+pyjltype(::Any) = pyjlanytype
+export pyjltype

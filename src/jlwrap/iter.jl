@@ -17,7 +17,7 @@ function pyjliter_next(self::Iterator)
     end
     if z === nothing
         errset(pybuiltins.StopIteration)
-        pynew()
+        PyNULL
     else
         r, newst = z
         self.st = Some(newst)
@@ -27,17 +27,16 @@ end
 
 function init_jlwrap_iter()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class IteratorValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __iter__(self):
             return self
         def __next__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjliter_next)))
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlitertype, jl.IteratorValue)
 end
 
-pyjl(v::Iterator) = pyjl(pyjlitertype, v)
+pyjltype(::Iterator) = pyjlitertype

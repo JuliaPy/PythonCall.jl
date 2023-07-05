@@ -2,15 +2,15 @@ const pyjlarraytype = pynew()
 
 function pyjl_getaxisindex(x::AbstractUnitRange{<:Integer}, k::Py)
     if pyisslice(k)
-        a = @pyconvert_and_del Union{Int,Nothing} k.start begin
+        a = @pyconvert Union{Int,Nothing} k.start begin
             errset(pybuiltins.TypeError, "slice components must be integers")
             pythrow()
         end
-        b = @pyconvert_and_del Union{Int,Nothing} k.step begin
+        b = @pyconvert Union{Int,Nothing} k.step begin
             errset(pybuiltins.TypeError, "slice components must be integers")
             pythrow()
         end
-        c = @pyconvert_and_del Union{Int,Nothing} k.stop begin
+        c = @pyconvert Union{Int,Nothing} k.stop begin
             errset(pybuiltins.TypeError, "slice components must be integers")
             pythrow()
         end
@@ -250,7 +250,7 @@ pytypestrdescr(::Type{T}) where {T} = get!(PYTYPESTRDESCR, T) do
             isempty(ts) && return ("", PyNULL)
             push!(
                 flds,
-                (nm isa Integer ? "f$(nm-1)" : string(nm), ds === nothing ? ts : ds),
+                (nm isa Integer ? "f$(nm-1)" : string(nm), pyisnull(ds) ? ts : ds),
             )
             d = (i == n ? sizeof(T) : fieldoffset(T, i + 1)) - (fieldoffset(T, i) + sizeof(tp))
             @assert d ≥ 0
@@ -283,17 +283,16 @@ function pyjlarray_array_interface(x::AbstractArray{T,N}) where {T,N}
         end
     end
     errset(pybuiltins.AttributeError, "__array_interface__")
-    return pynew()
+    return PyNULL
 end
 pyjl_handle_error_type(::typeof(pyjlarray_array_interface), x, exc) = pybuiltins.AttributeError
 
 function init_jlwrap_array()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class ArrayValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         _jl_buffer_info = $(pyjl_methodnum(pyjlarray_buffer_info))
         @property
         def ndim(self):
@@ -305,6 +304,8 @@ function init_jlwrap_array()
             return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
         def reshape(self, shape):
             return self._jl_callmethod($(pyjl_methodnum(pyjlarray_reshape)), shape)
+        def __bool__(self):
+            return bool(len(self))
         def __getitem__(self, k):
             return self._jl_callmethod($(pyjl_methodnum(pyjlarray_getitem)), k)
         def __setitem__(self, k, v):
@@ -314,7 +315,7 @@ function init_jlwrap_array()
         @property
         def __array_interface__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlarray_array_interface)))
-        def __array__(self):
+        def __array__(self, dtype=None):
             # convert to an array-like object
             arr = self
             if not (hasattr(arr, "__array_interface__") or hasattr(arr, "__array_struct__")):
@@ -326,12 +327,15 @@ function init_jlwrap_array()
             # convert to a numpy array if numpy is available
             try:
                 import numpy
-                arr = numpy.array(arr)
+                arr = numpy.array(arr, dtype=dtype)
             except ImportError:
                 pass
             return arr
-    """, filename, "exec"), jl.__dict__)
+        def to_numpy(self, dtype=None, copy=True, order="K"):
+            import numpy
+            return numpy.array(self, dtype=dtype, copy=copy, order=order)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlarraytype, jl.ArrayValue)
 end
 
-pyjl(v::AbstractArray) = pyjl(pyjlarraytype, v)
+pyjltype(::AbstractArray) = pyjlarraytype

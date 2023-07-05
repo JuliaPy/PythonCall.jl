@@ -25,9 +25,9 @@ function errget()
     (pynew(t[]), pynew(v[]), pynew(b[]))
 end
 
-errset(t::Py) = GC.@preserve t C.PyErr_SetNone(getptr(t))
-errset(t::Py, v::Py) = GC.@preserve t v C.PyErr_SetObject(getptr(t), getptr(v))
-errset(t::Py, v::String) = GC.@preserve t C.PyErr_SetString(getptr(t), v)
+errset(t::Py) = Base.GC.@preserve t C.PyErr_SetNone(getptr(t))
+errset(t::Py, v::Py) = Base.GC.@preserve t v C.PyErr_SetObject(getptr(t), getptr(v))
+errset(t::Py, v::String) = Base.GC.@preserve t C.PyErr_SetString(getptr(t), v)
 
 function errnormalize!(t::Py, v::Py, b::Py)
     tptr = getptr(t)
@@ -68,9 +68,9 @@ end
 export PyException
 
 ispy(x::PyException) = true
-getpy(x::PyException) = x.v
+Py(x::PyException) = x.v
 
-pyconvert_rule_exception(::Type{R}, x::Py) where {R<:PyException} = PyException(Py(x))
+pyconvert_rule_exception(::Type{R}, x::Py) where {R<:PyException} = pyconvert_return(PyException(x))
 
 function Base.show(io::IO, x::PyException)
     show(io, typeof(x))
@@ -115,6 +115,9 @@ function _showerror(io::IO, e::PyException, bt; backtrace=true)
 
     if pyisnone(e.t)
         print(io, "mysterious error (no error was actually set)")
+        if backtrace
+            Base.show_backtrace(io, bt)
+        end
         return
     end
 

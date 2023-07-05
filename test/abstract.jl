@@ -1,7 +1,8 @@
-@testset "object" begin
+@testitem "object" begin
+    import Markdown
     @testset "pyis" begin
         x = pylist()
-        y = Py(x)
+        y = PythonCall.pynew(x)
         z = pylist()
         @test pyis(x, x)
         @test pyis(x, y)
@@ -129,7 +130,7 @@
         @test pylen(x) == 0
     end
     @testset "pydir" begin
-        x = pytype("Foo", (), (foo=1, bar=2))()
+        x = pytype("Foo", (), ["foo"=>1, "bar"=>2])()
         d = pydir(x)
         @test pycontains(d, "__class__")
         @test pycontains(d, "foo")
@@ -207,11 +208,18 @@
         @test !pyin(-1, x)
         @test !pyin(pybuiltins.None, x)
     end
+    @testset "getdoc" begin
+        @test Base.Docs.getdoc(Py(nothing)) isa Markdown.MD
+        @test Base.Docs.getdoc(Py(12)) isa Markdown.MD
+        @test Base.Docs.getdoc(pybuiltins.int) isa Markdown.MD
+        @test Base.Docs.getdoc(PythonCall.PyNULL) === nothing
+    end
 end
 
-@testset "iter" begin
+@testitem "iter" begin
     @test_throws PyException pyiter(pybuiltins.None)
     @test_throws PyException pyiter(pybuiltins.True)
+    # unsafe_pynext
     it = pyiter(pyrange(2))
     x = PythonCall.unsafe_pynext(it)
     @test !PythonCall.pyisnull(x)
@@ -221,9 +229,16 @@ end
     @test pyeq(Bool, x, 1)
     x = PythonCall.unsafe_pynext(it)
     @test PythonCall.pyisnull(x)
+    # pynext
+    it = pyiter(pyrange(2))
+    x = pynext(it)
+    @test pyeq(Bool, x, 0)
+    x = pynext(it)
+    @test pyeq(Bool, x, 1)
+    @test_throws PyException pynext(it)
 end
 
-@testset "number" begin
+@testitem "number" begin
     @testset "pyneg" begin
         for n in -2:2
             @test pyeq(Bool, pyneg(pyint(n)), pyint(-n))
@@ -354,4 +369,36 @@ end
         end
     end
     # TODO: in-place operators
+end
+
+@testitem "builtins" begin
+    @testset "pyprint" begin
+        buf = pyimport("io").StringIO()
+        ans = pyprint("hello", 12, file=buf)
+        @test ans === nothing
+        buf.seek(0)
+        @test pyeq(Bool, buf.read().strip(), "hello 12")
+    end
+    @testset "pyall" begin
+        for val in [[true, true], [true, false], [false, false]]
+            @test pyall(pylist(val)) === all(val)
+        end
+    end
+    @testset "pyany" begin
+        for val in [[true, true], [true, false], [false, false]]
+            @test pyany(pylist(val)) === any(val)
+        end
+    end
+    @testset "pycallable" begin
+        @test pycallable(pybuiltins.str) === true
+        @test pycallable(pybuiltins.any) === true
+        @test pycallable(pybuiltins.None) === false
+        @test pycallable(pybuiltins.True) === false
+        @test pycallable(pybuiltins.object) === true
+    end
+    @testset "pycompile" begin
+        ans = pycompile("3+4", "foo.py", "eval")
+        @test pyeq(Bool, ans.co_filename, "foo.py")
+        @test pyeq(Bool, pybuiltins.eval(ans, pydict()), 7)
+    end
 end

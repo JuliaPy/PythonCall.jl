@@ -7,7 +7,7 @@ function _pyconvert_rule_iterable(ans::Vector{T0}, it::Py, ::Type{T1}) where {T0
         pydel!(it)
         return pyconvert_return(ans)
     end
-    x = @pyconvert_and_del(T1, x_)
+    x = @pyconvert(T1, x_)
     if x isa T0
         push!(ans, x)
         @goto again
@@ -33,7 +33,7 @@ function _pyconvert_rule_iterable(ans::Set{T0}, it::Py, ::Type{T1}) where {T0,T1
         pydel!(it)
         return pyconvert_return(ans)
     end
-    x = @pyconvert_and_del(T1, x_)
+    x = @pyconvert(T1, x_)
     if x isa T0
         push!(ans, x)
         @goto again
@@ -60,8 +60,8 @@ function _pyconvert_rule_mapping(ans::Dict{K0,V0}, x::Py, it::Py, ::Type{K1}, ::
         return pyconvert_return(ans)
     end
     v_ = pygetitem(x, k_)
-    k = @pyconvert_and_del(K1, k_)
-    v = @pyconvert_and_del(V1, v_)
+    k = @pyconvert(K1, k_)
+    v = @pyconvert(V1, v_)
     if k isa K0 && v isa V0
         push!(ans, k => v)
         @goto again
@@ -83,14 +83,14 @@ end
 
 function pyconvert_rule_iterable(::Type{T}, xs::Py) where {T<:Tuple}
     T isa DataType || return pyconvert_unconverted()
-    ts = collect(T.parameters)
-    if !isempty(ts) && Base.isvarargtype(ts[end])
+    if T != Tuple{} && Tuple{T.parameters[end]} == Base.tuple_type_tail(Tuple{T.parameters[end]})
         isvararg = true
-        vartype = ts[end].body.parameters[1]::Type
-        pop!(ts)
+        vartype = Base.tuple_type_head(Tuple{T.parameters[end]})
+        ts = T.parameters[1:end-1]
     else
         isvararg = false
         vartype = Union{}
+        ts = T.parameters
     end
     zs = Any[]
     for x in xs
@@ -101,25 +101,41 @@ function pyconvert_rule_iterable(::Type{T}, xs::Py) where {T<:Tuple}
         else
             return pyconvert_unconverted()
         end
-        z = @pyconvert_and_del(t, x)
+        z = @pyconvert(t, x)
         push!(zs, z)
     end
     return length(zs) < length(ts) ? pyconvert_unconverted() : pyconvert_return(T(zs))
 end
 
-# N-Tuple for N up to 16
-# TODO: Vararg
-
 for N in 0:16
     Ts = [Symbol("T", n) for n in 1:N]
     zs = [Symbol("z", n) for n in 1:N]
+    # Tuple with N elements
     @eval function pyconvert_rule_iterable(::Type{Tuple{$(Ts...)}}, xs::Py) where {$(Ts...)}
-        pylen(xs) == $N || return pyconvert_unconverted()
+        xs = pytuple(xs)
+        n = pylen(xs)
+        n == $N || return pyconvert_unconverted()
         $((
-            :($z = @pyconvert_and_del($T, pytuple_getitem(xs, $(i-1))))
+            :($z = @pyconvert($T, pytuple_getitem(xs, $(i-1))))
             for (i, T, z) in zip(1:N, Ts, zs)
         )...)
         return pyconvert_return(($(zs...),))
+    end
+    # Tuple with N elements plus Vararg
+    @eval function pyconvert_rule_iterable(::Type{Tuple{$(Ts...),Vararg{V}}}, xs::Py) where {$(Ts...),V}
+        xs = pytuple(xs)
+        n = pylen(xs)
+        n ≥ $N || return pyconvert_unconverted()
+        $((
+            :($z = @pyconvert($T, pytuple_getitem(xs, $(i-1))))
+            for (i, T, z) in zip(1:N, Ts, zs)
+        )...)
+        vs = V[]
+        for i in $(N+1):n
+            v = @pyconvert(V, pytuple_getitem(xs, i-1))
+            push!(vs, v)
+        end
+        return pyconvert_return(($(zs...), vs...))
     end
 end
 
@@ -133,14 +149,14 @@ function pyconvert_rule_iterable(::Type{R}, x::Py, ::Type{Pair{K0,V0}}=Utils._ty
         pydel!(k_)
         return pyconvert_unconverted()
     end
-    k = @pyconvert_and_del(K1, k_)
+    k = @pyconvert(K1, k_)
     v_ = unsafe_pynext(it)
     if pyisnull(v_)
         pydel!(it)
         pydel!(v_)
         return pyconvert_unconverted()
     end
-    v = @pyconvert_and_del(V1, v_)
+    v = @pyconvert(V1, v_)
     z_ = unsafe_pynext(it)
     pydel!(it)
     if pyisnull(z_)
@@ -152,4 +168,30 @@ function pyconvert_rule_iterable(::Type{R}, x::Py, ::Type{Pair{K0,V0}}=Utils._ty
     K2 = Utils._promote_type_bounded(K0, typeof(k), K1)
     V2 = Utils._promote_type_bounded(V0, typeof(v), V1)
     return pyconvert_return(Pair{K2,V2}(k, v))
+end
+
+# NamedTuple
+
+_nt_names_types(::Type) = nothing
+_nt_names_types(::Type{NamedTuple}) = (nothing, nothing)
+_nt_names_types(::Type{NamedTuple{names}}) where {names} = (names, nothing)
+_nt_names_types(::Type{NamedTuple{names,types} where {names}}) where {types} = (nothing, types)
+_nt_names_types(::Type{NamedTuple{names,types}}) where {names,types} = (names, types)
+
+function pyconvert_rule_iterable(::Type{R}, x::Py) where {R<:NamedTuple}
+    # this is actually strict and only converts python named tuples (i.e. tuples with a
+    # _fields attribute) where the field names match those from R (if specified).
+    names_types = _nt_names_types(R)
+    names_types === nothing && return pyconvert_unconverted()
+    names, types = names_types
+    PythonCall.pyistuple(x) || return pyconvert_unconverted()
+    names2_ = pygetattr(x, "_fields", pybuiltins.None)
+    names2 = @pyconvert(names === nothing ? Tuple{Vararg{Symbol}} : typeof(names), names2_)
+    pydel!(names2_)
+    names === nothing || names === names2 || return pyconvert_unconverted()
+    types2 = types === nothing ? NTuple{length(names2),Any} : types
+    vals = @pyconvert(types2, x)
+    length(vals) == length(names2) || return pyconvert_unconverted()
+    types3 = types === nothing ? typeof(vals) : types
+    return pyconvert_return(NamedTuple{names2,types3}(vals))
 end

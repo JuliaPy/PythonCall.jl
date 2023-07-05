@@ -41,7 +41,7 @@ function pyjlvector_insert(x::AbstractVector, k_::Py, v_::Py)
         return Py(nothing)
     else
         errset(pybuiltins.IndexError, "array index out of bounds");
-        return pynew()
+        return PyNULL
     end
 end
 
@@ -53,7 +53,7 @@ end
 
 function pyjlvector_extend(x::AbstractVector, vs_::Py)
     for v_ in vs_
-        v = pyconvert_and_del(eltype(x), v_)
+        v = pyconvert(eltype(x), v_)
         push!(x, v)
     end
     Py(nothing)
@@ -75,20 +75,20 @@ function pyjlvector_pop(x::AbstractVector, k_::Py)
         return Py(v)
     else
         errset(pybuiltins.IndexError, "pop from empty array")
-        return pynew()
+        return PyNULL
     end
 end
 
 function pyjlvector_remove(x::AbstractVector, v_::Py)
     v = @pyconvert eltype(x) v_ begin
         errset(pybuiltins.ValueError, "value not in array")
-        return pynew()
+        return PyNULL
     end
     v = pyconvert_result(r)
     k = findfirst(==(v), x)
     if k === nothing
         errset(pybuiltins.ValueError, "value not in array")
-        return pynew()
+        return PyNULL
     end
     deleteat!(x, k)
     Py(nothing)
@@ -97,12 +97,12 @@ end
 function pyjlvector_index(x::AbstractVector, v_::Py)
     v = @pyconvert eltype(x) v_ begin
         errset(pybuiltins.ValueError, "value not in array")
-        return pynew()
+        return PyNULL
     end
     k = findfirst(==(v), x)
     if k === nothing
         errset(pybuiltins.ValueError, "value not in array")
-        return pynew()
+        return PyNULL
     end
     Py(k - first(axes(x, 1)))
 end
@@ -114,11 +114,10 @@ end
 
 function init_jlwrap_vector()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class VectorValue(ArrayValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def resize(self, size):
             return self._jl_callmethod($(pyjl_methodnum(pyjlvector_resize)), size)
         def sort(self, reverse=False, key=None):
@@ -146,8 +145,8 @@ function init_jlwrap_vector()
     import collections.abc
     collections.abc.MutableSequence.register(VectorValue)
     del collections
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlvectortype, jl.VectorValue)
 end
 
-pyjl(v::AbstractVector) = pyjl(pyjlvectortype, v)
+pyjltype(::AbstractVector) = pyjlvectortype

@@ -12,7 +12,7 @@ function (op::pyjlnumber_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
     else
-        other = @pyconvert(Number, other_, return Py(pybuiltins.NotImplemented))
+        other = @pyconvert(Number, other_, return pybuiltins.NotImplemented)
     end
     Py(op.op(self, other))
 end
@@ -20,12 +20,12 @@ function (op::pyjlnumber_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
     else
-        other = @pyconvert(Number, other_, return Py(pybuiltins.NotImplemented))
+        other = @pyconvert(Number, other_, return pybuiltins.NotImplemented)
     end
     if pyisjl(other2_)
         other2 = pyjlvalue(other2_)
     else
-        other2 = @pyconvert(Number, other2_, return Py(pybuiltins.NotImplemented))
+        other2 = @pyconvert(Number, other2_, return pybuiltins.NotImplemented)
     end
     Py(op.op(self, other, other2))
 end
@@ -38,7 +38,7 @@ function (op::pyjlnumber_rev_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
     else
-        other = @pyconvert(Number, other_, return Py(pybuiltins.NotImplemented))
+        other = @pyconvert(Number, other_, return pybuiltins.NotImplemented)
     end
     Py(op.op(other, self))
 end
@@ -46,12 +46,12 @@ function (op::pyjlnumber_rev_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
     else
-        other = @pyconvert(Number, other_, return Py(pybuiltins.NotImplemented))
+        other = @pyconvert(Number, other_, return pybuiltins.NotImplemented)
     end
     if pyisjl(other2_)
         other2 = pyjlvalue(other2_)
     else
-        other2 = @pyconvert(Number, other2_, return Py(pybuiltins.NotImplemented))
+        other2 = @pyconvert(Number, other2_, return pybuiltins.NotImplemented)
     end
     Py(op.op(other, self, other2))
 end
@@ -78,11 +78,10 @@ pyjl_handle_error_type(::typeof(pyjlreal_round), self, exc::MethodError) = exc.f
 
 function init_jlwrap_number()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class NumberValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __bool__(self):
             return not self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(iszero))))
         def __add__(self, other):
@@ -153,7 +152,6 @@ function init_jlwrap_number()
             return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(>))), other)
     class ComplexValue(NumberValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __complex__(self):
             return self._jl_callmethod($(pyjl_methodnum(pycomplex)))
         @property
@@ -166,7 +164,6 @@ function init_jlwrap_number()
             return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(conj))))
     class RealValue(ComplexValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __float__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyfloat)))
         @property
@@ -189,7 +186,6 @@ function init_jlwrap_number()
             return self._jl_callmethod($(pyjl_methodnum(pyjlreal_round)), ndigits)
     class RationalValue(RealValue):
         __slots__ = ()
-        __module__ = "juliacall"
         @property
         def numerator(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(numerator))))
@@ -198,7 +194,6 @@ function init_jlwrap_number()
             return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(denominator))))
     class IntegerValue(RationalValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __int__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyint)))
         def __index__(self):
@@ -216,7 +211,7 @@ function init_jlwrap_number()
     numbers.Rational.register(RationalValue)
     numbers.Integral.register(IntegerValue)
     del numbers
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlnumbertype, jl.NumberValue)
     pycopy!(pyjlcomplextype, jl.ComplexValue)
     pycopy!(pyjlrealtype, jl.RealValue)
@@ -224,8 +219,8 @@ function init_jlwrap_number()
     pycopy!(pyjlintegertype, jl.IntegerValue)
 end
 
-pyjl(v::Number) = pyjl(pyjlnumbertype, v)
-pyjl(v::Complex) = pyjl(pyjlcomplextype, v)
-pyjl(v::Real) = pyjl(pyjlrealtype, v)
-pyjl(v::Rational) = pyjl(pyjlrationaltype, v)
-pyjl(v::Integer) = pyjl(pyjlintegertype, v)
+pyjltype(::Number) = pyjlnumbertype
+pyjltype(::Complex) = pyjlcomplextype
+pyjltype(::Real) = pyjlrealtype
+pyjltype(::Rational) = pyjlrationaltype
+pyjltype(::Integer) = pyjlintegertype

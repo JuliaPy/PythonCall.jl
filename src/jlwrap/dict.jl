@@ -23,7 +23,7 @@ pyjldict_delitem(x::AbstractDict, k::Py) = (delete!(x, pyconvert(keytype(x), k))
 
 function pyjldict_update(x::AbstractDict, items_::Py)
     for item_ in items_
-        (k, v) = pyconvert_and_del(Tuple{keytype(x), valtype(x)}, item_)
+        (k, v) = pyconvert(Tuple{keytype(x), valtype(x)}, item_)
         x[k] = v
     end
     Py(nothing)
@@ -33,12 +33,13 @@ const pyjldicttype = pynew()
 
 function init_jlwrap_dict()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class DictValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         _jl_undefined_ = object()
+        def __bool__(self):
+            return bool(len(self))
         def __iter__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjldict_iter)))
         def __contains__(self, key):
@@ -97,11 +98,13 @@ function init_jlwrap_dict()
                 self._jl_callmethod($(pyjl_methodnum(pyjldict_update)), items)
             if kwargs:
                 self.update(kwargs)
+        def copy(self):
+            return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
     import collections.abc
     collections.abc.MutableMapping.register(DictValue)
     del collections
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjldicttype, jl.DictValue)
 end
 
-pyjl(v::AbstractDict) = pyjl(pyjldicttype, v)
+pyjltype(::AbstractDict) = pyjldicttype

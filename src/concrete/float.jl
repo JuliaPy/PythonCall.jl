@@ -26,7 +26,8 @@ end
 # NaN is sometimes used to represent missing data of other types
 # so we allow converting it to Nothing or Missing
 function pyconvert_rule_float(::Type{Nothing}, x::Py)
-    if isnan(pyfloat_asdouble(x))
+    val = pyfloat_asdouble(x)
+    if isnan(val)
         pyconvert_return(nothing)
     else
         pyconvert_unconverted()
@@ -34,16 +35,10 @@ function pyconvert_rule_float(::Type{Nothing}, x::Py)
 end
 
 function pyconvert_rule_float(::Type{Missing}, x::Py)
-    if isnan(pyfloat_asdouble(x))
+    val = pyfloat_asdouble(x)
+    if isnan(val)
         pyconvert_return(missing)
     else
         pyconvert_unconverted()
     end
 end
-
-pyconvert_rule_fast(::Type{Float64}, x::Py) =
-    if pyisfloat(x)
-        pyconvert_return(pyfloat_asdouble(x))
-    else
-        pyconvert_unconverted()
-    end

@@ -35,11 +35,20 @@ makedocs(
     modules = [PythonCall],
     pages = [
         "Home" => "index.md",
-        "pythoncall.md",
-        "juliacall.md",
-        "conversion-to-python.md",
-        "conversion-to-julia.md",
+        "The Julia module PythonCall" => [
+            "Guide" => "pythoncall.md",
+            "Reference" => "pythoncall-reference.md",
+        ],
+        "The Python module JuliaCall" => [
+            "Guide" => "juliacall.md",
+            "Reference" => "juliacall-reference.md",
+        ],
+        "Conversion" => [
+            "Julia to Python" => "conversion-to-python.md",
+            "Python to Julia" => "conversion-to-julia.md",
+        ],
         "compat.md",
+        "faq.md",
         "pycall.md",
         "releasenotes.md",
     ]

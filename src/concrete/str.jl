@@ -13,7 +13,7 @@ pystr(x::Char) = pystr(string(x))
 pystr(::Type{String}, x) = (s=pystr(x); ans=pystr_asstring(s); pydel!(s); ans)
 export pystr
 
-pystr_asUTF8bytes(x::Py) = GC.@preserve x pynew(errcheck(C.PyUnicode_AsUTF8String(getptr(x))))
+pystr_asUTF8bytes(x::Py) = Base.GC.@preserve x pynew(errcheck(C.PyUnicode_AsUTF8String(getptr(x))))
 pystr_asUTF8vector(x::Py) = (b=pystr_asUTF8bytes(x); ans=pybytes_asvector(b); pydel!(b); ans)
 pystr_asstring(x::Py) = (b=pystr_asUTF8bytes(x); ans=pybytes_asUTF8string(b); pydel!(b); ans)
 
@@ -35,7 +35,3 @@ pyconvert_rule_str(::Type{Char}, x::Py) = begin
 end
 
 pyisstr(x) = pytypecheckfast(x, C.Py_TPFLAGS_UNICODE_SUBCLASS)
-
-pyconvert_rule_fast(::Type{String}, x::Py) = pyisstr(x) ? pyconvert_rule_str(String, x) : pyconvert_unconverted()
-pyconvert_rule_fast(::Type{Symbol}, x::Py) = pyisstr(x) ? pyconvert_rule_str(Symbol, x) : pyconvert_unconverted()
-pyconvert_rule_fast(::Type{Char}, x::Py) = pyisstr(x) ? pyconvert_rule_str(Char, x) : pyconvert_unconverted()

@@ -12,7 +12,6 @@ From Python, the arguments to a Julia function will be converted according to th
 | :----------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------- |
 | **Top priority (wrapped values).**                                                                           |                                                             |
 | `juliacall.AnyValue`                                                                                         | `Any`                                                       |
-| `juliacall.As`                                                                                               | `Any`                                                       |
 | **Very high priority (arrays).**                                                                             |                                                             |
 | Objects satisfying the buffer or array interface (inc. `bytes`, `bytearray`, `array.array`, `numpy.ndarray`) | `PyArray`                                                   |
 | **High priority (canonical conversions).**                                                                   |                                                             |
@@ -56,23 +55,16 @@ From Python, the arguments to a Julia function will be converted according to th
 | Objects satisfying the buffer interface                                                                      | `PyBuffer`                                                  |
 | Anything                                                                                                     | `PyRef`                                                     |
 
-See below for an explanation of the `Py*` types (`PyList`, `PyIO`, etc).
+See [here](@ref python-wrappers) for an explanation of the `Py*` wrapper types (`PyList`, `PyIO`, etc).
 
-## [Wrapper types](@id python-wrappers)
+## [Custom rules](@id py2jl-conversion-custom)
 
-The following types wrap a Python object, giving it the semantics of a Julia object. For example `PyList(x)` interprets the Python sequence `x` as a Julia abstract vector.
+To add a custom conversion rule, you must define a function to do the conversion and call
+`pyconvert_add_rule` to register it.
 
-Apart from a few fundamental immutable types, conversion from Python to Julia `Any` will return a wrapper type such as one of these, or simply `Py` if no wrapper type is suitable.
+You must not do this while precompiling, so these calls will normally be in the `__init__`
+function of your module.
 
 ```@docs
-PyList
-PySet
-PyDict
-PyIterable
-PyArray
-PyIO
-PyTable
-PyPandasDataFrame
-PyObjectArray
-PyException
+PythonCall.pyconvert_add_rule
 ```

@@ -7,23 +7,18 @@ If `x` is not a Python object, it is converted to one using `pylist`.
 """
 struct PyList{T} <: AbstractVector{T}
     py :: Py
-    PyList{T}(::Val{:new}, py::Py) where {T} = new{T}(py)
+    PyList{T}(x=pylist()) where {T} = new{T}(ispy(x) ? Py(x) : pylist(x))
 end
 export PyList
 
-PyList{T}(x=pylist()) where {T} = PyList{T}(Val(:new), ispy(x) ? Py(x) : pylist(x))
 PyList(x=pylist()) = PyList{Py}(x)
 
 ispy(::PyList) = true
-getpy(x::PyList) = x.py
-pydel!(x::PyList) = pydel!(x.py)
+Py(x::PyList) = x.py
 
-pyconvert_rule_sequence(::Type{T}, x::Py, ::Type{PyList{V}}=Utils._type_ub(T)) where {T<:PyList,V} =
-    if PyList{Py} <: T
-        pyconvert_return(PyList{Py}(x))
-    else
-        pyconvert_return(PyList{V}(x))
-    end
+function pyconvert_rule_sequence(::Type{T}, x::Py, ::Type{T1}=Utils._type_ub(T)) where {T<:PyList,T1}
+    pyconvert_return(T1(x))
+end
 
 Base.length(x::PyList) = Int(pylen(x))
 
@@ -31,7 +26,7 @@ Base.size(x::PyList) = (length(x),)
 
 Base.@propagate_inbounds function Base.getindex(x::PyList{T}, i::Int) where {T}
     @boundscheck checkbounds(x, i)
-    return pyconvert_and_del(T, @py x[@jl(i-1)])
+    return pyconvert(T, @py x[@jl(i-1)])
 end
 
 Base.@propagate_inbounds function Base.setindex!(x::PyList{T}, v, i::Int) where {T}
@@ -69,19 +64,17 @@ end
 
 Base.@propagate_inbounds function Base.pop!(x::PyList{T}) where {T}
     @boundscheck (isempty(x) && throw(BoundsError(x)))
-    return pyconvert_and_del(T, @py x.pop())
+    return pyconvert(T, @py x.pop())
 end
 
-if isdefined(Base, :popat!)
-    Base.@propagate_inbounds function Base.popat!(x::PyList{T}, i::Integer) where {T}
-        @boundscheck checkbounds(x, i)
-        return pyconvert_and_del(T, @py x.pop(@jl(i-1)))
-    end
+Base.@propagate_inbounds function Base.popat!(x::PyList{T}, i::Integer) where {T}
+    @boundscheck checkbounds(x, i)
+    return pyconvert(T, @py x.pop(@jl(i-1)))
 end
 
 Base.@propagate_inbounds function Base.popfirst!(x::PyList{T}) where {T}
     @boundscheck checkbounds(x, 1)
-    return pyconvert_and_del(T, @py x.pop(0))
+    return pyconvert(T, @py x.pop(0))
 end
 
 function Base.reverse!(x::PyList)
@@ -95,5 +88,5 @@ function Base.empty!(x::PyList)
 end
 
 function Base.copy(x::PyList{T}) where {T}
-    PyList{T}(Val(:new), @py x.copy())
+    return PyList{T}(@py x.copy())
 end

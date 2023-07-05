@@ -171,10 +171,25 @@ const BUILTINS = Set([
 @eval baremodule pybuiltins
     $([:(const $k = $pynew()) for k in BUILTINS]...)
 end
+"""
+    pybuiltins
+
+An object whose fields are the Python builtins, of type [`Py`](@ref).
+
+For example `pybuiltins.None`, `pybuiltins.int`, `pybuiltins.ValueError`.
+"""
+pybuiltins
 export pybuiltins
 
 for k in BUILTINS
-    push!(INIT_CONSTS_CODE, :(pycopy!(pybuiltins.$k, pybuiltinsmodule.$k)))
+    if k == :help
+        # help is only available in interactive contexts (imported by the 'site' module)
+        # see: https://docs.python.org/3/library/functions.html#help
+        # see: https://github.com/cjdoris/PythonCall.jl/issues/248
+        push!(INIT_CONSTS_CODE, :(pycopy!(pybuiltins.$k, pygetattr(pybuiltinsmodule, $(string(k)), pybuiltins.None))))
+    else
+        push!(INIT_CONSTS_CODE, :(pycopy!(pybuiltins.$k, pygetattr(pybuiltinsmodule, $(string(k))))))
+    end
 end
 
 @eval function init_consts()

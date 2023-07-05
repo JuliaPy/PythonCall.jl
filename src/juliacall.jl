@@ -16,15 +16,17 @@ function init_juliacall()
         # otherwise, Python is being embedded into Julia by PythonCall, so should not exist
         error("'juliacall' module already exists")
     else
+        # TODO: Is there a more robust way to import juliacall from a specific path?
         # prepend the directory containing juliacall to sys.path
-        sys.path.insert(0, joinpath(dirname(dirname(pathof(PythonCall))), "python"))
+        sys.path.insert(0, joinpath(ROOT_DIR, "pysrc"))
         # prevent juliacall from initialising itself
-        os.environ["PYTHON_JULIACALL_NOINIT"] = "yes"
+        os.environ["PYTHON_JULIACALL_INIT"] = "no"
         # import juliacall
         pycopy!(jl, pyimport("juliacall"))
         # check the version
+        @assert realpath(pystr_asstring(jl.__path__[0])) == realpath(joinpath(ROOT_DIR, "pysrc", "juliacall"))
         @assert pystr_asstring(jl.__version__) == string(VERSION)
-        @assert pybool_asbool(jl.CONFIG["noinit"])
+        @assert !pybool_asbool(jl.CONFIG["init"])
     end
 end
 
@@ -34,27 +36,7 @@ function init_juliacall_2()
     jl.Core = Core
     jl.Base = Base
     jl.Pkg = Pkg
+    jl.PythonCall = PythonCall
     pycopy!(pyJuliaError, jl.JuliaError)
     C.POINTERS.PyExc_JuliaError = incref(getptr(pyJuliaError))
-end
-
-function pyconvert_rule_jlas(::Type{T}, x::Py) where {T}
-    # get the type
-    t = x.type
-    if !pyisjl(t)
-        pydel!(t)
-        return pyconvert_unconverted()
-    end
-    S = _pyjl_getvalue(t)
-    pydel!(t)
-    S isa Type || return pyconvert_unconverted()
-    # convert x to S, then to T
-    r = pytryconvert(S, x)
-    if pyconvert_isunconverted(r)
-        return pyconvert_unconverted()
-    elseif T == Any || S <: T
-        return r
-    else
-        return pyconvert_tryconvert(T, pyconvert_result(r))
-    end
 end

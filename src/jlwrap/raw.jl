@@ -2,7 +2,7 @@ const pyjlrawtype = pynew()
 
 pyjlraw_repr(self) = Py("<jl $(repr(self))>")
 
-pyjlraw_str(self) = Py(string(self))
+pyjlraw_str(self) = Py(sprint(print, self))
 
 pyjl_attr_py2jl(k::String) = replace(k, r"_[b]+$" => (x -> "!"^(length(x) - 1)))
 
@@ -71,15 +71,14 @@ function pyjlraw_delitem(self, k_::Py)
 end
 
 pyjlraw_bool(self::Bool) = Py(self)
-pyjlraw_bool(self) = (errset(pybuiltins.TypeError, "Only Julia 'Bool' can be tested for truthyness"); pynew())
+pyjlraw_bool(self) = (errset(pybuiltins.TypeError, "Only Julia 'Bool' can be tested for truthyness"); PyNULL)
 
 function init_jlwrap_raw()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class RawValue(ValueBase):
         __slots__ = ()
-        __module__ = "juliacall"
         def __repr__(self):
             if self._jl_isnull():
                 return "<jl NULL>"
@@ -100,9 +99,10 @@ function init_jlwrap_raw()
                 ValueBase.__setattr__(self, k, v)
             except AttributeError:
                 if k.startswith("__") and k.endswith("__"):
-                    raise AttributeError(k)
-                else:
-                    self._jl_callmethod($(pyjl_methodnum(pyjlraw_setattr)), k, v)
+                    raise
+            else:
+                return
+            self._jl_callmethod($(pyjl_methodnum(pyjlraw_setattr)), k, v)
         def __dir__(self):
             return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlraw_dir)))
         def __call__(self, *args, **kwargs):
@@ -119,7 +119,7 @@ function init_jlwrap_raw()
             return self._jl_callmethod($(pyjl_methodnum(pyjlraw_bool)))
         def _jl_any(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjl)))
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlrawtype, jl.RawValue)
 end
 

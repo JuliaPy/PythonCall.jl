@@ -1,15 +1,3 @@
-using PythonCall, Test, Dates, Aqua
+using TestItemRunner
 
-Aqua.test_all(PythonCall)
-
-@testset "PythonCall.jl" begin
-    @testset "abstract" begin
-        include("abstract.jl")
-    end
-    @testset "concrete" begin
-        include("concrete.jl")
-    end
-    @testset "jlwrap" begin
-        include("jlwrap.jl")
-    end
-end
+@run_package_tests

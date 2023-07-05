@@ -23,14 +23,11 @@ function pyconvert_rule_range(::Type{R}, x::Py, ::Type{StepRange{T0,S0}}=Utils._
 end
 
 function pyconvert_rule_range(::Type{R}, x::Py, ::Type{UnitRange{T0}}=Utils._type_lb(R), ::Type{UnitRange{T1}}=Utils._type_ub(R)) where {R<:UnitRange,T0,T1}
-    b = @pyconvert(Utils._typeintersect(Integer, S1), x.step)
-    b == 1 && return pyconvert_unconverted()
+    b = @pyconvert(Int, x.step)
+    b == 1 || return pyconvert_unconverted()
     a = @pyconvert(Utils._typeintersect(Integer, T1), x.start)
     c = @pyconvert(Utils._typeintersect(Integer, T1), x.stop)
     a′, c′ = promote(a, c - oftype(c, 1))
     T2 = Utils._promote_type_bounded(T0, typeof(a′), typeof(c′), T1)
     pyconvert_return(UnitRange{T2}(a′, c′))
 end
-
-pyconvert_rule_fast(::Type{T}, x::Py) where {T<:StepRange} = pyisrange(x) ? pyconvert_rule_range(T, x) : pyconvert_unconverted()
-pyconvert_rule_fast(::Type{T}, x::Py) where {T<:UnitRange} = pyisrange(x) ? pyconvert_rule_range(T, x) : pyconvert_unconverted()

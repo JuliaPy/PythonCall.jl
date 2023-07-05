@@ -1,5 +1,5 @@
 """
-    PyIO(x; own=false, text=missing, buflen=4096)
+    PyIO(x; own=false, text=missing, line_buffering=false, buflen=4096)
 
 Wrap the Python IO stream `x` as a Julia IO stream.
 
@@ -9,6 +9,8 @@ If `text=false` then `x` must be a binary stream and arbitrary binary I/O is pos
 If `text=true` then `x` must be a text stream and only UTF-8 must be written (i.e. use `print` not `write`).
 If `text` is not specified then it is chosen automatically.
 If `x` is a text stream and you really need a binary stream, then often `PyIO(x.buffer)` will work.
+
+If `line_buffering=true` then output is flushed at each line.
 
 For efficiency, reads and writes are buffered before being sent to `x`.
 The size of the buffers is `buflen`.
@@ -20,6 +22,8 @@ mutable struct PyIO <: IO
     own::Bool
     # true if `o` is text, false if binary
     text::Bool
+    # true to flush whenever '\n' or '\r' is encountered
+    line_buffering::Bool
     # true if we are definitely at the end of the file; false if we are not or don't know
     eof::Bool
     # input buffer
@@ -29,36 +33,29 @@ mutable struct PyIO <: IO
     obuflen::Int
     obuf::Vector{UInt8}
 
-    PyIO(::Val{:new}, py::Py, own::Bool, text::Bool, ibuflen::Int, obuflen::Int) = begin
-        io = new(py, own, text, false, ibuflen, UInt8[], obuflen, UInt8[])
-        finalizer(pyio_finalize!, io)
+    function PyIO(x; own::Bool = false, text::Union{Missing,Bool} = missing, buflen::Integer = 4096, ibuflen::Integer = buflen, obuflen::Integer = buflen, line_buffering::Bool=false)
+        if text === missing
+            text = pyhasattr(x, "encoding")
+        end
+        buflen = convert(Int, buflen)
+        buflen > 0 || error("buflen must be positive")
+        ibuflen = convert(Int, ibuflen)
+        ibuflen > 0 || error("ibuflen must be positive")
+        obuflen = convert(Int, obuflen)
+        obuflen > 0 || error("obuflen must be positive")
+        new(Py(x), own, text, line_buffering, false, ibuflen, UInt8[], obuflen, UInt8[])
     end
 end
 export PyIO
 
-function PyIO(o; own::Bool = false, text::Union{Missing,Bool} = missing, buflen::Integer = 4096, ibuflen::Integer = buflen, obuflen::Integer = buflen)
-    if text === missing
-        text = pyhasattr(o, "encoding")
-    end
-    buflen = convert(Int, buflen)
-    buflen > 0 || error("buflen must be positive")
-    ibuflen = convert(Int, ibuflen)
-    ibuflen > 0 || error("ibuflen must be positive")
-    obuflen = convert(Int, obuflen)
-    obuflen > 0 || error("obuflen must be positive")
-    PyIO(Val(:new), Py(o), own, text, ibuflen, obuflen)
-end
-
 pyio_finalize!(io::PyIO) = begin
     C.CTX.is_initialized || return
     io.own ? close(io) : flush(io)
-    pydel!(io.py)
     return
 end
 
 ispy(io::PyIO) = true
-getpy(io::PyIO) = io.py
-pydel!(io::PyIO) = (finalize(io); nothing)
+Py(io::PyIO) = io.py
 
 pyconvert_rule_io(::Type{PyIO}, x::Py) = pyconvert_return(PyIO(x))
 
@@ -133,33 +130,47 @@ function Base.eof(io::PyIO)
     end
 end
 
-Base.fd(io::PyIO) = pyconvert_and_del(Int, @py io.fileno())
+Base.fd(io::PyIO) = pyconvert(Int, @py io.fileno())
 
-Base.isreadable(io::PyIO) = pyconvert_and_del(Bool, @py io.readable())
+Base.isreadable(io::PyIO) = pyconvert(Bool, @py io.readable())
 
-Base.iswritable(io::PyIO) = pyconvert_and_del(Bool, @py io.writable())
+Base.iswritable(io::PyIO) = pyconvert(Bool, @py io.writable())
 
-Base.isopen(io::PyIO) = !pyconvert_and_del(Bool, @py io.closed)
+Base.isopen(io::PyIO) = !pyconvert(Bool, @py io.closed)
 
 function Base.unsafe_write(io::PyIO, ptr::Ptr{UInt8}, n::UInt)
     ntodo = n
-    while true
+    while ntodo > 0
         nroom = max(0, io.obuflen - length(io.obuf))
         if ntodo < nroom
-            append!(io.obuf, unsafe_wrap(Array, ptr, ntodo))
-            return n
+            buf = unsafe_wrap(Array, ptr, ntodo)
+            if io.line_buffering
+                i = findlast(∈((0x0A, 0x0D)), buf)
+                if i === nothing
+                    append!(io.obuf, buf)
+                else
+                    append!(io.obuf, unsafe_wrap(Array, ptr, i))
+                    putobuf(io)
+                    append!(io.obuf, unsafe_wrap(Array, ptr+i, ntodo-i))
+                end
+            else
+                append!(io.obuf, buf)
+            end
+            break
         else
-            append!(io.obuf, unsafe_wrap(Array, ptr, nroom))
+            buf = unsafe_wrap(Array, ptr, nroom)
+            append!(io.obuf, buf)
             putobuf(io)
             ptr += nroom
             ntodo -= nroom
         end
     end
+    return n
 end
 
 function Base.write(io::PyIO, c::UInt8)
     push!(io.obuf, c)
-    if length(io.obuf) ≥ io.obuflen
+    if (length(io.obuf) ≥ io.obuflen) || (io.line_buffering && (c == 0x0A || c == 0x0D))
         putobuf(io)
     end
     return
@@ -242,11 +253,11 @@ function Base.position(io::PyIO)
     putobuf(io)
     if io.text
         if isempty(io.ibuf)
-            return pyconvert_and_del(Int, @py io.tell())
+            return pyconvert(Int, @py io.tell())
         else
             error("`position(io)` text PyIO streams only implemented for empty input buffer (e.g. do `read(io, length(io.ibuf))` first)")
         end
     else
-        return pyconvert_and_del(Int, @py io.tell()) - length(io.ibuf)
+        return pyconvert(Int, @py io.tell()) - length(io.ibuf)
     end
 end

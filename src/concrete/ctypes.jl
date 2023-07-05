@@ -1,7 +1,7 @@
 struct pyconvert_rule_ctypessimplevalue{R,S} <: Function end
 
 function (::pyconvert_rule_ctypessimplevalue{R,SAFE})(::Type{T}, x::Py) where {R,SAFE,T}
-    ptr = GC.@preserve x C.PySimpleObject_GetValue(Ptr{R}, getptr(x))
+    ptr = Base.GC.@preserve x C.PySimpleObject_GetValue(Ptr{R}, getptr(x))
     ans = unsafe_load(ptr)
     if SAFE
         pyconvert_return(convert(T, ans))
@@ -41,7 +41,7 @@ function init_ctypes()
         isint = isreal && !isfloat
         isuint = isint && (startswith(t, "u") || t == "size_t")
 
-        name = "ctypes/c_$t"
+        name = "ctypes:c_$t"
         rule = pyconvert_rule_ctypessimplevalue{T, false}()
         saferule = pyconvert_rule_ctypessimplevalue{T, true}()
 

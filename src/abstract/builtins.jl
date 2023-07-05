@@ -13,8 +13,13 @@ export pyprint
 
 Equivalent to `help(x)` in Python.
 """
-pyhelp() = (pydel!(pybuiltins.help()); nothing)
-pyhelp(x) = (pydel!(pybuiltins.help(x)); nothing)
+function _pyhelp(args...)
+    pyisnone(pybuiltins.help) && error("Python help is not available")
+    pydel!(pybuiltins.help(args...))
+    nothing
+end
+pyhelp() = _pyhelp()
+pyhelp(x) = _pyhelp(x)
 export pyhelp
 
 """

@@ -3,7 +3,7 @@
 
 Convert `x` to a Python `bool`.
 """
-pybool(x::Bool=false) = Py(x ? pybuiltins.True : pybuiltins.False)
+pybool(x::Bool=false) = pynew(x ? pybuiltins.True : pybuiltins.False)
 pybool(x::Number) = pybool(!iszero(x))
 pybool(x) = pybuiltins.bool(x)
 export pybool
@@ -29,12 +29,3 @@ function pyconvert_rule_bool(::Type{T}, x::Py) where {T<:Number}
         pyconvert_tryconvert(T, val)
     end
 end
-
-pyconvert_rule_fast(::Type{Bool}, x::Py) =
-    if pyisTrue(x)
-        pyconvert_return(true)
-    elseif pyisFalse(x)
-        pyconvert_return(false)
-    else
-        pyconvert_unconverted()
-    end

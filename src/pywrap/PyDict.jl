@@ -7,28 +7,19 @@ If `x` is not a Python object, it is converted to one using `pydict`.
 """
 struct PyDict{K,V} <: AbstractDict{K,V}
     py :: Py
-    PyDict{K,V}(::Val{:new}, py::Py) where {K,V} = new{K,V}(py)
+    PyDict{K,V}(x=pydict()) where {K,V} = new{K,V}(ispy(x) ? Py(x) : pydict(x))
 end
 export PyDict
 
-PyDict{K,V}(x=pydict()) where {K,V} = PyDict{K,V}(Val(:new), ispy(x) ? Py(x) : pydict(x))
 PyDict{K}(x=pydict()) where {K} = PyDict{K,Py}(x)
 PyDict(x=pydict()) = PyDict{Py,Py}(x)
 
 ispy(::PyDict) = true
-getpy(x::PyDict) = x.py
-pydel!(x::PyDict) = pydel!(x.py)
+Py(x::PyDict) = x.py
 
-pyconvert_rule_mapping(::Type{T}, x::Py, ::Type{PyDict{K,V}}=Utils._type_ub(T)) where {T<:PyDict,K,V} =
-    if PyDict{Py,Py} <: T
-        pyconvert_return(PyDict{Py,Py}(x))
-    elseif PyDict{K,Py} <: T
-        pyconvert_return(PyDict{K,Py}(x))
-    elseif PyDict{Py,V} <: T
-        pyconvert_return(PyDict{Py,V}(x))
-    else
-        pyconvert_return(PyDict{K,V}(x))
-    end
+function pyconvert_rule_mapping(::Type{T}, x::Py, ::Type{T1}=Utils._type_ub(T)) where {T<:PyDict,T1}
+    pyconvert_return(T1(x))
+end
 
 Base.length(x::PyDict) = Int(pylen(x))
 
@@ -36,20 +27,22 @@ function Base.iterate(x::PyDict{K,V}, it::Py=pyiter(x)) where {K,V}
     k_ = unsafe_pynext(it)
     pyisnull(k_) && return nothing
     v_ = pygetitem(x, k_)
-    k = pyconvert_and_del(K, k_)
-    v = pyconvert_and_del(V, v_)
+    k = pyconvert(K, k_)
+    v = pyconvert(V, v_)
     return (k => v, it)
 end
 
 function Base.iterate(x::Base.KeySet{K,PyDict{K,V}}, it::Py=pyiter(x.dict)) where {K,V}
     k_ = unsafe_pynext(it)
     pyisnull(k_) && return nothing
-    k = pyconvert_and_del(K, k_)
+    k = pyconvert(K, k_)
     return (k, it)
 end
 
 function Base.getindex(x::PyDict{K,V}, k) where {K,V}
-    return pyconvert_and_del(V, pygetitem(x, convert(K, k)))
+    k2 = convert(K, k)
+    pycontains(x, k2) || throw(KeyError(k))
+    return pyconvert(V, pygetitem(x, k2))
 end
 
 function Base.setindex!(x::PyDict{K,V}, v, k) where {K,V}
@@ -60,7 +53,8 @@ end
 function Base.delete!(x::PyDict{K,V}, k) where {K,V}
     r = pyconvert_tryconvert(K, k)
     if !pyconvert_isunconverted(r)
-        pydelitem(x, pyconvert_result(K, r))
+        k2 = pyconvert_result(K, r)
+        pycontains(x, k2) && pydelitem(x, k2)
     end
     return x
 end
@@ -71,7 +65,7 @@ function Base.empty!(x::PyDict)
 end
 
 function Base.copy(x::PyDict{K,V}) where {K,V}
-    PyDict{K,V}(Val(:new), @py x.copy())
+    return PyDict{K,V}(@py x.copy())
 end
 
 function Base.haskey(x::PyDict{K,V}, k) where {K,V}

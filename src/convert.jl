@@ -1,36 +1,93 @@
+@enum PyConvertPriority begin
+    PYCONVERT_PRIORITY_WRAP = 400
+    PYCONVERT_PRIORITY_ARRAY = 300
+    PYCONVERT_PRIORITY_CANONICAL = 200
+    PYCONVERT_PRIORITY_NORMAL = 0
+    PYCONVERT_PRIORITY_FALLBACK = -100
+end
+
 struct PyConvertRule
     type :: Type
     func :: Function
-    priority :: Int
+    priority :: PyConvertPriority
 end
 
 const PYCONVERT_RULES = Dict{String, Vector{PyConvertRule}}()
 const PYCONVERT_EXTRATYPES = Py[]
 
-function pyconvert_add_rule(pytypename::String, type::Type, func::Function, priority::Int=0)
+"""
+    pyconvert_add_rule(tname::String, T::Type, func::Function, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL)
+
+Add a new conversion rule for `pyconvert`.
+
+### Arguments
+
+- `tname` is a string of the form `"__module__:__qualname__"` identifying a Python type `t`,
+  such as `"builtins:dict"`. This rule only applies to Python objects of this type.
+- `T` is a Julia type, such that this rule only applies when the target type intersects
+  with `T`.
+- `func` is the function implementing the rule.
+- `priority` determines whether to prioritise this rule above others.
+
+When `pyconvert(R, x)` is called, all rules such that `typeintersect(T, R) != Union{}`
+and `pyisinstance(x, t)` are considered. These rules are sorted first by priority,
+then by the specificity of `t` (e.g. `bool` is more specific than `int` is more specific
+than `object`) then by the order they were added. The rules are tried in turn until one
+succeeds.
+
+### Implementing `func`
+
+`func` is called as `func(S, x::Py)` for some `S <: T`.
+
+It must return one of:
+- `pyconvert_return(ans)` where `ans` is the result of the conversion (and must be an `S`).
+- `pyconvert_unconverted()` if the conversion was not possible (e.g. converting a `list` to
+  `Vector{Int}` might fail if some of the list items are not integers).
+
+The target type `S` is never a union or the empty type, i.e. it is always a data type or
+union-all.
+
+### Priority
+
+Most rules should have priority `PYCONVERT_PRIORITY_NORMAL` (the default) which is for any
+reasonable conversion rule.
+
+Use priority `PYCONVERT_PRIORITY_CANONICAL` for **canonical** conversion rules. Immutable
+objects may be canonically converted to their corresponding Julia type, such as `int` to
+`Integer`. Mutable objects **must** be converted to a wrapper type, such that the original
+Python object can be retrieved. For example a `list` is canonically converted to `PyList`
+and not to a `Vector`. There should not be more than one canonical conversion rule for a
+given Python type.
+
+Other priorities are reserved for internal use.
+"""
+function pyconvert_add_rule(pytypename::String, type::Type, func::Function, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL)
     @nospecialize type func
     push!(get!(Vector{PyConvertRule}, PYCONVERT_RULES, pytypename), PyConvertRule(type, func, priority))
     return
 end
 
-if false
-    # this scheme returns either the result or Unconverted()
+# Alternative ways to represent the result of conversion.
+if true
+    # Returns either the result or Unconverted().
     struct Unconverted end
-    pyconvert_return(x) = x
-    pyconvert_unconverted() = Unconverted()
-    pyconvert_returntype(::Type{T}) where {T} = Union{T,Unconverted}
-    pyconvert_isunconverted(r) = r === Unconverted()
-    pyconvert_result(::Type{T}, r) where {T} = r::T
-elseif true
-    # this scheme stores the result in PYCONVERT_RESULT
+    @inline pyconvert_return(x) = x
+    @inline pyconvert_unconverted() = Unconverted()
+    @inline pyconvert_returntype(::Type{T}) where {T} = Union{T,Unconverted}
+    @inline pyconvert_isunconverted(r) = r === Unconverted()
+    @inline pyconvert_result(::Type{T}, r) where {T} = r::T
+elseif false
+    # Stores the result in PYCONVERT_RESULT.
+    # This is global state, probably best avoided.
     const PYCONVERT_RESULT = Ref{Any}(nothing)
-    pyconvert_return(x) = (PYCONVERT_RESULT[] = x; true)
-    pyconvert_unconverted() = false
-    pyconvert_returntype(::Type{T}) where {T} = Bool
-    pyconvert_isunconverted(r::Bool) = !r
-    pyconvert_result(::Type{T}, r::Bool) where {T} = (ans = PYCONVERT_RESULT[]::T; PYCONVERT_RESULT[] = nothing; ans)
+    @inline pyconvert_return(x) = (PYCONVERT_RESULT[] = x; true)
+    @inline pyconvert_unconverted() = false
+    @inline pyconvert_returntype(::Type{T}) where {T} = Bool
+    @inline pyconvert_isunconverted(r::Bool) = !r
+    @inline pyconvert_result(::Type{T}, r::Bool) where {T} = (ans = PYCONVERT_RESULT[]::T; PYCONVERT_RESULT[] = nothing; ans)
 else
-    # same as the previous scheme, but with special handling for bits types
+    # Same as the previous scheme, but with special handling for bits types.
+    # This is global state, probably best avoided.
     const PYCONVERT_RESULT = Ref{Any}(nothing)
     const PYCONVERT_RESULT_ISBITS = Ref{Bool}(false)
     const PYCONVERT_RESULT_TYPE = Ref{Type}(Union{})
@@ -47,9 +104,9 @@ else
         end
         return true
     end
-    pyconvert_unconverted() = false
-    pyconvert_returntype(::Type{T}) where {T} = Bool
-    pyconvert_isunconverted(r::Bool) = !r
+    @inline pyconvert_unconverted() = false
+    @inline pyconvert_returntype(::Type{T}) where {T} = Bool
+    @inline pyconvert_isunconverted(r::Bool) = !r
     function pyconvert_result(::Type{T}, r::Bool) where {T}
         if isbitstype(T)
             if sizeof(T) ≤ PYCONVERT_RESULT_BITSLEN
@@ -85,12 +142,10 @@ pyconvert_tryconvert(::Type{T}, x) where {T} =
 function pyconvert_typename(t::Py)
     m = pygetattr(t, "__module__", "<unknown>")
     n = pygetattr(t, "__name__", "<name>")
-    return "$m/$n"
+    return "$m:$n"
 end
 
-function pyconvert_get_rules(type::Type, pytype::Py)
-    @nospecialize type
-
+function _pyconvert_get_rules(pytype::Py)
     pyisin(x, ys) = any(pyis(x, y) for y in ys)
 
     # get the MROs of all base types we are considering
@@ -131,7 +186,7 @@ function pyconvert_get_rules(type::Type, pytype::Py)
                 break
             end
         end
-        ok || error("Fatal inheritence error: could not merge MROs (mro=$mro, basemros=$basemros)")
+        ok || error("Fatal inheritance error: could not merge MROs (mro=$mro, basemros=$basemros)")
         # add it to the list
         push!(mro, b)
         # remove it from consideration
@@ -183,10 +238,28 @@ function pyconvert_get_rules(type::Type, pytype::Py)
     rules = PyConvertRule[rule for tname in mro for rule in get!(Vector{PyConvertRule}, PYCONVERT_RULES, tname)]
 
     # order the rules by priority, then by original order
-    order = sort(axes(rules, 1), by = i -> (-rules[i].priority, i))
+    order = sort(axes(rules, 1), by = i -> (rules[i].priority, -i), rev = true)
     rules = rules[order]
 
-    # TODO: everything up to here does not depend on the julia type and could be cached
+    @debug "pyconvert" pytype mro=join(mro, " ")
+    return rules
+end
+
+const PYCONVERT_PREFERRED_TYPE = Dict{Py,Type}()
+
+pyconvert_preferred_type(pytype::Py) = get!(PYCONVERT_PREFERRED_TYPE, pytype) do
+    if pyissubclass(pytype, pybuiltins.int)
+        Union{Int,BigInt}
+    else
+        _pyconvert_get_rules(pytype)[1].type
+    end
+end
+
+function pyconvert_get_rules(type::Type, pytype::Py)
+    @nospecialize type
+
+    # this could be cached
+    rules = _pyconvert_get_rules(pytype)
 
     # intersect rules with type
     rules = PyConvertRule[PyConvertRule(typeintersect(rule.type, type), rule.func, rule.priority) for rule in rules]
@@ -200,13 +273,15 @@ function pyconvert_get_rules(type::Type, pytype::Py)
     # filter out repeated rules
     rules = [rule for (i, rule) in enumerate(rules) if !any((rule.func === rules[j].func) && ((rule.type) <: (rules[j].type)) for j in 1:(i-1))]
 
-    @debug "pyconvert" type pytype mro=join(mro, " ") rules
+    @debug "pyconvert" type rules
     return Function[pyconvert_fix(rule.type, rule.func) for rule in rules]
 end
 
 pyconvert_fix(::Type{T}, func) where {T} = x -> func(T, x)
 
-const PYCONVERT_RULES_CACHE = Dict{C.PyPtr, Dict{Type, Vector{Function}}}()
+const PYCONVERT_RULES_CACHE = Dict{Type, Dict{C.PyPtr, Vector{Function}}}()
+
+@generated pyconvert_rules_cache(::Type{T}) where {T} = get!(Dict{C.PyPtr, Vector{Function}}, PYCONVERT_RULES_CACHE, T)
 
 function pyconvert_rule_fast(::Type{T}, x::Py) where {T}
     if T isa Union
@@ -214,30 +289,53 @@ function pyconvert_rule_fast(::Type{T}, x::Py) where {T}
         pyconvert_isunconverted(a) || return a
         b = pyconvert_rule_fast(T.b, x) :: pyconvert_returntype(T.b)
         pyconvert_isunconverted(b) || return b
+    elseif (T == Nothing) | (T == Missing)
+        pyisnone(x) && return pyconvert_return(T())
+    elseif (T == Bool)
+        pyisFalse(x) && return pyconvert_return(false)
+        pyisTrue(x) && return pyconvert_return(true)
+    elseif (T == Int) | (T == BigInt)
+        pyisint(x) && return pyconvert_rule_int(T, x)
+    elseif (T == Float64)
+        pyisfloat(x) && return pyconvert_return(T(pyfloat_asdouble(x)))
+    elseif (T == ComplexF64)
+        pyiscomplex(x) && return pyconvert_return(T(pycomplex_ascomplex(x)))
+    elseif (T == String) | (T == Char) | (T == Symbol)
+        pyisstr(x) && return pyconvert_rule_str(T, x)
+    elseif (T == Vector{UInt8}) | (T == Base.CodeUnits{UInt8,String})
+        pyisbytes(x) && return pyconvert_rule_bytes(T, x)
+    elseif (T <: StepRange) | (T <: UnitRange)
+        pyisrange(x) && return pyconvert_rule_range(T, x)
     end
     pyconvert_unconverted()
 end
 
-pytryconvert(::Type{T}, x) where {T} = @autopy x begin
+function pytryconvert(::Type{T}, x_) where {T}
+    # Convert the input to a Py
+    x = Py(x_)
+
     # We can optimize the conversion for some types by overloading pytryconvert_fast.
     # It MUST give the same results as via the slower route using rules.
-    ans = pyconvert_rule_fast(T, getpy(x_)) :: pyconvert_returntype(T)
-    pyconvert_isunconverted(ans) || return ans
+    ans1 = pyconvert_rule_fast(T, x) :: pyconvert_returntype(T)
+    pyconvert_isunconverted(ans1) || return ans1
+
     # get rules from the cache
     # TODO: we should hold weak references and clear the cache if types get deleted
-    tptr = C.Py_Type(getptr(x_))
-    trules = get!(Dict{Type, Vector{PyConvertRule}}, PYCONVERT_RULES_CACHE, tptr)
-    if !haskey(trules, T)
+    tptr = C.Py_Type(getptr(x))
+    trules = pyconvert_rules_cache(T)
+    rules = get!(trules, tptr) do
         t = pynew(incref(tptr))
-        trules[T] = pyconvert_get_rules(T, t)
+        ans = pyconvert_get_rules(T, t)::Vector{Function}
         pydel!(t)
+        ans
     end
-    rules = trules[T]
+
     # apply the rules
     for rule in rules
-        ans = rule(getpy(x_)) :: pyconvert_returntype(T)
-        pyconvert_isunconverted(ans) || return ans
+        ans2 = rule(x) :: pyconvert_returntype(T)
+        pyconvert_isunconverted(ans2) || return ans2
     end
+
     return pyconvert_unconverted()
 end
 
@@ -250,11 +348,13 @@ On failure, evaluates to `onfail`, which defaults to `return pyconvert_unconvert
 """
 macro pyconvert(T, x, onfail=:(return $pyconvert_unconverted()))
     quote
-        ans = pytryconvert($(esc(T)), $(esc(x)))
+        T = $(esc(T))
+        x = $(esc(x))
+        ans = pytryconvert(T, x)
         if pyconvert_isunconverted(ans)
             $(esc(onfail))
         else
-            pyconvert_result($(esc(T)), ans)
+            pyconvert_result(T, ans)
         end
     end
 end
@@ -283,89 +383,75 @@ pyconvertarg(::Type{T}, x, name) where {T} = @autopy x @pyconvert T x_ begin
     pythrow()
 end
 
-macro pyconvert_and_del(T, x, onfail=:(return $pyconvert_unconverted()))
-    quote
-        ans = pytryconvert($(esc(T)), $(esc(x)))
-        pydel!($(esc(x)))
-        if pyconvert_isunconverted(ans)
-            $(esc(onfail))
-        else
-            pyconvert_result($(esc(T)), ans)
-        end
-    end
-end
-
-pyconvert_and_del(::Type{T}, x) where {T} = begin
-    ans = pyconvert(T, x)
-    pydel!(x)
-    ans
-end
-
 function init_pyconvert()
     push!(PYCONVERT_EXTRATYPES, pyimport("io"=>"IOBase"))
     push!(PYCONVERT_EXTRATYPES, pyimport("numbers"=>("Number", "Complex", "Real", "Rational", "Integral"))...)
     push!(PYCONVERT_EXTRATYPES, pyimport("collections.abc" => ("Iterable", "Sequence", "Set", "Mapping"))...)
 
-    # priority 300: wrapped julia values
-    pyconvert_add_rule("juliacall/As", Any, pyconvert_rule_jlas, 300)
-    pyconvert_add_rule("juliacall/ValueBase", Any, pyconvert_rule_jlvalue, 300)
-    # priority 200: arrays
-    pyconvert_add_rule("<arraystruct>", PyArray, pyconvert_rule_array_nocopy, 200)
-    pyconvert_add_rule("<arrayinterface>", PyArray, pyconvert_rule_array_nocopy, 200)
-    pyconvert_add_rule("<array>", PyArray, pyconvert_rule_array_nocopy, 200)
-    pyconvert_add_rule("<buffer>", PyArray, pyconvert_rule_array_nocopy, 200)
-    # priority 100: canonical
-    pyconvert_add_rule("builtins/NoneType", Nothing, pyconvert_rule_none, 100)
-    pyconvert_add_rule("builtins/bool", Bool, pyconvert_rule_bool, 100)
-    pyconvert_add_rule("builtins/float", Float64, pyconvert_rule_float, 100)
-    pyconvert_add_rule("builtins/complex", Complex{Float64}, pyconvert_rule_complex, 100)
-    pyconvert_add_rule("numbers/Integral", Integer, pyconvert_rule_int, 100)
-    pyconvert_add_rule("builtins/str", String, pyconvert_rule_str, 100)
-    pyconvert_add_rule("builtins/bytes", Base.CodeUnits{UInt8,String}, pyconvert_rule_bytes, 100)
-    pyconvert_add_rule("builtins/range", StepRange{<:Integer,<:Integer}, pyconvert_rule_range, 100)
-    pyconvert_add_rule("numbers/Rational", Rational{<:Integer}, pyconvert_rule_fraction, 100)
-    pyconvert_add_rule("collections.abc/Iterable", PyIterable, pyconvert_rule_iterable, 100)
-    pyconvert_add_rule("collections.abc/Sequence", PyList, pyconvert_rule_sequence, 100)
-    pyconvert_add_rule("collections.abc/Set", PySet, pyconvert_rule_set, 100)
-    pyconvert_add_rule("collections.abc/Mapping", PyDict, pyconvert_rule_mapping, 100)
-    pyconvert_add_rule("io/IOBase", PyIO, pyconvert_rule_io, 100)
-    pyconvert_add_rule("_io/_IOBase", PyIO, pyconvert_rule_io, 100)
-    pyconvert_add_rule("pandas.core.frame/DataFrame", PyPandasDataFrame, pyconvert_rule_pandasdataframe, 100)
-    pyconvert_add_rule("builtins/tuple", Tuple, pyconvert_rule_iterable, 100)
-    pyconvert_add_rule("datetime/datetime", DateTime, pyconvert_rule_datetime, 100)
-    pyconvert_add_rule("datetime/date", Date, pyconvert_rule_date, 100)
-    pyconvert_add_rule("datetime/time", Time, pyconvert_rule_time, 100)
-    pyconvert_add_rule("builtins/BaseException", PyException, pyconvert_rule_exception, 100)
-    # priority 0: reasonable
-    pyconvert_add_rule("builtins/NoneType", Missing, pyconvert_rule_none)
-    pyconvert_add_rule("builtins/bool", Number, pyconvert_rule_bool)
-    pyconvert_add_rule("numbers/Real", Number, pyconvert_rule_float)
-    pyconvert_add_rule("builtins/float", Nothing, pyconvert_rule_float)
-    pyconvert_add_rule("builtins/float", Missing, pyconvert_rule_float)
-    pyconvert_add_rule("numbers/Complex", Number, pyconvert_rule_complex)
-    pyconvert_add_rule("numbers/Integral", Number, pyconvert_rule_int)
-    pyconvert_add_rule("builtins/str", Symbol, pyconvert_rule_str)
-    pyconvert_add_rule("builtins/str", Char, pyconvert_rule_str)
-    pyconvert_add_rule("builtins/bytes", Vector{UInt8}, pyconvert_rule_bytes)
-    pyconvert_add_rule("builtins/range", UnitRange{<:Integer}, pyconvert_rule_range)
-    pyconvert_add_rule("numbers/Rational", Number, pyconvert_rule_fraction)
-    pyconvert_add_rule("collections.abc/Iterable", Vector, pyconvert_rule_iterable)
-    pyconvert_add_rule("collections.abc/Iterable", Tuple, pyconvert_rule_iterable)
-    pyconvert_add_rule("collections.abc/Iterable", Pair, pyconvert_rule_iterable)
-    pyconvert_add_rule("collections.abc/Iterable", Set, pyconvert_rule_iterable)
-    pyconvert_add_rule("collections.abc/Sequence", Vector, pyconvert_rule_iterable)
-    pyconvert_add_rule("collections.abc/Sequence", Tuple, pyconvert_rule_iterable)
-    pyconvert_add_rule("collections.abc/Set", Set, pyconvert_rule_iterable)
-    pyconvert_add_rule("collections.abc/Mapping", Dict, pyconvert_rule_mapping)
-    pyconvert_add_rule("<arraystruct>", Array, pyconvert_rule_array)
-    pyconvert_add_rule("<arrayinterface>", Array, pyconvert_rule_array)
-    pyconvert_add_rule("<array>", Array, pyconvert_rule_array)
-    pyconvert_add_rule("<buffer>", Array, pyconvert_rule_array)
-    pyconvert_add_rule("<arraystruct>", AbstractArray, pyconvert_rule_array)
-    pyconvert_add_rule("<arrayinterface>", AbstractArray, pyconvert_rule_array)
-    pyconvert_add_rule("<array>", AbstractArray, pyconvert_rule_array)
-    pyconvert_add_rule("<buffer>", AbstractArray, pyconvert_rule_array)
-    # priority -100: fallbacks
-    pyconvert_add_rule("builtins/object", Py, pyconvert_rule_object, -100)
-    # priority -200: explicit
+    priority = PYCONVERT_PRIORITY_WRAP
+    pyconvert_add_rule("juliacall:ValueBase", Any, pyconvert_rule_jlvalue, priority)
+
+    priority = PYCONVERT_PRIORITY_ARRAY
+    pyconvert_add_rule("<arraystruct>", PyArray, pyconvert_rule_array_nocopy, priority)
+    pyconvert_add_rule("<arrayinterface>", PyArray, pyconvert_rule_array_nocopy, priority)
+    pyconvert_add_rule("<array>", PyArray, pyconvert_rule_array_nocopy, priority)
+    pyconvert_add_rule("<buffer>", PyArray, pyconvert_rule_array_nocopy, priority)
+
+    priority = PYCONVERT_PRIORITY_CANONICAL
+    pyconvert_add_rule("builtins:NoneType", Nothing, pyconvert_rule_none, priority)
+    pyconvert_add_rule("builtins:bool", Bool, pyconvert_rule_bool, priority)
+    pyconvert_add_rule("builtins:float", Float64, pyconvert_rule_float, priority)
+    pyconvert_add_rule("builtins:complex", Complex{Float64}, pyconvert_rule_complex, priority)
+    pyconvert_add_rule("numbers:Integral", Integer, pyconvert_rule_int, priority)
+    pyconvert_add_rule("builtins:str", String, pyconvert_rule_str, priority)
+    pyconvert_add_rule("builtins:bytes", Base.CodeUnits{UInt8,String}, pyconvert_rule_bytes, priority)
+    pyconvert_add_rule("builtins:range", StepRange{<:Integer,<:Integer}, pyconvert_rule_range, priority)
+    pyconvert_add_rule("numbers:Rational", Rational{<:Integer}, pyconvert_rule_fraction, priority)
+    pyconvert_add_rule("collections.abc:Iterable", PyIterable, pyconvert_rule_iterable, priority)
+    pyconvert_add_rule("collections.abc:Sequence", PyList, pyconvert_rule_sequence, priority)
+    pyconvert_add_rule("collections.abc:Set", PySet, pyconvert_rule_set, priority)
+    pyconvert_add_rule("collections.abc:Mapping", PyDict, pyconvert_rule_mapping, priority)
+    pyconvert_add_rule("io:IOBase", PyIO, pyconvert_rule_io, priority)
+    pyconvert_add_rule("_io:_IOBase", PyIO, pyconvert_rule_io, priority)
+    pyconvert_add_rule("pandas.core.frame:DataFrame", PyPandasDataFrame, pyconvert_rule_pandasdataframe, priority)
+    pyconvert_add_rule("pandas.core.arrays.base:ExtensionArray", PyList, pyconvert_rule_sequence, priority)
+    pyconvert_add_rule("builtins:tuple", NamedTuple, pyconvert_rule_iterable, priority)
+    pyconvert_add_rule("builtins:tuple", Tuple, pyconvert_rule_iterable, priority)
+    pyconvert_add_rule("datetime:datetime", DateTime, pyconvert_rule_datetime, priority)
+    pyconvert_add_rule("datetime:date", Date, pyconvert_rule_date, priority)
+    pyconvert_add_rule("datetime:time", Time, pyconvert_rule_time, priority)
+    pyconvert_add_rule("builtins:BaseException", PyException, pyconvert_rule_exception, priority)
+
+    priority = PYCONVERT_PRIORITY_NORMAL
+    pyconvert_add_rule("builtins:NoneType", Missing, pyconvert_rule_none, priority)
+    pyconvert_add_rule("builtins:bool", Number, pyconvert_rule_bool, priority)
+    pyconvert_add_rule("numbers:Real", Number, pyconvert_rule_float, priority)
+    pyconvert_add_rule("builtins:float", Nothing, pyconvert_rule_float, priority)
+    pyconvert_add_rule("builtins:float", Missing, pyconvert_rule_float, priority)
+    pyconvert_add_rule("numbers:Complex", Number, pyconvert_rule_complex, priority)
+    pyconvert_add_rule("numbers:Integral", Number, pyconvert_rule_int, priority)
+    pyconvert_add_rule("builtins:str", Symbol, pyconvert_rule_str, priority)
+    pyconvert_add_rule("builtins:str", Char, pyconvert_rule_str, priority)
+    pyconvert_add_rule("builtins:bytes", Vector{UInt8}, pyconvert_rule_bytes, priority)
+    pyconvert_add_rule("builtins:range", UnitRange{<:Integer}, pyconvert_rule_range, priority)
+    pyconvert_add_rule("numbers:Rational", Number, pyconvert_rule_fraction, priority)
+    pyconvert_add_rule("collections.abc:Iterable", Vector, pyconvert_rule_iterable, priority)
+    pyconvert_add_rule("collections.abc:Iterable", Tuple, pyconvert_rule_iterable, priority)
+    pyconvert_add_rule("collections.abc:Iterable", Pair, pyconvert_rule_iterable, priority)
+    pyconvert_add_rule("collections.abc:Iterable", Set, pyconvert_rule_iterable, priority)
+    pyconvert_add_rule("collections.abc:Sequence", Vector, pyconvert_rule_iterable, priority)
+    pyconvert_add_rule("collections.abc:Sequence", Tuple, pyconvert_rule_iterable, priority)
+    pyconvert_add_rule("collections.abc:Set", Set, pyconvert_rule_iterable, priority)
+    pyconvert_add_rule("collections.abc:Mapping", Dict, pyconvert_rule_mapping, priority)
+    pyconvert_add_rule("<arraystruct>", Array, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<arrayinterface>", Array, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<array>", Array, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<buffer>", Array, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<arraystruct>", AbstractArray, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<arrayinterface>", AbstractArray, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<array>", AbstractArray, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<buffer>", AbstractArray, pyconvert_rule_array, priority)
+
+    priority = PYCONVERT_PRIORITY_FALLBACK
+    pyconvert_add_rule("builtins:object", Py, pyconvert_rule_object, priority)
 end

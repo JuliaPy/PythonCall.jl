@@ -10,22 +10,21 @@ function pyjlmodule_dir(self::Module)
 end
 
 function pyjlmodule_seval(self::Module, expr::Py)
-    Py(self.eval(Meta.parse(pyconvert(String, expr))))
+    Py(Base.eval(self, Meta.parse(pyconvert(String, expr))))
 end
 
 function init_jlwrap_module()
     jl = pyjuliacallmodule
-    filename = "$(@__FILE__):$(1+@__LINE__)"
     pybuiltins.exec(pybuiltins.compile("""
+    $("\n"^(@__LINE__()-1))
     class ModuleValue(AnyValue):
         __slots__ = ()
-        __module__ = "juliacall"
         def __dir__(self):
             return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlmodule_dir)))
         def seval(self, expr):
             return self._jl_callmethod($(pyjl_methodnum(pyjlmodule_seval)), expr)
-    """, filename, "exec"), jl.__dict__)
+    """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlmoduletype, jl.ModuleValue)
 end
 
-pyjl(v::Module) = pyjl(pyjlmoduletype, v)
+pyjltype(::Module) = pyjlmoduletype

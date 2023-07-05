@@ -2,8 +2,10 @@ name: Docs
 
 on:
   push:
-    branches: [main]
-    tags: '*'
+    branches:
+    - main
+    tags:
+    - '*'
 
 jobs:
   docs:

@@ -1,15 +1,12 @@
 pynulltuple(len) = pynew(errcheck(C.PyTuple_New(len)))
 
 function pytuple_setitem(xs::Py, i, x)
-    x_ = Py(x)
-    err = C.PyTuple_SetItem(getptr(xs), i, getptr(x_))
-    pystolen!(x_)
-    errcheck(err)
+    errcheck(C.PyTuple_SetItem(getptr(xs), i, incref(getptr(Py(x)))))
     return xs
 end
 
 function pytuple_getitem(xs::Py, i)
-    GC.@preserve xs pynew(incref(errcheck(C.PyTuple_GetItem(getptr(xs), i))))
+    Base.GC.@preserve xs pynew(incref(errcheck(C.PyTuple_GetItem(getptr(xs), i))))
 end
 
 function pytuple_fromiter(xs)

@@ -205,10 +205,13 @@ function _pyjl_serialize(self::PyPtr, ::PyPtr)
         b = take!(io)
         return PyBytes_FromStringAndSize(pointer(b), sizeof(b))
     catch e
-        PyErr_SetString(
-            POINTERS.PyExc_Exception,
-            "error serializing this value. Caught exception $(sprint(showerror, e, catch_backtrace()))"
-        )
+        PyErr_SetString(POINTERS.PyExc_Exception, "error serializing this value")
+        # wrap sprint in another try-catch block to prevent this function from throwing
+        try
+            @debug "Caught exception $(sprint(showerror, e, catch_backtrace()))"
+        catch e2
+            @debug "Error printing exception: $e2"
+        end
         return PyNULL
     end
 end
@@ -223,10 +226,13 @@ function _pyjl_deserialize(t::PyPtr, v::PyPtr)
         x = deserialize(io)
         return PyJuliaValue_New(t, x)
     catch e
-        PyErr_SetString(
-            POINTERS.PyExc_Exception,
-            "error deserializing this value. Caught exception $(sprint(showerror, e, catch_backtrace()))"
-        )
+        PyErr_SetString(POINTERS.PyExc_Exception, "error deserializing this value")
+        # wrap sprint in another try-catch block to prevent this function from throwing
+        try
+            @debug "Caught exception $(sprint(showerror, e, catch_backtrace()))"
+        catch e2
+            @debug "Error printing exception: $e2"
+        end
         return PyNULL
     end
 end

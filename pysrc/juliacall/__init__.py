@@ -129,7 +129,7 @@ def init():
     CONFIG['opt_sysimage'] = sysimg = path_option('sysimage', check_exists=True)[0]
     CONFIG['opt_threads'] = int_option('threads', accept_auto=True)[0]
     CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])[0]
-    CONFIG["opt_handle_signals"] = choice('handle_signals', ['yes', 'no'], default='no')[0]
+    CONFIG['opt_handle_signals'] = choice('handle_signals', ['yes', 'no'], default='no')[0]
 
     # Stop if we already initialised
     if CONFIG['inited']:

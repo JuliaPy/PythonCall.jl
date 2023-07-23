@@ -9,6 +9,11 @@ Some rules if you are writing multithreaded code:
 - You probably also need to call `PythonCall.GC.disable()` on the main thread before any
   threaded block of code. Remember to call `PythonCall.GC.enable()` again afterwards.
   (This is because Julia finalizers can be called from any thread.)
+- Julia intentionally causes segmentation faults as part of the GC safepoint mechanism.
+  If unhandled, these segfaults will result in termination of the process. To enable signal handling,
+  set `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` before any calls to import juliacall. This is equivalent
+  to starting julia with `julia --handle-signals=yes`, the default behavior in Julia. 
+  See discussion [here](https://github.com/cjdoris/PythonCall.jl/issues/219#issuecomment-1605087024) for more information.
 - You may still encounter problems.
 
 Related issues: [#201](https://github.com/cjdoris/PythonCall.jl/issues/201), [#202](https://github.com/cjdoris/PythonCall.jl/issues/202)

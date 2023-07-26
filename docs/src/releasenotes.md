@@ -1,6 +1,6 @@
 # Release Notes
 
-## 0.9.14 (Unreleased)
+## 0.9.14 (2023-07-26)
 * Wrapped Julia values support truthiness (`__bool__`) better: all values are true, except
   for zero numbers and empty arrays, dicts and sets.
 * JuliaCall now supports the Julia `--handle-signals` option. Setting this to `yes` allows

@@ -1,14 +1,12 @@
 name: Tests (nightly)
 
 on:
-  pull_request:
-    branches:
-    - main
-  push:
-    branches:
-    - main
-    tags:
-    - '*'
+  workflow_dispatch:
+    inputs:
+      jl_version:
+        description: Julia version (e.g. nightly or ~1.9.0-0)
+        required: true
+        default: nightly
 
 jobs:
   tests:
@@ -24,7 +22,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
         with:
-          version: ${{ matrix.jlversion }}
+          version: ${{ inputs.jl_version }}
           arch: ${{ matrix.arch }}
       - uses: actions/cache@v1
         env:

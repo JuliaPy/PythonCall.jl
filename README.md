@@ -4,7 +4,6 @@
 [![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://cjdoris.github.io/PythonCall.jl/stable)
 [![Dev Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://cjdoris.github.io/PythonCall.jl/dev)
 [![Tests](https://github.com/cjdoris/PythonCall.jl/actions/workflows/tests.yml/badge.svg)](https://github.com/cjdoris/PythonCall.jl/actions/workflows/tests.yml)
-[![Tests (nightly)](https://github.com/cjdoris/PythonCall.jl/actions/workflows/tests-nightly.yml/badge.svg)](https://github.com/cjdoris/PythonCall.jl/actions/workflows/tests-nightly.yml)
 [![Codecov](https://codecov.io/gh/cjdoris/PythonCall.jl/branch/main/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/cjdoris/PythonCall.jl)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/P/PythonCall.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/P/PythonCall.html)
 

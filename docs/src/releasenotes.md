@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.9.14 (Unreleased)
+* Wrapped Julia values support truthiness (`__bool__`) better: all values are true, except
+  for zero numbers and empty arrays, dicts and sets.
+* JuliaCall now supports the Julia `--handle-signals` option. Setting this to `yes` allows
+  allocating multithreaded Julia code to be called from JuliaCall without segfaulting. The
+  default is `no` while compatibility concerns are investigated, and may be changed to `yes`
+  in a future release.
+
 ## 0.9.13 (2023-05-14)
 * Conversion to wrapper types `PyList`, `PySet`, `PyDict` or `PyIterable` now default to
   having element type `Any` instead of `Py`.

@@ -209,8 +209,7 @@ function _pyjl_serialize(self::PyPtr, ::PyPtr)
         # wrap sprint in another try-catch block to prevent this function from throwing
         try
             @debug "Caught exception $(sprint(showerror, e, catch_backtrace()))"
-        catch e2
-            @debug "Error printing exception: $e2"
+        catch
         end
         return PyNULL
     end
@@ -230,8 +229,7 @@ function _pyjl_deserialize(t::PyPtr, v::PyPtr)
         # wrap sprint in another try-catch block to prevent this function from throwing
         try
             @debug "Caught exception $(sprint(showerror, e, catch_backtrace()))"
-        catch e2
-            @debug "Error printing exception: $e2"
+        catch
         end
         return PyNULL
     end

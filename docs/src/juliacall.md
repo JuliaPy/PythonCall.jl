@@ -114,6 +114,7 @@ be configured in two ways:
 | `-X juliacall-compile=<yes\|no\|all\|min>` | `PYTHON_JULIACALL_COMPILE=<yes\|no\|all\|min>` | Enable or disable JIT compilation. |
 | `-X juliacall-compiled-modules=<yes\|no>` | `PYTHON_JULIACALL_COMPILED_MODULES=<yes\|no>` | Enable or disable incrementally compiling modules. |
 | `-X juliacall-depwarn=<yes\|no\|error>` | `PYTHON_JULIACALL_DEPWARN=<yes\|no\|error>` | Enable or disable deprecation warnings. |
+| `-X juliacall-handle-signals=<yes\|no>` | `PYTHON_JULIACALL_HANDLE_SIGNALS=<yes\|no>` | Enable or disable Julia signal handling. |
 | `-X juliacall-inline=<yes\|no>` | `PYTHON_JULIACALL_INLINE=<yes\|no>` | Enable or disable inlining. |
 | `-X juliacall-min-optlevel=<0\|1\|2\|3>` | `PYTHON_JULIACALL_MIN_OPTLEVEL=<0\|1\|2\|3>` | Optimization level. |
 | `-X juliacall-optimize=<0\|1\|2\|3>` | `PYTHON_JULIACALL_OPTIMIZE=<0\|1\|2\|3>` | Minimum optimization level. |

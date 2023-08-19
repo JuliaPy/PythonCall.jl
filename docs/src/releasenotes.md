@@ -1,5 +1,8 @@
 # Release Notes
 
+## Unreleased
+* JuliaCall now supports `-X juliacall-startup-file=no` to disable running startup.jl.
+
 ## 0.9.14 (2023-07-26)
 * Wrapped Julia values support truthiness (`__bool__`) better: all values are true, except
   for zero numbers and empty arrays, dicts and sets.

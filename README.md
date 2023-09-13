@@ -1,10 +1,10 @@
-<h1><img src="https://raw.githubusercontent.com/cjdoris/PythonCall.jl/main/docs/src/assets/logo.png" alt="PythonCall.jl logo" style="width: 100px;"><br>PythonCall &amp;&nbsp;JuliaCall</h1>
+<h1><img src="https://raw.githubusercontent.com/JuliaPy/PythonCall.jl/main/docs/src/assets/logo.png" alt="PythonCall.jl logo" style="width: 100px;"><br>PythonCall &amp;&nbsp;JuliaCall</h1>
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://cjdoris.github.io/PythonCall.jl/stable)
-[![Dev Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://cjdoris.github.io/PythonCall.jl/dev)
-[![Tests](https://github.com/cjdoris/PythonCall.jl/actions/workflows/tests.yml/badge.svg)](https://github.com/cjdoris/PythonCall.jl/actions/workflows/tests.yml)
-[![Codecov](https://codecov.io/gh/cjdoris/PythonCall.jl/branch/main/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/cjdoris/PythonCall.jl)
+[![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliapy.github.io/PythonCall.jl/stable)
+[![Dev Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliapy.github.io/PythonCall.jl/dev)
+[![Tests](https://github.com/JuliaPy/PythonCall.jl/actions/workflows/tests.yml/badge.svg)](https://github.com/JuliaPy/PythonCall.jl/actions/workflows/tests.yml)
+[![Codecov](https://codecov.io/gh/JuliaPy/PythonCall.jl/branch/main/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/JuliaPy/PythonCall.jl)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/P/PythonCall.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/P/PythonCall.html)
 
 Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://julialang.org/) together in seamless harmony:
@@ -18,7 +18,7 @@ Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://juliala
 
 ⭐ If you like this, a GitHub star would be lovely thank you. ⭐
 
-To get started, read the [documentation](https://cjdoris.github.io/PythonCall.jl/stable).
+To get started, read the [documentation](https://juliapy.github.io/PythonCall.jl/stable).
 
 ## Example 1: Calling Python from Julia
 
@@ -27,7 +27,7 @@ In this example, we use the Julia module PythonCall from a [Pluto](https://githu
 - We use `pytable(df)` to convert it to a Python [Pandas DataFrame](https://pandas.pydata.org/).
 - We use the Python package [Seaborn](https://seaborn.pydata.org/) to produce a pair-plot, which is automatically displayed.
 
-![Seaborn example screenshot](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/main/examples/seaborn.png)
+![Seaborn example screenshot](https://raw.githubusercontent.com/JuliaPy/PythonCall.jl/main/examples/seaborn.png)
 
 ## Example 2: Calling Julia from Python
 
@@ -36,7 +36,7 @@ In this example we use the Python module JuliaCall from an IPython notebook to t
 - We construct and train a neural network model using Julia's Flux.
 - We plot some sample output from the model using Python's MatPlotLib.
 
-![Flux example screenshot](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/main/examples/flux.png)
+![Flux example screenshot](https://raw.githubusercontent.com/JuliaPy/PythonCall.jl/main/examples/flux.png)
 
 ## What about PyCall?
 

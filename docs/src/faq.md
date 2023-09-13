@@ -13,10 +13,10 @@ Some rules if you are writing multithreaded code:
   If unhandled, these segfaults will result in termination of the process. To enable signal handling,
   set `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` before any calls to import juliacall. This is equivalent
   to starting julia with `julia --handle-signals=yes`, the default behavior in Julia. 
-  See discussion [here](https://github.com/cjdoris/PythonCall.jl/issues/219#issuecomment-1605087024) for more information.
+  See discussion [here](https://github.com/JuliaPy/PythonCall.jl/issues/219#issuecomment-1605087024) for more information.
 - You may still encounter problems.
 
-Related issues: [#201](https://github.com/cjdoris/PythonCall.jl/issues/201), [#202](https://github.com/cjdoris/PythonCall.jl/issues/202)
+Related issues: [#201](https://github.com/JuliaPy/PythonCall.jl/issues/201), [#202](https://github.com/JuliaPy/PythonCall.jl/issues/202)
 
 ## Does it work on Apple silicon (ARM, M1, M2, ...)?
 
@@ -48,7 +48,7 @@ Py(x).to_numpy()
 
 If the array is being mutated, you will need to pass the argument `copy=false`.
 
-Related issues: [#280](https://github.com/cjdoris/PythonCall.jl/issues/280)
+Related issues: [#280](https://github.com/JuliaPy/PythonCall.jl/issues/280)
 
 ## Heap corruption when using PyTorch
 
@@ -62,7 +62,7 @@ Python(65251,0x104cf8580) malloc: *** set a breakpoint in malloc_error_break to 
 
 A solution is to ensure that `juliacall` is imported before `torch`.
 
-Related issues: [#215](https://github.com/cjdoris/PythonCall.jl/issues/215)
+Related issues: [#215](https://github.com/JuliaPy/PythonCall.jl/issues/215)
 
 ## `ccall requires the compiler` error when importing some Python libraries
 On some systems, you may see an error like the following when import e.g. `matplotlib` before `juliacall`:
@@ -88,7 +88,7 @@ The solution is to either:
   * import `juliacall` before the other Python library, so that Julia's `libstdc++` is loaded
   * use a Python from a conda environment, which will have a newer `libstdc++` that is compatible with Julia's
 
-Related issues: [#255](https://github.com/cjdoris/PythonCall.jl/issues/255)
+Related issues: [#255](https://github.com/JuliaPy/PythonCall.jl/issues/255)
 
 ## Can I use JuliaCall to run Julia inside applications with embedded Python?
 

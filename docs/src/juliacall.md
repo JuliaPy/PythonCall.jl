@@ -7,7 +7,7 @@ It's as simple as
 pip install juliacall
 ```
 
-Developers may wish to clone the repo (https://github.com/cjdoris/PythonCall.jl) directly
+Developers may wish to clone the repo (https://github.com/JuliaPy/PythonCall.jl) directly
 and pip install the module in editable mode. You should add `"dev":true, "path":"../.."` to
 `python/juliacall/juliapkg.json` to ensure you use the development version of PythonCall
 in conjunction with JuliaCall.
@@ -73,7 +73,7 @@ What to read next:
 
 ## [Managing Julia dependencies](@id julia-deps)
 
-JuliaCall manages its Julia dependencies using [JuliaPkg](https://github.com/cjdoris/PyJuliaPkg).
+JuliaCall manages its Julia dependencies using [JuliaPkg](https://github.com/JuliaPy/PyJuliaPkg).
 
 It will automatically download a suitable version of Julia if required.
 
@@ -98,7 +98,7 @@ Here is an example:
 
 Alternatively you can use `add`, `rm`, etc. from JuliaPkg to edit this file.
 
-See [JuliaPkg](https://github.com/cjdoris/PyJuliaPkg) for more details.
+See [JuliaPkg](https://github.com/JuliaPy/PyJuliaPkg) for more details.
 
 ## [Configuration](@id julia-config)
 

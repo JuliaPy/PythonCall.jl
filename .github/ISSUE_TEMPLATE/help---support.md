@@ -7,4 +7,4 @@ assignees: ''
 
 ---
 
-Please direct any other questions to [github discussions](https://github.com/cjdoris/PythonCall.jl/discussions).
+Please direct any other questions to [github discussions](https://github.com/JuliaPy/PythonCall.jl/discussions).

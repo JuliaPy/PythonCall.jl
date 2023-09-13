@@ -55,5 +55,5 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/cjdoris/PythonCall.jl.git",
+    repo = "github.com/JuliaPy/PythonCall.jl.git",
 )

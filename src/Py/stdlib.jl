@@ -3,7 +3,7 @@ const pymodulehooks = pynew()
 function init_stdlib()
 
     # check word size
-    pywordsize = @py(jlbool(pysysmodule.maxsize > 2^32)) ? 64 : 32
+    pywordsize = pygt(Bool, pysysmodule.maxsize, Int64(2)^32) ? 64 : 32
     pywordsize == Sys.WORD_SIZE || error("Julia is $(Sys.WORD_SIZE)-bit but Python is $(pywordsize)-bit")
 
     if C.CTX.is_embedded
@@ -43,8 +43,8 @@ function init_stdlib()
         end
 
         # add hook to perform certain actions when certain modules are loaded
-        @py g = {}
-        @py @exec """
+        g = pydict()
+        pyexec("""
         import sys
         class JuliaCompatHooks:
             def __init__(self):
@@ -63,7 +63,7 @@ function init_stdlib()
                     h()
         JULIA_COMPAT_HOOKS = JuliaCompatHooks()
         sys.meta_path.insert(0, JULIA_COMPAT_HOOKS)
-        """ g
+        """, g)
         pycopy!(pymodulehooks, g["JULIA_COMPAT_HOOKS"])
     end
 

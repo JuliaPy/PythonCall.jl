@@ -1,8 +1,3 @@
-pyfraction(x::Rational) = pyfraction(numerator(x), denominator(x))
-pyfraction(x, y) = pyfractiontype(x, y)
-pyfraction(x) = pyfractiontype(x)
-pyfraction() = pyfractiontype()
-export pyfraction
 
 # works for any collections.abc.Rational
 function pyconvert_rule_fraction(::Type{R}, x::Py, ::Type{Rational{T0}}=Utils._type_lb(R), ::Type{Rational{T1}}=Utils._type_ub(R)) where {R<:Rational,T0,T1}

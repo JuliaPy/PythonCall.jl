@@ -5,7 +5,7 @@ See `disable` and `enable`.
 """
 module GC
 
-import ..PythonCall.C
+using ...PythonCall: C
 
 const ENABLED = Ref(true)
 const QUEUE = C.PyPtr[]

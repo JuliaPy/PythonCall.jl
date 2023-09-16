@@ -1,16 +1,3 @@
-"""
-    pyrange([[start], [stop]], [step])
-
-Construct a Python `range`. Unspecified arguments default to `None`.
-"""
-pyrange(x, y, z) = pybuiltins.range(x, y, z)
-pyrange(x, y) = pybuiltins.range(x, y)
-pyrange(y) = pybuiltins.range(y)
-export pyrange
-
-pyrange_fromrange(x::AbstractRange) = pyrange(first(x), last(x) + sign(step(x)), step(x))
-
-pyisrange(x) = pytypecheck(x, pybuiltins.range)
 
 function pyconvert_rule_range(::Type{R}, x::Py, ::Type{StepRange{T0,S0}}=Utils._type_lb(R), ::Type{StepRange{T1,S1}}=Utils._type_ub(R)) where {R<:StepRange,T0,S0,T1,S1}
     a = @pyconvert(Utils._typeintersect(Integer, T1), x.start)

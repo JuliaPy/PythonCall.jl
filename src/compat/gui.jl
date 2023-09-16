@@ -61,8 +61,8 @@ const new_event_loop_callback = pynew()
 function init_gui()
     if !C.CTX.is_embedded
         # define callbacks
-        @py g = {}
-        @py @exec """
+        g = pydict()
+        pyexec("""
         def new_event_loop_callback(g, interval=0.04):
             if g in ("pyqt4","pyqt5","pyside","pyside2"):
                 if g == "pyqt4":
@@ -126,7 +126,7 @@ function init_gui()
             else:
                 raise ValueError("invalid event loop name: {}".format(g))
             return callback
-        """ g
+        """, g)
         pycopy!(new_event_loop_callback, g["new_event_loop_callback"])
 
         # add a hook to automatically call fix_qt_plugin_path()

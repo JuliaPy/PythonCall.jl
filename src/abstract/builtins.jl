@@ -8,16 +8,16 @@ Equivalent to `print(...)` in Python.
 pyprint(args...; kwargs...) = (pydel!(pybuiltins.print(args...; kwargs...)); nothing)
 export pyprint
 
-"""
-    pyhelp([x])
-
-Equivalent to `help(x)` in Python.
-"""
 function _pyhelp(args...)
     pyisnone(pybuiltins.help) && error("Python help is not available")
     pydel!(pybuiltins.help(args...))
     nothing
 end
+"""
+    pyhelp([x])
+
+Equivalent to `help(x)` in Python.
+"""
 pyhelp() = _pyhelp()
 pyhelp(x) = _pyhelp(x)
 export pyhelp

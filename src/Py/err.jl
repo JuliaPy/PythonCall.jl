@@ -70,8 +70,6 @@ export PyException
 ispy(x::PyException) = true
 Py(x::PyException) = x.v
 
-pyconvert_rule_exception(::Type{R}, x::Py) where {R<:PyException} = pyconvert_return(PyException(x))
-
 function Base.show(io::IO, x::PyException)
     show(io, typeof(x))
     print(io, "(")

@@ -11,6 +11,17 @@
 # - generator functions??
 # - splatting
 
+"""
+    module _pymacro
+
+Provides the `@py` macro.
+"""
+module _pymacro
+
+using .._Py
+using .._Py: pyisnot, pynotin, BUILTINS, pynew, pycallargs, pydel!, pycopy!, pystr_intern!, pynulltuple, pytuple_setitem
+using MacroTools: MacroTools, @capture, isexpr
+
 const PY_MACRO_NILOPS = Dict(
     :help => (pyhelp, false),
     :int => (pyint, true),
@@ -795,3 +806,5 @@ macro py(ex)
     esc(py_macro(ex, __module__, __source__))
 end
 export @py
+
+end

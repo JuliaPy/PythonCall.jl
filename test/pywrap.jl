@@ -1,5 +1,5 @@
 @testitem "PyArray" begin
-    x = pyimport("array").array("i", [1,2,3])
+    x = pyimport("array").array("i", pylist([1,2,3]))
     y = PyArray(x)
     z = PyArray{Cint,1,false,false,Cint}(x)
     @testset "construct" begin

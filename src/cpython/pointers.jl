@@ -274,8 +274,8 @@ const CAPI_OBJECTS = Set([
     $([:($name :: PyPtr = C_NULL) for name in CAPI_EXCEPTIONS]...)
     $([:($name :: PyPtr = C_NULL) for name in CAPI_OBJECTS]...)
     PyOS_InputHookPtr :: Ptr{Ptr{Cvoid}} = C_NULL
-    PyJuliaBase_Type :: PyPtr = C_NULL
-    PyExc_JuliaError :: PyPtr = C_NULL
+    # PyJuliaBase_Type :: PyPtr = C_NULL
+    # PyExc_JuliaError :: PyPtr = C_NULL
 end
 
 const POINTERS = CAPIPointers()

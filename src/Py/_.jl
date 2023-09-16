@@ -22,6 +22,7 @@ include("config.jl")
 include("consts.jl")
 include("builtins.jl")
 include("stdlib.jl")
+include("pyconst_macro.jl")
 
 function __init__()
     C.with_gil() do

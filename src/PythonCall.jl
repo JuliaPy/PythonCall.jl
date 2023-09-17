@@ -3,7 +3,7 @@ module PythonCall
 const VERSION = v"0.9.14"
 const ROOT_DIR = dirname(@__DIR__)
 
-include("utils.jl")
+include("utils/_.jl")
 
 include("CPython/_.jl")
 const C = _CPython
@@ -14,7 +14,7 @@ for k in [:GC, :pynew, :pyisnull, :pycopy!, :getptr, :pydel!, :unsafe_pynext, :P
 end
 
 include("pyconvert/_.jl")
-include("pymacro.jl")
+include("pymacro/_.jl")
 include("pywrap/_.jl")
 include("compat/_.jl")
 

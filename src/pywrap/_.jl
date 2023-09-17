@@ -5,10 +5,8 @@ Defines Julia wrappers around Python objects, including `PyList`, `PyDict`, `PyA
 """
 module _pywrap
 
-using .._Utils: _Utils as Utils
-using .._CPython: _CPython as C
 using .._Py
-using .._Py: @autopy, unsafe_pynext, pyisnull, PyNULL, getptr, pydel!
+using .._Py: C, Utils, @autopy, unsafe_pynext, pyisnull, PyNULL, getptr, pydel!
 using .._pyconvert: pyconvert, pyconvert_tryconvert, pyconvert_unconverted, pyconvert_isunconverted, pyconvert_return, pyconvert_result
 using .._pymacro
 

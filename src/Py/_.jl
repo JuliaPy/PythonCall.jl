@@ -8,7 +8,8 @@ module _Py
 const VERSION = v"0.9.14"
 const ROOT_DIR = dirname(dirname(@__DIR__))
 
-using ..PythonCall: C
+using .._CPython: _CPython as C
+using .._Utils: _Utils as Utils
 using Base: @propagate_inbounds, @kwdef
 using Dates: Date, Time, DateTime, year, month, day, hour, minute, second, millisecond, microsecond, nanosecond
 using MacroTools: @capture

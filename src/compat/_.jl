@@ -4,8 +4,8 @@
 Misc bits and bobs for compatibility.
 """
 module _compat
-    using ..PythonCall
-    using ..PythonCall: C, pynew
+    using .._Py
+    using .._Py: C, pynew
     using Tables: Tables
 
     # include("compat/gui.jl")

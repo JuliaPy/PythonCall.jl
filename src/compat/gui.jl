@@ -13,12 +13,12 @@ function fix_qt_plugin_path()
     C.CTX.exe_path === nothing && return false
     e = pyosmodule.environ
     "QT_PLUGIN_PATH" in e && return false
-    qtconf = joinpath(dirname(C.CTX.exe_path), "qt.conf")
+    qtconf = joinpath(dirname(C.CTX.exe_path::AbstractString), "qt.conf")
     isfile(qtconf) || return false
     for line in eachline(qtconf)
         m = match(r"^\s*prefix\s*=(.*)$"i, line)
         if m !== nothing
-            path = strip(m.captures[1])
+            path = strip(m.captures[1]::AbstractString)
             path[1] == path[end] == '"' && (path = path[2:end-1])
             path = joinpath(path, "plugins")
             if isdir(path)
@@ -130,7 +130,7 @@ function init_gui()
         pycopy!(new_event_loop_callback, g["new_event_loop_callback"])
 
         # add a hook to automatically call fix_qt_plugin_path()
-        fixqthook = Py(() -> (CONFIG.auto_fix_qt_plugin_path && fix_qt_plugin_path(); nothing))
+        fixqthook = Py(() -> (_Py.CONFIG.auto_fix_qt_plugin_path && fix_qt_plugin_path(); nothing))
         pymodulehooks.add_hook("PyQt4", fixqthook)
         pymodulehooks.add_hook("PyQt5", fixqthook)
         pymodulehooks.add_hook("PySide", fixqthook)

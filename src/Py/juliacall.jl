@@ -32,12 +32,3 @@ function init_juliacall()
     pycopy!(pyJuliaError, jl.JuliaError)
     CPyExc_JuliaError[] = incref(getptr(pyJuliaError))
 end
-
-function init_juliacall_2()
-    jl = pyjuliacallmodule
-    jl.Main = Main
-    jl.Core = Core
-    jl.Base = Base
-    jl.Pkg = Pkg
-    jl.PythonCall = PythonCall
-end

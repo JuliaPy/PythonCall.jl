@@ -17,11 +17,11 @@ function pytable(src, format=:pandas; opts...)
     if format == :pandas
         _pytable_pandas(src; opts...)
     elseif format == :columns
-        _pytable_columns(src; opts...)
+        _pytable_columns(src)
     elseif format == :rows
-        _pytable_rows(src; opts...)
+        _pytable_rows(src)
     elseif format == :rowdicts
-        _pytable_rowdicts(src; opts...)
+        _pytable_rowdicts(src)
     else
         error("invalid format")
     end

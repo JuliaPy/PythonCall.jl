@@ -69,12 +69,12 @@ def load_ipython_extension(ip):
     # redirect stdout/stderr
     if ip.__class__.__name__ == 'TerminalInteractiveShell':
         # no redirection in the terminal
-        PythonCall.seval("""begin
+        PythonCall.seval("""module _ipython
             function _flush_stdio()
             end
         end""")
     else:
-        PythonCall.seval("""begin
+        PythonCall.seval("""module _ipython
             const _redirected_stdout = redirect_stdout()
             const _redirected_stderr = redirect_stderr()
             const _py_stdout = PyIO(pyimport("sys" => "stdout"); line_buffering=true)
@@ -92,10 +92,10 @@ def load_ipython_extension(ip):
             end
             nothing
         end""")
-    ip.events.register('post_execute', PythonCall._flush_stdio)
+    ip.events.register('post_execute', PythonCall._ipython._flush_stdio)
     # push displays
     PythonCall.seval("""begin
-        pushdisplay(PythonDisplay())
-        pushdisplay(IPythonDisplay())
+        pushdisplay(_compat.PythonDisplay())
+        pushdisplay(_compat.IPythonDisplay())
         nothing
     end""")

@@ -287,7 +287,7 @@ const POINTERS = CAPIPointers()
         end
         for name in CAPI_FUNCS
     ]...)
-    $([:(p.$name = Base.unsafe_load(Ptr{PyPtr}(dlsym(lib, $(QuoteNode(name)))))) for name in CAPI_EXCEPTIONS]...)
+    $([:(p.$name = Base.unsafe_load(Ptr{PyPtr}(dlsym(lib, $(QuoteNode(name)))::Ptr))) for name in CAPI_EXCEPTIONS]...)
     $([:(p.$name = dlsym(lib, $(QuoteNode(name)))) for name in CAPI_OBJECTS]...)
     p.PyOS_InputHookPtr = dlsym(CTX.lib_ptr, :PyOS_InputHook)
 end

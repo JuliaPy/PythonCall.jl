@@ -137,11 +137,14 @@ function init_context()
         # Get function pointers from the library
         init_pointers()
 
+        # Compare libpath with PyCall
+        @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
+
         # Initialize the interpreter
         with_gil() do
             CTX.is_preinitialized = Py_IsInitialized() != 0
             if CTX.is_preinitialized
-                @assert CTX.which == :PyCall
+                @assert CTX.which == :PyCall || CTX.matches_pycall isa Bool
             else
                 @assert CTX.which != :PyCall
                 # Find ProgramName and PythonHome
@@ -210,9 +213,6 @@ function init_context()
     if (get(ENV, "CI", "false") == "true") && (CTX.which === :CondaPkg)
         ENV["JULIA_PYTHONCALL_EXE"] = CTX.exe_path::String
     end
-
-    # Compare libpath with PyCall
-    @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
 
     with_gil() do
 

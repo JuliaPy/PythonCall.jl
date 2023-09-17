@@ -1,8 +1,10 @@
 module Cjl
 
 using ..._CPython: _CPython as C
+using ..._Utils: _Utils as Utils
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
+using Serialization: serialize, deserialize
 
 @kwdef struct PyJuliaValueObject
     ob_base::C.PyObject = C.PyObject()
@@ -156,7 +158,7 @@ function _pyjl_get_buffer_impl(obj::C.PyPtr, buf::Ptr{C.Py_buffer}, flags::Cint,
     if Utils.isflagset(flags, C.PyBUF_ANY_CONTIGUOUS)
         if Utils.size_to_cstrides(info.itemsize, info.shape) != info.strides &&
            Utils.size_to_fstrides(info.itemsize, info.shape) != info.strides
-            C.PyErr_SetString(C.OINTERS.PyExc_BufferError, "not contiguous")
+            C.PyErr_SetString(C.POINTERS.PyExc_BufferError, "not contiguous")
             return Cint(-1)
         end
     end
@@ -259,7 +261,7 @@ const _pyjlbase_deserialize_name = "_jl_deserialize"
 const _pyjlbase_methods = Vector{C.PyMethodDef}()
 const _pyjlbase_as_buffer = fill(C.PyBufferProcs())
 
-function __init__()
+function init_c()
     empty!(_pyjlbase_methods)
     push!(_pyjlbase_methods,
         C.PyMethodDef(
@@ -313,6 +315,12 @@ function __init__()
     end
 end
 
+function __init__()
+    C.with_gil() do 
+        init_c()
+    end
+end
+
 PyJuliaValue_IsNull(o::C.PyPtr) = UnsafePtr{PyJuliaValueObject}(o).value[] == 0
 
 PyJuliaValue_GetValue(o::C.PyPtr) = PYJLVALUES[UnsafePtr{PyJuliaValueObject}(o).value[]]
@@ -336,7 +344,7 @@ end
 
 PyJuliaValue_New(t::C.PyPtr, @nospecialize(v)) = begin
     if C.PyType_IsSubtype(t, PyJuliaBase_Type[]) != 1
-        PyErr_SetString(C.POINTERS.PyExc_TypeError, "Expecting a subtype of 'juliacall.ValueBase'")
+        C.PyErr_SetString(C.POINTERS.PyExc_TypeError, "Expecting a subtype of 'juliacall.ValueBase'")
         return C.PyNULL
     end
     o = C.PyObject_CallObject(t, C.PyNULL)

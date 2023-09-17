@@ -6,12 +6,13 @@ Defines Julia wrappers around Python objects, including `PyList`, `PyDict`, `PyA
 module _pywrap
 
 using .._Py
-using .._Py: C, Utils, @autopy, unsafe_pynext, pyisnull, PyNULL, getptr, pydel!
+using .._Py: C, Utils, @autopy, unsafe_pynext, pyisnull, PyNULL, getptr, pydel!, pybytes_asvector, pystr_asUTF8vector, pystr_fromUTF8, incref, decref, pynew, pyisnone, pyistuple, pyisstr
 using .._pyconvert: pyconvert, pyconvert_tryconvert, pyconvert_unconverted, pyconvert_isunconverted, pyconvert_return, pyconvert_result
 using .._pymacro
 
 using Base: @propagate_inbounds
 using Tables: Tables
+using UnsafePointers: UnsafePtr
 
 import .._Py: Py, ispy
 import .._pyconvert: pyconvert_add_rule, PYCONVERT_PRIORITY_ARRAY, PYCONVERT_PRIORITY_CANONICAL, PYCONVERT_PRIORITY_NORMAL

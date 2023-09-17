@@ -84,7 +84,6 @@ function pyjlvector_remove(x::AbstractVector, v_::Py)
         errset(pybuiltins.ValueError, "value not in array")
         return PyNULL
     end
-    v = pyconvert_result(r)
     k = findfirst(==(v), x)
     if k === nothing
         errset(pybuiltins.ValueError, "value not in array")

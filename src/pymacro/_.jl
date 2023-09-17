@@ -19,7 +19,8 @@ Provides the `@py` macro.
 module _pymacro
 
 using .._Py
-using .._Py: pyisnot, pynotin, BUILTINS, pynew, pycallargs, pydel!, pycopy!, pystr_intern!, pynulltuple, pytuple_setitem
+using .._Py: pyisnot, pynotin, BUILTINS, pynew, pycallargs, pydel!, pycopy!, pystr_intern!, pynulltuple, pytuple_setitem, pyset_add, pyisnull, unsafe_pynext, pydict_setitem, pylist_setitem, pynulllist, pybool_asbool, pythrow
+
 using MacroTools: MacroTools, @capture, isexpr
 
 const PY_MACRO_NILOPS = Dict(

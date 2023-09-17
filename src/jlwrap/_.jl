@@ -5,11 +5,13 @@ Defines the Python object wrappers around Julia objects (`juliacall.AnyValue` et
 """
 module _jlwrap
 
+using ..PythonCall: PythonCall
 using .._Py
-using .._Py: C, pynew, @autopy, incref, setptr!, getptr, pyjuliacallmodule, pycopy!, errcheck, errset, PyNULL, pyistuple, pyisnull, pyJuliaError, pydel!, pyistype, pytypecheck
-using .._pyconvert: pyconvert, @pyconvert, PYCONVERT_PRIORITY_WRAP, pyconvert_add_rule, pyconvert_tryconvert
+using .._Py: C, Utils, pynew, @autopy, incref, decref, setptr!, getptr, pyjuliacallmodule, pycopy!, errcheck, errset, PyNULL, pyistuple, pyisnull, pyJuliaError, pydel!, pyistype, pytypecheck, pythrow, pytuple_getitem, pyisslice, pystr_asstring, pyosmodule, pyisstr
+using .._pyconvert: pyconvert, @pyconvert, PYCONVERT_PRIORITY_WRAP, pyconvert_add_rule, pyconvert_tryconvert, pyconvertarg, pyconvert_result
 
-using Base: @propagate_inbounds
+using Pkg: Pkg
+using Base: @propagate_inbounds, allocatedinline
 
 import .._Py: Py
 
@@ -44,6 +46,13 @@ function __init__()
         init_dict()
         init_set()
         init_callback()
+        # add packages to juliacall
+        jl = pyjuliacallmodule
+        jl.Core = Core
+        jl.Base = Base
+        jl.Main = Main
+        jl.Pkg = Pkg
+        jl.PythonCall = PythonCall
     end
 end
 

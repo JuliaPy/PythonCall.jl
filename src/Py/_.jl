@@ -22,12 +22,15 @@ include("config.jl")
 include("consts.jl")
 include("builtins.jl")
 include("stdlib.jl")
+include("juliacall.jl")
 include("pyconst_macro.jl")
 
 function __init__()
     C.with_gil() do
         init_consts()
         init_datetime()
+        init_stdlib()
+        init_juliacall()
     end
 end
 

@@ -1,5 +1,6 @@
 const pyjuliacallmodule = pynew()
 const pyJuliaError = pynew()
+const CPyExc_JuliaError = Ref(C.PyNULL)
 
 function init_juliacall()
     # ensure the 'juliacall' module exists
@@ -28,6 +29,8 @@ function init_juliacall()
         @assert pystr_asstring(jl.__version__) == string(VERSION)
         @assert !pybool_asbool(jl.CONFIG["init"])
     end
+    pycopy!(pyJuliaError, jl.JuliaError)
+    CPyExc_JuliaError[] = incref(getptr(pyJuliaError))
 end
 
 function init_juliacall_2()
@@ -37,6 +40,4 @@ function init_juliacall_2()
     jl.Base = Base
     jl.Pkg = Pkg
     jl.PythonCall = PythonCall
-    pycopy!(pyJuliaError, jl.JuliaError)
-    C.POINTERS.PyExc_JuliaError = incref(getptr(pyJuliaError))
 end

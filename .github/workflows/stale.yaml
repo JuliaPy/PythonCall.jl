@@ -13,8 +13,9 @@ jobs:
       - uses: actions/stale@v8
         with:
           exempt-all-milestones: true
+          exempt-issue-labels: priority,help wanted
           days-before-issue-stale: 30
-          stale-issue-message: |
+          stale-issue-message: >
             Thank you for taking the time to report this issue!
 
             However, it has been marked as stale because there has been no activity for 30
@@ -28,12 +29,13 @@ jobs:
 
             If there is no further activity in 7 days, this issue will be automatically
             closed.
-          days-before-pr-stale: 60
-          stale-pr-message: |
+          exempt-pr-labels: priority,help wanted
+          days-before-pr-stale: 180
+          stale-pr-message: >
             Thank you for taking the time to create this pull request!
 
-            However, it has been marked as stale because there has been no activity for 60
-            days. As with many open source projects, the maintainers work for free and do
+            However, it has been marked as stale because there has been no activity for 6
+            months. As with many open source projects, the maintainers work for free and do
             not always have enough time to review all PRs.
 
             Please ensure that all tests are passing, and that any new functionality has
@@ -41,13 +43,13 @@ jobs:
             Also ensure any changes are documented or commented appropriately. If you're
             sure the PR is ready for review, please leave a comment below.
 
-            If there is no further activity in 7 days, this issue will be automatically
+            If there is no further activity in 30 days, this issue will be automatically
             closed.
           days-before-issue-close: 7
-          close-issue-message: |
+          close-issue-message: >
             This issue has been closed because it has been stale for 7 days. If it is still
             relevant, please re-open it.
           days-before-pr-close: 30
-          close-pr-message: |
+          close-pr-message: >
             This PR has been closed because it has been stale for 30 days. If it is still
             relevant, please re-open it.

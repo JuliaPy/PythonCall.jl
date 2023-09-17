@@ -47,6 +47,7 @@ py_finalizer(x::Py) = GC.enqueue(getptr(x))
 
 ispy(::Py) = true
 getptr(x::Py) = getfield(x, :ptr)
+pyconvert(::Type{Py}, x::Py) = x
 
 setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, ptr); x)
 

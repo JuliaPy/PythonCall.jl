@@ -1149,7 +1149,7 @@ function pyeval(::Type{T}, code, globals, locals=nothing) where {T}
     globals_, locals_ = _pyeval_args(globals, locals)
     ans = pybuiltins.eval(code, globals_, locals_)
     pydel!(locals_)
-    return T == Py ? ans : pyconvert(T, ans)
+    return pyconvert(T, ans)
 end
 pyeval(code, globals, locals=nothing) = pyeval(Py, code, globals, locals)
 export pyeval

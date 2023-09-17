@@ -287,7 +287,7 @@ function pyjlarray_array_interface(x::AbstractArray{T,N}) where {T,N}
 end
 pyjl_handle_error_type(::typeof(pyjlarray_array_interface), x, exc) = pybuiltins.AttributeError
 
-function init_jlwrap_array()
+function init_array()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

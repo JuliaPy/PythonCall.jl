@@ -112,7 +112,7 @@ function pyjlvector_count(x::AbstractVector, v_::Py)
     Py(count(==(v), x))
 end
 
-function init_jlwrap_vector()
+function init_vector()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

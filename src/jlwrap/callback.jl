@@ -32,7 +32,7 @@ function pyjlcallback_call(self, args_::Py, kwargs_::Py)
 end
 pyjl_handle_error_type(::typeof(pyjlcallback_call), self, exc::MethodError) = exc.f === self ? pybuiltins.TypeError : PyNULL
 
-function init_jlwrap_callback()
+function init_callback()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

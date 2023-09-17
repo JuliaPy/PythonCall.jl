@@ -324,12 +324,6 @@ const PyTypePtr = Ptr{PyTypeObject}
     value::T
 end
 
-@kwdef struct PyJuliaValueObject
-    ob_base::PyObject = PyObject()
-    value::Int = 0
-    weaklist::PyPtr = C_NULL
-end
-
 @kwdef struct PyArrayInterface
     two::Cint = 0
     nd::Cint = 0

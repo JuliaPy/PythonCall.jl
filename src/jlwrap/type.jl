@@ -10,7 +10,7 @@ function pyjltype_getitem(self::Type, k_)
     end
 end
 
-function init_jlwrap_type()
+function init_type()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

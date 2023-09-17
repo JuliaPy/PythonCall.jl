@@ -9,10 +9,11 @@ include("Py/_.jl")
 include("pyconvert/_.jl")
 include("pymacro/_.jl")
 include("pywrap/_.jl")
+include("jlwrap/_.jl")
 include("compat/_.jl")
 
 # re-export everything
-for m in [:_Py, :_pyconvert, :_pymacro, :_pywrap, :_compat]
+for m in [:_Py, :_pyconvert, :_pymacro, :_pywrap, :_jlwrap, :_compat]
     for k in names(@eval($m))
         if k != m
             @eval using .$m: $k
@@ -24,6 +25,11 @@ end
 # non-exported API
 for k in [:C, :GC, :pynew, :pyisnull, :pycopy!, :getptr, :pydel!, :unsafe_pynext, :PyNULL]
     @eval const $k = _Py.$k
+end
+
+# not API but used in tests
+for k in [:pyjlanytype, :pyjlarraytype, :pyjlvectortype, :pyjlbinaryiotype, :pyjltextiotype, :pyjldicttype, :pyjlmoduletype, :pyjlintegertype, :pyjlrationaltype, :pyjlrealtype, :pyjlcomplextype, :pyjlsettype, :pyjltypetype]
+    @eval const $k = _jlwrap.$k
 end
 
 end

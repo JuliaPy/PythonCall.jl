@@ -13,7 +13,7 @@ function pyjlmodule_seval(self::Module, expr::Py)
     Py(Base.eval(self, Meta.parse(pyconvert(String, expr))))
 end
 
-function init_jlwrap_module()
+function init_module()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

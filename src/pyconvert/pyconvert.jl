@@ -388,9 +388,6 @@ function init_pyconvert()
     push!(PYCONVERT_EXTRATYPES, pyimport("numbers"=>("Number", "Complex", "Real", "Rational", "Integral"))...)
     push!(PYCONVERT_EXTRATYPES, pyimport("collections.abc" => ("Iterable", "Sequence", "Set", "Mapping"))...)
 
-    priority = PYCONVERT_PRIORITY_WRAP
-    # pyconvert_add_rule("juliacall:ValueBase", Any, pyconvert_rule_jlvalue, priority)
-
     priority = PYCONVERT_PRIORITY_CANONICAL
     pyconvert_add_rule("builtins:NoneType", Nothing, pyconvert_rule_none, priority)
     pyconvert_add_rule("builtins:bool", Bool, pyconvert_rule_bool, priority)

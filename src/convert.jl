@@ -64,6 +64,7 @@ Other priorities are reserved for internal use.
 function pyconvert_add_rule(pytypename::String, type::Type, func::Function, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL)
     @nospecialize type func
     push!(get!(Vector{PyConvertRule}, PYCONVERT_RULES, pytypename), PyConvertRule(type, func, priority))
+    empty!.(values(PYCONVERT_RULES_CACHE))
     return
 end
 

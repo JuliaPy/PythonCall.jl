@@ -222,3 +222,18 @@ end
     x1 = pyconvert(DateTime, pydatetime(2001, 2, 3, 4, 5, 6, 7000))
     @test x1 === DateTime(2001, 2, 3, 4, 5, 6, 7)
 end
+
+@testitem "pyconvert_add_rule (#364)" begin
+    pyexec("""
+    class Hello_364:
+        pass
+    """, @__MODULE__)
+    x = pyeval("Hello_364()", @__MODULE__)
+    @test pyconvert(Any, x) === x
+    t = pytype(x)
+    PythonCall.pyconvert_add_rule(pyconvert(Any, t.__module__)*":"*pyconvert(Any, t.__qualname__), String, (_, _) -> "Hello!!")
+    @test pyconvert(String, x) == "Hello!!"
+    @test pyconvert(Any, x) == "Hello!!" # Broken before PR #365
+end
+
+end

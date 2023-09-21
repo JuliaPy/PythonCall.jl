@@ -16,17 +16,17 @@ const PYCONVERT_RULES = Dict{String, Vector{PyConvertRule}}()
 const PYCONVERT_EXTRATYPES = Py[]
 
 """
-    pyconvert_add_rule(tname::String, T::Type, func::Function, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL)
+    pyconvert_add_rule(func::Function, tname::String, T::Type, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL)
 
 Add a new conversion rule for `pyconvert`.
 
 ### Arguments
 
+- `func` is the function implementing the rule.
 - `tname` is a string of the form `"__module__:__qualname__"` identifying a Python type `t`,
   such as `"builtins:dict"`. This rule only applies to Python objects of this type.
 - `T` is a Julia type, such that this rule only applies when the target type intersects
   with `T`.
-- `func` is the function implementing the rule.
 - `priority` determines whether to prioritise this rule above others.
 
 When `pyconvert(R, x)` is called, all rules such that `typeintersect(T, R) != Union{}`
@@ -61,11 +61,14 @@ given Python type.
 
 Other priorities are reserved for internal use.
 """
-function pyconvert_add_rule(pytypename::String, type::Type, func::Function, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL)
+function pyconvert_add_rule(func::Function, pytypename::String, type::Type, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL)
     @nospecialize type func
     push!(get!(Vector{PyConvertRule}, PYCONVERT_RULES, pytypename), PyConvertRule(type, func, priority))
     return
 end
+
+@deprecate(convert_add_rule(pytypename::String, type::Type, func::Function, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL),
+    pyconvert_add_rule(func, pytypename, type, priority), false)
 
 # Alternative ways to represent the result of conversion.
 if true

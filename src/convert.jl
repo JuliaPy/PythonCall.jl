@@ -67,7 +67,7 @@ function pyconvert_add_rule(func::Function, pytypename::String, type::Type, prio
     return
 end
 
-@deprecate(convert_add_rule(pytypename::String, type::Type, func::Function, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL),
+@deprecate(pyconvert_add_rule(pytypename::String, type::Type, func::Function, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL),
     pyconvert_add_rule(func, pytypename, type, priority), false)
 
 # Alternative ways to represent the result of conversion.

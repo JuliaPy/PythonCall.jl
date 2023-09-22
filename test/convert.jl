@@ -224,14 +224,15 @@ end
 end
 
 @testitem "pyconvert_add_rule (#364)" begin
+    id = string(rand(UInt128), base=16)
     pyexec("""
-    class Hello_364:
+    class Hello_364_$id:
         pass
     """, @__MODULE__)
-    x = pyeval("Hello_364()", @__MODULE__)
-    @test pyconvert(Any, x) === x
+    x = pyeval("Hello_364_$id()", @__MODULE__)
+    @test pyconvert(Any, x) === x # This test has a side effect of influencing the rules cache
     t = pytype(x)
-    PythonCall.pyconvert_add_rule(pyconvert(Any, t.__module__)*":"*pyconvert(Any, t.__qualname__), String, (_, _) -> "Hello!!")
+    PythonCall.pyconvert_add_rule("$(t.__module__):$(t.__qualname__)", String, (_, _) -> "Hello!!")
     @test pyconvert(String, x) == "Hello!!"
     @test pyconvert(Any, x) == "Hello!!" # Broken before PR #365
 end

@@ -1,4 +1,4 @@
-using Documenter, PythonCall, Markdown
+using Documenter, PythonCall
 
 include("customdocs.jl")
 

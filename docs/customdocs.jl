@@ -2,7 +2,7 @@ module CustomDocs
 
 import Base: Docs
 import Documenter
-import Documenter: Markdown, MarkdownAST, doccat
+import Documenter: DocSystem, Markdown, MarkdownAST, doccat
 import Documenter.Selectors: order, matcher, runner
 
 # This is a bit of a hack to let us insert documentation blocks with custom content.
@@ -32,50 +32,44 @@ function matcher(::Type{CustomDocExpander}, node, page, doc)
     return Documenter.iscode(node, "@customdoc")
 end
 
+# source:
+# https://github.com/JuliaDocs/Documenter.jl/blob/7d3dc2ceef39a62edf2de7081e2d3aaf9be8d7c3/src/expander_pipeline.jl#L353
 function runner(::Type{CustomDocExpander}, node, page, doc)
+    @assert node.element isa MarkdownAST.CodeBlock
+
     block = node.element
 
-    header, body = split(block.code, "\n", limit=2)
+    m = match(r"^(.+?)\s*-\s*(.+?)\s*(\n[\s\S]*)$", strip(block.code))
 
-    docstring = Markdown.parse(body)
+    @assert !isnothing(m) "Invalid header:\n$(block.code)"
 
-    name, cat = split(header, "-", limit=2)
+    name = Symbol(m[1])
+    cat = Symbol(m[2])
+    body = strip(something(m[3], ""))
 
-    binding = Docs.Binding(Main, Symbol(strip(name)))
+    binding = DocSystem.binding(Main, name)
 
-    object = Documenter.Object(binding, CustomCat{Symbol(strip(cat))})
+    docsnodes = MarkdownAST.Node[]
 
-    # source:
-    # https://github.com/JuliaDocs/Documenter.jl/blob/7d3dc2ceef39a62edf2de7081e2d3aaf9be8d7c3/src/expander_pipeline.jl#L959
+    object = Documenter.Object(binding, CustomCat{cat})
 
-    # Generate a unique name to be used in anchors and links for the docstring.
-    slug = Documenter.slugify(object)
-    anchor = Documenter.anchor_add!(doc.internal.docs, object, slug, page.build)
-    docsnode = Documenter.DocsNode(anchor, object, page)
+    docstr = Markdown.MD[Markdown.parse(body)]
+    results = Docs.DocStr[Docs.docstr(body, Dict{Symbol,Any}(:module => Main, :path => "", :linenumber => 0))]
 
-    ast = convert(MarkdownAST.Node, docstring)
-    doc.user.highlightsig && Documenter.highlightsig!(ast)
+    docsnode = Documenter.create_docsnode(docstr, results, object, page, doc)
 
-    # The following 'for' corresponds to the old dropheaders() function
-    for headingnode in ast.children
-        headingnode.element isa MarkdownAST.Heading || continue
-        
-        boldnode = MarkdownAST.Node(MarkdownAST.Strong())
+    # Track the order of insertion of objects per-binding.
+    push!(get!(doc.internal.bindings, binding, Documenter.Object[]), object)
 
-        for textnode in collect(headingnode.children)
-            push!(boldnode.children, textnode)
-        end
+    doc.internal.objects[object] = docsnode.element
 
-        headingnode.element = MarkdownAST.Paragraph()
+    push!(docsnodes, docsnode)
 
-        push!(headingnode.children, boldnode)
-    end
+    node.element = Documenter.DocsNodesBlock(block)
+    
+    push!(node.children, docsnode)
 
-    push!(docsnode.mdasts, ast)
-    # push!(docsnode.results, result)
-    push!(docsnode.metas, docstring.meta)
-
-    node.element = docsnode
+    return nothing
 end
 
 end # module CustomDocs

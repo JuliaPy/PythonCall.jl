@@ -28,5 +28,6 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/JuliaPy/PythonCall.jl.git",
+    repo = raw"github.com/JuliaPy/PythonCall.jl.git",
+    push_preview = true
 )

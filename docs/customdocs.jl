@@ -56,7 +56,8 @@ function runner(::Type{CustomDocExpander}, node, page, doc)
     docstr = Markdown.MD[Markdown.parse(body)]
     results = Docs.DocStr[Docs.docstr(body, Dict{Symbol,Any}(:module => Main, :path => "", :linenumber => 0))]
 
-    docsnode = Documenter.create_docsnode(docstr, results, object, page, doc)
+    # NOTE: This was modified because the original Documenter.create_docsnode was generating unreachable links
+    docsnode = _create_docsnode(docstr, results, object, page, doc)
 
     # Track the order of insertion of objects per-binding.
     push!(get!(doc.internal.bindings, binding, Documenter.Object[]), object)
@@ -66,10 +67,42 @@ function runner(::Type{CustomDocExpander}, node, page, doc)
     push!(docsnodes, docsnode)
 
     node.element = Documenter.DocsNodesBlock(block)
-    
+
     push!(node.children, docsnode)
 
     return nothing
+end
+
+# source:
+# https://github.com/JuliaDocs/Documenter.jl/blob/7d3dc2ceef39a62edf2de7081e2d3aaf9be8d7c3/src/expander_pipeline.jl#L959-L960
+function _create_docsnode(docstrings, results, object, page, doc)
+    # Generate a unique name to be used in anchors and links for the docstring.
+    # NOTE: The way this is being slugified is causing problems:
+    # slug = Documenter.slugify(object) 
+    slug = Documenter.slugify(string(object.binding))
+
+    anchor = Documenter.anchor_add!(doc.internal.docs, object, slug, page.build)
+    docsnode = Documenter.DocsNode(anchor, object, page)
+
+    # Convert docstring to MarkdownAST, convert Heading elements, and push to DocsNode
+    for (markdown, result) in zip(docstrings, results)
+        ast = convert(MarkdownAST.Node, markdown)
+        doc.user.highlightsig && Documenter.highlightsig!(ast)
+        # The following 'for' corresponds to the old dropheaders() function
+        for headingnode in ast.children
+            headingnode.element isa MarkdownAST.Heading || continue
+            boldnode = MarkdownAST.Node(MarkdownAST.Strong())
+            for textnode in collect(headingnode.children)
+                push!(boldnode.children, textnode)
+            end
+            headingnode.element = MarkdownAST.Paragraph()
+            push!(headingnode.children, boldnode)
+        end
+        push!(docsnode.mdasts, ast)
+        push!(docsnode.results, result)
+        push!(docsnode.metas, markdown.meta)
+    end
+    return MarkdownAST.Node(docsnode)
 end
 
 end # module CustomDocs

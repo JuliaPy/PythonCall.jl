@@ -1,7 +1,10 @@
 # Release Notes
 
 ## Unreleased
-* JuliaCall now supports `-X juliacall-startup-file=no` to disable running startup.jl.
+* JuliaCall now supports `-X juliacall-startup-file=yes` to *enable* running startup.jl.
+  Previous versions enabled it by default like Julia does. When Julia is the main language,
+  i.e. PythonCall.jl used, Julia's default is still used, i.e. using the startup.jl file,
+  but that can be disabled with `julia --startup-file=no`.
 
 ## 0.9.14 (2023-07-26)
 * Wrapped Julia values support truthiness (`__bool__`) better: all values are true, except

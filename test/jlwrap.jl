@@ -149,11 +149,11 @@ end
 end
 
 @testitem "base" begin
-    
+
 end
 
 @testitem "callback" begin
-    
+
 end
 
 @testitem "dict" begin
@@ -193,6 +193,11 @@ end
     @testset "bool" begin
         @test pytruth(pyjl(PythonCall))
     end
+    @testset "seval" begin
+        m = Py(Main)
+        @test pyconvert(Any, m.seval("1 + 1")) === 2 # Basic behavior
+        @test pyconvert(Any, m.seval("1 + 1\n ")) === 2 # Trailing whitespace
+    end
 end
 
 @testitem "number" begin
@@ -218,11 +223,11 @@ end
 end
 
 @testitem "objectarray" begin
-    
+
 end
 
 @testitem "raw" begin
-    
+
 end
 
 @testitem "set" begin

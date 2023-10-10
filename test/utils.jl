@@ -11,3 +11,9 @@ end
     @test s[1:2] == "ab"
     @test s[1:2:end] == "aaaab"
 end
+
+@testitem "seval" begin
+    m = Py(Main)
+    @test m.seval("1 + 1") === 2 # Basic behavior
+    @test m.seval("1 + 1\n ") === 2 # Trailing whitespace
+end

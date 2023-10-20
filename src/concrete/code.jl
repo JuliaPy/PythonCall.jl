@@ -6,7 +6,7 @@ function _pyeval_args(globals, locals)
     elseif ispy(globals)
         globals_ = globals
     else
-        ArgumentError("globals must be a module or a Python dict")
+        throw(ArgumentError("globals must be a module or a Python dict"))
     end
     if locals === nothing
         locals_ = pynew(Py(globals_))

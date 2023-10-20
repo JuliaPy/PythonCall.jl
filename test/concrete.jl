@@ -286,5 +286,61 @@ end
 end
 
 @testitem "code" begin
-    # TODO
+    # check for ArgumentError when inputs are mixed up
+    @test_throws ArgumentError pyeval(Main, "1+1")
+    @test_throws ArgumentError pyeval(Main, Main)
+    @test_throws ArgumentError pyeval("1+1", "1+1")
+    @test_throws ArgumentError pyexec(Main, "1+1")
+    @test_throws ArgumentError pyexec(Main, Main)
+    @test_throws ArgumentError pyexec("1+1", "1+1")
+    # basic code execution
+    m = Module(:test)
+    g = pydict()
+    @test pyeq(Bool, pyeval("1+1", m), 2)
+    @test pyeq(Bool, pyeval("1+1", g), 2)
+    @test pyeq(Bool, pyeval(pystr("1+1"), g), 2)
+    @test pyexec("1+1", m) === nothing
+    @test pyexec("1+1", g) === nothing
+    @test pyexec(pystr("1+1"), g) === nothing
+    # check the globals are what we think they are
+    @test pyis(pyeval("globals()", g), g)
+    mg = pyeval("globals()", m)
+    @test pyisinstance(mg, pybuiltins.dict)
+    # these automatically gain 1 item, __builtins__
+    @test length(g) == 1
+    @test length(mg) == 1
+    @test pycontains(g, "__builtins__")
+    @test pycontains(mg, "__builtins__")
+    # code should fail when x does not exist
+    @test_throws PyException pyeval("x+1", g)
+    @test_throws PyException pyeval("x+1", g)
+    # now set x and try again
+    g["x"] = 1
+    @test pyeq(Bool, pyeval("x+1", g), 2)
+    # set x using pyexec this time
+    pyexec("x=2", g)
+    @test pyeq(Bool, g["x"], 2)
+    @test pyeq(Bool, pyeval("x+1", g), 3)
+    # now use locals
+    # check empty locals have no effect
+    l = pydict()
+    @test pyeq(Bool, pyeval("x+1", g, l), 3)
+    @test pyeq(Bool, pyeval("x+1", g, Dict()), 3)
+    # now set x locally
+    l["x"] = 3
+    @test pyeq(Bool, pyeval("x+1", g, l), 4)
+    @test pyeq(Bool, pyeval("x+1", g, Dict()), 3)
+    @test pyeq(Bool, pyeval("x+1", g, Dict("x" => 0)), 1)
+    @test pyeq(Bool, pyeval("x+1", g, (x=1,)), 2)
+    # check pyexec runs in local scope
+    pyexec("x=4", g, l)
+    @test pyeq(Bool, g["x"], 2)
+    @test pyeq(Bool, l["x"], 4)
+    # check global code runs in global scope
+    pyexec("global y; y=x+1", g, l)
+    @test pyeq(Bool, g["y"], 5)
+    @test !pycontains(l, "y")
+    # check pyeval converts types correctly
+    @test pyeval(Int, "1+1", g) === 2
+    @test pyeval(Nothing, "None", g) === nothing
 end

@@ -73,7 +73,7 @@ function pyjlset_symmetric_difference_update(x::AbstractSet, vs_::Py)
     Py(nothing)
 end
 
-function init_jlwrap_set()
+function init_set()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

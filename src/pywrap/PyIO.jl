@@ -76,7 +76,7 @@ function PyIO(f::Function, o; opts...)
     try
         return f(io)
     finally
-        pydel!(io)
+        pydel!(io.py)
     end
 end
 

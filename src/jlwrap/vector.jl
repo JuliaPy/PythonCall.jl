@@ -84,7 +84,6 @@ function pyjlvector_remove(x::AbstractVector, v_::Py)
         errset(pybuiltins.ValueError, "value not in array")
         return PyNULL
     end
-    v = pyconvert_result(r)
     k = findfirst(==(v), x)
     if k === nothing
         errset(pybuiltins.ValueError, "value not in array")
@@ -112,7 +111,7 @@ function pyjlvector_count(x::AbstractVector, v_::Py)
     Py(count(==(v), x))
 end
 
-function init_jlwrap_vector()
+function init_vector()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

@@ -201,7 +201,7 @@ function pyjltextio_write(io::IO, s_::Py)
 end
 pyjl_handle_error_type(::typeof(pyjltextio_write), io, exc) = exc isa MethodError && exc.f === write ? pybuiltins.ValueError : PyNULL
 
-function init_jlwrap_io()
+function init_io()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

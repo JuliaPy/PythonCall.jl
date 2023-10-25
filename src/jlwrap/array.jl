@@ -137,14 +137,14 @@ pyjlarray_isbufferabletype(::Type{T}) where {T} = T in (
 )
 pyjlarray_isbufferabletype(::Type{T}) where {T<:Tuple} =
     isconcretetype(T) &&
-    PythonCall.allocatedinline(T) &&
+    allocatedinline(T) &&
     all(pyjlarray_isbufferabletype, fieldtypes(T))
 pyjlarray_isbufferabletype(::Type{NamedTuple{names,T}}) where {names,T} =
     pyjlarray_isbufferabletype(T)
 
 function pyjlarray_buffer_info(x::AbstractArray{T,N}) where {T,N}
     if pyjlarray_isbufferabletype(T)
-        C.PyBufferInfo{N}(
+        Cjl.PyBufferInfo{N}(
             ptr = Base.unsafe_convert(Ptr{T}, x),
             readonly = !Utils.ismutablearray(x),
             itemsize = sizeof(T),
@@ -287,7 +287,7 @@ function pyjlarray_array_interface(x::AbstractArray{T,N}) where {T,N}
 end
 pyjl_handle_error_type(::typeof(pyjlarray_array_interface), x, exc) = pybuiltins.AttributeError
 
-function init_jlwrap_array()
+function init_array()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

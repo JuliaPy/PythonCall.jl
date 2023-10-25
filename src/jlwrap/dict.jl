@@ -31,7 +31,7 @@ end
 
 const pyjldicttype = pynew()
 
-function init_jlwrap_dict()
+function init_dict()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

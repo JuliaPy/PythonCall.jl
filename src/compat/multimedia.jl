@@ -125,3 +125,23 @@ function init_pyshow()
     pyshow_add_rule(pyshow_rule_repr)
     pyshow_add_rule(pyshow_rule_savefig)
 end
+
+### Py
+
+Base.show(io::IO, mime::MIME, o::Py) = pyshow(io, mime, o)
+Base.show(io::IO, mime::MIME"text/csv", o::Py) = pyshow(io, mime, o)
+Base.show(io::IO, mime::MIME"text/tab-separated-values", o::Py) = pyshow(io, mime, o)
+Base.showable(mime::MIME, o::Py) = pyshowable(mime, o)
+
+### PyPandasDataFrame
+
+function Base.show(io::IO, mime::MIME"text/plain", df::PyPandasDataFrame)
+    nrows = pyconvert(Int, Py(df).shape[0])
+    ncols = pyconvert(Int, Py(df).shape[1])
+    printstyled(io, nrows, '×', ncols, ' ', typeof(df), '\n', bold=true)
+    pyshow(io, mime, df)
+end
+Base.show(io::IO, mime::MIME, df::PyPandasDataFrame) = pyshow(io, mime, df)
+Base.show(io::IO, mime::MIME"text/csv", df::PyPandasDataFrame) = pyshow(io, mime, df)
+Base.show(io::IO, mime::MIME"text/tab-separated-values", df::PyPandasDataFrame) = pyshow(io, mime, df)
+Base.showable(mime::MIME, df::PyPandasDataFrame) = pyshowable(mime, df)

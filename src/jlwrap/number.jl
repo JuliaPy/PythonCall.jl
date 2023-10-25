@@ -76,7 +76,7 @@ function pyjlreal_round(self::Real, ndigits_::Py)
 end
 pyjl_handle_error_type(::typeof(pyjlreal_round), self, exc::MethodError) = exc.f === round ? pybuiltins.TypeError : PyNULL
 
-function init_jlwrap_number()
+function init_number()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

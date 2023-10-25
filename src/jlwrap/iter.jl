@@ -25,7 +25,7 @@ function pyjliter_next(self::Iterator)
     end
 end
 
-function init_jlwrap_iter()
+function init_iter()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

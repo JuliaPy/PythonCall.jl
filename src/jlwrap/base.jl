@@ -1,10 +1,10 @@
 const pyjlbasetype = pynew()
 
-_pyjl_getvalue(x) = @autopy x C.PyJuliaValue_GetValue(getptr(x_))
+_pyjl_getvalue(x) = @autopy x Cjl.PyJuliaValue_GetValue(getptr(x_))
 
-_pyjl_setvalue!(x, v) = @autopy x C.PyJuliaValue_SetValue(getptr(x_), v)
+_pyjl_setvalue!(x, v) = @autopy x Cjl.PyJuliaValue_SetValue(getptr(x_), v)
 
-pyjl(t, v) = pynew(errcheck(@autopy t C.PyJuliaValue_New(getptr(t_), v)))
+pyjl(t, v) = pynew(errcheck(@autopy t Cjl.PyJuliaValue_New(getptr(t_), v)))
 
 """
     pyisjl(x)
@@ -16,7 +16,7 @@ export pyisjl
 
 pyjlisnull(x) = @autopy x begin
     if pyisjl(x_)
-        C.PyJuliaValue_IsNull(getptr(x_))
+        Cjl.PyJuliaValue_IsNull(getptr(x_))
     else
         error("Expecting a 'juliacall.ValueBase', got a '$(pytype(x_).__name__)'")
     end
@@ -36,21 +36,25 @@ pyjlvalue(x) = @autopy x begin
 end
 export pyjlvalue
 
-function init_jlwrap_base()
-    setptr!(pyjlbasetype, incref(C.POINTERS.PyJuliaBase_Type))
+function init_base()
+    setptr!(pyjlbasetype, incref(Cjl.PyJuliaBase_Type[]))
     pyjuliacallmodule.ValueBase = pyjlbasetype
+
+    # conversion rule
+    priority = PYCONVERT_PRIORITY_WRAP
+    pyconvert_add_rule("juliacall:ValueBase", Any, pyconvert_rule_jlvalue, priority)
 end
 
 pyconvert_rule_jlvalue(::Type{T}, x::Py) where {T} = pyconvert_tryconvert(T, _pyjl_getvalue(x))
 
-function C._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssize_t)
+function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssize_t)
     @nospecialize f
-    if C.PyJuliaValue_IsNull(self_)
+    if Cjl.PyJuliaValue_IsNull(self_)
         errset(pybuiltins.TypeError, "Julia object is NULL")
         return C.PyNULL
     end
     in_f = false
-    self = C.PyJuliaValue_GetValue(self_)
+    self = Cjl.PyJuliaValue_GetValue(self_)
     try
         if nargs == 1
             in_f = true
@@ -123,10 +127,12 @@ end
 
 function pyjl_methodnum(f)
     @nospecialize f
-    C.PyJulia_MethodNum(f)
+    Cjl.PyJulia_MethodNum(f)
 end
 
 function pyjl_handle_error_type(f, self, exc)
     @nospecialize f self exc
     PyNULL
 end
+
+Py(x) = ispy(x) ? throw(MethodError(Py, (x,))) : pyjl(x)

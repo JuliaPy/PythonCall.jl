@@ -28,18 +28,6 @@ pyconvert_rule_pandasdataframe(::Type{PyPandasDataFrame}, x::Py) = pyconvert_ret
 
 ### Show
 
-function Base.show(io::IO, mime::MIME"text/plain", df::PyPandasDataFrame)
-    nrows = pyconvert(Int, @py df.shape[0])
-    ncols = pyconvert(Int, @py df.shape[1])
-    printstyled(io, nrows, '×', ncols, ' ', typeof(df), '\n', bold=true)
-    pyshow(io, mime, df)
-end
-
-Base.show(io::IO, mime::MIME, df::PyPandasDataFrame) = pyshow(io, mime, df)
-Base.show(io::IO, mime::MIME"text/csv", df::PyPandasDataFrame) = pyshow(io, mime, df)
-Base.show(io::IO, mime::MIME"text/tab-separated-values", df::PyPandasDataFrame) = pyshow(io, mime, df)
-Base.showable(mime::MIME, df::PyPandasDataFrame) = pyshowable(mime, df)
-
 ### Tables
 
 Tables.istable(::Type{PyPandasDataFrame}) = true

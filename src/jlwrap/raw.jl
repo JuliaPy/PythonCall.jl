@@ -73,7 +73,7 @@ end
 pyjlraw_bool(self::Bool) = Py(self)
 pyjlraw_bool(self) = (errset(pybuiltins.TypeError, "Only Julia 'Bool' can be tested for truthyness"); PyNULL)
 
-function init_jlwrap_raw()
+function init_raw()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

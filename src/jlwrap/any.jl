@@ -172,7 +172,7 @@ function pyjlany_mimebundle(self, include::Py, exclude::Py)
     return ans
 end
 
-function init_jlwrap_any()
+function init_any()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))

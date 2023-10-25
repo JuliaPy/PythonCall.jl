@@ -1,5 +1,5 @@
 @testitem "any" begin
-    struct Foo
+    mutable struct Foo
         value::Int
     end
     Base.:(+)(x::Foo) = "+ $(x.value)"
@@ -17,6 +17,13 @@
     Base.:(>>)(x::Foo, y::Foo) = "$(x.value) >> $(y.value)"
     Base.:(&)(x::Foo, y::Foo) = "$(x.value) & $(y.value)"
     Base.:(|)(x::Foo, y::Foo) = "$(x.value) | $(y.value)"
+    Base.powermod(x::Foo, y::Foo, z::Foo) = "powermod($(x.value), $(y.value), $(z.value))"
+    (x::Foo)(args...; kw...) = "$(x.value)($args)$(length(kw))"
+    Base.getindex(x::Foo, idx...) = "$(x.value)[$idx]"
+    Base.setindex!(x::Foo, v, idx...) = (x.value = v+sum(idx); x)
+    Base.delete!(x::Foo, idx...) = (x.value = -sum(idx); x)
+    Base.in(v::Int, x::Foo) = x.value == v
+    Base.nameof(x::Foo) = "nameof $(x.value)"
     @testset "type" begin
         @test pyis(pytype(pyjl(Foo(1))), PythonCall.pyjlanytype)
         @test pyis(pytype(pyjl(nothing)), PythonCall.pyjlanytype)
@@ -28,20 +35,69 @@
         @test pytruth(pyjl(nothing))
         @test pytruth(pyjl(missing))
     end
+    @testset "repr" begin
+        @test pyrepr(String, pyjl(missing)) == "Julia: missing"
+    end
+    @testset "str" begin
+        @test pystr(String, pyjl(missing)) == "missing"
+    end
+    @testset "getattr" begin
+        @test pyconvert(Int, pygetattr(pyjl(Foo(12)), "value")) === 12
+    end
+    @testset "setattr" begin
+        x = Foo(12)
+        @test x.value == 12
+        pysetattr(x, "value", 34)
+        @test x.value == 34
+    end
+    @testset "dir" begin
+        @test pycontains(pydir(pyjl(Foo(99))), "value")
+    end
+    @testset "call" begin
+        z = pyjl(Foo(1))(4, 5)
+        @test pyconvert(String, z) == "1((4, 5))0"
+        z = pyjl(Foo(1))(4, 5; foo=true, bar=true)
+        @test pyconvert(String, z) == "1((4, 5))2"
+    end
+    @testset "getitem" begin
+        z = pygetitem(pyjl(Foo(1)), 3)
+        @test pyconvert(String, z) == "1[(3,)]"
+        z = pygetitem(pyjl(Foo(1)), (4, 5))
+        @test pyconvert(String, z) == "1[(4, 5)]"
+    end
+    @testset "setitem" begin
+        z = Foo(0)
+        x = pyjl(z)
+        pysetitem(x, 10, 3)
+        @test z.value == 13
+        pysetitem(x, (10, 10), 4)
+        @test z.value == 24
+    end
+    @testset "delitem" begin
+        z = Foo(0)
+        x = pyjl(z)
+        pydelitem(x, 9)
+        @test z.value == -9
+        pydelitem(x, (3, 4))
+        @test z.value == -7
+    end
+    @testset "contains" begin
+        @test pycontains(pyjl(Foo(45)), 45)
+    end
     @testset "pos" begin
-        z = pyjl(+Foo(1))
+        z = +(pyjl(Foo(1)))
         @test pyconvert(String, z) == "+ 1"
     end
     @testset "neg" begin
-        z = pyjl(-Foo(1))
+        z = -(pyjl(Foo(1)))
         @test pyconvert(String, z) == "- 1"
     end
     @testset "abs" begin
-        z = pyjl(abs(Foo(1)))
+        z = abs(pyjl(Foo(1)))
         @test pyconvert(String, z) == "abs 1"
     end
     @testset "inv" begin
-        z = pyjl(~Foo(1))
+        z = ~(pyjl(Foo(1)))
         @test pyconvert(String, z) == "~ 1"
     end
     @testset "add" begin
@@ -131,6 +187,31 @@
     @testset "ror" begin
         z = pyjlraw(Foo(1)) | pyjl(Foo(2))
         @test pyconvert(String, z) == "1 | 2"
+    end
+    @testset "pow3" begin
+        z = pypow(pyjl(Foo(1)), pyjl(Foo(2)), pyjl(Foo(3)))
+        @test pyconvert(String, z) == "powermod(1, 2, 3)"
+    end
+    @testset "rpow3" begin
+        z = pyjl(Foo(2)).__rpow__(pyjl(Foo(1)), pyjl(Foo(3)))
+        @test pyconvert(String, z) == "powermod(1, 2, 3)"
+    end
+    @testset "name" begin
+        z = pyjl(Foo(135)).__name__
+        @test pyconvert(String, z) == "nameof 135"
+    end
+    @testset "mimebundle" begin
+        z = pyjl(Foo(1))._repr_mimebundle_()
+        @test pyisinstance(z, pybuiltins.dict)
+        @test pycontains(z, "text/plain")
+    end
+    @testset "display" begin
+        pyjl(Foo(1))._jl_display()
+        pyjl(Foo(1))._jl_display(mime="text/plain")
+    end
+    @testset "help" begin
+        pyjl(Foo(1))._jl_help()
+        pyjl(Foo(1))._jl_help(mime="text/plain")
     end
 end
 

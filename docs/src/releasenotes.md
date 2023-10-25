@@ -2,6 +2,9 @@
 
 ## Unreleased
 * JuliaCall now supports `-X juliacall-startup-file=no` to disable running startup.jl.
+* If you are using CondaPkg then Python can optionally now be installed from the anaconda
+  channel (instead of only conda-forge).
+* Bug fixes.
 
 ## 0.9.14 (2023-07-26)
 * Wrapped Julia values support truthiness (`__bool__`) better: all values are true, except

@@ -1,38 +1,11 @@
-using Documenter, PythonCall, Markdown
+using Documenter, PythonCall
 
-# This is a bit of a hack to let us insert documentation blocks with custom content.
-# It means we can document Python things directly in the documentation source, and they
-# are searchable.
-#
-# It's a hack because of the `doccat` overload, requiring a special kind of "signature"
-# to embed the information we want.
-#
-# The first line is of the form "name - category", the rest is Markdown documentation.
-# For example:
-# ```@customdoc
-# foo - Function
-# Documentation for `foo`.
-# ```
-struct CustomCat{cat} end
-Documenter.Utilities.doccat(::Base.Docs.Binding, ::Type{CustomCat{cat}}) where {cat} = string(cat)
-struct CustomDocBlocks <: Documenter.Expanders.ExpanderPipeline end
-Documenter.Expanders.Selectors.order(::Type{CustomDocBlocks}) = 20.0
-Documenter.Expanders.Selectors.matcher(::Type{CustomDocBlocks}, node, page, doc) = Documenter.Expanders.iscode(node, "@customdoc")
-Documenter.Expanders.Selectors.runner(::Type{CustomDocBlocks}, x, page, doc) = begin
-    header, rest = split(x.code, "\n", limit=2)
-    docstr = Markdown.parse(rest)
-    name, cat = split(header, "-", limit=2)
-    binding = Docs.Binding(Main, Symbol(strip(name)))
-    object = Documenter.Utilities.Object(binding, CustomCat{Symbol(strip(cat))})
-    slug = Documenter.Utilities.slugify(strip(name))
-    anchor = Documenter.Anchors.add!(doc.internal.docs, object, slug, page.build)
-    node = Documenter.Documents.DocsNode(docstr, anchor, object, page)
-    page.mapping[x] = node
-end
+include("customdocs.jl")
 
 makedocs(
     sitename = "PythonCall & JuliaCall",
     modules = [PythonCall],
+    warnonly = [:missing_docs], # avoid raising error when docs are missing
     pages = [
         "Home" => "index.md",
         "The Julia module PythonCall" => [
@@ -55,5 +28,6 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/JuliaPy/PythonCall.jl.git",
+    repo = raw"github.com/JuliaPy/PythonCall.jl.git",
+    push_preview = true
 )

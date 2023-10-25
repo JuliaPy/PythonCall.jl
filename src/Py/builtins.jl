@@ -1107,13 +1107,20 @@ export pyfraction
 
 const MODULE_GLOBALS = Dict{Module,Py}()
 
-function _pyeval_args(globals, locals)
+function _pyeval_args(code, globals, locals)
+    if code isa AbstractString
+        code_ = code
+    elseif ispy(code)
+        code_ = code
+    else
+        throw(ArgumentError("code must be a string or Python code"))
+    end
     if globals isa Module
         globals_ = get!(pydict, MODULE_GLOBALS, globals)
     elseif ispy(globals)
         globals_ = globals
     else
-        ArgumentError("globals must be a module or a Python dict")
+        throw(ArgumentError("globals must be a module or a Python dict"))
     end
     if locals === nothing
         locals_ = pynew(Py(globals_))
@@ -1122,7 +1129,7 @@ function _pyeval_args(globals, locals)
     else
         locals_ = pydict(locals)
     end
-    return (globals_, locals_)
+    return (code_, globals_, locals_)
 end
 
 """
@@ -1146,8 +1153,8 @@ pyeval(Float64, "x+y", Main, (x=1.1, y=2.2))  # returns 3.3
 ```
 """
 function pyeval(::Type{T}, code, globals, locals=nothing) where {T}
-    globals_, locals_ = _pyeval_args(globals, locals)
-    ans = pybuiltins.eval(code, globals_, locals_)
+    code_, globals_, locals_ = _pyeval_args(code, globals, locals)
+    ans = pybuiltins.eval(code_, globals_, locals_)
     pydel!(locals_)
     return pyconvert(T, ans)
 end
@@ -1201,8 +1208,8 @@ pyeval(Int, "x", Main)  # returns 12
 ```
 """
 function pyexec(::Type{T}, code, globals, locals=nothing) where {T}
-    globals_, locals_ = _pyeval_args(globals, locals)
-    pydel!(pybuiltins.exec(code, globals_, locals_))
+    code_, globals_, locals_ = _pyeval_args(code, globals, locals)
+    pydel!(pybuiltins.exec(code_, globals_, locals_))
     ans = _pyexec_ans(T, globals_, locals_)
     pydel!(locals_)
     return ans

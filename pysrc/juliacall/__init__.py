@@ -1,7 +1,7 @@
 # This module gets modified by PythonCall when it is loaded, e.g. to include Core, Base
 # and Main modules.
 
-__version__ = '0.9.14'
+__version__ = '0.9.15'
 
 _newmodule = None
 
@@ -53,6 +53,15 @@ def init():
     import ctypes as c
     import sys
     import subprocess
+    import warnings
+
+    # importing pytorch before juliacall sometimes causes segfaults. TODO: remove
+    if "torch" in sys.modules:
+        warnings.warn(
+            "torch was imported before juliacall. This may cause a segfault. "
+            "To avoid this, import juliacall before importing torch. "
+            "For updates, see https://github.com/pytorch/pytorch/issues/78829."
+        )
 
     def option(name, default=None, xkey=None, envkey=None):
         """Get an option.

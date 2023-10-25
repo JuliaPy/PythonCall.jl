@@ -5,7 +5,7 @@ Defines the `Py` type and directly related functions.
 """
 module _Py
 
-const VERSION = v"0.9.14"
+const VERSION = v"0.9.15"
 const ROOT_DIR = dirname(dirname(@__DIR__))
 
 using .._CPython: _CPython as C

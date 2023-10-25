@@ -99,6 +99,9 @@ end
     @testset "iterate" begin
         @test collect(z) == ["foo" => 12]
     end
+    @testset "iterate keys" begin
+        @test collect(keys(z)) == ["foo"]
+    end
     @testset "getindex" begin
         @test z["foo"] === 12
         @test_throws KeyError z["bar"]
@@ -339,6 +342,25 @@ end
 end
 
 @testitem "PyPandasDataFrame" begin
+    using Tables
+    @test PyPandasDataFrame isa Type
+    # TODO: figure out how to get pandas into the test environment
+    # for now use some dummy type and take advantage of the fact that the code doesn't actually check it's a real dataframe
+    @pyexec """
+    class DataFrame:
+        def __init__(self, **kw):
+            self.__dict__.update(kw)
+    """ => DataFrame
+    df = DataFrame(shape=(4, 3), columns=pylist(["foo", "bar", "baz"]))
+    x = PyPandasDataFrame(df)
+    @test ispy(x)
+    @test Py(x) === df
+    @test Tables.istable(x)
+    @test Tables.columnaccess(x)
+    @test_throws Exception Tables.columns(x)
+    @test_throws Exception pyconvert(PyPandasDataFrame, 1)
+    str = sprint(show, MIME("text/plain"), x)
+    @test occursin(r"4×3 .*PyPandasDataFrame", str)
 end
 
 @testitem "PySet" begin
@@ -441,4 +463,7 @@ end
 end
 
 @testitem "PyTable" begin
+    # TODO: figure out how to get pandas into the test environment
+    @test PyTable isa Type
+    @test_throws r"cannot convert this Python 'int' to a Julia '.*PyTable'" PyTable(0)
 end

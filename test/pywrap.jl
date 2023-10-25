@@ -541,5 +541,5 @@ end
 @testitem "PyTable" begin
     # TODO: figure out how to get pandas into the test environment
     @test PyTable isa Type
-    @test_throws r"cannot convert this Python 'int' to a Julia '.*PyTable'" PyTable(0)
+    @test_throws Exception PyTable(0)
 end

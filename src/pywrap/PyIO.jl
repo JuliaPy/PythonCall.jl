@@ -100,7 +100,7 @@ function getibuf(io::PyIO)
         if io.text
             append!(io.ibuf, pystr_asUTF8vector(data))
         else
-            append!(io.obuf, pybytes_asvector(data))
+            append!(io.ibuf, pybytes_asvector(data))
         end
         pydel!(data)
     end

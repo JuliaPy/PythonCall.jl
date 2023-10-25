@@ -174,6 +174,82 @@ end
 end
 
 @testitem "PyIO" begin
+    b0 = pyimport("io").BytesIO()
+    s0 = pyimport("io").StringIO()
+    b = PyIO(b0)
+    s = PyIO(s0)
+    @testset "ispy" begin
+        @test ispy(b)
+        @test ispy(s)
+    end
+    @testset "Py" begin
+        @test Py(b) === b0
+        @test Py(s) === s0
+    end
+    @testset "test" begin
+        @test !b.text
+        @test s.text
+    end
+    @testset "convert" begin
+        ss = pyconvert(PyIO, s)
+        bb = pyconvert(PyIO, b)
+        @test ss isa PyIO
+        @test bb isa PyIO
+        @test Py(ss) === s0
+        @test Py(bb) === b0
+    end
+    @testset "io" for io in [b, s]
+        @test eof(io)
+        @test position(io) == 0
+        @test write(io, "hello") == 5
+        @test position(io) == 5
+        @test eof(io)
+        seekstart(io)
+        flush(io)
+        @test position(io) == 0
+        @test !eof(io)
+        flush(io)
+        @test read(io, String) == "hello"
+        @test eof(io)
+        seekstart(io)
+        @test position(io) == 0
+        seekend(io)
+        @test position(io) == 5
+        @test eof(io)
+        seek(io, 0)
+        @test position(io) == 0
+        @test !eof(io)
+        seek(io, 3)
+        @test position(io) == 3
+        @test !eof(io)
+        seek(io, 5)
+        @test position(io) == 5
+        @test eof(io)
+        seekstart(io)
+        truncate(io, 3)
+        @test position(io) == 0
+        @test read(io, String) == "hel"
+        @test position(io) == 3
+        @test eof(io)
+    end
+    @testset "isreadable" begin
+        @test isreadable(b)
+        @test isreadable(s)
+    end
+    @testset "iswritable" begin
+        @test iswritable(b)
+        @test iswritable(s)
+    end
+    @testset "isopen" begin
+        @test isopen(b)
+        @test isopen(s)
+    end
+    @testset "close" begin
+        close(b)
+        close(s)
+        @test !isopen(b)
+        @test !isopen(s)
+    end
 end
 
 @testitem "PyIterable" begin

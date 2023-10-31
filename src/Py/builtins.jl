@@ -725,8 +725,8 @@ The `dict` may either by a Python object or a Julia iterable. In the latter case
 may either be a `name => value` pair or a Python object with a `__name__` attribute.
 
 In order to use a Julia `Function` as an instance method, it must be wrapped into a Python
-function with [`pyfunc`](@ref). Similarly, see also [`pyclassmethod`](@ref),
-[`pystaticmethod`](@ref) or [`pyproperty`](@ref). In all these cases, the arguments passed
+function with [`pyfunc`](@ref PythonCall.pyfunc). Similarly, see also [`pyclassmethod`](@ref PythonCall.pyclassmethod),
+[`pystaticmethod`](@ref PythonCall.pystaticmethod) or [`pyproperty`](@ref PythonCall.pyproperty). In all these cases, the arguments passed
 to the function always have type `Py`. See the example below.
 
 # Example

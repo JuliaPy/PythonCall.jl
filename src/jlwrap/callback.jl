@@ -101,7 +101,7 @@ export pyfunc
 Convert callable `f` to a Python class method.
 
 If `f` is not a Python object (e.g. if `f` is a `Function`) then it is converted to one with
-[`pyfunc`](@ref). In particular this means the arguments passed to `f` are always of type
+[`pyfunc`](@ref PythonCall.pyfunc). In particular this means the arguments passed to `f` are always of type
 `Py`. Keyword arguments are passed to `pyfunc`.
 """
 pyclassmethod(f; kw...) = pybuiltins.classmethod(ispy(f) ? f : pyfunc(f; kw...))
@@ -113,7 +113,7 @@ export pyclassmethod
 Convert callable `f` to a Python static method.
 
 If `f` is not a Python object (e.g. if `f` is a `Function`) then it is converted to one with
-[`pyfunc`](@ref). In particular this means the arguments passed to `f` are always of type
+[`pyfunc`](@ref PythonCall.pyfunc). In particular this means the arguments passed to `f` are always of type
 `Py`. Any keyword arguments are passed to `pyfunc`.
 """
 pystaticmethod(f; kw...) = pybuiltins.staticmethod(ispy(f) ? f : pyfunc(f; kw...))
@@ -126,7 +126,7 @@ export pystaticmethod
 Create a Python `property` with the given getter, setter and deleter.
 
 If `get`, `set` or `del` is not a Python object (e.g. if it is a `Function`) then it is
-converted to one with [`pyfunc`](@ref). In particular this means the arguments passed to it
+converted to one with [`pyfunc`](@ref PythonCall.pyfunc). In particular this means the arguments passed to it
 are always of type `Py`.
 """
 pyproperty(; get=nothing, set=nothing, del=nothing, doc=nothing) =

@@ -8,6 +8,7 @@ module _Py
 const VERSION = v"0.9.15"
 const ROOT_DIR = dirname(dirname(@__DIR__))
 
+using ..PythonCall: PythonCall  # needed for docstring cross-refs
 using .._CPython: _CPython as C
 using .._Utils: _Utils as Utils
 using Base: @propagate_inbounds, @kwdef

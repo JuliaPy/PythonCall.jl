@@ -4,6 +4,7 @@
 Misc bits and bobs for compatibility.
 """
 module _compat
+    using ..PythonCall: PythonCall  # needed for docstring cross-refs
     using .._Py
     using .._Py: C, Utils, pynew, incref, getptr, pycopy!, pymodulehooks, pyisnull, pybytes_asvector, pysysmodule, pyosmodule, pystr_fromUTF8
     using .._pyconvert: pyconvert, @pyconvert

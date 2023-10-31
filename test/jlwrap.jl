@@ -454,4 +454,127 @@ end
         @test pytruth(pyjl([1]))
         @test pytruth(pyjl([1,2]))
     end
+    @testset "resize" begin
+        x = pyjl([1, 2, 3, 4, 5])
+        @test pyjlvalue(x) == [1, 2, 3, 4, 5]
+        x.resize(5)
+        @test pyjlvalue(x) == [1, 2, 3, 4, 5]
+        x.resize(3)
+        @test pyjlvalue(x) == [1, 2, 3]
+        x.resize(0)
+        @test pyjlvalue(x) == []
+        x.resize(2)
+        x[0] = 5
+        x[1] = 6
+        @test pyjlvalue(x) == [5, 6]
+    end
+    @testset "sort" begin
+        x = pyjl([4,6,2,3,7,6,1])
+        x.sort()
+        @test pyjlvalue(x) == [1,2,3,4,6,6,7]
+        x = pyjl([4,6,2,3,7,6,1])
+        x.sort(reverse=true)
+        @test pyjlvalue(x) == [7,6,6,4,3,2,1]
+        x = pyjl([4,-6,2,-3,7,-6,1])
+        x.sort(key=abs)
+        @test pyjlvalue(x) == [1,2,-3,4,-6,-6,7]
+        x = pyjl([4,-6,2,-3,7,-6,1])
+        x.sort(key=abs, reverse=true)
+        @test pyjlvalue(x) == [7,-6,-6,4,-3,2,1]
+    end
+    @testset "reverse" begin
+        x = pyjl([1,2,3,4,5])
+        x.reverse()
+        @test pyjlvalue(x) == [5,4,3,2,1]
+    end
+    @testset "clear" begin
+        x = pyjl([1,2,3,4,5])
+        @test pyjlvalue(x) == [1,2,3,4,5]
+        x.clear()
+        @test pyjlvalue(x) == []
+    end
+    @testset "reversed" begin
+        x = pyjl([1,2,3,4,5])
+        y = pybuiltins.reversed(x)
+        @test pyjlvalue(x) == [1,2,3,4,5]
+        @test pyjlvalue(y) == [5,4,3,2,1]
+    end
+    @testset "insert" begin
+        x = pyjl([1,2,3])
+        x.insert(0, 4)
+        @test pyjlvalue(x) == [4,1,2,3]
+        x.insert(2, 5)
+        @test pyjlvalue(x) == [4,1,5,2,3]
+        x.insert(5, 6)
+        @test pyjlvalue(x) == [4,1,5,2,3,6]
+        x.insert(-3, 7)
+        @test pyjlvalue(x) == [4,1,5,7,2,3,6]
+        @test_throws PyException x.insert(10, 10)
+    end
+    @testset "append" begin
+        x = pyjl([1,2,3])
+        x.append(4)
+        @test pyjlvalue(x) == [1,2,3,4]
+        x.append(5.0)
+        @test pyjlvalue(x) == [1,2,3,4,5]
+        @test_throws PyException x.append(nothing)
+        @test_throws PyException x.append(1.2)
+        @test_throws PyException x.append("2")
+    end
+    @testset "extend" begin
+        x = pyjl([1,2,3])
+        x.extend(pylist())
+        @test pyjlvalue(x) == [1,2,3]
+        x.extend(pylist([4,5]))
+        @test pyjlvalue(x) == [1,2,3,4,5]
+        x.extend(pylist([6.0]))
+        @test pyjlvalue(x) == [1,2,3,4,5,6]
+    end
+    @testset "pop" begin
+        x = pyjl([1,2,3,4,5])
+        @test pyeq(Bool, x.pop(), 5)
+        @test pyjlvalue(x) == [1,2,3,4]
+        @test pyeq(Bool, x.pop(0), 1)
+        @test pyjlvalue(x) == [2,3,4]
+        @test pyeq(Bool, x.pop(1), 3)
+        @test pyjlvalue(x) == [2,4]
+        @test pyeq(Bool, x.pop(-2), 2)
+        @test pyjlvalue(x) == [4]
+        @test_throws PyException x.pop(10)
+    end
+    @testset "remove" begin
+        x = pyjl([1,3,2,4,5,3,1])
+        @test pyjlvalue(x) == [1,3,2,4,5,3,1]
+        x.remove(3)
+        @test pyjlvalue(x) == [1,2,4,5,3,1]
+        @test_throws PyException x.remove(0)
+        @test_throws PyException x.remove(nothing)
+        @test_throws PyException x.remove("2")
+        @test pyjlvalue(x) == [1,2,4,5,3,1]
+    end
+    @testset "index" begin
+        x = pyjl([1,3,2,4,5,2,1])
+        @test pyeq(Bool, x.index(1), 0)
+        @test pyeq(Bool, x.index(2), 2)
+        @test pyeq(Bool, x.index(3), 1)
+        @test pyeq(Bool, x.index(4), 3)
+        @test pyeq(Bool, x.index(5), 4)
+        @test pyeq(Bool, x.index(2.0), 2)
+        @test_throws PyException x.index(0)
+        @test_throws PyException x.index(6)
+        @test_throws PyException x.index(nothing)
+        @test_throws PyException x.index("2")
+    end
+    @testset "count" begin
+        x = pyjl([1,2,3,4,5,1,2,3,1])
+        @test pyeq(Bool, x.count(0), 0)
+        @test pyeq(Bool, x.count(1), 3)
+        @test pyeq(Bool, x.count(2), 2)
+        @test pyeq(Bool, x.count(3), 2)
+        @test pyeq(Bool, x.count(4), 1)
+        @test pyeq(Bool, x.count(5), 1)
+        @test pyeq(Bool, x.count(2.0), 2)
+        @test pyeq(Bool, x.count(nothing), 0)
+        @test pyeq(Bool, x.count("2"), 0)
+    end
 end

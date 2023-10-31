@@ -7,7 +7,7 @@ def test_issue_394():
     x = 3
     f = lambda x: x+1
     y = 5
-    jl.x = f
+    jl.x = x
     assert jl.x is x
     jl.f = f
     assert jl.f is f

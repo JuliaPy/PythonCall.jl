@@ -227,6 +227,121 @@ end
         @test pytruth(pyjl(fill(nothing, 1, 2)))
         @test pytruth(pyjl(fill(nothing, 1, 2, 3)))
     end
+    @testset "ndim" begin
+        @test pyeq(Bool, pyjl(fill(nothing)).ndim, 0)
+        @test pyeq(Bool, pyjl(fill(nothing, 1)).ndim, 1)
+        @test pyeq(Bool, pyjl(fill(nothing, 1, 1)).ndim, 2)
+        @test pyeq(Bool, pyjl(fill(nothing, 1, 1, 1)).ndim, 3)
+    end
+    @testset "shape" begin
+        @test pyeq(Bool, pyjl(fill(nothing)).shape, ())
+        @test pyeq(Bool, pyjl(fill(nothing, 3)).shape, (3,))
+        @test pyeq(Bool, pyjl(fill(nothing, 3, 5)).shape, (3, 5))
+        @test pyeq(Bool, pyjl(fill(nothing, 3, 5, 2)).shape, (3, 5, 2))
+    end
+    @testset "getitem" begin
+        x = pyjl([1, 2, 3, 4, 5])
+        @test pyeq(Bool, x[0], 1)
+        @test pyeq(Bool, x[1], 2)
+        @test pyeq(Bool, x[2], 3)
+        @test pyeq(Bool, x[-1], 5)
+        @test pyeq(Bool, x[-2], 4)
+        @test pyeq(Bool, x[-3], 3)
+        @test pyjlvalue(x[pyslice(3)]) == [1,2,3]
+        @test pyjlvalue(x[pyslice(2)]) == [1,2]
+        @test pyjlvalue(x[pyslice(1,2)]) == [2]
+        @test pyjlvalue(x[pyslice(2,2)]) == []
+        @test pyjlvalue(x[pyslice(0,-1)]) == [1,2,3,4]
+        @test pyjlvalue(x[pyslice(-2,nothing)]) == [4,5]
+        @test pyjlvalue(x[pyslice(0, 3, 1)]) == [1,2,3]
+        @test pyjlvalue(x[pyslice(nothing,nothing,2)]) == [1,3,5]
+        @test pyjlvalue(x[pyslice(1,nothing,2)]) == [2,4]
+        @test pyjlvalue(x[pyslice(0,nothing,3)]) == [1,4]
+        x = pyjl([1 2; 3 4])
+        @test pyeq(Bool, x[0, 0], 1)
+        @test pyeq(Bool, x[0, 1], 2)
+        @test pyeq(Bool, x[1, 0], 3)
+        @test pyeq(Bool, x[1, 1], 4)
+        @test pyjlvalue(x[1, pyslice(nothing)]) == [3, 4]
+        @test pyjlvalue(x[pyslice(nothing), 1]) == [2, 4]
+    end
+    @testset "setitem" begin
+        x = [0 0; 0 0]
+        y = pyjl(x)
+        y[0,0] = 1
+        @test x == [1 0; 0 0]
+        y[0,1] = 2
+        @test x == [1 2; 0 0]
+        y[1,0] = 3
+        @test x == [1 2; 3 0]
+        y[-1,0] = 4
+        @test x == [1 2; 4 0]
+        y[-2,pyslice(nothing)] = 5
+        @test x == [5 5; 4 0]
+        y[pyslice(nothing),-1] = 6
+        @test x == [5 6; 4 6]
+        y[pyslice(nothing),pyslice(nothing)] = 7
+        @test x == [7 7; 7 7]
+    end
+    @testset "delitem" begin
+        x = [1, 2, 3, 4, 5, 6, 7, 8]
+        y = pyjl(x)
+        pydelitem(y, 0)
+        @test x == [2, 3, 4, 5, 6, 7, 8]
+        pydelitem(y, 2)
+        @test x == [2, 3, 5, 6, 7, 8]
+        pydelitem(y, -3)
+        @test x == [2, 3, 5, 7, 8]
+        pydelitem(y, pyslice(1,nothing,2))
+        @test x == [2, 5, 8]
+    end
+    @testset "reshape" begin
+        x = pyjl([1, 2, 3, 4, 5, 6, 7, 8])
+        @test pyeq(Bool, x.shape, (8,))
+        y = x.reshape((2, 4))
+        @test pyeq(Bool, y.shape, (2, 4))
+        @test pyjlvalue(y) == [1 3 5 7; 2 4 6 8]
+    end
+    @testset "copy" begin
+        x = pyjl([1 2; 3 4])
+        y = x.copy()
+        @test pyis(pytype(y), PythonCall.pyjlarraytype)
+        @test pyjlvalue(x) == pyjlvalue(y)
+        @test typeof(pyjlvalue(x)) == typeof(pyjlvalue(y))
+        @test pyjlvalue(x) !== pyjlvalue(y)
+        x[0,0] = 0
+        @test pyjlvalue(x) == [0 2; 3 4]
+        @test pyjlvalue(y) == [1 2; 3 4]
+    end
+    @testset "array_interface" begin
+        x = pyjl(Float32[1 2 3; 4 5 6]).__array_interface__
+        @test pyisinstance(x, pybuiltins.dict)
+        @test pyeq(Bool, x["shape"], (2, 3))
+        @test pyeq(Bool, x["typestr"], "<f4")
+        @test pyisinstance(x["data"], pybuiltins.tuple)
+        @test pylen(x["data"]) == 2
+        @test pyeq(Bool, x["strides"], (4, 8))
+        @test pyeq(Bool, x["version"], 3)
+    end
+    @testset "array_struct" begin
+        # TODO (not implemented)
+        # x = pyjl(Float32[1 2 3; 4 5 6]).__array_struct__
+    end
+    @testset "buffer" begin
+        m = pybuiltins.memoryview(pyjl(Float32[1 2 3; 4 5 6]))
+        @test !pytruth(m.c_contiguous)
+        @test pytruth(m.contiguous)
+        @test pytruth(m.f_contiguous)
+        @test pyeq(Bool, m.format, "f")
+        @test pyeq(Bool, m.itemsize, 4)
+        @test pyeq(Bool, m.nbytes, 4*6)
+        @test pyeq(Bool, m.ndim, 2)
+        @test !pytruth(m.readonly)
+        @test pyeq(Bool, m.shape, (2, 3))
+        @test pyeq(Bool, m.strides, (4, 8))
+        @test pyeq(Bool, m.suboffsets, ())
+        @test pyeq(Bool, m.tolist(), pylist([pylist([1, 2, 3]), pylist([4, 5, 6])]))
+    end
 end
 
 @testitem "base" begin

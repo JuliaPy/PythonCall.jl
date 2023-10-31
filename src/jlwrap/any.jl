@@ -13,12 +13,14 @@ pyjlany_str(self) = Py(sprint(print, self))
 
 function pyjlany_getattr(self, k_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))
+    pydel!(k_)
     Py(getproperty(self, k))
 end
 pyjl_handle_error_type(::typeof(pyjlany_getattr), self, exc) = pybuiltins.AttributeError
 
 function pyjlany_setattr(self, k_::Py, v_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))
+    pydel!(k_)
     v = pyconvert(Any, v_)
     setproperty!(self, k, v)
     Py(nothing)
@@ -31,30 +33,36 @@ function pyjlany_call(self, args_::Py, kwargs_::Py)
     if pylen(kwargs_) > 0
         args = pyconvert(Vector{Any}, args_)
         kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
-        Py(self(args...; kwargs...))
+        ans = Py(self(args...; kwargs...))
     elseif pylen(args_) > 0
         args = pyconvert(Vector{Any}, args_)
-        Py(self(args...))
+        ans = Py(self(args...))
     else
-        Py(self())
+        ans = Py(self())
     end
+    pydel!(args_)
+    pydel!(kwargs_)
+    ans
 end
 pyjl_handle_error_type(::typeof(pyjlany_call), self, exc) = exc isa MethodError && exc.f === self ? pybuiltins.TypeError : PyNULL
 
-pyjlany_getitem(self, k_::Py) =
+function pyjlany_getitem(self, k_::Py)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
+        pydel!(k_)
         Py(self[k...])
     else
         k = pyconvert(Any, k_)
         Py(self[k])
     end
+end
 pyjl_handle_error_type(::typeof(pyjlany_getitem), self, exc) = exc isa BoundsError ? pybuiltins.IndexError : exc isa KeyError ? pybuiltins.KeyError : PyNULL
 
 function pyjlany_setitem(self, k_::Py, v_::Py)
     v = pyconvert(Any, v_)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
+        pydel!(k_)
         self[k...] = v
     else
         k = pyconvert(Any, k_)
@@ -67,6 +75,7 @@ pyjl_handle_error_type(::typeof(pyjlany_setitem), self, exc) = exc isa BoundsErr
 function pyjlany_delitem(self, k_::Py)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
+        pydel!(k_)
         delete!(self, k...)
     else
         k = pyconvert(Any, k_)
@@ -86,6 +95,7 @@ end
 function (op::pyjlany_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
+        pydel!(other_)
         Py(op.op(self, other))
     else
         pybuiltins.NotImplemented
@@ -95,6 +105,8 @@ function (op::pyjlany_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_) && pyisjl(other2_)
         other = pyjlvalue(other_)
         other2 = pyjlvalue(other2_)
+        pydel!(other_)
+        pydel!(other2_)
         Py(op.op(self, other, other2))
     else
         pybuiltins.NotImplemented
@@ -108,6 +120,7 @@ end
 function (op::pyjlany_rev_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
+        pydel!(other_)
         Py(op.op(other, self))
     else
         pybuiltins.NotImplemented
@@ -117,6 +130,8 @@ function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_) && pyisjl(other2_)
         other = pyjlvalue(other_)
         other2 = pyjlvalue(other2_)
+        pydel!(other_)
+        pydel!(other2_)
         Py(op.op(other, self, other2))
     else
         pybuiltins.NotImplemented

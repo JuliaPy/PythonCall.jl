@@ -9,26 +9,29 @@ function pyjlcallback_call(self, args_::Py, kwargs_::Py)
     if pylen(kwargs_) > 0
         args = pyconvert(Vector{Py}, args_)
         kwargs = pyconvert(Dict{Symbol,Py}, kwargs_)
-        Py(self(args...; kwargs...))
+        ans = Py(self(args...; kwargs...))
     elseif (nargs = pylen(args_)) > 0
         args = pyconvert(Vector{Py}, args_)
         @assert length(args) == nargs
         if nargs == 1
-            Py(self(args[1]))
+            ans = Py(self(args[1]))
         elseif nargs == 2
-            Py(self(args[1], args[2]))
+            ans = Py(self(args[1], args[2]))
         elseif nargs == 3
-            Py(self(args[1], args[2], args[3]))
+            ans = Py(self(args[1], args[2], args[3]))
         elseif nargs == 4
-            Py(self(args[1], args[2], args[3], args[4]))
+            ans = Py(self(args[1], args[2], args[3], args[4]))
         elseif nargs == 5
-            Py(self(args[1], args[2], args[3], args[4], args[5]))
+            ans = Py(self(args[1], args[2], args[3], args[4], args[5]))
         else
-            Py(self(args...))
+            ans = Py(self(args...))
         end
     else
-        Py(self())
+        ans = Py(self())
     end
+    pydel!(args_)
+    pydel!(kwargs_)
+    ans
 end
 pyjl_handle_error_type(::typeof(pyjlcallback_call), self, exc::MethodError) = exc.f === self ? pybuiltins.TypeError : PyNULL
 

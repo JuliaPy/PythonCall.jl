@@ -81,6 +81,7 @@ end
 
 function pyjlarray_getitem(x::AbstractArray{T,N}, k_::Py) where {T,N}
     k = pyjl_getarrayindices(x, k_)
+    pydel!(k_)
     if k isa NTuple{N,Int}
         return Py(x[k...])
     else
@@ -90,6 +91,7 @@ end
 
 function pyjlarray_setitem(x::AbstractArray{T,N}, k_::Py, v_::Py) where {T,N}
     k = pyjl_getarrayindices(x, k_)
+    pydel!(k_)
     if k isa NTuple{N,Int}
         v = pyconvertarg(T, v_, "value")
         x[k...] = v
@@ -103,6 +105,7 @@ end
 function pyjlarray_delitem(x::AbstractArray{T,N}, k_::Py) where {T,N}
     if N == 1
         k = pyjl_getarrayindices(x, k_)
+        pydel!(k_)
         deleteat!(x, k...)
     else
         errset(pybuiltins.TypeError, "can only delete from 1D arrays")
@@ -114,6 +117,7 @@ pyjl_handle_error_type(::typeof(pyjlarray_delitem), x, exc::MethodError) = exc.f
 
 function pyjlarray_reshape(x::AbstractArray, shape_::Py)
     shape = pyconvertarg(Union{Int,Vector{Int}}, shape_, "shape")
+    pydel!(shape_)
     return Py(reshape(x, shape...))
 end
 

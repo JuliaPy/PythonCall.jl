@@ -65,15 +65,12 @@ function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssi
             in_f = true
             ans = f(self, arg1)::Py
             in_f = false
-            pydel!(arg1)
         elseif nargs == 3
             arg1 = pynew(incref(C.PyTuple_GetItem(args_, 1)))
             arg2 = pynew(incref(C.PyTuple_GetItem(args_, 2)))
             in_f = true
             ans = f(self, arg1, arg2)::Py
             in_f = false
-            pydel!(arg1)
-            pydel!(arg2)
         elseif nargs == 4
             arg1 = pynew(incref(C.PyTuple_GetItem(args_, 1)))
             arg2 = pynew(incref(C.PyTuple_GetItem(args_, 2)))
@@ -81,9 +78,6 @@ function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssi
             in_f = true
             ans = f(self, arg1, arg2, arg3)::Py
             in_f = false
-            pydel!(arg1)
-            pydel!(arg2)
-            pydel!(arg3)
         else
             errset(pybuiltins.NotImplementedError, "__jl_callmethod not implemented for this many arguments")
         end

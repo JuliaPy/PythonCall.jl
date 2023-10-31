@@ -10,11 +10,13 @@ pyjl_attr_jl2py(k::String) = replace(k, r"!+$" => (x -> "_" * "b"^length(x)))
 
 function pyjlraw_getattr(self, k_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))
+    pydel!(k_)
     pyjlraw(getproperty(self, k))
 end
 
 function pyjlraw_setattr(self, k_::Py, v_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))
+    pydel!(k_)
     v = pyconvert(Any, v_)
     setproperty!(self, k, v)
     Py(nothing)
@@ -26,13 +28,16 @@ function pyjlraw_call(self, args_::Py, kwargs_::Py)
     if pylen(kwargs_) > 0
         args = pyconvert(Vector{Any}, args_)
         kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
-        pyjlraw(self(args...; kwargs...))
+        ans = pyjlraw(self(args...; kwargs...))
     elseif pylen(args_) > 0
         args = pyconvert(Vector{Any}, args_)
-        pyjlraw(self(args...))
+        ans = pyjlraw(self(args...))
     else
-        pyjlraw(self())
+        ans = pyjlraw(self())
     end
+    pydel!(args_)
+    pydel!(kwargs_)
+    ans
 end
 
 pyjlraw_len(self) = Py(length(self))
@@ -40,6 +45,7 @@ pyjlraw_len(self) = Py(length(self))
 function pyjlraw_getitem(self, k_::Py)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
+        pydel!(k_)
         pyjlraw(self[k...])
     else
         k = pyconvert(Any, k_)
@@ -51,6 +57,7 @@ function pyjlraw_setitem(self, k_::Py, v_::Py)
     v = pyconvert(Any, v_)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
+        pydel!(k_)
         self[k...] = v
     else
         k = pyconvert(Any, k_)
@@ -62,6 +69,7 @@ end
 function pyjlraw_delitem(self, k_::Py)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
+        pydel!(k_)
         delete!(self, k...)
     else
         k = pyconvert(Any, k_)

@@ -2,15 +2,18 @@ const pyjlvectortype = pynew()
 
 function pyjlvector_resize(x::AbstractVector, size_::Py)
     size = pyconvertarg(Int, size_, "size")
+    pydel!(size_)
     resize!(x, size)
     Py(nothing)
 end
 
 function pyjlvector_sort(x::AbstractVector, reverse_::Py, key_::Py)
     reverse = pyconvertarg(Bool, reverse_, "reverse")
+    pydel!(reverse_)
     key = pyconvertarg(Any, key_, "size")
     if key === nothing
         sort!(x, rev=reverse)
+        pydel!(key_)
     else
         sort!(x, rev=reverse, by=key)
     end
@@ -33,6 +36,7 @@ end
 
 function pyjlvector_insert(x::AbstractVector, k_::Py, v_::Py)
     k = pyconvertarg(Int, k_, "index")
+    pydel!(k_)
     a = axes(x, 1)
     k′ = k < 0 ? (last(a) + 1 + k) : (first(a) + k)
     if checkbounds(Bool, x, k′) || k′ == last(a)+1
@@ -46,7 +50,7 @@ function pyjlvector_insert(x::AbstractVector, k_::Py, v_::Py)
 end
 
 function pyjlvector_append(x::AbstractVector, v_::Py)
-    v = pyconvertarg(Int, v_, "value")
+    v = pyconvertarg(eltype(x), v_, "value")
     push!(x, v)
     Py(nothing)
 end
@@ -56,11 +60,13 @@ function pyjlvector_extend(x::AbstractVector, vs_::Py)
         v = pyconvert(eltype(x), v_)
         push!(x, v)
     end
+    pydel!(vs_)
     Py(nothing)
 end
 
 function pyjlvector_pop(x::AbstractVector, k_::Py)
     k = pyconvertarg(Int, k_, "index")
+    pydel!(k_)
     a = axes(x, 1)
     k′ = k < 0 ? (last(a) + 1 + k) : (first(a) + k)
     if checkbounds(Bool, x, k′)

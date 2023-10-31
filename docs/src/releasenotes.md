@@ -1,5 +1,8 @@
 # Release Notes
 
+## Unreleased
+* Bug fixes.
+
 ## 0.9.15 (2023-10-25)
 * JuliaCall now supports `-X juliacall-startup-file=no` to disable running startup.jl.
 * If you are using CondaPkg then Python can optionally now be installed from the anaconda

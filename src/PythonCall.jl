@@ -23,11 +23,14 @@ for m in [:_Py, :_pyconvert, :_pymacro, :_pywrap, :_jlwrap, :_compat]
 end
 
 # non-exported API
-for k in [:C, :GC, :pynew, :pyisnull, :pycopy!, :getptr, :pydel!, :unsafe_pynext, :PyNULL]
+for k in [:C, :GC, :pynew, :pyisnull, :pycopy!, :getptr, :pydel!, :unsafe_pynext, :PyNULL, :CONFIG]
     @eval const $k = _Py.$k
 end
 for k in [:pyconvert_add_rule, :pyconvert_return, :pyconvert_unconverted, :PYCONVERT_PRIORITY_WRAP, :PYCONVERT_PRIORITY_ARRAY, :PYCONVERT_PRIORITY_CANONICAL, :PYCONVERT_PRIORITY_NORMAL, :PYCONVERT_PRIORITY_FALLBACK]
     @eval const $k = _pyconvert.$k
+end
+for k in [:event_loop_on, :event_loop_off, :fix_qt_plugin_path]
+    @eval const $k = _compat.$k
 end
 
 # not API but used in tests

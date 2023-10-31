@@ -54,7 +54,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        pyversion: ["3.12", "3.7"]
+        pyversion: ["3.x", "3.7"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.pyversion }}

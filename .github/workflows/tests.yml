@@ -47,6 +47,8 @@ jobs:
         uses: julia-actions/julia-processcoverage@v1
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   python:
     name: Test (${{ matrix.os }}, python ${{ matrix.pyversion }})
     runs-on: ${{ matrix.os }}
@@ -78,3 +80,5 @@ jobs:
           pytest -s --cov=pysrc
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

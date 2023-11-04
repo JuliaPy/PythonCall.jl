@@ -1,3 +1,16 @@
+@testitem "Base.jl" begin
+    @testset "broadcast" begin
+        # Py always broadcasts as a scalar
+        x = [1 2; 3 4] .+ Py(1)
+        @test isequal(x, [Py(2) Py(3); Py(4) Py(5)])
+        x = Py("foo") .* [1 2; 3 4]
+        @test isequal(x, [Py("foo") Py("foofoo"); Py("foofoofoo") Py("foofoofoofoo")])
+        # this previously treated the list as a shape (2,) object
+        # but now tries to do `1 + [1, 2]` which properly fails
+        @test_throws PyException [1 2; 3 4] .+ pylist([1, 2])
+    end
+end
+
 @testitem "pywith" begin
     @testset "no error" begin
         tdir = pyimport("tempfile").TemporaryDirectory()

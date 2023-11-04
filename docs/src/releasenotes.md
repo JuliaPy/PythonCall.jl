@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Unreleased
+* `Py` is now treated as a scalar when broadcasting.
 * Bug fixes.
 
 ## 0.9.15 (2023-10-25)

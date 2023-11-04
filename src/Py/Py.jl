@@ -334,6 +334,8 @@ Base.in(v, x::Py) = pycontains(x, v)
 
 Base.hash(x::Py, h::UInt) = reinterpret(UInt, Int(pyhash(x))) - 3h
 
+Base.broadcastable(x::Py) = Ref(x)
+
 (f::Py)(args...; kwargs...) = pycall(f, args...; kwargs...)
 
 # comparisons

@@ -76,7 +76,7 @@ function init_gui()
                 instance = QtCore.QCoreApplication.instance
                 AllEvents = QtCore.QEventLoop.AllEvents
                 processEvents = QtCore.QCoreApplication.processEvents
-                maxtime = interval * 1000
+                maxtime = int(interval * 1000)
                 def callback():
                     app = instance()
                     if app is not None:

@@ -149,6 +149,8 @@ py_macro_assign(body, ans, ex) = push!(body, :($ans = $ex))
 
 py_macro_del(body, var, tmp) = if tmp; push!(body, :($pydel!($var))); end
 
+ismacroexpr(ex, name) = isexpr(ex, :macrocall) && (ex.args[1] === Symbol(name) || ex.args[1] === GlobalRef(Core, Symbol(name)))
+
 function py_macro_lower(st, body, ans, ex; flavour=:expr)
 
     # scalar literals
@@ -158,21 +160,21 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         return false
 
     # Int128 literals
-    elseif isexpr(ex, :macrocall) && ex.args[1] === GlobalRef(Core, Symbol("@int128_str"))
+    elseif ismacroexpr(ex, "@int128_str")
         value = parse(Int128, ex.args[3])
         x = get!(pynew, st.consts, value)
         py_macro_assign(body, ans, x)
         return false
 
     # UInt128 literals
-    elseif isexpr(ex, :macrocall) && ex.args[1] === GlobalRef(Core, Symbol("@uint128_str"))
+    elseif ismacroexpr(ex, "@uint128_str")
         value = parse(UInt128, ex.args[3])
         x = get!(pynew, st.consts, value)
         py_macro_assign(body, ans, x)
         return false
 
     # big integer literals
-    elseif isexpr(ex, :macrocall) && ex.args[1] === GlobalRef(Core, Symbol("@big_str"))
+    elseif ismacroexpr(ex, "@big_str")
         value = parse(BigInt, ex.args[3])
         x = get!(pynew, st.consts, value)
         py_macro_assign(body, ans, x)

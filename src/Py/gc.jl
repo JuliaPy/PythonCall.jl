@@ -1,7 +1,7 @@
 """
 Garbage collection of Python objects.
 
-See `disable` and `enable`.
+See [`enable`](@ref) and [`gc`](@ref).
 """
 module GC
 
@@ -11,32 +11,39 @@ const ENABLED = Ref(true)
 const QUEUE = C.PyPtr[]
 
 """
-    PythonCall.GC.disable()
+    PythonCall.GC.enable(on::Bool)
 
-Disable the PythonCall garbage collector.
+Control whether garbage collection of Python objects is turned on or off.
 
-This means that whenever a Python object owned by Julia is finalized, it is not immediately
-freed but is instead added to a queue of objects to free later when `enable()` is called.
+Return the previous GC state.
+
+Disabling the GC means that whenever a Python object owned by Julia is finalized, it is not
+immediately freed but is instead added to a queue of objects to free later when GC is
+re-enabled.
 
 Like most PythonCall functions, you must only call this from the main thread.
 """
-function disable()
-    ENABLED[] = false
-    return
+function enable(on::Bool)
+    was_on = ENABLED[]
+    if on
+        ENABLED[] = true
+        if !was_on
+            gc()
+        end
+    else
+        ENABLED[] = false
+    end
+    return ans
 end
 
 """
-    PythonCall.GC.enable()
+    PythonCall.GC.gc()
 
-Re-enable the PythonCall garbage collector.
-
-This frees any Python objects which were finalized while the GC was disabled, and allows
-objects finalized in the future to be freed immediately.
+Perform garbage collection of Python objects.
 
 Like most PythonCall functions, you must only call this from the main thread.
 """
-function enable()
-    ENABLED[] = true
+function gc()
     if !isempty(QUEUE)
         C.with_gil(false) do
             for ptr in QUEUE
@@ -45,9 +52,8 @@ function enable()
                 end
             end
         end
+        empty!(QUEUE)            
     end
-    empty!(QUEUE)
-    return
 end
 
 function enqueue(ptr::C.PyPtr)

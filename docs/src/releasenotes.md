@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Unreleased (v1)
+* `juliacall.Pkg` is removed.
 * The following functionality has been moved into package extensions, and therefore is now
   only available on Julia 1.9+:
   * TODO

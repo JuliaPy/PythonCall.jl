@@ -238,7 +238,6 @@ crash Julia by using them incorrectly.
 PythonCall.pynew
 PythonCall.pyisnull
 PythonCall.pycopy!
-PythonCall.getptr
 PythonCall.pydel!
 PythonCall.unsafe_pynext
 ```

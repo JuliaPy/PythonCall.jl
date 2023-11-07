@@ -21,7 +21,7 @@ end
         pystdout = sys.stdout
         fp = sys.stdout = io.StringIO()
         try
-            d = PythonCall._compat.PythonDisplay()
+            d = PythonCall.Compat.PythonDisplay()
             @test display(d, 123) === nothing
             fp.seek(0)
             @test pyconvert(String, fp.read()) == "123\n"

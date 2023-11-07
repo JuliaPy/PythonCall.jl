@@ -12,14 +12,14 @@
 # - splatting
 
 """
-    module _pymacro
+    module PythonCall.PyMacro
 
 Provides the `@py` macro.
 """
-module _pymacro
+module PyMacro
 
-using .._Py
-using .._Py: pyisnot, pynotin, BUILTINS, pynew, pycallargs, pydel!, pycopy!, pystr_intern!, pynulltuple, pytuple_setitem, pyset_add, pyisnull, unsafe_pynext, pydict_setitem, pylist_setitem, pynulllist, pybool_asbool, pythrow
+using ..Core
+using ..Core: pyisnot, pynotin, BUILTINS, pynew, pycallargs, pydel!, pycopy!, pystr_intern!, pynulltuple, pytuple_setitem, pyset_add, pyisnull, unsafe_pynext, pydict_setitem, pylist_setitem, pynulllist, pybool_asbool, pythrow
 
 using MacroTools: MacroTools, @capture, isexpr
 
@@ -149,7 +149,7 @@ py_macro_assign(body, ans, ex) = push!(body, :($ans = $ex))
 
 py_macro_del(body, var, tmp) = if tmp; push!(body, :($pydel!($var))); end
 
-ismacroexpr(ex, name) = isexpr(ex, :macrocall) && (ex.args[1] === Symbol(name) || ex.args[1] === GlobalRef(Core, Symbol(name)))
+ismacroexpr(ex, name) = isexpr(ex, :macrocall) && (ex.args[1] === Symbol(name) || ex.args[1] === GlobalRef(Base.Core, Symbol(name)))
 
 function py_macro_lower(st, body, ans, ex; flavour=:expr)
 

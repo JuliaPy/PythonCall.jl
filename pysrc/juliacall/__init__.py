@@ -24,9 +24,9 @@ def convert(T, x):
 def interactive(enable=True):
     "Allow the Julia event loop to run in the background of the Python REPL."
     if enable:
-        PythonCall._set_python_input_hook()
+        PythonCall.Compat._set_python_input_hook()
     else:
-        PythonCall._unset_python_input_hook()
+        PythonCall.Compat._unset_python_input_hook()
 
 class JuliaError(Exception):
     "An error arising in Julia code."

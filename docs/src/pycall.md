@@ -10,7 +10,7 @@ On this page, we give some tips for migrating between the two modules and a comp
   - On Unix (Linux, Mac, etc.) the Python interpreter used by PythonCall and PyCall must be the same (see below).
   - On Windows, it appears to be possible for PythonCall and PyCall to use different interpreters.
 - To force PythonCall to use the same Python interpreter as PyCall, set the environment variable `JULIA_PYTHONCALL_EXE` to `"@PyCall"`. Note that this will opt out of automatic dependency management using CondaPkg.
-- Alternatively, to force PyCall to use the same interpreter as PythonCall, set the environment variable `PYTHON` to `PythonCall.C.CTX.exe_path` and then `Pkg.build("PyCall")`. You will need to do this each time you change project, because PythonCall by default uses a different Python for each project.
+- Alternatively, to force PyCall to use the same interpreter as PythonCall, set the environment variable `PYTHON` to `PythonCall.python_executable_path()` and then `Pkg.build("PyCall")`. You will need to do this each time you change project, because PythonCall by default uses a different Python for each project.
 
 ## Comparison
 

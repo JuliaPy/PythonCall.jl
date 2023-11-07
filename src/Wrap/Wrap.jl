@@ -1,21 +1,21 @@
 """
-    module _pywrap
+    module PythonCall.Wrap
 
 Defines Julia wrappers around Python objects, including `PyList`, `PyDict`, `PyArray` and `PyIO`.
 """
-module _pywrap
+module Wrap
 
-using .._Py
-using .._Py: C, Utils, @autopy, unsafe_pynext, pyisnull, PyNULL, getptr, pydel!, pybytes_asvector, pystr_asUTF8vector, pystr_fromUTF8, incref, decref, pynew, pyisnone, pyistuple, pyisstr
-using .._pyconvert: pyconvert, pyconvert_tryconvert, pyconvert_unconverted, pyconvert_isunconverted, pyconvert_return, pyconvert_result
-using .._pymacro
+using ..Core
+using ..Core: C, Utils, @autopy, unsafe_pynext, pyisnull, PyNULL, getptr, pydel!, pybytes_asvector, pystr_asUTF8vector, pystr_fromUTF8, incref, decref, pynew, pyisnone, pyistuple, pyisstr
+using ..Convert: pyconvert, pyconvert_tryconvert, pyconvert_unconverted, pyconvert_isunconverted, pyconvert_return, pyconvert_result
+using ..PyMacro
 
 using Base: @propagate_inbounds
 using Tables: Tables
 using UnsafePointers: UnsafePtr
 
-import .._Py: Py, ispy
-import .._pyconvert: pyconvert_add_rule, PYCONVERT_PRIORITY_ARRAY, PYCONVERT_PRIORITY_CANONICAL, PYCONVERT_PRIORITY_NORMAL
+import ..Core: Py, ispy
+import ..Convert: pyconvert_add_rule, PYCONVERT_PRIORITY_ARRAY, PYCONVERT_PRIORITY_CANONICAL, PYCONVERT_PRIORITY_NORMAL
 
 include("PyIterable.jl")
 include("PyDict.jl")

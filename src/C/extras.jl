@@ -1,22 +1,26 @@
-Py_Type(x::PyPtr) = PyPtr(UnsafePtr(x).type[!])
+cptr(x) = Base.cconvert(PyPtr, x)
+uptr(x) = Base.unsafe_convert(PyPtr, x)
+ptr(x) = uptr(cptr(x))  # TODO: really all uses of this should use GC.@preserve on cptr(x)
 
-PyObject_Type(x::PyPtr) = (t=Py_Type(x); Py_IncRef(t); t)
+Py_Type(x) = PyPtr(UnsafePtr(ptr(x)).type[!])
 
-Py_TypeCheck(o::PyPtr, t::PyPtr) = PyType_IsSubtype(Py_Type(o), t)
-Py_TypeCheckFast(o::PyPtr, f::Integer) = PyType_IsSubtypeFast(Py_Type(o), f)
+PyObject_Type(x) = (t=Py_Type(x); Py_IncRef(t); t)
 
-PyType_IsSubtypeFast(t::PyPtr, f::Integer) = Cint(!iszero(UnsafePtr{PyTypeObject}(t).flags[] & f))
+Py_TypeCheck(o, t) = PyType_IsSubtype(Py_Type(o), t)
+Py_TypeCheckFast(o, f::Integer) = PyType_IsSubtypeFast(Py_Type(o), f)
 
-PyMemoryView_GET_BUFFER(m::PyPtr) = Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(m).view)
+PyType_IsSubtypeFast(t, f::Integer) = Cint(!iszero(UnsafePtr{PyTypeObject}(ptr(t)).flags[] & f))
 
-PyType_CheckBuffer(t::PyPtr) = begin
-    p = UnsafePtr{PyTypeObject}(t).as_buffer[]
+PyMemoryView_GET_BUFFER(m) = Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(ptr(m)).view)
+
+function PyType_CheckBuffer(t)
+    p = UnsafePtr{PyTypeObject}(ptr(t)).as_buffer[]
     return p != C_NULL && p.get[!] != C_NULL
 end
 
-PyObject_CheckBuffer(o::PyPtr) = PyType_CheckBuffer(Py_Type(o))
+PyObject_CheckBuffer(o) = PyType_CheckBuffer(Py_Type(o))
 
-PyObject_GetBuffer(o::PyPtr, b, flags) = begin
+function PyObject_GetBuffer(o, b, flags)
     p = UnsafePtr{PyTypeObject}(Py_Type(o)).as_buffer[]
     if p == C_NULL || p.get[!] == C_NULL
         PyErr_SetString(
@@ -28,8 +32,8 @@ PyObject_GetBuffer(o::PyPtr, b, flags) = begin
     return ccall(p.get[!], Cint, (PyPtr, Ptr{Py_buffer}, Cint), o, b, flags)
 end
 
-PyBuffer_Release(_b) = begin
-    b = UnsafePtr(Base.unsafe_convert(Ptr{Py_buffer}, _b))
+function PyBuffer_Release(_b)
+    b = UnsafePtr(Base.unsafe_convert(Ptr{Py_buffer}, ptr(_b)))
     o = b.obj[]
     o == C_NULL && return
     p = UnsafePtr{PyTypeObject}(Py_Type(o)).as_buffer[]
@@ -60,8 +64,8 @@ function PyOS_RunInputHook()
     end
 end
 
-function PySimpleObject_GetValue(::Type{T}, o::PyPtr) where {T}
-    UnsafePtr{PySimpleObject{T}}(o).value[!]
+function PySimpleObject_GetValue(::Type{T}, o) where {T}
+    UnsafePtr{PySimpleObject{T}}(ptr(o)).value[!]
 end
 
 # FAST REFCOUNTING

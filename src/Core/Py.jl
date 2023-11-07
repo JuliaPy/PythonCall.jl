@@ -455,7 +455,6 @@ Base.powermod(x::Py, y::Number, z::Number) = pypow(x, y, z)
 
 # documentation
 function Base.Docs.getdoc(x::Py, @nospecialize(sig)=Union{})
-    pyisnew(x) && return nothing
     parts = []
     inspect = pyimport("inspect")
     # head line

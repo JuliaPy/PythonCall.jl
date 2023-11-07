@@ -80,8 +80,9 @@ function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssi
             in_f = false
         else
             errset(pybuiltins.NotImplementedError, "__jl_callmethod not implemented for this many arguments")
+            return C.PyNULL
         end
-        return incref(getptr(ans))
+        return incref(unsafe_getptr(ans))  # unsafe_getptr to allow errors to be set by returning PyNULL
     catch exc
         if exc isa PyException
             Base.GC.@preserve exc C.PyErr_Restore(incref(unsafe_getptr(exc._t)), incref(unsafe_getptr(exc._v)), incref(unsafe_getptr(exc._b)))

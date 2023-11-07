@@ -321,12 +321,12 @@ function __init__()
     end
 end
 
-PyJuliaValue_IsNull(o::C.PyPtr) = UnsafePtr{PyJuliaValueObject}(o).value[] == 0
+PyJuliaValue_IsNull(o) = UnsafePtr{PyJuliaValueObject}(C.ptr(o)).value[] == 0
 
-PyJuliaValue_GetValue(o::C.PyPtr) = PYJLVALUES[UnsafePtr{PyJuliaValueObject}(o).value[]]
+PyJuliaValue_GetValue(o) = PYJLVALUES[UnsafePtr{PyJuliaValueObject}(C.ptr(o)).value[]]
 
-PyJuliaValue_SetValue(o::C.PyPtr, @nospecialize(v)) = begin
-    idx = UnsafePtr{PyJuliaValueObject}(o).value[]
+PyJuliaValue_SetValue(o, @nospecialize(v)) = begin
+    idx = UnsafePtr{PyJuliaValueObject}(C.ptr(o)).value[]
     if idx == 0
         if isempty(PYJLFREEVALUES)
             push!(PYJLVALUES, v)
@@ -343,7 +343,6 @@ PyJuliaValue_SetValue(o::C.PyPtr, @nospecialize(v)) = begin
 end
 
 function PyJuliaValue_New(t, @nospecialize(v))
-    t = Base.unsafe_convert(C.PyPtr, Base.cconvert(C.PyPtr, t))
     if C.PyType_IsSubtype(t, PyJuliaBase_Type[]) != 1
         C.PyErr_SetString(C.POINTERS.PyExc_TypeError, "Expecting a subtype of 'juliacall.ValueBase'")
         return C.PyNULL

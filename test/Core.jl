@@ -212,7 +212,7 @@
         @test Base.Docs.getdoc(Py(nothing)) isa Markdown.MD
         @test Base.Docs.getdoc(Py(12)) isa Markdown.MD
         @test Base.Docs.getdoc(pybuiltins.int) isa Markdown.MD
-        @test Base.Docs.getdoc(PythonCall.PyNULL) === nothing
+        @test Base.Docs.getdoc(pynew()) isa Markdown.MD
     end
 end
 

@@ -254,7 +254,7 @@ pytypestrdescr(::Type{T}) where {T} = get!(PYTYPESTRDESCR, T) do
             isempty(ts) && return ("", PyNULL)
             push!(
                 flds,
-                (nm isa Integer ? "f$(nm-1)" : string(nm), pyisnull(ds) ? ts : ds),
+                (nm isa Integer ? "f$(nm-1)" : string(nm), pyisnew(ds) ? ts : ds),
             )
             d = (i == n ? sizeof(T) : fieldoffset(T, i + 1)) - (fieldoffset(T, i) + sizeof(tp))
             @assert d ≥ 0
@@ -280,7 +280,7 @@ function pyjlarray_array_interface(x::AbstractArray{T,N}) where {T,N}
             d["data"] = data
             d["strides"] = strides(x) .* Base.aligned_sizeof(T)
             d["version"] = 3
-            if !pyisnull(descr)
+            if !pyisnew(descr)
                 d["descr"] = descr
             end
             return d

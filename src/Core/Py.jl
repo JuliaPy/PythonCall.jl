@@ -12,11 +12,11 @@ ispy(x) = false
 export ispy
 
 """
-    pyisnull(x)
+    pyisnew(x)
 
 True if the Python object `x` is NULL.
 """
-pyisnull(x) = unsafe_getptr(x) == C.PyNULL
+pyisnew(x) = unsafe_getptr(x) == C.PyNULL
 
 """
     getptr(x)
@@ -166,18 +166,18 @@ Py(x::Date) = pydate(x)
 Py(x::Time) = pytime(x)
 Py(x::DateTime) = pydatetime(x)
 
-Base.string(x::Py) = pyisnull(x) ? "<py NULL>" : pystr(String, x)
+Base.string(x::Py) = pyisnew(x) ? "<py NULL>" : pystr(String, x)
 Base.print(io::IO, x::Py) = print(io, string(x))
 
 function Base.show(io::IO, x::Py)
     if get(io, :typeinfo, Any) == Py
-        if pyisnull(x)
+        if pyisnew(x)
             print(io, "NULL")
         else
             print(io, pyrepr(String, x))
         end
     else
-        if pyisnull(x)
+        if pyisnew(x)
             print(io, "<py NULL>")
         else
             s = pyrepr(String, x)
@@ -191,7 +191,7 @@ function Base.show(io::IO, x::Py)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", o::Py)
-    if pyisnull(o)
+    if pyisnew(o)
         str = "NULL"
     else
         str = pyrepr(String, o)
@@ -338,7 +338,7 @@ Base.IteratorSize(::Type{Py}) = Base.SizeUnknown()
 
 function Base.iterate(x::Py, it::Py=pyiter(x))
     v = unsafe_pynext(it)
-    if pyisnull(v)
+    if pyisnew(v)
         pydel!(it)
         nothing
     else
@@ -449,7 +449,7 @@ Base.powermod(x::Py, y::Number, z::Number) = pypow(x, y, z)
 
 # documentation
 function Base.Docs.getdoc(x::Py, @nospecialize(sig)=Union{})
-    pyisnull(x) && return nothing
+    pyisnew(x) && return nothing
     parts = []
     inspect = pyimport("inspect")
     # head line

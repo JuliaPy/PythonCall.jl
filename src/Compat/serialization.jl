@@ -3,7 +3,7 @@
 # We use pickle to serialise Python objects to bytes.
 
 function serialize_py(s, x::Py)
-    if pyisnull(x)
+    if pyisnew(x)
         serialize(s, nothing)
     else
         b = pyimport("pickle").dumps(x)

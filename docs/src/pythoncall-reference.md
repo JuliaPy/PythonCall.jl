@@ -236,7 +236,7 @@ crash Julia by using them incorrectly.
 
 ```@docs
 PythonCall.pynew
-PythonCall.pyisnull
+PythonCall.pyisnew
 PythonCall.pycopy!
 PythonCall.pydel!
 PythonCall.unsafe_pynext

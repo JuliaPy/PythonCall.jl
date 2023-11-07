@@ -19,6 +19,6 @@ macro pyconst(ex)
     else
         val = :($Py($val))
     end
-    :(pyisnull($x) ? pycopy!($x, $val) : $x)
+    :(pyisnew($x) ? pycopy!($x, $val) : $x)
 end
 export @pyconst

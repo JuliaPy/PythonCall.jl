@@ -25,7 +25,7 @@ Base.length(x::PyDict) = Int(pylen(x))
 
 function Base.iterate(x::PyDict{K,V}, it::Py=pyiter(x)) where {K,V}
     k_ = unsafe_pynext(it)
-    pyisnull(k_) && return nothing
+    pyisnew(k_) && return nothing
     v_ = pygetitem(x, k_)
     k = pyconvert(K, k_)
     v = pyconvert(V, v_)
@@ -34,7 +34,7 @@ end
 
 function Base.iterate(x::Base.KeySet{K,PyDict{K,V}}, it::Py=pyiter(x.dict)) where {K,V}
     k_ = unsafe_pynext(it)
-    pyisnull(k_) && return nothing
+    pyisnew(k_) && return nothing
     k = pyconvert(K, k_)
     return (k, it)
 end

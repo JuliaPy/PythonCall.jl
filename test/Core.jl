@@ -222,13 +222,13 @@ end
     # unsafe_pynext
     it = pyiter(pyrange(2))
     x = PythonCall.unsafe_pynext(it)
-    @test !PythonCall.pyisnull(x)
+    @test !PythonCall.pyisnew(x)
     @test pyeq(Bool, x, 0)
     x = PythonCall.unsafe_pynext(it)
-    @test !PythonCall.pyisnull(x)
+    @test !PythonCall.pyisnew(x)
     @test pyeq(Bool, x, 1)
     x = PythonCall.unsafe_pynext(it)
-    @test PythonCall.pyisnull(x)
+    @test PythonCall.pyisnew(x)
     # pynext
     it = pyiter(pyrange(2))
     x = pynext(it)

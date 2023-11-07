@@ -161,7 +161,7 @@ function _pyconvert_get_rules(pytype::Py)
                 xbase = base
             end
         end
-        if !pyisnull(xbase)
+        if !pyisnew(xbase)
             push!(basetypes, xtype)
             xmro = collect(xtype.__mro__)
             pyisin(xbase, xmro) || pushfirst!(xmro, xbase)

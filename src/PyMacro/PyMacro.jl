@@ -19,7 +19,7 @@ Provides the `@py` macro.
 module PyMacro
 
 using ..Core
-using ..Core: pyisnot, pynotin, BUILTINS, pynew, pycallargs, pydel!, pycopy!, pystr_intern!, pynulltuple, pytuple_setitem, pyset_add, pyisnull, unsafe_pynext, pydict_setitem, pylist_setitem, pynulllist, pybool_asbool, pythrow
+using ..Core: pyisnot, pynotin, BUILTINS, pynew, pycallargs, pydel!, pycopy!, pystr_intern!, pynulltuple, pytuple_setitem, pyset_add, pyisnew, unsafe_pynext, pydict_setitem, pylist_setitem, pynulllist, pybool_asbool, pythrow
 
 using MacroTools: MacroTools, @capture, isexpr
 
@@ -634,7 +634,7 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         py_macro_del(body, y, ty)
         body2 = []
         push!(body2, :($v = $unsafe_pynext($i)))
-        push!(body2, Expr(:if, :($pyisnull($v)), Expr(:block, :($pydel!($v)), :(break))))
+        push!(body2, Expr(:if, :($pyisnew($v)), Expr(:block, :($pydel!($v)), :(break))))
         py_macro_lower_assign(st, body2, ax, v)
         py_macro_del(body2, v, true)
         tz = py_macro_lower(st, body2, z, az)

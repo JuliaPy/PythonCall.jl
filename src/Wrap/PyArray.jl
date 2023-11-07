@@ -84,14 +84,14 @@ abstract type PyArraySource end
 function pyarray_make(::Type{A}, x::Py; array::Bool=true, buffer::Bool=true, copy::Bool=true) where {A<:PyArray}
     # TODO: try/catch is SLOW if an error is thrown, think about sending errors via return values instead
     A == Union{} && return pyconvert_unconverted()
-    if array && (xa = pygetattr(x, "__array_struct__", PyNULL); !pyisnull(xa))
+    if array && (xa = pygetattr(x, "__array_struct__", PyNULL); !pyisnew(xa))
         try
             return pyarray_make(A, x, PyArraySource_ArrayStruct(x, xa))
         catch exc
             @debug "failed to make PyArray from __array_struct__" exc=exc
         end
     end
-    if array && (xi = pygetattr(x, "__array_interface__", PyNULL); !pyisnull(xi))
+    if array && (xi = pygetattr(x, "__array_interface__", PyNULL); !pyisnew(xi))
         try
             return pyarray_make(A, x, PyArraySource_ArrayInterface(x, xi))
         catch exc
@@ -107,14 +107,14 @@ function pyarray_make(::Type{A}, x::Py; array::Bool=true, buffer::Bool=true, cop
     end
     if copy && array && pyhasattr(x, "__array__")
         y = x.__array__()
-        if (ya = pygetattr(y, "__array_struct__", PyNULL); !pyisnull(ya))
+        if (ya = pygetattr(y, "__array_struct__", PyNULL); !pyisnew(ya))
             try
                 return pyarray_make(A, y, PyArraySource_ArrayStruct(y, ya))
             catch exc
                 @debug "failed to make PyArray from __array__().__array_interface__" exc=exc
             end
         end
-        if (yi = pygetattr(y, "__array_interface__", PyNULL); !pyisnull(yi))
+        if (yi = pygetattr(y, "__array_interface__", PyNULL); !pyisnew(yi))
             try
                 return pyarray_make(A, y, PyArraySource_ArrayInterface(y, yi))
             catch exc
@@ -269,7 +269,7 @@ pyarray_typestrdescr_to_type(ts::String, descr::Py) = begin
     elseif etc == 'O'
         return UnsafePyObject
     elseif etc == 'V'
-        pyisnull(descr) && error("not supported: void dtype with null descr")
+        pyisnew(descr) && error("not supported: void dtype with null descr")
         sz = parse(Int, ts[3:end])
         T = pyarray_descr_to_type(descr)
         sizeof(T) == sz || error("size mismatch: itemsize=$sz but sizeof(descr)=$(sizeof(T))")

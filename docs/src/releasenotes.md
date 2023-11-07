@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Unreleased
+* New unexported functions: `python_executable_path`, `python_library_path`, `python_library_handle` and `python_version`.
 * `Py` is now treated as a scalar when broadcasting.
 * Bug fixes.
 

@@ -1,22 +1,22 @@
 """
-    module _Py
+    module PythonCall.Core
 
 Defines the `Py` type and directly related functions.
 """
-module _Py
+module Core
 
 const VERSION = v"0.9.15"
 const ROOT_DIR = dirname(dirname(@__DIR__))
 
 using ..PythonCall: PythonCall  # needed for docstring cross-refs
-using .._CPython: _CPython as C
-using .._Utils: _Utils as Utils
+using ..C: C
+using ..GC: GC
+using ..Utils: Utils
 using Base: @propagate_inbounds, @kwdef
 using Dates: Date, Time, DateTime, year, month, day, hour, minute, second, millisecond, microsecond, nanosecond
 using MacroTools: @capture
 using Markdown: Markdown
 
-include("gc.jl")
 include("Py.jl")
 include("err.jl")
 include("config.jl")

@@ -1,18 +1,18 @@
 """
-    module _jlwrap
+    module PythonCall.JlWrap
 
 Defines the Python object wrappers around Julia objects (`juliacall.AnyValue` etc).
 """
-module _jlwrap
+module JlWrap
 
 using ..PythonCall: PythonCall
-using .._Py
-using .._Py: C, Utils, pynew, @autopy, incref, decref, setptr!, getptr, pyjuliacallmodule, pycopy!, errcheck, errset, PyNULL, pyistuple, pyisnull, pyJuliaError, pydel!, pyistype, pytypecheck, pythrow, pytuple_getitem, pyisslice, pystr_asstring, pyosmodule, pyisstr
-using .._pyconvert: pyconvert, @pyconvert, PYCONVERT_PRIORITY_WRAP, pyconvert_add_rule, pyconvert_tryconvert, pyconvertarg, pyconvert_result
+using ..Core
+using ..Core: C, Utils, pynew, @autopy, incref, decref, setptr!, getptr, pyjuliacallmodule, pycopy!, errcheck, errset, PyNULL, pyistuple, pyisnull, pyJuliaError, pydel!, pyistype, pytypecheck, pythrow, pytuple_getitem, pyisslice, pystr_asstring, pyosmodule, pyisstr
+using ..Convert: pyconvert, @pyconvert, PYCONVERT_PRIORITY_WRAP, pyconvert_add_rule, pyconvert_tryconvert, pyconvertarg, pyconvert_result
 
 using Base: @propagate_inbounds, allocatedinline
 
-import .._Py: Py
+import ..Core: Py
 
 include("C.jl")
 include("base.jl")
@@ -47,7 +47,7 @@ function __init__()
         init_callback()
         # add packages to juliacall
         jl = pyjuliacallmodule
-        jl.Core = Core
+        jl.Core = Base.Core
         jl.Base = Base
         jl.Main = Main
         jl.PythonCall = PythonCall

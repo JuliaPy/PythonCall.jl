@@ -1,9 +1,9 @@
 """
-    module _CPython
+    module PythonCall.C
 
 This module provides a direct interface to the Python C API.
 """
-module _CPython
+module C
 
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
@@ -16,6 +16,7 @@ include("pointers.jl")
 include("extras.jl")
 include("context.jl")
 include("gil.jl")
+include("api.jl")
 
 function __init__()
     init_context()

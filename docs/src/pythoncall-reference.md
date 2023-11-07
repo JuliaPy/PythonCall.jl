@@ -218,6 +218,17 @@ Py(x::MyType) = x.py
 @pyconst
 ```
 
+## The Python interpreter
+
+These functions are not exported. They give information about which Python interpreter is
+being used.
+```@docs
+PythonCall.python_version
+PythonCall.python_executable_path
+PythonCall.python_library_path
+PythonCall.python_library_handle
+```
+
 ## Low-level API
 
 The functions here are not exported. They are mostly unsafe in the sense that you can

@@ -4,6 +4,7 @@
 * `PythonCall.GC` is now more like `Base.GC`: `enable(true)` replaces `enable()`, `enable(false)` replaces `disable()`, and `gc()` is added.
 
 ## Unreleased
+* New unexported functions: `python_executable_path`, `python_library_path`, `python_library_handle` and `python_version`.
 * `Py` is now treated as a scalar when broadcasting.
 * Bug fixes.
 

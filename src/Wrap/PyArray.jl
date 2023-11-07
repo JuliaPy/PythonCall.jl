@@ -98,7 +98,7 @@ function pyarray_make(::Type{A}, x::Py; array::Bool=true, buffer::Bool=true, cop
             @debug "failed to make PyArray from __array_interface__" exc=exc
         end
     end
-    if buffer && C.PyObject_CheckBuffer(getptr(x))
+    if buffer && C.PyObject_CheckBuffer(x)
         try
             return pyarray_make(A, x, PyArraySource_Buffer(x))
         catch exc
@@ -213,7 +213,7 @@ function PyArraySource_ArrayInterface(x::Py, d::Py=x.__array_interface__)
     else
         memview = @py memoryview(data === None ? x : data)
         pydel!(data)
-        buf = UnsafePtr(C.PyMemoryView_GET_BUFFER(getptr(memview)))
+        buf = UnsafePtr(C.PyMemoryView_GET_BUFFER(memview))
         ptr = buf.buf[!]
         readonly = buf.readonly[] != 0
         handle = Py((x, memview))
@@ -371,8 +371,8 @@ struct PyArraySource_ArrayStruct <: PyArraySource
     info :: C.PyArrayInterface
 end
 function PyArraySource_ArrayStruct(x::Py, capsule::Py=x.__array_struct__)
-    name = C.PyCapsule_GetName(getptr(capsule))
-    ptr = C.PyCapsule_GetPointer(getptr(capsule), name)
+    name = C.PyCapsule_GetName(capsule)
+    ptr = C.PyCapsule_GetPointer(capsule, name)
     info = unsafe_load(Ptr{C.PyArrayInterface}(ptr))
     @assert info.two == 2
     return PyArraySource_ArrayStruct(x, capsule, info)
@@ -494,7 +494,7 @@ struct PyArraySource_Buffer <: PyArraySource
 end
 function PyArraySource_Buffer(x::Py)
     memview = pybuiltins.memoryview(x)
-    buf = C.UnsafePtr(C.PyMemoryView_GET_BUFFER(getptr(memview)))
+    buf = C.UnsafePtr(C.PyMemoryView_GET_BUFFER(memview))
     PyArraySource_Buffer(x, memview, buf)
 end
 

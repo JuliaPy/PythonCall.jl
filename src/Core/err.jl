@@ -15,7 +15,7 @@ errcheck_ambig(val) = iserrset_ambig(val) ? pythrow() : val
 
 errclear() = C.PyErr_Clear()
 
-errmatches(t) = (@autopy t C.PyErr_ExceptionMatches(getptr(t_))) == 1
+errmatches(t) = (@autopy t C.PyErr_ExceptionMatches(t_)) == 1
 
 function errget()
     t = Ref(C.PyNULL)
@@ -25,9 +25,9 @@ function errget()
     (pynew(t[]), pynew(v[]), pynew(b[]))
 end
 
-errset(t::Py) = Base.GC.@preserve t C.PyErr_SetNone(getptr(t))
-errset(t::Py, v::Py) = Base.GC.@preserve t v C.PyErr_SetObject(getptr(t), getptr(v))
-errset(t::Py, v::String) = Base.GC.@preserve t C.PyErr_SetString(getptr(t), v)
+errset(t::Py) = Base.GC.@preserve t C.PyErr_SetNone(t)
+errset(t::Py, v::Py) = Base.GC.@preserve t v C.PyErr_SetObject(t, v)
+errset(t::Py, v::String) = Base.GC.@preserve t C.PyErr_SetString(t, v)
 
 function errnormalize!(t::Py, v::Py, b::Py)
     tptr = getptr(t)
@@ -37,9 +37,9 @@ function errnormalize!(t::Py, v::Py, b::Py)
     vref = Ref(vptr)
     bref = Ref(bptr)
     C.PyErr_NormalizeException(tref, vref, bref)
-    setptr!(t, tref[])
-    setptr!(v, vref[])
-    setptr!(b, bref[])
+    unsafe_setptr!(t, tref[])
+    unsafe_setptr!(v, vref[])
+    unsafe_setptr!(b, bref[])
     (t, v, b)
 end
 
@@ -80,9 +80,9 @@ end
 function Base.getproperty(exc::PyException, k::Symbol)
     if k in (:t, :v, :b) && !exc._isnormalized
         errnormalize!(exc._t, exc._v, exc._b)
-        pyisnull(exc._t) && setptr!(exc._t, incref(getptr(pybuiltins.None)))
-        pyisnull(exc._v) && setptr!(exc._v, incref(getptr(pybuiltins.None)))
-        pyisnull(exc._b) && setptr!(exc._b, incref(getptr(pybuiltins.None)))
+        pyisnull(exc._t) && unsafe_setptr!(exc._t, incref(getptr(pybuiltins.None)))
+        pyisnull(exc._v) && unsafe_setptr!(exc._v, incref(getptr(pybuiltins.None)))
+        pyisnull(exc._b) && unsafe_setptr!(exc._b, incref(getptr(pybuiltins.None)))
         pyisnone(exc._v) || (exc._v.__traceback__ = exc._b)
         exc._isnormalized = true
     end

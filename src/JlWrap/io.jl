@@ -89,7 +89,7 @@ function pyjlbinaryio_readinto(io::IO, b::Py)
         return PyNULL
     end
     pydel!(c)
-    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(getptr(m)))
+    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(m))
     if buf.readonly != 0
         pydel!(m)
         errset(pybuiltins.ValueError, "output buffer is read-only")
@@ -111,7 +111,7 @@ function pyjlbinaryio_write(io::IO, b::Py)
         return PyNULL
     end
     pydel!(c)
-    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(getptr(m)))
+    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(m))
     data = unsafe_wrap(Array, Ptr{UInt8}(buf.buf), buf.len)
     write(io, data)
     pydel!(m)

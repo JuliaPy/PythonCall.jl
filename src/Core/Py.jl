@@ -16,14 +16,21 @@ export ispy
 
 True if the Python object `x` is NULL.
 """
-pyisnull(x) = getptr(x) == C.PyNULL
+pyisnull(x) = unsafe_getptr(x) == C.PyNULL
 
 """
     getptr(x)
 
-Get the underlying pointer from the Python object `x`.
+Get the underlying pointer from the Python object `x`. NULL is interpreted as None.
 """
 getptr(x) = ispy(x) ? getptr(Py(x)::Py) : throw(MethodError(getptr, (x,)))
+
+"""
+    unsafe_getptr(x)
+
+Get the underlying pointer from the Python object `x`. Can be NULL.
+"""
+unsafe_getptr(x) = ispy(x) ? unsafe_getptr(Py(x)::Py) : throw(MethodError(unsafe_getptr, (x,)))
 
 """
     Py(x)
@@ -43,13 +50,22 @@ mutable struct Py
 end
 export Py
 
-py_finalizer(x::Py) = GC.enqueue(getptr(x))
+py_finalizer(x::Py) = GC.enqueue(unsafe_getptr(x))
 
 ispy(::Py) = true
-getptr(x::Py) = getfield(x, :ptr)
+unsafe_getptr(x::Py) = getfield(x, :ptr)
+getptr(x::Py) = (ptr = unsafe_getptr(x); ifelse(ptr == C.PyNULL, C.POINTERS._Py_NoneStruct, ptr))
+incref(x::Py) = (incref(unsafe_getptr(x)); x)
+decref(x::Py) = (decref(unsafe_getptr(x)); x)
 pyconvert(::Type{Py}, x::Py) = x
 
-setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, ptr); x)
+unsafe_setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, ptr); x)
+
+struct PyAsPtr
+    py::Py
+end
+Base.cconvert(::Type{C.PyPtr}, x::Py) = PyAsPtr(x)
+Base.unsafe_convert(::Type{C.PyPtr}, x::PyAsPtr) = getptr(x.py)
 
 const PYNULL_CACHE = Py[]
 
@@ -73,9 +89,9 @@ pynew() =
 
 const PyNULL = pynew()
 
-pynew(ptr::C.PyPtr) = setptr!(pynew(), ptr)
+pynew(ptr::C.PyPtr) = unsafe_setptr!(pynew(), ptr)
 
-pynew(x::Py) = pynew(incref(getptr(x)))
+pynew(x::Py) = pynew(incref(unsafe_getptr(x)))
 
 """
     pycopy!(dst::Py, src)
@@ -89,7 +105,7 @@ the top level then `pycopy!(x, pything())` inside `__init__()`.
 
 Assumes `dst` is NULL, otherwise a memory leak will occur.
 """
-pycopy!(dst::Py, src) = Base.GC.@preserve src setptr!(dst, incref(getptr(src)))
+pycopy!(dst::Py, src) = Base.GC.@preserve src unsafe_setptr!(dst, incref(unsafe_getptr(src)))
 
 """
     pydel!(x::Py)
@@ -109,10 +125,10 @@ be a significant source of slow-down in code which uses a lot of Python objects.
 the relatively slow finalizer on `x`.
 """
 function pydel!(x::Py)
-    ptr = getptr(x)
+    ptr = unsafe_getptr(x)
     if ptr != C.PyNULL
         C.Py_DecRef(ptr)
-        setptr!(x, C.PyNULL)
+        unsafe_setptr!(x, C.PyNULL)
     end
     push!(PYNULL_CACHE, x)
     return
@@ -155,13 +171,13 @@ Base.print(io::IO, x::Py) = print(io, string(x))
 
 function Base.show(io::IO, x::Py)
     if get(io, :typeinfo, Any) == Py
-        if getptr(x) == C.PyNULL
+        if pyisnull(x)
             print(io, "NULL")
         else
             print(io, pyrepr(String, x))
         end
     else
-        if getptr(x) == C.PyNULL
+        if pyisnull(x)
             print(io, "<py NULL>")
         else
             s = pyrepr(String, x)

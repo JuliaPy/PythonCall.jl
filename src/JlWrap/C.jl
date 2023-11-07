@@ -342,7 +342,8 @@ PyJuliaValue_SetValue(o::C.PyPtr, @nospecialize(v)) = begin
     nothing
 end
 
-PyJuliaValue_New(t::C.PyPtr, @nospecialize(v)) = begin
+function PyJuliaValue_New(t, @nospecialize(v))
+    t = Base.unsafe_convert(C.PyPtr, Base.cconvert(C.PyPtr, t))
     if C.PyType_IsSubtype(t, PyJuliaBase_Type[]) != 1
         C.PyErr_SetString(C.POINTERS.PyExc_TypeError, "Expecting a subtype of 'juliacall.ValueBase'")
         return C.PyNULL

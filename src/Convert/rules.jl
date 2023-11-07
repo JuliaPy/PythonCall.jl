@@ -44,7 +44,7 @@ pyconvert_rule_bytes(::Type{Base.CodeUnits{UInt8,String}}, x::Py) = pyconvert_re
 
 pyconvert_rule_int(::Type{T}, x::Py) where {T<:Number} = begin
     # first try to convert to Clonglong (or Culonglong if unsigned)
-    v = T <: Unsigned ? C.PyLong_AsUnsignedLongLong(getptr(x)) : C.PyLong_AsLongLong(getptr(x))
+    v = T <: Unsigned ? C.PyLong_AsUnsignedLongLong(x) : C.PyLong_AsLongLong(x)
     if !iserrset_ambig(v)
         # success
         return pyconvert_tryconvert(T, v)

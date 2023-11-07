@@ -8,7 +8,6 @@ module C
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
 using CondaPkg: CondaPkg
-using Pkg: Pkg
 using Requires: @require
 using Libdl: dlpath, dlopen, dlopen_e, dlclose, dlsym, dlsym_e, RTLD_LAZY, RTLD_DEEPBIND, RTLD_GLOBAL
 

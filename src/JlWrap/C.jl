@@ -1,7 +1,7 @@
 module Cjl
 
-using ..._CPython: _CPython as C
-using ..._Utils: _Utils as Utils
+using ...C: C
+using ...Utils: Utils
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
 using Serialization: serialize, deserialize

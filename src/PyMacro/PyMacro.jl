@@ -149,7 +149,7 @@ py_macro_assign(body, ans, ex) = push!(body, :($ans = $ex))
 
 py_macro_del(body, var, tmp) = if tmp; push!(body, :($pydel!($var))); end
 
-ismacroexpr(ex, name) = isexpr(ex, :macrocall) && (ex.args[1] === Symbol(name) || ex.args[1] === GlobalRef(Core, Symbol(name)))
+ismacroexpr(ex, name) = isexpr(ex, :macrocall) && (ex.args[1] === Symbol(name) || ex.args[1] === GlobalRef(Base.Core, Symbol(name)))
 
 function py_macro_lower(st, body, ans, ex; flavour=:expr)
 

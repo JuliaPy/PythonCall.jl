@@ -1,4 +1,4 @@
-module _Utils
+module Utils
 
     function explode_union(T)
         @nospecialize T

@@ -12,14 +12,14 @@
 # - splatting
 
 """
-    module _pymacro
+    module PythonCall.PyMacro
 
 Provides the `@py` macro.
 """
-module _pymacro
+module PyMacro
 
-using .._Py
-using .._Py: pyisnot, pynotin, BUILTINS, pynew, pycallargs, pydel!, pycopy!, pystr_intern!, pynulltuple, pytuple_setitem, pyset_add, pyisnull, unsafe_pynext, pydict_setitem, pylist_setitem, pynulllist, pybool_asbool, pythrow
+using ..Core
+using ..Core: pyisnot, pynotin, BUILTINS, pynew, pycallargs, pydel!, pycopy!, pystr_intern!, pynulltuple, pytuple_setitem, pyset_add, pyisnull, unsafe_pynext, pydict_setitem, pylist_setitem, pynulllist, pybool_asbool, pythrow
 
 using MacroTools: MacroTools, @capture, isexpr
 

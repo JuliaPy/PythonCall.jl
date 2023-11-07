@@ -1,11 +1,13 @@
 """
+    module PythonCall.GC
+
 Garbage collection of Python objects.
 
 See `disable` and `enable`.
 """
 module GC
 
-using .._Py: C
+using ..C: C
 
 const ENABLED = Ref(true)
 const QUEUE = C.PyPtr[]

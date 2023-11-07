@@ -3,14 +3,15 @@ module PythonCall
 const VERSION = v"0.9.15"
 const ROOT_DIR = dirname(@__DIR__)
 
-include("utils/_.jl")
-include("CPython/_.jl")
-include("Py/_.jl")
-include("pyconvert/_.jl")
-include("pymacro/_.jl")
-include("pywrap/_.jl")
-include("jlwrap/_.jl")
-include("compat/_.jl")
+include("Utils/Utils.jl")
+include("C/C.jl")
+include("GC/GC.jl")
+include("Core/Core.jl")
+include("Convert/Convert.jl")
+include("PyMacro/PyMacro.jl")
+include("Wrap/Wrap.jl")
+include("JlWrap/JlWrap.jl")
+include("Compat/Compat.jl")
 
 # re-export everything
 for m in [:_Py, :_pyconvert, :_pymacro, :_pywrap, :_jlwrap, :_compat]

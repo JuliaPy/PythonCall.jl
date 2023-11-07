@@ -166,19 +166,19 @@ Py(x::Date) = pydate(x)
 Py(x::Time) = pytime(x)
 Py(x::DateTime) = pydatetime(x)
 
-Base.string(x::Py) = pyisnew(x) ? "<py NULL>" : pystr(String, x)
+Base.string(x::Py) = pyisnew(x) ? "None" : pystr(String, x)
 Base.print(io::IO, x::Py) = print(io, string(x))
 
 function Base.show(io::IO, x::Py)
     if get(io, :typeinfo, Any) == Py
         if pyisnew(x)
-            print(io, "NULL")
+            print(io, "None")
         else
             print(io, pyrepr(String, x))
         end
     else
         if pyisnew(x)
-            print(io, "<py NULL>")
+            print(io, "None")
         else
             s = pyrepr(String, x)
             if startswith(s, "<") && endswith(s, ">")
@@ -192,7 +192,7 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", o::Py)
     if pyisnew(o)
-        str = "NULL"
+        str = "None"
     else
         str = pyrepr(String, o)
     end

@@ -84,7 +84,7 @@ function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssi
         return incref(getptr(ans))
     catch exc
         if exc isa PyException
-            Base.GC.@preserve exc C.PyErr_Restore(incref(exc._t), incref(exc._v), incref(exc._b))
+            Base.GC.@preserve exc C.PyErr_Restore(incref(unsafe_getptr(exc._t)), incref(unsafe_getptr(exc._v)), incref(unsafe_getptr(exc._b)))
             return C.PyNULL
         else
             try

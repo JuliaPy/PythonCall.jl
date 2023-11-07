@@ -825,7 +825,7 @@ pyisrange(x) = pytypecheck(x, pybuiltins.range)
 pynulltuple(len) = pynew(errcheck(C.PyTuple_New(len)))
 
 function pytuple_setitem(xs::Py, i, x)
-    errcheck(C.PyTuple_SetItem(xs, i, incref(Py(x))))
+    errcheck(C.PyTuple_SetItem(xs, i, incref(getptr(Py(x)))))
     return xs
 end
 
@@ -881,7 +881,7 @@ pyistuple(x) = pytypecheckfast(x, C.Py_TPFLAGS_TUPLE_SUBCLASS)
 pynulllist(len) = pynew(errcheck(C.PyList_New(len)))
 
 function pylist_setitem(xs::Py, i, x)
-    errcheck(C.PyList_SetItem(xs, i, incref(Py(x))))
+    errcheck(C.PyList_SetItem(xs, i, incref(getptr(Py(x)))))
     return xs
 end
 

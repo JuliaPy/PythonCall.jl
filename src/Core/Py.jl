@@ -56,8 +56,6 @@ py_finalizer(x::Py) = GC.enqueue(unsafe_getptr(x))
 ispy(::Py) = true
 unsafe_getptr(x::Py) = getfield(x, :ptr)
 getptr(x::Py) = (ptr = unsafe_getptr(x); ifelse(ptr == C.PyNULL, C.POINTERS._Py_NoneStruct, ptr))
-incref(x::Py) = (incref(unsafe_getptr(x)); x)
-decref(x::Py) = (decref(unsafe_getptr(x)); x)
 pyconvert(::Type{Py}, x::Py) = x
 
 unsafe_setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, ptr); x)

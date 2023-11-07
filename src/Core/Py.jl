@@ -81,12 +81,14 @@ points at, i.e. the new `Py` object owns a reference.
 Note that NULL Python objects are not safe in the sense that most API functions will probably
 crash your Julia session if you pass a NULL argument.
 """
-pynew() =
+function pynew()
     if isempty(PYNULL_CACHE)
         new_Py(C.PyNULL)
     else
         pop!(PYNULL_CACHE)
     end
+end
+export pynew
 
 const PyNULL = pynew()
 

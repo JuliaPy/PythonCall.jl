@@ -60,7 +60,7 @@ function Base.delete!(x::PyDict{K,V}, k) where {K,V}
 end
 
 function Base.empty!(x::PyDict)
-    pydel!(@py x.clear())
+    unsafe_pydel!(@py x.clear())
     return x
 end
 

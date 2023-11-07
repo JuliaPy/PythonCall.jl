@@ -16,7 +16,7 @@ pyisnot(x, y) = !pyis(x, y)
 Equivalent to `repr(x)` in Python.
 """
 pyrepr(x) = pynew(errcheck(@autopy x C.PyObject_Repr(x_)))
-pyrepr(::Type{String}, x) = (s=pyrepr(x); ans=pystr_asstring(s); pydel!(s); ans)
+pyrepr(::Type{String}, x) = (s=pyrepr(x); ans=pystr_asstring(s); unsafe_pydel!(s); ans)
 export pyrepr
 
 """
@@ -25,7 +25,7 @@ export pyrepr
 Equivalent to `ascii(x)` in Python.
 """
 pyascii(x) = pynew(errcheck(@autopy x C.PyObject_ASCII(x_)))
-pyascii(::Type{String}, x) = (s=pyascii(x); ans=pystr_asstring(s); pydel!(s); ans)
+pyascii(::Type{String}, x) = (s=pyascii(x); ans=pystr_asstring(s); unsafe_pydel!(s); ans)
 export pyascii
 
 """
@@ -222,13 +222,13 @@ pycall(f, args...; kwargs...) =
         args_ = pytuple_fromiter(args)
         kwargs_ = pystrdict_fromiter(kwargs)
         ans = pycallargs(f, args_, kwargs_)
-        pydel!(args_)
-        pydel!(kwargs_)
+        unsafe_pydel!(args_)
+        unsafe_pydel!(kwargs_)
         ans
     elseif !isempty(args)
         args_ = pytuple_fromiter(args)
         ans = pycallargs(f, args_)
-        pydel!(args_)
+        unsafe_pydel!(args_)
         ans
     else
         pycallargs(f)
@@ -538,6 +538,7 @@ export pynext
 Return the next item in the iterator `x`. When there are no more items, return NULL.
 """
 unsafe_pynext(x::Py) = Base.GC.@preserve x pynew(errcheck_ambig(C.PyIter_Next(x)))
+export unsafe_pynext
 
 ### None
 
@@ -583,12 +584,12 @@ pystr(x) = pynew(errcheck(@autopy x C.PyObject_Str(x_)))
 pystr(x::String) = pystr_fromUTF8(x)
 pystr(x::SubString{String}) = pystr_fromUTF8(x)
 pystr(x::Char) = pystr(string(x))
-pystr(::Type{String}, x) = (s=pystr(x); ans=pystr_asstring(s); pydel!(s); ans)
+pystr(::Type{String}, x) = (s=pystr(x); ans=pystr_asstring(s); unsafe_pydel!(s); ans)
 export pystr
 
 pystr_asUTF8bytes(x::Py) = Base.GC.@preserve x pynew(errcheck(C.PyUnicode_AsUTF8String(x)))
-pystr_asUTF8vector(x::Py) = (b=pystr_asUTF8bytes(x); ans=pybytes_asvector(b); pydel!(b); ans)
-pystr_asstring(x::Py) = (b=pystr_asUTF8bytes(x); ans=pybytes_asUTF8string(b); pydel!(b); ans)
+pystr_asUTF8vector(x::Py) = (b=pystr_asUTF8bytes(x); ans=pybytes_asvector(b); unsafe_pydel!(b); ans)
+pystr_asstring(x::Py) = (b=pystr_asUTF8bytes(x); ans=pybytes_asUTF8string(b); unsafe_pydel!(b); ans)
 
 function pystr_intern!(x::Py)
     ptr = Ref(getptr(x))
@@ -612,8 +613,8 @@ pybytes(x) = pynew(errcheck(@autopy x C.PyObject_Bytes(x_)))
 pybytes(x::Vector{UInt8}) = pybytes_fromdata(x)
 pybytes(x::Base.CodeUnits{UInt8, String}) = pybytes_fromdata(x)
 pybytes(x::Base.CodeUnits{UInt8, SubString{String}}) = pybytes_fromdata(x)
-pybytes(::Type{T}, x) where {Vector{UInt8} <: T <: Vector} = (b=pybytes(x); ans=pybytes_asvector(b); pydel!(b); ans)
-pybytes(::Type{T}, x) where {Base.CodeUnits{UInt8,String} <: T <: Base.CodeUnits} = (b=pybytes(x); ans=Base.CodeUnits(pybytes_asUTF8string(b)); pydel!(b); ans)
+pybytes(::Type{T}, x) where {Vector{UInt8} <: T <: Vector} = (b=pybytes(x); ans=pybytes_asvector(b); unsafe_pydel!(b); ans)
+pybytes(::Type{T}, x) where {Base.CodeUnits{UInt8,String} <: T <: Base.CodeUnits} = (b=pybytes(x); ans=Base.CodeUnits(pybytes_asUTF8string(b)); unsafe_pydel!(b); ans)
 export pybytes
 
 pyisbytes(x) = pytypecheckfast(x, C.Py_TPFLAGS_BYTES_SUBCLASS)
@@ -845,7 +846,7 @@ function pytuple_fromiter(xs)
         # length unknown
         xs_ = pylist_fromiter(xs)
         ans = pylist_astuple(xs_)
-        pydel!(xs_)
+        unsafe_pydel!(xs_)
         return ans
     end
 end
@@ -932,7 +933,7 @@ function pycollist(x::AbstractArray{T,N}) where {T,N}
     for (i, j) in enumerate(ax)
         y = pycollist(selectdim(x, d, j))
         pylist_setitem(ans, i-1, y)
-        pydel!(y)
+        unsafe_pydel!(y)
     end
     return ans
 end
@@ -951,7 +952,7 @@ function pyrowlist(x::AbstractArray{T,N}) where {T,N}
     for (i, j) in enumerate(ax)
         y = pyrowlist(selectdim(x, d, j))
         pylist_setitem(ans, i-1, y)
-        pydel!(y)
+        unsafe_pydel!(y)
     end
     return ans
 end
@@ -1059,7 +1060,7 @@ function pydatetime(x::DateTime)
     # this accounts for fold
     d = pytimedeltatype(milliseconds = (x - _base_datetime).value)
     ans = _base_pydatetime + d
-    pydel!(d)
+    unsafe_pydel!(d)
     return ans
 end
 pydatetime(x::Date) = pydatetime(year(x), month(x), day(x))
@@ -1068,30 +1069,30 @@ export pydatetime
 function pytime_isaware(x)
     tzinfo = pygetattr(x, "tzinfo")
     if pyisnone(tzinfo)
-        pydel!(tzinfo)
+        unsafe_pydel!(tzinfo)
         return false
     end
     utcoffset = tzinfo.utcoffset
-    pydel!(tzinfo)
+    unsafe_pydel!(tzinfo)
     o = utcoffset(nothing)
-    pydel!(utcoffset)
+    unsafe_pydel!(utcoffset)
     ans = !pyisnone(o)
-    pydel!(o)
+    unsafe_pydel!(o)
     return ans
 end
 
 function pydatetime_isaware(x)
     tzinfo = pygetattr(x, "tzinfo")
     if pyisnone(tzinfo)
-        pydel!(tzinfo)
+        unsafe_pydel!(tzinfo)
         return false
     end
     utcoffset = tzinfo.utcoffset
-    pydel!(tzinfo)
+    unsafe_pydel!(tzinfo)
     o = utcoffset(x)
-    pydel!(utcoffset)
+    unsafe_pydel!(utcoffset)
     ans = !pyisnone(o)
-    pydel!(o)
+    unsafe_pydel!(o)
     return ans
 end
 
@@ -1155,7 +1156,7 @@ pyeval(Float64, "x+y", Main, (x=1.1, y=2.2))  # returns 3.3
 function pyeval(::Type{T}, code, globals, locals=nothing) where {T}
     code_, globals_, locals_ = _pyeval_args(code, globals, locals)
     ans = pybuiltins.eval(code_, globals_, locals_)
-    pydel!(locals_)
+    unsafe_pydel!(locals_)
     return pyconvert(T, ans)
 end
 pyeval(code, globals, locals=nothing) = pyeval(Py, code, globals, locals)
@@ -1209,9 +1210,9 @@ pyeval(Int, "x", Main)  # returns 12
 """
 function pyexec(::Type{T}, code, globals, locals=nothing) where {T}
     code_, globals_, locals_ = _pyeval_args(code, globals, locals)
-    pydel!(pybuiltins.exec(code_, globals_, locals_))
+    unsafe_pydel!(pybuiltins.exec(code_, globals_, locals_))
     ans = _pyexec_ans(T, globals_, locals_)
-    pydel!(locals_)
+    unsafe_pydel!(locals_)
     return ans
 end
 pyexec(code, globals, locals=nothing) = pyexec(Nothing, code, globals, locals)
@@ -1442,8 +1443,8 @@ Import a module `m`, or an attribute `k`, or a tuple of attributes.
 If several arguments are given, return the results of importing each one in a tuple.
 """
 pyimport(m) = pynew(errcheck(@autopy m C.PyImport_Import(m_)))
-pyimport((m,k)::Pair) = (m_=pyimport(m); k_=pygetattr(m_,k); pydel!(m_); k_)
-pyimport((m,ks)::Pair{<:Any,<:Tuple}) = (m_=pyimport(m); ks_=map(k->pygetattr(m_,k), ks); pydel!(m_); ks_)
+pyimport((m,k)::Pair) = (m_=pyimport(m); k_=pygetattr(m_,k); unsafe_pydel!(m_); k_)
+pyimport((m,ks)::Pair{<:Any,<:Tuple}) = (m_=pyimport(m); ks_=map(k->pygetattr(m_,k), ks); unsafe_pydel!(m_); ks_)
 pyimport(m1, m2, ms...) = map(pyimport, (m1, m2, ms...))
 export pyimport
 
@@ -1454,12 +1455,12 @@ export pyimport
 
 Equivalent to `print(...)` in Python.
 """
-pyprint(args...; kwargs...) = (pydel!(pybuiltins.print(args...; kwargs...)); nothing)
+pyprint(args...; kwargs...) = (unsafe_pydel!(pybuiltins.print(args...; kwargs...)); nothing)
 export pyprint
 
 function _pyhelp(args...)
     pyisnone(pybuiltins.help) && error("Python help is not available")
-    pydel!(pybuiltins.help(args...))
+    unsafe_pydel!(pybuiltins.help(args...))
     nothing
 end
 """
@@ -1479,7 +1480,7 @@ Equivalent to `all(x)` in Python.
 function pyall(x)
     y = pybuiltins.all(x)
     z = pybool_asbool(y)
-    pydel!(y)
+    unsafe_pydel!(y)
     z
 end
 export pyall
@@ -1492,7 +1493,7 @@ Equivalent to `any(x)` in Python.
 function pyany(x)
     y = pybuiltins.any(x)
     z = pybool_asbool(y)
-    pydel!(y)
+    unsafe_pydel!(y)
     z
 end
 export pyany
@@ -1505,7 +1506,7 @@ Equivalent to `callable(x)` in Python.
 function pycallable(x)
     y = pybuiltins.callable(x)
     z = pybool_asbool(y)
-    pydel!(y)
+    unsafe_pydel!(y)
     z
 end
 export pycallable

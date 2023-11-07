@@ -19,7 +19,7 @@ Provides the `@py` macro.
 module PyMacro
 
 using ..Core
-using ..Core: pyisnot, pynotin, BUILTINS, pynew, pycallargs, pydel!, pycopy!, pystr_intern!, pynulltuple, pytuple_setitem, pyset_add, pyisnew, unsafe_pynext, pydict_setitem, pylist_setitem, pynulllist, pybool_asbool, pythrow
+using ..Core: pyisnot, pynotin, BUILTINS, pynew, pycallargs, unsafe_pydel!, pycopy!, pystr_intern!, pynulltuple, pytuple_setitem, pyset_add, pyisnew, unsafe_pynext, pydict_setitem, pylist_setitem, pynulllist, pybool_asbool, pythrow
 
 using MacroTools: MacroTools, @capture, isexpr
 
@@ -147,7 +147,7 @@ end
 
 py_macro_assign(body, ans, ex) = push!(body, :($ans = $ex))
 
-py_macro_del(body, var, tmp) = if tmp; push!(body, :($pydel!($var))); end
+py_macro_del(body, var, tmp) = if tmp; push!(body, :($unsafe_pydel!($var))); end
 
 ismacroexpr(ex, name) = isexpr(ex, :macrocall) && (ex.args[1] === Symbol(name) || ex.args[1] === GlobalRef(Base.Core, Symbol(name)))
 
@@ -326,7 +326,7 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         end
         if af === :print
             # treat print as a special case since it is variadic
-            push!(body, :($pydel!($ans)))
+            push!(body, :($unsafe_pydel!($ans)))
             py_macro_assign(body, ans, nothing)
             return false
         else
@@ -587,7 +587,7 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         tx = py_macro_lower(st, body, ans, ax)
         body2 = []
         body3 = []
-        tx && push!(body2, :($pydel!($ans)))
+        tx && push!(body2, :($unsafe_pydel!($ans)))
         ty = py_macro_lower(st, body2, ans, ay)
         t = tx || ty
         if t
@@ -603,7 +603,7 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         tx = py_macro_lower(st, body, ans, ax)
         body2 = []
         body3 = []
-        tx && push!(body3, :($pydel!($ans)))
+        tx && push!(body3, :($unsafe_pydel!($ans)))
         ty = py_macro_lower(st, body3, ans, ay)
         t = tx || ty
         if t
@@ -634,7 +634,7 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         py_macro_del(body, y, ty)
         body2 = []
         push!(body2, :($v = $unsafe_pynext($i)))
-        push!(body2, Expr(:if, :($pyisnew($v)), Expr(:block, :($pydel!($v)), :(break))))
+        push!(body2, Expr(:if, :($pyisnew($v)), Expr(:block, :($unsafe_pydel!($v)), :(break))))
         py_macro_lower_assign(st, body2, ax, v)
         py_macro_del(body2, v, true)
         tz = py_macro_lower(st, body2, z, az)

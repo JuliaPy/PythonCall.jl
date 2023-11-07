@@ -208,11 +208,11 @@ function PyArraySource_ArrayInterface(x::Py, d::Py=x.__array_interface__)
     if pyistuple(data)
         ptr = Ptr{Cvoid}(pyconvert(UInt, data[0]))
         readonly = pyconvert(Bool, data[1])
-        pydel!(data)
+        unsafe_pydel!(data)
         handle = Py((x, d))
     else
         memview = @py memoryview(data === None ? x : data)
-        pydel!(data)
+        unsafe_pydel!(data)
         buf = UnsafePtr(C.PyMemoryView_GET_BUFFER(memview))
         ptr = buf.buf[!]
         readonly = buf.readonly[] != 0
@@ -339,7 +339,7 @@ function pyarray_get_R(src::PyArraySource_ArrayInterface)
     typestr = pyconvert(String, src.dict["typestr"])
     descr = @py @jl(src.dict).get("descr")
     R = pyarray_typestrdescr_to_type(typestr, descr)::DataType
-    pydel!(descr)
+    unsafe_pydel!(descr)
     return R
 end
 
@@ -352,7 +352,7 @@ pyarray_get_size(src::PyArraySource_ArrayInterface, ::Val{N}) where {N} = pyconv
 function pyarray_get_strides(src::PyArraySource_ArrayInterface, ::Val{N}, ::Type{R}, size::NTuple{N,Int}) where {R,N}
     @py strides = @jl(src.dict).get("strides")
     if pyisnone(strides)
-        pydel!(strides)
+        unsafe_pydel!(strides)
         return Utils.size_to_cstrides(sizeof(R), size)
     else
         return pyconvert(NTuple{N,Int}, strides)

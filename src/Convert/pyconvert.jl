@@ -327,7 +327,7 @@ function pytryconvert(::Type{T}, x_) where {T}
     rules = get!(trules, tptr) do
         t = pynew(incref(tptr))
         ans = pyconvert_get_rules(T, t)::Vector{Function}
-        pydel!(t)
+        unsafe_pydel!(t)
         ans
     end
 

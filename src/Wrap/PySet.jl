@@ -27,7 +27,7 @@ Base.isempty(x::PySet) = length(x) == 0
 function Base.iterate(x::PySet{T}, it::Py=pyiter(x)) where {T}
     y = unsafe_pynext(it)
     if pyisnew(y)
-        pydel!(it)
+        unsafe_pydel!(it)
         return nothing
     else
         return (pyconvert(T, y), it)
@@ -48,17 +48,17 @@ function Base.in(v, x::PySet{T}) where {T}
 end
 
 function Base.push!(x::PySet{T}, v) where {T}
-    pydel!(@py x.add(@jl(convert(T, v))))
+    unsafe_pydel!(@py x.add(@jl(convert(T, v))))
     return x
 end
 
 function Base.delete!(x::PySet{T}, v) where {T}
     if v isa T
-        pydel!(@py x.discard(v))
+        unsafe_pydel!(@py x.discard(v))
     else
         r = pyconvert_tryconvert(T, v)
         if !pyconvert_isunconverted(r)
-            pydel!(@py x.discard(@jl pyconvert_result(T, r)))
+            unsafe_pydel!(@py x.discard(@jl pyconvert_result(T, r)))
         end
     end
     return x
@@ -88,7 +88,7 @@ function Base.pop!(x::PySet, v, d)
 end
 
 function Base.empty!(x::PySet)
-    pydel!(@py x.clear())
+    unsafe_pydel!(@py x.clear())
     return x
 end
 

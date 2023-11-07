@@ -17,6 +17,7 @@ export ispy
 True if the Python object `x` is NULL.
 """
 pyisnew(x) = unsafe_getptr(x) == C.PyNULL
+export pyisnew
 
 """
     getptr(x)
@@ -105,10 +106,14 @@ the top level then `pycopy!(x, pything())` inside `__init__()`.
 
 Assumes `dst` is NULL, otherwise a memory leak will occur.
 """
-pycopy!(dst::Py, src) = Base.GC.@preserve src unsafe_setptr!(dst, incref(unsafe_getptr(src)))
+function pycopy!(dst::Py, src)
+    pyisnew(dst) || error("pyisnew(dst) is false")
+    Base.GC.@preserve src unsafe_setptr!(dst, incref(unsafe_getptr(src)))
+end
+export pycopy!
 
 """
-    pydel!(x::Py)
+    unsafe_pydel!(x::Py)
 
 Delete the Python object `x`.
 
@@ -124,7 +129,7 @@ be a significant source of slow-down in code which uses a lot of Python objects.
 `pynew()` to pop an item from `PYNULL_CACHE` instead of allocating one, and avoids calling
 the relatively slow finalizer on `x`.
 """
-function pydel!(x::Py)
+function unsafe_pydel!(x::Py)
     ptr = unsafe_getptr(x)
     if ptr != C.PyNULL
         C.Py_DecRef(ptr)
@@ -133,6 +138,7 @@ function pydel!(x::Py)
     push!(PYNULL_CACHE, x)
     return
 end
+export unsafe_pydel!
 
 macro autopy(args...)
     vs = args[1:end-1]
@@ -142,7 +148,7 @@ macro autopy(args...)
     esc(quote
         # $([:($t = $ispy($v) ? $v : $Py($v)) for (t, v) in zip(ts, vs)]...)
         # $ans = $body
-        # $([:($ispy($v) || $pydel!($t)) for (t, v) in zip(ts, vs)]...)
+        # $([:($ispy($v) || $unsafe_pydel!($t)) for (t, v) in zip(ts, vs)]...)
         # $ans
         $([:($t = $Py($v)) for (t, v) in zip(ts, vs)]...)
         $body
@@ -339,7 +345,7 @@ Base.IteratorSize(::Type{Py}) = Base.SizeUnknown()
 function Base.iterate(x::Py, it::Py=pyiter(x))
     v = unsafe_pynext(it)
     if pyisnew(v)
-        pydel!(it)
+        unsafe_pydel!(it)
         nothing
     else
         (v, it)

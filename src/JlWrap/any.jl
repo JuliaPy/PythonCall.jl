@@ -13,14 +13,14 @@ pyjlany_str(self) = Py(sprint(print, self))
 
 function pyjlany_getattr(self, k_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))
-    pydel!(k_)
+    unsafe_pydel!(k_)
     Py(getproperty(self, k))
 end
 pyjl_handle_error_type(::typeof(pyjlany_getattr), self, exc) = pybuiltins.AttributeError
 
 function pyjlany_setattr(self, k_::Py, v_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))
-    pydel!(k_)
+    unsafe_pydel!(k_)
     v = pyconvert(Any, v_)
     setproperty!(self, k, v)
     Py(nothing)
@@ -40,8 +40,8 @@ function pyjlany_call(self, args_::Py, kwargs_::Py)
     else
         ans = Py(self())
     end
-    pydel!(args_)
-    pydel!(kwargs_)
+    unsafe_pydel!(args_)
+    unsafe_pydel!(kwargs_)
     ans
 end
 pyjl_handle_error_type(::typeof(pyjlany_call), self, exc) = exc isa MethodError && exc.f === self ? pybuiltins.TypeError : PyNULL
@@ -49,7 +49,7 @@ pyjl_handle_error_type(::typeof(pyjlany_call), self, exc) = exc isa MethodError 
 function pyjlany_getitem(self, k_::Py)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
-        pydel!(k_)
+        unsafe_pydel!(k_)
         Py(self[k...])
     else
         k = pyconvert(Any, k_)
@@ -62,7 +62,7 @@ function pyjlany_setitem(self, k_::Py, v_::Py)
     v = pyconvert(Any, v_)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
-        pydel!(k_)
+        unsafe_pydel!(k_)
         self[k...] = v
     else
         k = pyconvert(Any, k_)
@@ -75,7 +75,7 @@ pyjl_handle_error_type(::typeof(pyjlany_setitem), self, exc) = exc isa BoundsErr
 function pyjlany_delitem(self, k_::Py)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
-        pydel!(k_)
+        unsafe_pydel!(k_)
         delete!(self, k...)
     else
         k = pyconvert(Any, k_)
@@ -95,7 +95,7 @@ end
 function (op::pyjlany_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
-        pydel!(other_)
+        unsafe_pydel!(other_)
         Py(op.op(self, other))
     else
         pybuiltins.NotImplemented
@@ -105,8 +105,8 @@ function (op::pyjlany_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_) && pyisjl(other2_)
         other = pyjlvalue(other_)
         other2 = pyjlvalue(other2_)
-        pydel!(other_)
-        pydel!(other2_)
+        unsafe_pydel!(other_)
+        unsafe_pydel!(other2_)
         Py(op.op(self, other, other2))
     else
         pybuiltins.NotImplemented
@@ -120,7 +120,7 @@ end
 function (op::pyjlany_rev_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
-        pydel!(other_)
+        unsafe_pydel!(other_)
         Py(op.op(other, self))
     else
         pybuiltins.NotImplemented
@@ -130,8 +130,8 @@ function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_) && pyisjl(other2_)
         other = pyjlvalue(other_)
         other2 = pyjlvalue(other2_)
-        pydel!(other_)
-        pydel!(other2_)
+        unsafe_pydel!(other_)
+        unsafe_pydel!(other2_)
         Py(op.op(other, self, other2))
     else
         pybuiltins.NotImplemented
@@ -179,7 +179,7 @@ function pyjlany_mimebundle(self, include::Py, exclude::Py)
             show(IOContext(io, :limit=>true), MIME(m), self)
             v = take!(io)
             ans[m] = vo = istextmime(m) ? pystr(String(v)) : pybytes(v)
-            pydel!(vo)
+            unsafe_pydel!(vo)
         catch err
             # silently skip anything that didn't work
         end

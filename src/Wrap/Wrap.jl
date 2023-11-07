@@ -6,7 +6,7 @@ Defines Julia wrappers around Python objects, including `PyList`, `PyDict`, `PyA
 module Wrap
 
 using ..Core
-using ..Core: C, Utils, @autopy, unsafe_pynext, pyisnew, PyNULL, getptr, pydel!, pybytes_asvector, pystr_asUTF8vector, pystr_fromUTF8, incref, decref, pynew, pyisnone, pyistuple, pyisstr
+using ..Core: C, Utils, @autopy, unsafe_pynext, pyisnew, PyNULL, getptr, unsafe_pydel!, pybytes_asvector, pystr_asUTF8vector, pystr_fromUTF8, incref, decref, pynew, pyisnone, pyistuple, pyisstr
 using ..Convert: pyconvert, pyconvert_tryconvert, pyconvert_unconverted, pyconvert_isunconverted, pyconvert_return, pyconvert_result
 using ..PyMacro
 

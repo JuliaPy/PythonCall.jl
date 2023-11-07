@@ -65,7 +65,7 @@ function pyjl_getarrayindices(x::AbstractArray{T,N}, ks::Py) where {T,N}
             return ntuple(N) do i
                 k = pytuple_getitem(ks, i-1)
                 ans = pyjl_getaxisindex(axes(x, i), k)
-                pydel!(k)
+                unsafe_pydel!(k)
                 return ans
             end
         else
@@ -81,7 +81,7 @@ end
 
 function pyjlarray_getitem(x::AbstractArray{T,N}, k_::Py) where {T,N}
     k = pyjl_getarrayindices(x, k_)
-    pydel!(k_)
+    unsafe_pydel!(k_)
     if k isa NTuple{N,Int}
         return Py(x[k...])
     else
@@ -91,7 +91,7 @@ end
 
 function pyjlarray_setitem(x::AbstractArray{T,N}, k_::Py, v_::Py) where {T,N}
     k = pyjl_getarrayindices(x, k_)
-    pydel!(k_)
+    unsafe_pydel!(k_)
     if k isa NTuple{N,Int}
         v = pyconvertarg(T, v_, "value")
         x[k...] = v
@@ -105,7 +105,7 @@ end
 function pyjlarray_delitem(x::AbstractArray{T,N}, k_::Py) where {T,N}
     if N == 1
         k = pyjl_getarrayindices(x, k_)
-        pydel!(k_)
+        unsafe_pydel!(k_)
         deleteat!(x, k...)
     else
         errset(pybuiltins.TypeError, "can only delete from 1D arrays")
@@ -117,7 +117,7 @@ pyjl_handle_error_type(::typeof(pyjlarray_delitem), x, exc::MethodError) = exc.f
 
 function pyjlarray_reshape(x::AbstractArray, shape_::Py)
     shape = pyconvertarg(Union{Int,Vector{Int}}, shape_, "shape")
-    pydel!(shape_)
+    unsafe_pydel!(shape_)
     return Py(reshape(x, shape...))
 end
 

@@ -37,12 +37,12 @@ end
 
 Base.@propagate_inbounds function Base.insert!(x::PyList{T}, i::Integer, v) where {T}
     @boundscheck (i==length(x)+1 || checkbounds(x, i))
-    pydel!(@py x.insert(@jl(i-1), @jl(convert(T, v))))
+    unsafe_pydel!(@py x.insert(@jl(i-1), @jl(convert(T, v))))
     return x
 end
 
 function Base.push!(x::PyList{T}, v) where {T}
-    pydel!(@py x.append(@jl(convert(T, v))))
+    unsafe_pydel!(@py x.append(@jl(convert(T, v))))
     return x
 end
 
@@ -78,12 +78,12 @@ Base.@propagate_inbounds function Base.popfirst!(x::PyList{T}) where {T}
 end
 
 function Base.reverse!(x::PyList)
-    pydel!(@py x.reverse())
+    unsafe_pydel!(@py x.reverse())
     return x
 end
 
 function Base.empty!(x::PyList)
-    pydel!(@py x.clear())
+    unsafe_pydel!(@py x.clear())
     return x
 end
 

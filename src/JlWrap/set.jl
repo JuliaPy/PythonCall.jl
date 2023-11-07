@@ -37,7 +37,7 @@ function pyjlset_update(x::AbstractSet, vs_::Py)
     for v_ in vs_
         v = pyconvert(eltype(x), v_)
         push!(x, v)
-        pydel!(v_)
+        unsafe_pydel!(v_)
     end
     Py(nothing)
 end
@@ -46,7 +46,7 @@ function pyjlset_difference_update(x::AbstractSet, vs_::Py)
     for v_ in vs_
         v = @pyconvert(eltype(x), v_, continue)
         delete!(x, v)
-        pydel!(v_)
+        unsafe_pydel!(v_)
     end
     Py(nothing)
 end
@@ -56,7 +56,7 @@ function pyjlset_intersection_update(x::AbstractSet, vs_::Py)
     for v_ in vs_
         v = @pyconvert(eltype(x), v_, continue)
         push!(vs, v)
-        pydel!(v_)
+        unsafe_pydel!(v_)
     end
     intersect!(x, vs)
     Py(nothing)
@@ -67,7 +67,7 @@ function pyjlset_symmetric_difference_update(x::AbstractSet, vs_::Py)
     for v_ in vs_
         v = pyconvert(eltype(x), v_)
         push!(vs, v)
-        pydel!(v_)
+        unsafe_pydel!(v_)
     end
     symdiff!(x, vs)
     Py(nothing)

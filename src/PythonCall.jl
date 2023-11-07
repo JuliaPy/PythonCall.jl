@@ -27,9 +27,6 @@ end
 for k in [:python_executable_path, :python_library_path, :python_library_handle, :python_version]
     @eval using .C: $k
 end
-for k in [:pynew, :pyisnew, :pycopy!, :pydel!, :unsafe_pynext, :PyNULL, :CONFIG]
-    @eval using .Core: $k
-end
 for k in [:pyconvert_add_rule, :pyconvert_return, :pyconvert_unconverted, :PYCONVERT_PRIORITY_WRAP, :PYCONVERT_PRIORITY_ARRAY, :PYCONVERT_PRIORITY_CANONICAL, :PYCONVERT_PRIORITY_NORMAL, :PYCONVERT_PRIORITY_FALLBACK]
     @eval using .Convert: $k
 end

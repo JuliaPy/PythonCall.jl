@@ -11,7 +11,7 @@ end
 function (op::pyjlnumber_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
-        pydel!(other_)
+        unsafe_pydel!(other_)
     else
         other = @pyconvert(Number, other_, return pybuiltins.NotImplemented)
     end
@@ -20,13 +20,13 @@ end
 function (op::pyjlnumber_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
-        pydel!(other_)
+        unsafe_pydel!(other_)
     else
         other = @pyconvert(Number, other_, return pybuiltins.NotImplemented)
     end
     if pyisjl(other2_)
         other2 = pyjlvalue(other2_)
-        pydel!(other2_)
+        unsafe_pydel!(other2_)
     else
         other2 = @pyconvert(Number, other2_, return pybuiltins.NotImplemented)
     end
@@ -40,7 +40,7 @@ end
 function (op::pyjlnumber_rev_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
-        pydel!(other_)
+        unsafe_pydel!(other_)
     else
         other = @pyconvert(Number, other_, return pybuiltins.NotImplemented)
     end
@@ -49,13 +49,13 @@ end
 function (op::pyjlnumber_rev_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
-        pydel!(other_)
+        unsafe_pydel!(other_)
     else
         other = @pyconvert(Number, other_, return pybuiltins.NotImplemented)
     end
     if pyisjl(other2_)
         other2 = pyjlvalue(other2_)
-        pydel!(other2_)
+        unsafe_pydel!(other2_)
     else
         other2 = @pyconvert(Number, other2_, return pybuiltins.NotImplemented)
     end
@@ -74,7 +74,7 @@ pyjl_handle_error_type(::typeof(pyjlreal_ceil), self, exc::MethodError) = exc.f 
 
 function pyjlreal_round(self::Real, ndigits_::Py)
     ndigits = pyconvertarg(Union{Int,Nothing}, ndigits_, "ndigits")
-    pydel!(ndigits_)
+    unsafe_pydel!(ndigits_)
     if ndigits === nothing
         Py(round(Integer, self))
     else

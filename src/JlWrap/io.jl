@@ -84,20 +84,20 @@ function pyjlbinaryio_readinto(io::IO, b::Py)
     m = pybuiltins.memoryview(b)
     c = m.c_contiguous
     if !pytruth(c)
-        pydel!(c)
+        unsafe_pydel!(c)
         errset(pybuiltins.ValueError, "input buffer is not contiguous")
         return PyNULL
     end
-    pydel!(c)
+    unsafe_pydel!(c)
     buf = unsafe_load(C.PyMemoryView_GET_BUFFER(m))
     if buf.readonly != 0
-        pydel!(m)
+        unsafe_pydel!(m)
         errset(pybuiltins.ValueError, "output buffer is read-only")
         return PyNULL
     end
     data = unsafe_wrap(Array, Ptr{UInt8}(buf.buf), buf.len)
     nb = readbytes!(io, data)
-    pydel!(m)
+    unsafe_pydel!(m)
     return Py(nb)
 end
 pyjl_handle_error_type(::typeof(pyjlbinaryio_readinto), io, exc) = exc isa MethodError && exc.f === readbytes! ? pybuiltins.ValueError : PyNULL
@@ -106,15 +106,15 @@ function pyjlbinaryio_write(io::IO, b::Py)
     m = pybuiltins.memoryview(b)
     c = m.c_contiguous
     if !pytruth(c)
-        pydel!(c)
+        unsafe_pydel!(c)
         errset(pybuiltins.ValueError, "input buffer is not contiguous")
         return PyNULL
     end
-    pydel!(c)
+    unsafe_pydel!(c)
     buf = unsafe_load(C.PyMemoryView_GET_BUFFER(m))
     data = unsafe_wrap(Array, Ptr{UInt8}(buf.buf), buf.len)
     write(io, data)
-    pydel!(m)
+    unsafe_pydel!(m)
     return Py(buf.len)
 end
 pyjl_handle_error_type(::typeof(pyjlbinaryio_write), io, exc) = exc isa MethodError && exc.f === write ? pybuiltins.ValueError : PyNULL
@@ -175,7 +175,7 @@ function pyjltextio_write(io::IO, s_::Py)
         # get the line separator
         linesep_ = pyosmodule.linesep
         linesep = pystr_asstring(linesep_)
-        pydel!(linesep_)
+        unsafe_pydel!(linesep_)
         # write the string
         # translating '\n' to os.linesep
         i = firstindex(s)

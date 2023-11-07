@@ -3,7 +3,7 @@ const pyjltypetype = pynew()
 function pyjltype_getitem(self::Type, k_)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
-        pydel!(k_)
+        unsafe_pydel!(k_)
         Py(self{k...})
     else
         k = pyconvert(Any, k_)

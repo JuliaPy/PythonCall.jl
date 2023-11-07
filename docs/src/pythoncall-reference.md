@@ -229,15 +229,17 @@ PythonCall.python_library_path
 PythonCall.python_library_handle
 ```
 
-## Low-level API
-
-The functions here are not exported. They are mostly unsafe in the sense that you can
-crash Julia by using them incorrectly.
+## Mutable API
 
 ```@docs
-PythonCall.pynew
-PythonCall.pyisnew
-PythonCall.pycopy!
-PythonCall.pydel!
+pynew
+pyisnew
+pycopy!
+```
+
+## Unsafe API
+
+```@docs
+PythonCall.unsafe_pydel!
 PythonCall.unsafe_pynext
 ```

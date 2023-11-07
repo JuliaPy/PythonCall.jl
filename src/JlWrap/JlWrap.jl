@@ -7,7 +7,7 @@ module JlWrap
 
 using ..PythonCall: PythonCall
 using ..Core
-using ..Core: C, Utils, pynew, @autopy, incref, decref, unsafe_setptr!, getptr, pyjuliacallmodule, pycopy!, errcheck, errset, PyNULL, pyistuple, pyisnew, pyJuliaError, pydel!, pyistype, pytypecheck, pythrow, pytuple_getitem, pyisslice, pystr_asstring, pyosmodule, pyisstr
+using ..Core: C, Utils, pynew, @autopy, incref, decref, unsafe_setptr!, getptr, pyjuliacallmodule, pycopy!, errcheck, errset, PyNULL, pyistuple, pyisnew, pyJuliaError, unsafe_pydel!, pyistype, pytypecheck, pythrow, pytuple_getitem, pyisslice, pystr_asstring, pyosmodule, pyisstr
 using ..Convert: pyconvert, @pyconvert, PYCONVERT_PRIORITY_WRAP, pyconvert_add_rule, pyconvert_tryconvert, pyconvertarg, pyconvert_result
 
 using Pkg: Pkg

@@ -29,8 +29,8 @@ function pyjlcallback_call(self, args_::Py, kwargs_::Py)
     else
         ans = Py(self())
     end
-    pydel!(args_)
-    pydel!(kwargs_)
+    unsafe_pydel!(args_)
+    unsafe_pydel!(kwargs_)
     ans
 end
 pyjl_handle_error_type(::typeof(pyjlcallback_call), self, exc::MethodError) = exc.f === self ? pybuiltins.TypeError : PyNULL

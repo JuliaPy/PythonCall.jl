@@ -39,7 +39,7 @@ return `Py`.
 """
 mutable struct Py
     ptr :: C.PyPtr
-    Py(::Val{:new}, ptr::C.PyPtr) = finalizer(py_finalizer, new(ptr))
+    global new_Py(ptr::C.PyPtr) = finalizer(py_finalizer, new(ptr))
 end
 export Py
 
@@ -66,7 +66,7 @@ crash your Julia session if you pass a NULL argument.
 """
 pynew() =
     if isempty(PYNULL_CACHE)
-        Py(Val(:new), C.PyNULL)
+        new_Py(C.PyNULL)
     else
         pop!(PYNULL_CACHE)
     end

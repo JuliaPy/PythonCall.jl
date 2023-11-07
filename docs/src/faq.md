@@ -6,8 +6,8 @@ No.
 
 Some rules if you are writing multithreaded code:
 - Only call Python functions from the first thread.
-- You probably also need to call `PythonCall.GC.disable()` on the main thread before any
-  threaded block of code. Remember to call `PythonCall.GC.enable()` again afterwards.
+- You probably also need to call `on=PythonCall.GC.enable(false)` on the main thread before any
+  threaded block of code. Remember to call `PythonCall.GC.enable(on)` again afterwards.
   (This is because Julia finalizers can be called from any thread.)
 - Julia intentionally causes segmentation faults as part of the GC safepoint mechanism.
   If unhandled, these segfaults will result in termination of the process. To enable signal handling,

@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Unreleased (v1)
+* `PythonCall.GC` is now more like `Base.GC`: `enable(true)` replaces `enable()`, `enable(false)` replaces `disable()`, and `gc()` is added.
 
 ## Unreleased
 * `Py` is now treated as a scalar when broadcasting.

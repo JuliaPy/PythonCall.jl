@@ -17,6 +17,7 @@ include("pointers.jl")
 include("extras.jl")
 include("context.jl")
 include("gil.jl")
+include("api.jl")
 
 function __init__()
     init_context()

@@ -17,13 +17,16 @@ include("Compat/Compat.jl")
 for m in [:Core, :Convert, :PyMacro, :Wrap, :JlWrap, :Compat]
     for k in names(@eval($m))
         if k != m
-            @eval using .$m: $k
+            @eval const $k = $m.$k
             @eval export $k
         end
     end
 end
 
 # non-exported API
+for k in [:python_executable_path, :python_library_path, :python_library_handle, :python_version]
+    @eval const $k = C.$k
+end
 for k in [:pynew, :pyisnull, :pycopy!, :getptr, :pydel!, :unsafe_pynext, :PyNULL, :CONFIG]
     @eval const $k = Core.$k
 end

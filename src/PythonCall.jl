@@ -10,11 +10,11 @@ include("Core/Core.jl")
 include("Convert/Convert.jl")
 include("PyMacro/PyMacro.jl")
 include("Wrap/Wrap.jl")
-include("JlWrap/JlWrap.jl")
+include("JlCore/JlCore.jl")
 include("Compat/Compat.jl")
 
 # re-export everything
-for m in [:Core, :Convert, :PyMacro, :Wrap, :JlWrap, :Compat]
+for m in [:Core, :Convert, :PyMacro, :Wrap, :JlCore, :Compat]
     for k in names(@eval($m))
         if k != m
             @eval using .$m: $k
@@ -32,11 +32,6 @@ for k in [:pyconvert_add_rule, :pyconvert_return, :pyconvert_unconverted, :PYCON
 end
 for k in [:event_loop_on, :event_loop_off, :fix_qt_plugin_path]
     @eval using .Compat: $k
-end
-
-# not API but used in tests
-for k in [:pyjlanytype, :pyjlarraytype, :pyjlvectortype, :pyjlbinaryiotype, :pyjltextiotype, :pyjldicttype, :pyjlmoduletype, :pyjlintegertype, :pyjlrationaltype, :pyjlrealtype, :pyjlcomplextype, :pyjlsettype, :pyjltypetype]
-    @eval using .JlWrap: $k
 end
 
 end

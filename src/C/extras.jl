@@ -9,7 +9,9 @@ PyObject_Type(x) = (t=Py_Type(x); Py_IncRef(t); t)
 Py_TypeCheck(o, t) = PyType_IsSubtype(Py_Type(o), t)
 Py_TypeCheckFast(o, f::Integer) = PyType_IsSubtypeFast(Py_Type(o), f)
 
-PyType_IsSubtypeFast(t, f::Integer) = Cint(!iszero(UnsafePtr{PyTypeObject}(ptr(t)).flags[] & f))
+PyTuple_Check(o) = Py_TypeCheckFast(o, Py_TPFLAGS_TUPLE_SUBCLASS)
+
+PyType_IsSubtypeFast(t, f::Integer) = !iszero(UnsafePtr{PyTypeObject}(ptr(t)).flags[] & f)
 
 PyMemoryView_GET_BUFFER(m) = Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(ptr(m)).view)
 

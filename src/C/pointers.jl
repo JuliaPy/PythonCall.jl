@@ -51,7 +51,7 @@ const CAPI_FUNC_SIGS = Dict{Symbol, Pair{Tuple, Type}}(
     :PyObject_GenericGetAttr => (PyPtr, PyPtr) => PyPtr,
     :PyObject_SetAttrString => (PyPtr, Ptr{Cchar}, PyPtr) => Cint,
     :PyObject_SetAttr => (PyPtr, PyPtr, PyPtr) => Cint,
-    :PyObject_GenericSetAttr => (PyPtr, PyPtr, PyPtr) => PyPtr,
+    :PyObject_GenericSetAttr => (PyPtr, PyPtr, PyPtr) => Cint,
     :PyObject_RichCompare => (PyPtr, PyPtr, Cint) => PyPtr,
     :PyObject_RichCompareBool => (PyPtr, PyPtr, Cint) => Cint,
     :PyObject_Repr => (PyPtr,) => PyPtr,

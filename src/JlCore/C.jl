@@ -223,7 +223,10 @@ function _pyjl_dir(xptr::C.PyPtr, ::C.PyPtr)
         else
             append!(ks, propertynames(x))
         end
-        v = pylist(_pyjl_attr_jl2py(string(k)) for k in ks)
+        ks = map(string, ks)
+        filter!(k->!startswith(k, "#"), ks)
+        ks = map(_pyjl_attr_jl2py, ks)
+        v = pylist(ks)
         v.extend(pybuiltins.object.__dir__(pynew(incref(xptr))))
         _return(v, del=true)
     catch exc

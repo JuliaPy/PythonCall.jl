@@ -11,10 +11,10 @@ function init_stdlib()
         # This uses some internals, but Base._start() gets the state more like Julia
         # is if you call the executable directly, in particular it creates workers when
         # the --procs argument is given.
-        push!(Core.ARGS, joinpath(ROOT_DIR, "pysrc", "juliacall", "init.jl"))
+        push!(Base.Core.ARGS, joinpath(ROOT_DIR, "pysrc", "juliacall", "init.jl"))
         Base._start()
         Base.eval(:(PROGRAM_FILE = ""))
-
+        
         # if Python is interactive, ensure Julia is too
         if pyhasattr(pysysmodule, "ps1")
             Base.eval(:(is_interactive = true))

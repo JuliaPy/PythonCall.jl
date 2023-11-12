@@ -36,9 +36,9 @@ class JlError(Exception):
         e = self.exception
         b = self.backtrace
         if b is None:
-            return Base.sprint(Base.showerror, e)
+            return str(Base.sprint(Base.showerror, e))
         else:
-            return Base.sprint(Base.showerror, e, b)
+            return str(Base.sprint(Base.showerror, e, b))
     @property
     def exception(self):
         return self.args[0]

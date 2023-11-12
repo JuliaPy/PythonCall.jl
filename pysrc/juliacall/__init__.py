@@ -28,7 +28,7 @@ def interactive(enable=True):
     else:
         PythonCall.Compat._unset_python_input_hook()
 
-class JuliaError(Exception):
+class JlError(Exception):
     "An error arising in Julia code."
     def __init__(self, exception, backtrace=None):
         super().__init__(exception, backtrace)
@@ -45,6 +45,22 @@ class JuliaError(Exception):
     @property
     def backtrace(self):
         return self.args[1]
+
+class JlIterator:
+    "An iterator over Julia objects."
+    __slots__ = ("object", "state")
+    def __init__(self, object):
+        self.object = object
+        self.state = None
+    def __iter__(self):
+        return self
+    def __next__(self):
+        new = self.object.jl_iterate(self.state)
+        if new is None:
+            raise StopIteration()
+        else:
+            self.state = new[1]
+            return new[0]
 
 CONFIG = {'inited': False}
 

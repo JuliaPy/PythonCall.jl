@@ -130,7 +130,7 @@ function _showerror(io::IO, e::PyException, bt; backtrace=true)
         end
     end
 
-    if !pyisnew(pyJuliaError) && pyissubclass(e.t, pyJuliaError)
+    if !pyisnew(pyJlError) && pyissubclass(e.t, pyJlError)
         # handle Julia exceptions specially
         try
             je, jb = pyconvert(Tuple{Any,Any}, e.v.args)

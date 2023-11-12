@@ -159,6 +159,7 @@ const CAPI_FUNC_SIGS = Dict{Symbol, Pair{Tuple, Type}}(
     :PyDict_SetItem => (PyPtr, PyPtr, PyPtr) => Cint,
     :PyDict_SetItemString => (PyPtr, Ptr{Cchar}, PyPtr) => Cint,
     :PyDict_DelItemString => (PyPtr, Ptr{Cchar}) => Cint,
+    :PyDict_Size => (PyPtr,) => Py_ssize_t,
     # SET
     :PySet_New => (PyPtr,) => PyPtr,
     :PyFrozenSet_New => (PyPtr,) => PyPtr,

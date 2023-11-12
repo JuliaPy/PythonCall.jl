@@ -4,7 +4,7 @@ using Base
 using ...Utils: Utils
 using ...C: C
 using ...Core
-using ...Core: getptr, incref, errset, errmatches, errclear, pyisstr, pystr_asstring, pyJuliaError, pyistuple
+using ...Core: getptr, incref, errset, errmatches, errclear, pyisstr, pystr_asstring, pyJlError, pyJlIterator, pyistuple
 using ...Convert: pyconvert
 using ..JlCore: pyjl
 using Base: @kwdef
@@ -52,7 +52,7 @@ end
 
 function _raise(exc)
     try
-        errset(pyJuliaError, pytuple((pyjl(exc), pyjl(catch_backtrace()))))
+        errset(pyJlError, pytuple((pyjl(exc), pyjl(catch_backtrace()))))
     catch
         @debug "Julia exception" exc
         errset(pybulitins.Exception, "an error occurred while raising a Julia error")
@@ -65,6 +65,32 @@ function _getany(ptr::C.PyPtr)
         PyJl_GetValue(ptr)
     else
         pyconvert(Any, pynew(incref(ptr)))
+    end
+end
+
+function _pyjl_init(xptr::C.PyPtr, argsptr::C.PyPtr, kwargsptr::C.PyPtr)
+    if kwargsptr != C.PyNULL && C.PyDict_Size(kwargsptr) != 0
+        errset(pybuiltins.TypeError, "keyword arguments not allowed")
+        return Cint(-1)
+    end
+    if argsptr == C.PyNULL
+        return Cint(0)
+    end
+    nargs = C.PyTuple_Size(argsptr)
+    if nargs == 0
+        return Cint(0)
+    elseif nargs != 1
+        errset(pybuiltins.TypeError, "too many arguments")
+        return Cint(-1)
+    end
+    vptr = C.PyTuple_GetItem(argsptr, 0)
+    try
+        v = _getany(vptr)
+        PyJl_SetValue(xptr, v)
+        Cint(0)
+    catch exc
+        _raise(exc)
+        Cint(-1)
     end
 end
 
@@ -109,6 +135,10 @@ function _pyjl_hash(xptr::C.PyPtr)
     end
 end
 
+_pyjl_attr_py2jl(k::String) = replace(k, r"_[b]+$" => (x -> "!"^(length(x) - 1)))
+
+_pyjl_attr_jl2py(k::String) = replace(k, r"!+$" => (x -> "_" * "b"^length(x)))
+
 function _pyjl_getattr(xptr::C.PyPtr, kptr::C.PyPtr)
     try
         # first do the generic lookup
@@ -133,7 +163,7 @@ function _pyjl_getattr(xptr::C.PyPtr, kptr::C.PyPtr)
         unsafe_pydel!(ko)
         # get the property
         x = PyJl_GetValue(xptr)
-        k = Symbol(kstr)
+        k = Symbol(_pyjl_attr_py2jl(kstr))
         v = getproperty(x, k)
         JlC.PyJl_New(v)
     catch exc
@@ -150,6 +180,11 @@ function _pyjl_setattr(xptr::C.PyPtr, kptr::C.PyPtr, vptr::C.PyPtr)
             return err
         end
         errclear()
+        # if deleting, raise an error
+        if vptr == C.PyNULL
+            errset(pybuiltins.TypeError, "Julia objects do not support deleting attributes")
+            return Cint(-1)
+        end
         # get the attribute name
         ko = pynew(incref(kptr))
         if !pyisstr(ko)
@@ -166,7 +201,7 @@ function _pyjl_setattr(xptr::C.PyPtr, kptr::C.PyPtr, vptr::C.PyPtr)
         unsafe_pydel!(ko)
         # set the property
         x = PyJl_GetValue(xptr)
-        k = Symbol(kstr)
+        k = Symbol(_pyjl_attr_py2jl(kstr))
         v = _getany(vptr)
         setproperty!(x, k, v)
         Cint(0)
@@ -174,6 +209,27 @@ function _pyjl_setattr(xptr::C.PyPtr, kptr::C.PyPtr, vptr::C.PyPtr)
         _raise(exc)
         Cint(-1)
     end    
+end
+
+function _pyjl_dir(xptr::C.PyPtr, ::C.PyPtr)
+    try
+        x = PyJl_GetValue(xptr)
+        ks = Symbol[]
+        if x isa Module
+            append!(ks, names(x, all = true, imported = true))
+            for m in ccall(:jl_module_usings, Any, (Any,), x)::Vector
+                append!(ks, names(m))
+            end
+        else
+            append!(ks, propertynames(x))
+        end
+        v = pylist(_pyjl_attr_jl2py(string(k)) for k in ks)
+        v.extend(pybuiltins.object.__dir__(pynew(incref(xptr))))
+        _return(v, del=true)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
 end
 
 function _pyjl_len(xptr::C.PyPtr)
@@ -192,10 +248,18 @@ function _pyjl_getitem(xptr::C.PyPtr, kptr::C.PyPtr)
         x = PyJl_GetValue(xptr)
         if C.PyTuple_Check(kptr)
             k = pyconvert(Vector{Any}, pynew(incref(vptr)))
-            v = x[k...]
+            if x isa Type
+                v = x{k...}
+            else
+                v = x[k...]
+            end
         else
             k = _getany(kptr)
-            v = x[k]
+            if x isa Type
+                v = x{k}
+            else
+                v = x[k]
+            end
         end
         PyJl_New(v)
     catch exc
@@ -207,13 +271,22 @@ end
 function _pyjl_setitem(xptr::C.PyPtr, kptr::C.PyPtr, vptr::C.PyPtr)
     try
         x = PyJl_GetValue(xptr)
-        v = _getany(vptr)
-        if C.PyTuple_Check(kptr)
-            k = pyconvert(Vector{Any}, pynew(incref(vptr)))
-            x[k...] = v
-        else
+        if vptr == C.PyNULL
             k = _getany(kptr)
-            x[k] = v
+            if x isa AbstractVector
+                deleteat!(x, k)
+            else
+                delete!(x, k)
+            end
+        else
+            v = _getany(vptr)
+            if C.PyTuple_Check(kptr)
+                k = pyconvert(Vector{Any}, pynew(incref(vptr)))
+                x[k...] = v
+            else
+                k = _getany(kptr)
+                x[k] = v
+            end
         end
         Cint(0)
     catch exc
@@ -241,10 +314,27 @@ struct _pyjl_binary_op{F}
 end
 function (f::_pyjl_binary_op)(xptr::C.PyPtr, yptr::C.PyPtr)
     try
-        x = PyJl_GetValue(xptr)
+        x = _getany(xptr)
         y = _getany(yptr)
         v = f.op(x, y)
         _return(pyjl(v), del=true)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+function _pyjl_power(xptr::C.PyPtr, yptr::C.PyPtr, zptr::C.PyPtr)
+    try
+        x = _getany(xptr)
+        y = _getany(yptr)
+        if zptr == C.PyNULL || zptr == C.POINTERS._Py_NoneStruct
+            v = x^y
+        else
+            z = _getany(zptr)
+            v = powermod(x, y, z)
+        end
+        PyJl_New(v)
     catch exc
         _raise(exc)
         C.PyNULL
@@ -295,6 +385,147 @@ function _pyjl_float(xptr::C.PyPtr)
     try
         x = PyJl_GetValue(xptr)
         _return(pyfloat(convert(Cdouble, x)), del=true)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+function _pyjl_complex(xptr::C.PyPtr, ::C.PyPtr)
+    try
+        x = PyJl_GetValue(xptr)
+        _return(pycomplex(convert(Complex{Cdouble}, x)), del=true)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+function _pyjl_contains(xptr::C.PyPtr, vptr::C.PyPtr)
+    try
+        x = PyJl_GetValue(xptr)
+        v = _getany(vptr)
+        Cint((v in x)::Bool)
+    catch exc
+        _raise(exc)
+        Cint(-1)
+    end
+end
+
+function _pyjl_call(xptr::C.PyPtr, argsptr::C.PyPtr, kwargsptr::C.PyPtr)
+    try
+        x = PyJl_GetValue(xptr)
+        if argsptr == C.PyNULL
+            args = nothing
+        else
+            argsobj = pynew(incref(argsptr))
+            # TODO: avoid pyconvert, since we know args must be a tuple?
+            args = pyconvert(Vector{Any}, argsobj)
+            unsafe_pydel!(argsobj)
+            if isempty(args)
+                args = nothing
+            end
+        end
+        if kwargsptr == C.PyNULL
+            kwargs = nothing
+        else
+            kwargsobj = pynew(incref(kwargsptr))
+            # TODO: avoid pyconvert, since we know kwargs must be a dict?
+            kwargs = pyconvert(Dict{Symbol,Any}, kwargsobj)
+            unsafe_pydel!(kwargsobj)
+            if isempty(kwargs)
+                kwargs = nothing
+            end
+        end
+        if kwargs !== nothing
+            if args !== nothing
+                v = x(args...; kwargs...)
+            else
+                v = x(; kwargs...)
+            end
+        else
+            if args !== nothing
+                v = x(args...)
+            else
+                v = x()
+            end
+        end
+        PyJl_New(v)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+function _pyjl_richcompare(xptr::C.PyPtr, yptr::C.PyPtr, op::Cint)
+    try
+        x = PyJl_GetValue(xptr)
+        y = _getany(yptr)
+        if op == C.Py_EQ
+            v = (x == y)
+        elseif op == C.Py_NE
+            v = (x != y)
+        elseif op == C.Py_LT
+            v = (x < y)
+        elseif op == C.Py_GT
+            v = (x > y)
+        elseif op == C.Py_LE
+            v = (x <= y)
+        elseif op == C.Py_GE
+            v = (x >= y)
+        else
+            error("invalid rich comparison operator: $op")
+        end
+        PyJl_New(v)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+function _pyjl_iter(xptr::C.PyPtr)
+    try
+        # TODO: JlIterator could be defined in Julia not Python (would be faster)
+        _return(pyJlIterator(pynew(incref(xptr))), del=true)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+function _pyjl_reversed(xptr::C.PyPtr, ::C.PyPtr)
+    try
+        # same as _pyjl_iter but on the reversed iterator
+        x = PyJl_GetValue(xptr)
+        v = Base.Iterators.reverse(x)
+        vobj = pyjl(v)
+        iobj = pyJlIterator(vobj)
+        unsafe_pydel!(vobj)
+        _return(iobj, del=true)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+function _pyjl_jl_iterate(xptr::C.PyPtr, sptr::C.PyPtr)
+    try
+        x = PyJl_GetValue(xptr)
+        if sptr == C.PyNULL || sptr == C.POINTERS._Py_NoneStruct
+            v = iterate(x)
+        else
+            v = iterate(x, _getany(sptr))
+        end
+        if v === nothing
+            incref(C.POINTERS._Py_NoneStruct)
+        else
+            v1obj = pyjl(v[1])
+            v2obj = pyjl(v[2])
+            v = pytuple((v1obj, v2obj))
+            # unsafe_pydel!(v1obj)
+            # unsafe_pydel!(v2obj)
+            _return(v, del=true)
+        end
     catch exc
         _raise(exc)
         C.PyNULL
@@ -494,6 +725,10 @@ const _pyjl_type = fill(C.PyTypeObject())
 # const _pyjl_reduce_name = "__reduce__"
 # const _pyjl_serialize_name = "_jl_serialize"
 # const _pyjl_deserialize_name = "_jl_deserialize"
+const _pyjl_dir_name = "__dir__"
+const _pyjl_reversed_name = "__reversed__"
+const _pyjl_complex_name = "__complex__"
+const _pyjl_jl_iterate_name = "jl_iterate"
 const _pyjl_methods = Vector{C.PyMethodDef}()
 const _pyjl_as_buffer = fill(C.PyBufferProcs())
 const _pyjl_as_number = fill(C.PyNumberMethods())
@@ -503,16 +738,26 @@ const _pyjl_as_mapping = fill(C.PyMappingMethods())
 function init_pyjl()
     empty!(_pyjl_methods)
     push!(_pyjl_methods,
-        # C.PyMethodDef(
-        #     name = pointer(_pyjl_callmethod_name),
-        #     meth = @cfunction(_pyjl_callmethod, C.PyPtr, (C.PyPtr, C.PyPtr)),
-        #     flags = C.Py_METH_VARARGS,
-        # ),
-        # C.PyMethodDef(
-        #     name = pointer(_pyjl_isnull_name),
-        #     meth = @cfunction(_pyjl_isnull, C.PyPtr, (C.PyPtr, C.PyPtr)),
-        #     flags = C.Py_METH_NOARGS,
-        # ),
+        C.PyMethodDef(
+            name = pointer(_pyjl_dir_name),
+            meth = @cfunction(_pyjl_dir, C.PyPtr, (C.PyPtr, C.PyPtr)),
+            flags = C.Py_METH_NOARGS,
+        ),
+        C.PyMethodDef(
+            name = pointer(_pyjl_reversed_name),
+            meth = @cfunction(_pyjl_reversed, C.PyPtr, (C.PyPtr, C.PyPtr)),
+            flags = C.Py_METH_NOARGS,
+        ),
+        C.PyMethodDef(
+            name = pointer(_pyjl_complex_name),
+            meth = @cfunction(_pyjl_complex, C.PyPtr, (C.PyPtr, C.PyPtr)),
+            flags = C.Py_METH_NOARGS,
+        ),
+        C.PyMethodDef(
+            name = pointer(_pyjl_jl_iterate_name),
+            meth = @cfunction(_pyjl_jl_iterate, C.PyPtr, (C.PyPtr, C.PyPtr)),
+            flags = C.Py_METH_O,
+        ),
         # C.PyMethodDef(
         #     name = pointer(_pyjl_reduce_name),
         #     meth = @cfunction(_pyjl_reduce, C.PyPtr, (C.PyPtr, C.PyPtr)),
@@ -550,9 +795,16 @@ function init_pyjl()
         int = @cfunction(_pyjl_int, C.PyPtr, (C.PyPtr,)),
         index = @cfunction(_pyjl_index, C.PyPtr, (C.PyPtr,)),
         float = @cfunction(_pyjl_float, C.PyPtr, (C.PyPtr,)),
+        power = @cfunction(_pyjl_power, C.PyPtr, (C.PyPtr, C.PyPtr, C.PyPtr)),
+        # TODO: matrixmultiply
+        # TODO: inplace_*
     )
     _pyjl_as_sequence[] = C.PySequenceMethods(
-        # TODO
+        # TODO: concat
+        # TODO: repeat
+        # TODO: inplace_concat
+        # TODO: inplace_repeat
+        contains = @cfunction(_pyjl_contains, Cint, (C.PyPtr, C.PyPtr)),
     )
     _pyjl_as_mapping[] = C.PyMappingMethods(
         length = @cfunction(_pyjl_len, C.Py_ssize_t, (C.PyPtr,)),
@@ -566,8 +818,8 @@ function init_pyjl()
     _pyjl_type[] = C.PyTypeObject(
         name = pointer(_pyjl_name),
         basicsize = sizeof(PyJuliaValueObject),
-        # new = C.POINTERS.PyType_GenericNew,
         new = @cfunction(_pyjl_new, C.PyPtr, (C.PyPtr, C.PyPtr, C.PyPtr)),
+        init = @cfunction(_pyjl_init, Cint, (C.PyPtr, C.PyPtr, C.PyPtr)),
         dealloc = @cfunction(_pyjl_dealloc, Cvoid, (C.PyPtr,)),
         flags = C.Py_TPFLAGS_BASETYPE | C.Py_TPFLAGS_HAVE_VERSION_TAG,
         weaklistoffset = fieldoffset(PyJuliaValueObject, 3),
@@ -581,11 +833,14 @@ function init_pyjl()
         repr = @cfunction(_pyjl_repr, C.PyPtr, (C.PyPtr,)),
         str = @cfunction(_pyjl_str, C.PyPtr, (C.PyPtr,)),
         hash = @cfunction(_pyjl_hash, C.Py_hash_t, (C.PyPtr,)),
+        call = @cfunction(_pyjl_call, C.PyPtr, (C.PyPtr, C.PyPtr, C.PyPtr)),
+        richcompare = @cfunction(_pyjl_richcompare, C.PyPtr, (C.PyPtr, C.PyPtr, Cint)),
+        iter = @cfunction(_pyjl_iter, C.PyPtr, (C.PyPtr,)),
     )
     o = PyJl_Type[] = C.PyPtr(pointer(_pyjl_type))
     if C.PyType_Ready(o) == -1
         C.PyErr_Print()
-        error("Error initializing 'juliacall.ValueBase'")
+        error("Error initializing 'juliacall.Jl'")
     end
 end
 

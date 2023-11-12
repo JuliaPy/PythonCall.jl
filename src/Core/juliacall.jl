@@ -1,6 +1,8 @@
 const pyjuliacallmodule = pynew()
-const pyJuliaError = pynew()
-const CPyExc_JuliaError = Ref(C.PyNULL)
+const pyJlError = pynew()
+const pyJlIterator = pynew()
+const CPyExc_JlError = Ref(C.PyNULL)
+const CPyExc_JlIterator = Ref(C.PyNULL)
 
 function init_juliacall()
     # ensure the 'juliacall' module exists
@@ -29,6 +31,8 @@ function init_juliacall()
         @assert pystr_asstring(jl.__version__) == string(VERSION)
         @assert !pybool_asbool(jl.CONFIG["init"])
     end
-    pycopy!(pyJuliaError, jl.JuliaError)
-    CPyExc_JuliaError[] = incref(getptr(pyJuliaError))
+    pycopy!(pyJlError, jl.JlError)
+    CPyExc_JlError[] = incref(getptr(pyJlError))
+    pycopy!(pyJlIterator, jl.JlIterator)
+    CPyExc_JlIterator[] = incref(getptr(pyJlIterator))
 end

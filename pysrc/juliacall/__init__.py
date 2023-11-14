@@ -46,22 +46,6 @@ class JlError(Exception):
     def backtrace(self):
         return self.args[1]
 
-class JlIterator:
-    "An iterator over Julia objects."
-    __slots__ = ("object", "state")
-    def __init__(self, object):
-        self.object = object
-        self.state = None
-    def __iter__(self):
-        return self
-    def __next__(self):
-        new = self.object.jl_iterate(self.state)
-        if new is None:
-            raise StopIteration()
-        else:
-            self.state = new[1]
-            return new[0]
-
 CONFIG = {'inited': False}
 
 def init():

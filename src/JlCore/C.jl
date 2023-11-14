@@ -4,7 +4,7 @@ using Base
 using ...Utils: Utils
 using ...C: C
 using ...Core
-using ...Core: getptr, incref, errset, errmatches, errclear, pyisstr, pystr_asstring, pyJlError, pyJlIterator, pyistuple
+using ...Core: getptr, incref, errset, errmatches, errclear, pyisstr, pystr_asstring, pyJlError, pyistuple, pyisnone, pyisstr, pystr_asstring
 using ...Convert: pyconvert
 using ..JlCore: pyjl
 using Base: @kwdef
@@ -65,6 +65,19 @@ function _getany(ptr::C.PyPtr)
         PyJl_GetValue(ptr)
     else
         pyconvert(Any, pynew(incref(ptr)))
+    end
+end
+
+function _getstr(ptr::C.PyPtr, what::String="input")
+    o = pynew(incref(ptr))
+    if pyisstr(o)
+        v = pystr_asstring(o)
+        unsafe_pydel!(o)
+        v
+    else
+        errset(pybuiltins.TypeError, "$what must be string, not '$(pytype(o).__name__)'")
+        unsafe_pydel!(o)
+        nothing
     end
 end
 
@@ -148,19 +161,15 @@ function _pyjl_getattr(xptr::C.PyPtr, kptr::C.PyPtr)
         end
         errclear()
         # get the attribute name
-        ko = pynew(incref(kptr))
-        if !pyisstr(ko)
-            errset(pybuiltins.TypeError, "attribute name must be string, not '$(pytype(ko).__name__)'")
+        kstr = _getstr(kptr, "attribute name")
+        if kstr === nothing
             return C.PyNULL
         end
-        kstr = pystr_asstring(ko)
         # skip attributes starting with "__" or "jl_"
         if startswith(kstr, "__") || startswith(kstr, "jl_")
-            errset(pybuiltins.AttributeError, ko)
-            unsafe_pydel!(ko)
+            C.PyErr_SetObject(pybuiltins.AttributeError, kptr)
             return C.PyNULL
         end
-        unsafe_pydel!(ko)
         # get the property
         x = PyJl_GetValue(xptr)
         k = Symbol(_pyjl_attr_py2jl(kstr))
@@ -186,19 +195,15 @@ function _pyjl_setattr(xptr::C.PyPtr, kptr::C.PyPtr, vptr::C.PyPtr)
             return Cint(-1)
         end
         # get the attribute name
-        ko = pynew(incref(kptr))
-        if !pyisstr(ko)
-            errset(pybuiltins.TypeError, "attribute name must be string, not '$(pytype(ko).__name__)'")
+        kstr = _getstr(kptr, "attribute name")
+        if kstr === nothing
             return Cint(-1)
         end
-        kstr = pystr_asstring(ko)
         # skip attributes starting with "__" or "jl_"
         if startswith(kstr, "__") || startswith(kstr, "jl_")
-            errset(pybuiltins.AttributeError, ko)
-            unsafe_pydel!(ko)
+            C.PyErr_SetObject(pybuiltins.AttributeError, kptr)
             return Cint(-1)
         end
-        unsafe_pydel!(ko)
         # set the property
         x = PyJl_GetValue(xptr)
         k = Symbol(_pyjl_attr_py2jl(kstr))
@@ -221,7 +226,11 @@ function _pyjl_dir(xptr::C.PyPtr, ::C.PyPtr)
                 append!(ks, names(m))
             end
         else
-            append!(ks, propertynames(x))
+            for k in propertynames(x)
+                if k isa Symbol
+                    push!(ks, k)
+                end
+            end
         end
         ks = map(string, ks)
         filter!(k->!startswith(k, "#"), ks)
@@ -486,10 +495,56 @@ function _pyjl_richcompare(xptr::C.PyPtr, yptr::C.PyPtr, op::Cint)
     end
 end
 
+mutable struct Iterator
+    value::Any
+    state::Any
+    started::Bool
+    finished::Bool
+end
+
+Iterator(x) = Iterator(x, nothing, false, false)
+Iterator(x::Iterator) = x
+
+function Base.iterate(x::Iterator, ::Nothing=nothing)
+    if x.finished
+        s = nothing
+    elseif x.started
+        s = iterate(x.value, x.state)
+    else
+        s = iterate(x.value)
+    end
+    if s === nothing
+        x.finished = true
+        nothing
+    else
+        x.started = true
+        x.state = s[2]
+        (s[1], nothing)
+    end
+end
+
 function _pyjl_iter(xptr::C.PyPtr)
     try
-        # TODO: JlIterator could be defined in Julia not Python (would be faster)
-        _return(pyJlIterator(pynew(incref(xptr))), del=true)
+        x = PyJl_GetValue(xptr)
+        v = Iterator(x)
+        PyJl_New(v)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+function _pyjl_iternext(xptr::C.PyPtr)
+    try
+        x = PyJl_GetValue(xptr)
+        s = iterate(x)
+        if s === nothing
+            C.PyErr_SetNone(C.POINTERS.PyExc_StopIteration)
+            C.PyNULL
+        else
+            v = (s::Tuple{Any,Any})[1]
+            PyJl_New(v)
+        end
     catch exc
         _raise(exc)
         C.PyNULL
@@ -500,35 +555,72 @@ function _pyjl_reversed(xptr::C.PyPtr, ::C.PyPtr)
     try
         # same as _pyjl_iter but on the reversed iterator
         x = PyJl_GetValue(xptr)
-        v = Base.Iterators.reverse(x)
-        vobj = pyjl(v)
-        iobj = pyJlIterator(vobj)
-        unsafe_pydel!(vobj)
-        _return(iobj, del=true)
+        v = Iterator(Base.Iterators.reverse(x))
+        PyJl_New(v)
     catch exc
         _raise(exc)
         C.PyNULL
     end
 end
 
-function _pyjl_jl_iterate(xptr::C.PyPtr, sptr::C.PyPtr)
+function _pyjl_to_py(xptr::C.PyPtr, ::C.PyPtr)
     try
         x = PyJl_GetValue(xptr)
-        if sptr == C.PyNULL || sptr == C.POINTERS._Py_NoneStruct
-            v = iterate(x)
-        else
-            v = iterate(x, _getany(sptr))
+        _return(Py(x))
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+function _pyjl_typeof(xptr::C.PyPtr, ::C.PyPtr)
+    try
+        x = PyJl_GetValue(xptr)
+        v = typeof(x)
+        PyJl_New(v)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+function _pyjl_convert(xptr::C.PyPtr, tptr::C.PyPtr)
+    try
+        x = PyJl_GetValue(xptr)
+        t = _getany(tptr)
+        if !(t isa Type)
+            errset(pybuiltins.TypeError, "expecting a Julia 'Type', not a '$(typeof(t))'")
         end
-        if v === nothing
-            incref(C.POINTERS._Py_NoneStruct)
-        else
-            v1obj = pyjl(v[1])
-            v2obj = pyjl(v[2])
-            v = pytuple((v1obj, v2obj))
-            # unsafe_pydel!(v1obj)
-            # unsafe_pydel!(v2obj)
-            _return(v, del=true)
+        v = convert(t, x)
+        PyJl_New(v)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+function _pyjl_eval(mptr::C.PyPtr, xptr::C.PyPtr)
+    try
+        m = PyJl_GetValue(mptr)
+        if !(m isa Module)
+            errset(pybulitins.TypeError, "can only call jl_eval on a Julia 'Module', not a '$(typeof(m))'")
+            return C.PyNULL
         end
+        xo = pynew(incref(xptr))
+        if pyisstr(xo)
+            # python strings are parsed into Julia expressions
+            x = pystr_asstring(xo)
+            unsafe_pydel!(xo)
+            ex = Meta.parse(strip(x))
+        elseif PyJl_Check(xptr)
+            # Julia values are assumed to be expressions already
+            ex = _getany(xo)
+            unsafe_pydel!(xo)
+        else
+            errset(pybuiltins.TypeError, "argument to jl_eval must be string or Jl, not '$(pytype(xo).__name__)'")
+        end
+        v = Base.eval(m, ex)
+        PyJl_New(v)
     catch exc
         _raise(exc)
         C.PyNULL
@@ -728,15 +820,27 @@ const _pyjl_type = fill(C.PyTypeObject())
 # const _pyjl_reduce_name = "__reduce__"
 # const _pyjl_serialize_name = "_jl_serialize"
 # const _pyjl_deserialize_name = "_jl_deserialize"
+const _pyjl_to_py_name = "jl_to_py"
+const _pyjl_eval_name = "jl_eval"
+const _pyjl_typeof_name = "jl_typeof"
+const _pyjl_convert_name = "jl_convert"
 const _pyjl_dir_name = "__dir__"
 const _pyjl_reversed_name = "__reversed__"
 const _pyjl_complex_name = "__complex__"
-const _pyjl_jl_iterate_name = "jl_iterate"
 const _pyjl_methods = Vector{C.PyMethodDef}()
 const _pyjl_as_buffer = fill(C.PyBufferProcs())
 const _pyjl_as_number = fill(C.PyNumberMethods())
 const _pyjl_as_sequence = fill(C.PySequenceMethods())
 const _pyjl_as_mapping = fill(C.PyMappingMethods())
+
+macro pyjl_method(func::Symbol, flags)
+    nargs = occursin("KWARGS", string(flags)) ? 3 : 2
+    :(C.PyMethodDef(
+        name = pointer($(Symbol(func, :_name))),
+        meth = @cfunction($func, C.PyPtr, ($([:(C.PyPtr) for _ in 1:nargs]...),)),
+        flags = $(esc(flags)),
+    ))
+end
 
 function init_pyjl()
     empty!(_pyjl_methods)
@@ -757,10 +861,17 @@ function init_pyjl()
             flags = C.Py_METH_NOARGS,
         ),
         C.PyMethodDef(
-            name = pointer(_pyjl_jl_iterate_name),
-            meth = @cfunction(_pyjl_jl_iterate, C.PyPtr, (C.PyPtr, C.PyPtr)),
+            name = pointer(_pyjl_to_py_name),
+            meth = @cfunction(_pyjl_to_py, C.PyPtr, (C.PyPtr, C.PyPtr)),
+            flags = C.Py_METH_NOARGS,
+        ),
+        C.PyMethodDef(
+            name = pointer(_pyjl_eval_name),
+            meth = @cfunction(_pyjl_eval, C.PyPtr, (C.PyPtr, C.PyPtr)),
             flags = C.Py_METH_O,
         ),
+        @pyjl_method(_pyjl_typeof, C.Py_METH_NOARGS),
+        @pyjl_method(_pyjl_convert, C.Py_METH_O),
         # C.PyMethodDef(
         #     name = pointer(_pyjl_reduce_name),
         #     meth = @cfunction(_pyjl_reduce, C.PyPtr, (C.PyPtr, C.PyPtr)),
@@ -839,6 +950,7 @@ function init_pyjl()
         call = @cfunction(_pyjl_call, C.PyPtr, (C.PyPtr, C.PyPtr, C.PyPtr)),
         richcompare = @cfunction(_pyjl_richcompare, C.PyPtr, (C.PyPtr, C.PyPtr, Cint)),
         iter = @cfunction(_pyjl_iter, C.PyPtr, (C.PyPtr,)),
+        iternext = @cfunction(_pyjl_iternext, C.PyPtr, (C.PyPtr,)),
     )
     o = PyJl_Type[] = C.PyPtr(pointer(_pyjl_type))
     if C.PyType_Ready(o) == -1

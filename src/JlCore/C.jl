@@ -111,7 +111,7 @@ function _pyjl_init(xptr::C.PyPtr, argsptr::C.PyPtr, kwargsptr::C.PyPtr)
     if nargs == 0
         return Cint(0)
     elseif nargs > 2
-        errset(pybuiltins.TypeError, "too many arguments")
+        errset(pybuiltins.TypeError, "Jl.__init__() takes up to 3 arguments ($nargs given)")
         return Cint(-1)
     end
     vptr = C.PyTuple_GetItem(argsptr, 0)
@@ -882,25 +882,22 @@ function init_pyjl()
         @pyjl_method(_pyjl_dir, C.Py_METH_NOARGS),
         @pyjl_method(_pyjl_reversed, C.Py_METH_NOARGS),
         @pyjl_method(_pyjl_complex, C.Py_METH_NOARGS),
-        @pyjl_method(_pyjl_to_py, C.Py_METH_O),
+        @pyjl_method(_pyjl_to_py, C.Py_METH_NOARGS),
         @pyjl_method(_pyjl_eval, C.Py_METH_O),
         @pyjl_method(_pyjl_typeof, C.Py_METH_NOARGS),
         @pyjl_method(_pyjl_convert, C.Py_METH_O),
-        # C.PyMethodDef(
-        #     name = pointer(_pyjl_reduce_name),
-        #     meth = @cfunction(_pyjl_reduce, C.PyPtr, (C.PyPtr, C.PyPtr)),
-        #     flags = C.Py_METH_NOARGS,
-        # ),
-        # C.PyMethodDef(
-        #     name = pointer(_pyjl_serialize_name),
-        #     meth = @cfunction(_pyjl_serialize, C.PyPtr, (C.PyPtr, C.PyPtr)),
-        #     flags = C.Py_METH_NOARGS,
-        # ),
-        # C.PyMethodDef(
-        #     name = pointer(_pyjl_deserialize_name),
-        #     meth = @cfunction(_pyjl_deserialize, C.PyPtr, (C.PyPtr, C.PyPtr)),
-        #     flags = C.Py_METH_O | C.Py_METH_CLASS,
-        # ),
+        # TODO: __reduce__
+        # TODO: __array__
+        # TODO: __array_interface__
+        # TODO: __array_struct__
+        # TODO: jl_serialize
+        # TODO: jl_deserialize
+        # TODO: jl_is
+        # TODO: jl_isequal
+        # TODO: jl_isless
+        # TODO: jl_isinstance
+        # TODO: jl_issubtype
+        # TODO: jl_size
         C.PyMethodDef(),
     )
     _pyjl_as_number[] = C.PyNumberMethods(

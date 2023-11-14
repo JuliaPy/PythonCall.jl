@@ -55,7 +55,7 @@ function _raise(exc)
         errset(pyJlError, pytuple((pyjl(exc), pyjl(catch_backtrace()))))
     catch
         @debug "Julia exception" exc
-        errset(pybulitins.Exception, "an error occurred while raising a Julia error")
+        errset(pybuiltins.Exception, "an error occurred while raising a Julia error")
     end
     nothing
 end
@@ -68,7 +68,15 @@ function _getany(ptr::C.PyPtr)
     end
 end
 
-function _getstr(ptr::C.PyPtr, what::String="input")
+function _getany(::Type{T}, ptr::C.PyPtr) where {T}
+    if PyJl_Check(ptr)
+        convert(T, PyJl_GetValue(ptr))::T
+    else
+        pyconvert(T, pynew(incref(ptr)))::T
+    end
+end
+
+function _getstr(ptr::C.PyPtr, what::String="argument")
     o = pynew(incref(ptr))
     if pyisstr(o)
         v = pystr_asstring(o)
@@ -77,6 +85,16 @@ function _getstr(ptr::C.PyPtr, what::String="input")
     else
         errset(pybuiltins.TypeError, "$what must be string, not '$(pytype(o).__name__)'")
         unsafe_pydel!(o)
+        nothing
+    end
+end
+
+function _gettype(ptr::C.PyPtr, what::String="type argument")
+    t = _getany(ptr)
+    if t isa Type
+        t
+    else
+        errset(pybuiltins.TypeError, "$what must be a Julia 'Type', not '$(typeof(t))'")
         nothing
     end
 end
@@ -92,13 +110,22 @@ function _pyjl_init(xptr::C.PyPtr, argsptr::C.PyPtr, kwargsptr::C.PyPtr)
     nargs = C.PyTuple_Size(argsptr)
     if nargs == 0
         return Cint(0)
-    elseif nargs != 1
+    elseif nargs > 2
         errset(pybuiltins.TypeError, "too many arguments")
         return Cint(-1)
     end
     vptr = C.PyTuple_GetItem(argsptr, 0)
     try
-        v = _getany(vptr)
+        if nargs == 1
+            v = _getany(vptr)
+        else
+            tptr = C.PyTuple_GetItem(argsptr, 1)
+            t = _gettype(tptr, "type argument")
+            if t === nothing
+                return Cint(-1)
+            end
+            v = _getany(t, vptr)
+        end
         PyJl_SetValue(xptr, v)
         Cint(0)
     catch exc
@@ -587,11 +614,11 @@ end
 function _pyjl_convert(xptr::C.PyPtr, tptr::C.PyPtr)
     try
         x = PyJl_GetValue(xptr)
-        t = _getany(tptr)
-        if !(t isa Type)
-            errset(pybuiltins.TypeError, "expecting a Julia 'Type', not a '$(typeof(t))'")
+        t = _gettype(tptr)
+        if t === nothing
+            return C.PyNULL
         end
-        v = convert(t, x)
+        v = convert(t, x)::t
         PyJl_New(v)
     catch exc
         _raise(exc)
@@ -603,7 +630,7 @@ function _pyjl_eval(mptr::C.PyPtr, xptr::C.PyPtr)
     try
         m = PyJl_GetValue(mptr)
         if !(m isa Module)
-            errset(pybulitins.TypeError, "can only call jl_eval on a Julia 'Module', not a '$(typeof(m))'")
+            errset(pybuiltins.TypeError, "can only call jl_eval on a Julia 'Module', not a '$(typeof(m))'")
             return C.PyNULL
         end
         xo = pynew(incref(xptr))
@@ -815,6 +842,13 @@ end
 
 const _pyjl_name = "juliacall.Jl"
 const _pyjl_type = fill(C.PyTypeObject())
+const _pyjl_doc = """
+A Julia object.
+
+Jl(value) creates a Julia object with the given 'value'.
+
+Jl(value, type) ensures the object has the given Julia 'type'.
+"""
 # const _pyjl_isnull_name = "_jl_isnull"
 # const _pyjl_callmethod_name = "_jl_callmethod"
 # const _pyjl_reduce_name = "__reduce__"
@@ -845,31 +879,11 @@ end
 function init_pyjl()
     empty!(_pyjl_methods)
     push!(_pyjl_methods,
-        C.PyMethodDef(
-            name = pointer(_pyjl_dir_name),
-            meth = @cfunction(_pyjl_dir, C.PyPtr, (C.PyPtr, C.PyPtr)),
-            flags = C.Py_METH_NOARGS,
-        ),
-        C.PyMethodDef(
-            name = pointer(_pyjl_reversed_name),
-            meth = @cfunction(_pyjl_reversed, C.PyPtr, (C.PyPtr, C.PyPtr)),
-            flags = C.Py_METH_NOARGS,
-        ),
-        C.PyMethodDef(
-            name = pointer(_pyjl_complex_name),
-            meth = @cfunction(_pyjl_complex, C.PyPtr, (C.PyPtr, C.PyPtr)),
-            flags = C.Py_METH_NOARGS,
-        ),
-        C.PyMethodDef(
-            name = pointer(_pyjl_to_py_name),
-            meth = @cfunction(_pyjl_to_py, C.PyPtr, (C.PyPtr, C.PyPtr)),
-            flags = C.Py_METH_NOARGS,
-        ),
-        C.PyMethodDef(
-            name = pointer(_pyjl_eval_name),
-            meth = @cfunction(_pyjl_eval, C.PyPtr, (C.PyPtr, C.PyPtr)),
-            flags = C.Py_METH_O,
-        ),
+        @pyjl_method(_pyjl_dir, C.Py_METH_NOARGS),
+        @pyjl_method(_pyjl_reversed, C.Py_METH_NOARGS),
+        @pyjl_method(_pyjl_complex, C.Py_METH_NOARGS),
+        @pyjl_method(_pyjl_to_py, C.Py_METH_O),
+        @pyjl_method(_pyjl_eval, C.Py_METH_O),
         @pyjl_method(_pyjl_typeof, C.Py_METH_NOARGS),
         @pyjl_method(_pyjl_convert, C.Py_METH_O),
         # C.PyMethodDef(
@@ -931,6 +945,7 @@ function init_pyjl()
     )
     _pyjl_type[] = C.PyTypeObject(
         name = pointer(_pyjl_name),
+        doc = pointer(_pyjl_doc),
         basicsize = sizeof(PyJuliaValueObject),
         new = @cfunction(_pyjl_new, C.PyPtr, (C.PyPtr, C.PyPtr, C.PyPtr)),
         init = @cfunction(_pyjl_init, Cint, (C.PyPtr, C.PyPtr, C.PyPtr)),

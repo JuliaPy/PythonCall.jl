@@ -111,7 +111,7 @@ function _pyjl_init(xptr::C.PyPtr, argsptr::C.PyPtr, kwargsptr::C.PyPtr)
     if nargs == 0
         return Cint(0)
     elseif nargs > 2
-        errset(pybuiltins.TypeError, "Jl.__init__() takes up to 3 arguments ($nargs given)")
+        errset(pybuiltins.TypeError, "Jl.__init__() takes up to 2 arguments ($nargs given)")
         return Cint(-1)
     end
     vptr = C.PyTuple_GetItem(argsptr, 0)

@@ -50,6 +50,35 @@ function _return(x::Py; del::Bool=false)
     ptr
 end
 
+function _return(x, t::Symbol)
+    if t === :jl
+        PyJl_New(x)
+    elseif t === :none
+        x::Nothing
+        incref(C.POINTERS._Py_NoneStruct)
+    elseif t === :bool
+        x::Bool
+        incref(x ? C.POINTERS._Py_TrueStruct : C.POINTERS._Py_FalseStruct)
+    elseif t === :str
+        x::AbstractString
+        xstr = convert(String, x)::String
+        C.PyUnicode_DecodeUTF8(pointer(xstr), sizeof(xstr), C_NULL)
+    elseif t === :int
+        x::Integer
+        C.PyLong_FromLongLong(x)
+    elseif t === :float
+        x::Real
+        C.PyFloat_FromDouble(x)
+    elseif t === :complex
+        x::Number
+        C.PyComplex_FromDoubles(real(x), imag(x))
+    elseif t === :any
+        _return(Py(x))
+    else
+        error("invalid t=$t")
+    end
+end
+
 function _raise(exc)
     try
         errset(pyJlError, pytuple((pyjl(exc), pyjl(catch_backtrace()))))
@@ -180,6 +209,9 @@ _pyjl_attr_py2jl(k::String) = replace(k, r"_[b]+$" => (x -> "!"^(length(x) - 1))
 _pyjl_attr_jl2py(k::String) = replace(k, r"!+$" => (x -> "_" * "b"^length(x)))
 
 function _pyjl_getattr(xptr::C.PyPtr, kptr::C.PyPtr)
+    infunc = false
+    x = nothing
+    k = :_
     try
         # first do the generic lookup
         vptr = C.PyObject_GenericGetAttr(xptr, kptr)
@@ -200,15 +232,24 @@ function _pyjl_getattr(xptr::C.PyPtr, kptr::C.PyPtr)
         # get the property
         x = PyJl_GetValue(xptr)
         k = Symbol(_pyjl_attr_py2jl(kstr))
+        infunc = true
         v = getproperty(x, k)
+        infunc = false
         JlC.PyJl_New(v)
     catch exc
-        _raise(exc)
+        if infunc && !hasproperty(x, k)
+            C.PyErr_SetObject(pybuiltins.AttributeError, kptr)
+        else
+            _raise(exc)
+        end
         C.PyNULL
     end
 end
 
 function _pyjl_setattr(xptr::C.PyPtr, kptr::C.PyPtr, vptr::C.PyPtr)
+    infunc = false
+    x = nothing
+    k = :_
     try
         # first do the generic lookup
         err = C.PyObject_GenericSetAttr(xptr, kptr, vptr)
@@ -235,10 +276,16 @@ function _pyjl_setattr(xptr::C.PyPtr, kptr::C.PyPtr, vptr::C.PyPtr)
         x = PyJl_GetValue(xptr)
         k = Symbol(_pyjl_attr_py2jl(kstr))
         v = _getany(vptr)
+        infunc = true
         setproperty!(x, k, v)
+        infunc = false
         Cint(0)
     catch exc
-        _raise(exc)
+        if infunc && !hasproperty(x, k)
+            C.PyErr_SetObject(pybuiltins.AttributeError, kptr)
+        else
+            _raise(exc)
+        end
         Cint(-1)
     end    
 end
@@ -286,7 +333,7 @@ function _pyjl_getitem(xptr::C.PyPtr, kptr::C.PyPtr)
     try
         x = PyJl_GetValue(xptr)
         if C.PyTuple_Check(kptr)
-            k = pyconvert(Vector{Any}, pynew(incref(vptr)))
+            k = pyconvert(Vector{Any}, pynew(incref(kptr)))
             if x isa Type
                 v = x{k...}
             else
@@ -430,16 +477,6 @@ function _pyjl_float(xptr::C.PyPtr)
     end
 end
 
-function _pyjl_complex(xptr::C.PyPtr, ::C.PyPtr)
-    try
-        x = PyJl_GetValue(xptr)
-        _return(pycomplex(convert(Complex{Cdouble}, x)), del=true)
-    catch exc
-        _raise(exc)
-        C.PyNULL
-    end
-end
-
 function _pyjl_contains(xptr::C.PyPtr, vptr::C.PyPtr)
     try
         x = PyJl_GetValue(xptr)
@@ -522,6 +559,47 @@ function _pyjl_richcompare(xptr::C.PyPtr, yptr::C.PyPtr, op::Cint)
     end
 end
 
+struct _pyjl_generic_method{T,N,F}
+    func::F
+end
+_pyjl_generic_method{T,N}(func::F) where {T,N,F} = _pyjl_generic_method{T,N,F}(func)
+_pyjl_generic_method{T,N}(func::F) where {T,N,F<:Type} = _pyjl_generic_method{T,N,Type{F}}(func)
+
+function (m::_pyjl_generic_method{T,0})(xptr::C.PyPtr, ::C.PyPtr) where {T}
+    try
+        x = PyJl_GetValue(xptr)
+        v = m.func(x)
+        _return(v, T)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+function (m::_pyjl_generic_method{T,1})(xptr::C.PyPtr, yptr::C.PyPtr) where {T}
+    try
+        x = PyJl_GetValue(xptr)
+        y = _getany(yptr)
+        v = m.func(x, y)
+        _return(v, T)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+const _pyjl_isnothing = _pyjl_generic_method{:bool,0}(isnothing)
+const _pyjl_ismissing = _pyjl_generic_method{:bool,0}(ismissing)
+const _pyjl_is = _pyjl_generic_method{:bool,1}(===)
+const _pyjl_isequal = _pyjl_generic_method{:bool,1}(isequal)
+const _pyjl_isless = _pyjl_generic_method{:bool,1}(isless)
+const _pyjl_isa = _pyjl_generic_method{:bool,1}(isa)
+const _pyjl_issubtype = _pyjl_generic_method{:issubtype,1}(<:)
+const _pyjl_to_py = _pyjl_generic_method{:any,0}(identity)
+const _pyjl_typeof = _pyjl_generic_method{:jl,0}(typeof)
+const _pyjl_complex = _pyjl_generic_method{:complex,0}(Complex{Cdouble})
+const _pyjl_doc = _pyjl_generic_method{:jl,0}(Docs.doc)
+
 mutable struct Iterator
     value::Any
     state::Any
@@ -583,27 +661,6 @@ function _pyjl_reversed(xptr::C.PyPtr, ::C.PyPtr)
         # same as _pyjl_iter but on the reversed iterator
         x = PyJl_GetValue(xptr)
         v = Iterator(Base.Iterators.reverse(x))
-        PyJl_New(v)
-    catch exc
-        _raise(exc)
-        C.PyNULL
-    end
-end
-
-function _pyjl_to_py(xptr::C.PyPtr, ::C.PyPtr)
-    try
-        x = PyJl_GetValue(xptr)
-        _return(Py(x))
-    catch exc
-        _raise(exc)
-        C.PyNULL
-    end
-end
-
-function _pyjl_typeof(xptr::C.PyPtr, ::C.PyPtr)
-    try
-        x = PyJl_GetValue(xptr)
-        v = typeof(x)
         PyJl_New(v)
     catch exc
         _raise(exc)
@@ -842,7 +899,7 @@ end
 
 const _pyjl_name = "juliacall.Jl"
 const _pyjl_type = fill(C.PyTypeObject())
-const _pyjl_doc = """
+const _pyjl_docstring = """
 A Julia object.
 
 Jl(value) creates a Julia object with the given 'value'.
@@ -858,6 +915,14 @@ const _pyjl_to_py_name = "jl_to_py"
 const _pyjl_eval_name = "jl_eval"
 const _pyjl_typeof_name = "jl_typeof"
 const _pyjl_convert_name = "jl_convert"
+const _pyjl_isnothing_name = "jl_isnothing"
+const _pyjl_ismissing_name = "jl_ismissing"
+const _pyjl_is_name = "jl_is"
+const _pyjl_isequal_name = "jl_isequal"
+const _pyjl_isless_name = "jl_isless"
+const _pyjl_isa_name = "jl_isa"
+const _pyjl_issubtype_name = "jl_issubtype"
+const _pyjl_doc_name = "jl_doc"
 const _pyjl_dir_name = "__dir__"
 const _pyjl_reversed_name = "__reversed__"
 const _pyjl_complex_name = "__complex__"
@@ -886,15 +951,20 @@ function init_pyjl()
         @pyjl_method(_pyjl_eval, C.Py_METH_O),
         @pyjl_method(_pyjl_typeof, C.Py_METH_NOARGS),
         @pyjl_method(_pyjl_convert, C.Py_METH_O),
+        @pyjl_method(_pyjl_isnothing, C.Py_METH_NOARGS),
+        @pyjl_method(_pyjl_ismissing, C.Py_METH_NOARGS),
+        @pyjl_method(_pyjl_is, C.Py_METH_O),
+        @pyjl_method(_pyjl_isequal, C.Py_METH_O),
+        @pyjl_method(_pyjl_isless, C.Py_METH_O),
+        @pyjl_method(_pyjl_isa, C.Py_METH_O),
+        @pyjl_method(_pyjl_issubtype, C.Py_METH_O),
+        @pyjl_method(_pyjl_doc, C.Py_METH_NOARGS),
         # TODO: __reduce__
         # TODO: __array__
         # TODO: __array_interface__
         # TODO: __array_struct__
         # TODO: jl_serialize
         # TODO: jl_deserialize
-        # TODO: jl_is
-        # TODO: jl_isequal
-        # TODO: jl_isless
         # TODO: jl_isinstance
         # TODO: jl_issubtype
         # TODO: jl_size
@@ -942,7 +1012,7 @@ function init_pyjl()
     )
     _pyjl_type[] = C.PyTypeObject(
         name = pointer(_pyjl_name),
-        doc = pointer(_pyjl_doc),
+        doc = pointer(_pyjl_docstring),
         basicsize = sizeof(PyJuliaValueObject),
         new = @cfunction(_pyjl_new, C.PyPtr, (C.PyPtr, C.PyPtr, C.PyPtr)),
         init = @cfunction(_pyjl_init, Cint, (C.PyPtr, C.PyPtr, C.PyPtr)),

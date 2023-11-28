@@ -29,6 +29,13 @@ function value(x::Some)
     something(x)
 end
 
+"""
+    pyconvert(T, x)
+
+Convert the Python object `x` to a `T`.
+
+See [`rule`](@ref) for how to add new conversion rules.
+"""
 function pyconvert(::Type{T}, x) where {T}
     if T != Union{}
         x = Py(x)
@@ -57,6 +64,11 @@ function tryconvert(::Type{T}, x) where {T}
     end
 end
 
+"""
+    rule(::Type{T}, ::Val{Symbol("module:type")}, x::Py)
+
+Implements a conversion rule trying to convert `x` to a `T`.
+"""
 function rule(::Type, ::Val, ::Py)
     nothing
 end

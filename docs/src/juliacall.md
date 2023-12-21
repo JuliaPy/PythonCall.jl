@@ -119,7 +119,7 @@ be configured in two ways:
 | `-X juliacall-min-optlevel=<0\|1\|2\|3>` | `PYTHON_JULIACALL_MIN_OPTLEVEL=<0\|1\|2\|3>` | Optimization level. |
 | `-X juliacall-optimize=<0\|1\|2\|3>` | `PYTHON_JULIACALL_OPTIMIZE=<0\|1\|2\|3>` | Minimum optimization level. |
 | `-X juliacall-procs=<N\|auto>` | `PYTHON_JULIACALL_PROCS=<N\|auto>` | Launch N local worker process. |
-| `-X juliacall-startup-file=<yes|no>` | `PYTHON_JULIACALL_STARTUP_FILE=<yes|no>` | Enable or disable your startup.jl file. |
+| `-X juliacall-startup-file=<yes\|no>` | `PYTHON_JULIACALL_STARTUP_FILE=<yes|no>` | Enable or disable your startup.jl file. |
 | `-X juliacall-sysimage=<file>` | `PYTHON_JULIACALL_SYSIMAGE=<file>` | Use the given system image. |
 | `-X juliacall-threads=<N\|auto>` | `PYTHON_JULIACALL_THREADS=<N\|auto>` | Launch N threads. |
 | `-X juliacall-warn-overwrite=<yes\|no>` | `PYTHON_JULIACALL_WARN_OVERWRITE=<yes\|no>` | Enable or disable method overwrite warnings. |

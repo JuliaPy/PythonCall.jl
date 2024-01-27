@@ -18,17 +18,6 @@ Some rules if you are writing multithreaded code:
 
 Related issues: [#201](https://github.com/JuliaPy/PythonCall.jl/issues/201), [#202](https://github.com/JuliaPy/PythonCall.jl/issues/202)
 
-## Does it work on Apple silicon (ARM, M1, M2, ...)?
-
-Maybe. Your mileage may vary.
-
-In general, PythonCall and JuliaCall are only supported on platforms with
-[Tier 1](https://julialang.org/downloads/#supported_platforms) level of support by Julia.
-Currently, Apple silicon is Tier 2, so is not supported.
-
-Due to time constraints, issues affecting only unsupported platforms will not be
-investigated. It is much more likely to be an issue with Julia itself than PythonCall.
-
 ## Issues when Numpy arrays are expected
 
 When a Julia array is passed to Python, it is wrapped as a [`ArrayValue`](#juliacall.ArrayValue).

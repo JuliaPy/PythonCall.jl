@@ -109,11 +109,16 @@ def init():
             raise ValueError(f'{s}: expecting an int'+(' or auto' if accept_auto else ""))
 
     def args_from_config():
-        argv = ["--"+opt[4:].replace("_", "-")+"="+val for opt, val in CONFIG.items()
-                if val is not None and opt.startswith("opt_")]
-        argv = [CONFIG['exepath']]+argv
-        if sys.version_info[0] >= 3:
-            argv = [s.encode("utf-8") for s in argv]
+        argv = [CONFIG['exepath']]
+        for opt, val in CONFIG.items():
+            if opt.startswith('opt_'):
+                if val is None:
+                    if opt == 'opt_handle_signals':
+                        val = 'no'
+                    else:
+                        continue
+                argv.append('--' + opt[4:].replace('_', '-') + '=' + val)
+        argv = [s.encode("utf-8") for s in argv]
 
         argc = len(argv)
         argc = c.c_int(argc)
@@ -138,7 +143,7 @@ def init():
     CONFIG['opt_sysimage'] = sysimg = path_option('sysimage', check_exists=True)[0]
     CONFIG['opt_threads'] = int_option('threads', accept_auto=True)[0]
     CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])[0]
-    CONFIG['opt_handle_signals'] = choice('handle_signals', ['yes', 'no'], default='no')[0]
+    CONFIG['opt_handle_signals'] = choice('handle_signals', ['yes', 'no'])[0]
     CONFIG['opt_startup_file'] = choice('startup_file', ['yes', 'no'])[0]
 
     # Stop if we already initialised
@@ -224,6 +229,24 @@ def init():
         raise Exception('PythonCall.jl did not start properly')
 
     CONFIG['inited'] = True
+
+    if CONFIG['opt_handle_signals'] is None:
+        if Base.Threads.nthreads() > 1:
+            # a warning to help multithreaded users
+            # TODO: should we set PYTHON_JULIACALL_HANDLE_SIGNALS=yes whenever PYTHON_JULIACALL_THREADS != 1?
+            warnings.warn(
+                "Julia was started with multiple threads "
+                "but multithreading support is experimental in JuliaCall. "
+                "It is recommended to restart Python with the environment variable "
+                "PYTHON_JULIACALL_HANDLE_SIGNALS=yes "
+                "set, otherwise you may experience segfaults or other crashes. "
+                "Note however that this interferes with Python's own signal handling, "
+                "so for example Ctrl-C will not raise KeyboardInterrupt. "
+                "See https://juliapy.github.io/PythonCall.jl/stable/faq/#Is-PythonCall/JuliaCall-thread-safe? "
+                "for further information. "
+                "You can suppress this warning by setting "
+                "PYTHON_JULIACALL_HANDLE_SIGNALS=no."
+            )
 
 init()
 

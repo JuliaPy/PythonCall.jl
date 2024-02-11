@@ -55,13 +55,9 @@ def init():
         import sys
         import platform
         if platform.system() == "Windows" and sys.hexversion >= 0x308000:
-            conda_environment_path = os.environ["CONDA_PREFIX"]
-            dll_search_paths = [
-                os.path.join(conda_environment_path, "Library", "bin"),
-                ]
-            for path in dll_search_paths:
-                if os.path.exists(path):
-                    os.add_dll_directory(path)
+            dll_search_path = os.path.join(os.environ["CONDA_PREFIX"], "Library", "bin")
+            if os.path.exists(dll_search_path):
+                os.add_dll_directory(dll_search_path)
     import ctypes as c
     import sys
     import subprocess

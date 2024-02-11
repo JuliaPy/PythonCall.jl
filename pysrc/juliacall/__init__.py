@@ -50,19 +50,15 @@ CONFIG = {'inited': False}
 
 def init():
     import os
-    if "CONDA_PREFIX" in os.environ: #It does only when calling from PythonCall
+    if os.environ.get("CONDA_PREFIX", "") != "": #Only when calling from PythonCall
         ## For Windows and Python 3.8+ we need to add dll search paths
         import sys
-        if os.name == "nt" and sys.hexversion >= 0x308000:
+        import platform
+        if platform.system() == "Windows" and sys.hexversion >= 0x308000:
             conda_environment_path = os.environ["CONDA_PREFIX"]
             dll_search_paths = [
-                conda_environment_path,
-                os.path.join(conda_environment_path, "Library", "mingw-w64", "bin"),
-                os.path.join(conda_environment_path, "Library", "usr", "bin"),
                 os.path.join(conda_environment_path, "Library", "bin"),
-                os.path.join(conda_environment_path, "Scripts"),
-                os.path.join(conda_environment_path, "bin")
-            ]
+                ]
             for path in dll_search_paths:
                 if os.path.exists(path):
                     os.add_dll_directory(path)
@@ -70,7 +66,6 @@ def init():
     import sys
     import subprocess
     import warnings
-
 
 
     # importing pytorch before juliacall sometimes causes segfaults. TODO: remove

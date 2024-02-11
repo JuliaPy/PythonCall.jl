@@ -54,7 +54,7 @@ def init():
         ## For Windows and Python 3.8+ we need to add dll search paths
         import sys
         import platform
-        if platform.system() == "Windows" and sys.hexversion >= 0x308000:
+        if platform.system() == "Windows" and sys.version_info >= (3, 8):
             dll_search_path = os.path.join(os.environ["CONDA_PREFIX"], "Library", "bin")
             if os.path.exists(dll_search_path):
                 os.add_dll_directory(dll_search_path)

@@ -67,7 +67,6 @@ def init():
     import subprocess
     import warnings
 
-
     # importing pytorch before juliacall sometimes causes segfaults. TODO: remove
     if "torch" in sys.modules:
         warnings.warn(

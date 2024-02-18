@@ -51,7 +51,7 @@ class JuliaMagics(Magics):
         # run the code
         ans = Main.seval('begin\n' + code + '\nend')
         # flush stderr/stdout
-        PythonCall._flush_stdio()
+        PythonCall._ipython._flush_stdio()
         # copy variables back to Python
         # only copy those which are new or have changed value
         for k in outvars + syncvars:
@@ -74,18 +74,22 @@ def load_ipython_extension(ip):
             end
         end""")
     else:
+        # In Julia 1.7+ redirect_stdout() returns a Pipe object. Earlier versions of Julia
+        # just return a tuple of the two pipe ends. This is why we have [1] and [2] below.
+        # They can be dropped on earlier versions.
         PythonCall.seval("""module _ipython
+            using ..PythonCall
             const _redirected_stdout = redirect_stdout()
             const _redirected_stderr = redirect_stderr()
             const _py_stdout = PyIO(pyimport("sys" => "stdout"); line_buffering=true)
             const _py_stderr = PyIO(pyimport("sys" => "stderr"); line_buffering=true)
-            const _redirect_stdout_task = @async write($_py_stdout, $_redirected_stdout)
-            const _redirect_stderr_task = @async write($_py_stderr, $_redirected_stderr)
+            const _redirect_stdout_task = @async write($_py_stdout, $_redirected_stdout[1])
+            const _redirect_stderr_task = @async write($_py_stderr, $_redirected_stderr[1])
             function _flush_stdio()
                 flush(stderr)
                 flush(stdout)
-                flush(_redirected_stderr)
-                flush(_redirected_stdout)
+                flush(_redirected_stderr[2])
+                flush(_redirected_stdout[2])
                 flush(_py_stderr)
                 flush(_py_stdout)
                 nothing

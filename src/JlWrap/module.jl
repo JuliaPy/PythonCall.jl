@@ -10,7 +10,7 @@ function pyjlmodule_dir(self::Module)
 end
 
 function pyjlmodule_seval(self::Module, expr::Py)
-    Py(Base.eval(self, Meta.parse(strip(pyconvert(String, expr)))))
+    Py(Base.eval(self, Meta.parseall(strip(pyconvert(String, expr)))))
 end
 
 function init_module()

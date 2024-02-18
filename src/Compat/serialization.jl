@@ -42,3 +42,19 @@ function Serialization.serialize(s::AbstractSerializer, x::PyException)
 end
 
 Serialization.deserialize(s::AbstractSerializer, ::Type{PyException}) = PyException(deserialize_py(s))
+
+### PyArray
+#
+# This type holds a pointer and a handle (usually a python memoryview or capsule) which are
+# not serializable by default, and even if they were would not be consistent after
+# serializing each field independently. So we just serialize the wrapped Python object.
+
+function Serialization.serialize(s::AbstractSerializer, x::PyArray)
+    Serialization.serialize_type(s, typeof(x), false)
+    serialize_py(s, x.py)
+end
+
+function Serialization.deserialize(s::AbstractSerializer, ::Type{T}) where {T<:PyArray}
+    # TODO: set buffer and array args too?
+    T(deserialize_py(s); copy=false)
+end

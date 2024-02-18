@@ -23,7 +23,8 @@ Add a new conversion rule for `pyconvert`.
 ### Arguments
 
 - `tname` is a string of the form `"__module__:__qualname__"` identifying a Python type `t`,
-  such as `"builtins:dict"`. This rule only applies to Python objects of this type.
+  such as `"builtins:dict"` or `"sympy.core.symbol:Symbol"`. This rule only applies to
+  Python objects of this type.
 - `T` is a Julia type, such that this rule only applies when the target type intersects
   with `T`.
 - `func` is the function implementing the rule.

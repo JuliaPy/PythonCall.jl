@@ -8,7 +8,7 @@ module Compat
     using ..Core
     using ..Core: C, Utils, pynew, incref, getptr, pycopy!, pymodulehooks, pyisnew, pybytes_asvector, pysysmodule, pyosmodule, pystr_fromUTF8
     using ..Convert: pyconvert, @pyconvert
-    using ..Wrap: PyPandasDataFrame
+    using ..Wrap: PyArray, PyPandasDataFrame
     using Serialization: Serialization, AbstractSerializer, serialize, deserialize
     using Tables: Tables
     using Requires: @require

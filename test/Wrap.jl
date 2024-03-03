@@ -69,6 +69,19 @@
         @test y == [1, 2, 3]
         @test z == [1, 2, 3]
     end
+    @testset "serialize" begin
+        using Serialization: serialize, deserialize
+        io = IOBuffer()
+        serialize(io, y)
+        seekstart(io)
+        y2 = deserialize(io)
+        @test typeof(y) == typeof(y2)
+        @test eltype(y) == eltype(y2)
+        @test ndims(y) == ndims(y2)
+        @test size(y) == size(y2)
+        @test strides(y) == strides(y2)
+        @test y == y2
+    end
 end
 
 @testitem "PyDict" begin

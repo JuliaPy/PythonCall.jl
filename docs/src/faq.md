@@ -18,17 +18,6 @@ Some rules if you are writing multithreaded code:
 
 Related issues: [#201](https://github.com/JuliaPy/PythonCall.jl/issues/201), [#202](https://github.com/JuliaPy/PythonCall.jl/issues/202)
 
-## Does it work on Apple silicon (ARM, M1, M2, ...)?
-
-Maybe. Your mileage may vary.
-
-In general, PythonCall and JuliaCall are only supported on platforms with
-[Tier 1](https://julialang.org/downloads/#supported_platforms) level of support by Julia.
-Currently, Apple silicon is Tier 2, so is not supported.
-
-Due to time constraints, issues affecting only unsupported platforms will not be
-investigated. It is much more likely to be an issue with Julia itself than PythonCall.
-
 ## Issues when Numpy arrays are expected
 
 When a Julia array is passed to Python, it is wrapped as a [`ArrayValue`](#juliacall.ArrayValue).
@@ -92,4 +81,6 @@ Related issues: [#255](https://github.com/JuliaPy/PythonCall.jl/issues/255)
 
 ## Can I use JuliaCall to run Julia inside applications with embedded Python?
 
-Yes, it may be possible. See an example of how to have Julia running inside the Python that is running inside Blender here https://discourse.julialang.org/t/running-julia-inside-blender-through-vscode-using-pythoncall-juliacall/96838.
+Yes, it may be possible. A good example of that is having Julia running inside the Python that is running inside Blender, as presented in [this Discourse post](https://discourse.julialang.org/t/running-julia-inside-blender-through-vscode-using-pythoncall-juliacall/96838/6).
+From the point that one has JuliaCall running inside Python, if it has access to the terminal, one can even launch a Julia REPL there, and if needed connect with VSCode Julia extension to it.
+The full Python script to install, launch JuliaCall, and launch a Julia REPL in Blender is [here](https://gist.github.com/cdsousa/d820d27174238c0d48e5252355584172).

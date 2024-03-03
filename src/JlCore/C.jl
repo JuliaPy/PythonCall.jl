@@ -695,7 +695,7 @@ function _pyjl_eval(mptr::C.PyPtr, xptr::C.PyPtr)
             # python strings are parsed into Julia expressions
             x = pystr_asstring(xo)
             unsafe_pydel!(xo)
-            ex = Meta.parse(strip(x))
+            ex = Meta.parseall(strip(x))
         elseif PyJl_Check(xptr)
             # Julia values are assumed to be expressions already
             ex = _getany(xo)

@@ -563,7 +563,7 @@ struct _pyjl_generic_method{T,N,F}
     func::F
 end
 _pyjl_generic_method{T,N}(func::F) where {T,N,F} = _pyjl_generic_method{T,N,F}(func)
-_pyjl_generic_method{T,N}(func::F) where {T,N,F<:Type} = _pyjl_generic_method{T,N,Type{F}}(func)
+_pyjl_generic_method{T,N}(func::F) where {T,N,F<:Type} = _pyjl_generic_method{T,N,Type{func}}(func)
 
 function (m::_pyjl_generic_method{T,0})(xptr::C.PyPtr, ::C.PyPtr) where {T}
     try

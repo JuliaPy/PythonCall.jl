@@ -827,8 +827,12 @@ end
 
 function _pyjl_get_buffer(o::C.PyPtr, buf::Ptr{C.Py_buffer}, flags::Cint)
     try
-        info = PyBufferInfo(PyJl_GetValue(o))
-        info === nothing && return Cint(-1)
+        v = PyJl_GetValue(o)
+        info = PyBufferInfo(v)
+        if info === nothing
+            C.PyErr_SetString(C.POINTERS.PyExc_BufferError, "Julia '$(typeof(v))' does not support the buffer protocol")
+            return Cint(-1)
+        end
         return _pyjl_get_buffer_impl(o, buf, flags, info::PyBufferInfo)::Cint
     catch exc
         @debug "error getting the buffer"

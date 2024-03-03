@@ -35,7 +35,7 @@ function enable(on::Bool)
     else
         ENABLED[] = false
     end
-    return ans
+    return was_on
 end
 
 """

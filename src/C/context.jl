@@ -122,7 +122,7 @@ function init_context()
                     break
                 end
             end
-            CTX.lib_path === nothing && error("""
+            CTX.lib_path === missing && error("""
                 Could not find Python library for Python executable $(repr(CTX.exe_path)).
 
                 If you know where the library is, set environment variable 'JULIA_PYTHONCALL_LIB' to its path.

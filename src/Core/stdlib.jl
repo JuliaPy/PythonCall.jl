@@ -18,18 +18,7 @@ function init_stdlib()
         # if Python is interactive, ensure Julia is too
         if pyhasattr(pysysmodule, "ps1")
             Base.eval(:(is_interactive = true))
-            REPL = Base.require(Base.PkgId(Base.UUID("3fa0cd96-eef1-5676-8a61-b3b8758bbffb"), "REPL"))
-            # adapted from run_main_repl() in julia/base/client.jl
             Base.load_InteractiveUtils()
-            term_env = get(ENV, "TERM", Sys.iswindows() ? "" : "dumb")
-            term = REPL.Terminals.TTYTerminal(term_env, stdin, stdout, stderr)
-            if term.term_type == "dumb"
-                repl = REPL.BasicREPL(term)
-            else
-                repl = REPL.LineEditREPL(term, get(stdout, :color, false), true)
-                repl.history_file = false
-            end
-            pushdisplay(REPL.REPLDisplay(repl))
         end
 
     else

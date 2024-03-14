@@ -1,5 +1,5 @@
 {
-    "julia": "1.6.1",
+    "julia": "~1.6.1, ~1.7, ~1.8, ~1.9, =1.10.0",
     "packages": {
         "PythonCall": {
             "uuid": "6099a3de-0909-46bc-b1f4-468b9a2dfc0d",

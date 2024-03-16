@@ -1,5 +1,8 @@
 # Release Notes
 
+## Unreleased
+* Bug fixes.
+
 ## 0.9.16 (2024-03-14)
 * Big internal refactor.
 * New unexported functions: `python_executable_path`, `python_library_path`, `python_library_handle` and `python_version`.

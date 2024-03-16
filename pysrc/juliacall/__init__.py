@@ -18,7 +18,7 @@ def convert(T, x):
     "Convert x to a Julia T."
     global _convert
     if _convert is None:
-        _convert = PythonCall.seval("pyjlcallback((T,x)->pyjl(pyconvert(pyjlvalue(T)::Type,x)))")
+        _convert = PythonCall.JlWrap.seval("pyjlcallback((T,x)->pyjl(pyconvert(pyjlvalue(T)::Type,x)))")
     return _convert(T, x)
 
 def interactive(enable=True):

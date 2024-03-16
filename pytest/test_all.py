@@ -1,6 +1,27 @@
 def test_import():
     import juliacall
 
+def test_newmodule():
+    import juliacall
+    jl = juliacall.Main
+    m = juliacall.newmodule("TestModule")
+    assert isinstance(m, juliacall.ModuleValue)
+    assert jl.isa(m, jl.Module)
+    assert str(jl.nameof(m)) == "TestModule"
+
+def test_convert():
+    import juliacall
+    jl = juliacall.Main
+    for (x, t) in [(None, jl.Nothing), (True, jl.Bool), ([1,2,3], jl.Vector)]:
+        y = juliacall.convert(t, x)
+        assert isinstance(y, juliacall.AnyValue)
+        assert jl.isa(y, t)
+
+def test_interactive():
+    import juliacall
+    juliacall.interactive(True)
+    juliacall.interactive(False)
+
 def test_issue_394():
     "https://github.com/JuliaPy/PythonCall.jl/issues/394"
     from juliacall import Main as jl

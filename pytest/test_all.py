@@ -22,6 +22,24 @@ def test_interactive():
     juliacall.interactive(True)
     juliacall.interactive(False)
 
+def test_JuliaError():
+    import juliacall
+    jl = juliacall.Main
+    assert isinstance(juliacall.JuliaError, type)
+    assert issubclass(juliacall.JuliaError, Exception)
+    try:
+        juliacall.Base.error("test error")
+        err = None
+    except juliacall.JuliaError as e:
+        err = e
+    assert err is not None
+    assert isinstance(err, juliacall.JuliaError)
+    exc = err.exception
+    assert jl.isa(exc, jl.ErrorException)
+    assert str(exc.msg) == "test error"
+    bt = err.backtrace
+    assert bt is not None
+
 def test_issue_394():
     "https://github.com/JuliaPy/PythonCall.jl/issues/394"
     from juliacall import Main as jl

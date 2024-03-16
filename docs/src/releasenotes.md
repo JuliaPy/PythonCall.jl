@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased
+## 0.9.17 (2024-03-16)
 * Bug fixes.
 
 ## 0.9.16 (2024-03-14)

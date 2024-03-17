@@ -3,10 +3,15 @@
 ## Unreleased (v1)
 * `PythonCall.GC` is now more like `Base.GC`: `enable(true)` replaces `enable()`, `enable(false)` replaces `disable()`, and `gc()` is added.
 
-## Unreleased
+## 0.9.17 (2024-03-16)
+* Bug fixes.
+
+## 0.9.16 (2024-03-14)
+* Big internal refactor.
 * New unexported functions: `python_executable_path`, `python_library_path`, `python_library_handle` and `python_version`.
 * `Py` is now treated as a scalar when broadcasting.
 * `PyArray` is now serializable.
+* Removed compatibility with Julia 1.10.1 and 1.10.2 (to be fixed in 1.10.3 and 1.11.0) due to an upstream bug.
 * Bug fixes.
 
 ## 0.9.15 (2023-10-25)

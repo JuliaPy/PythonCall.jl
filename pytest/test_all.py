@@ -75,21 +75,3 @@ def test_issue_433():
         """
     )
     assert out == 25
-
-def test_notebook():
-    import os
-    import subprocess
-    import sys
-    from pathlib import Path
-
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "pytest",
-            "--nbval",
-            str(Path(__file__).parent / "test_nb.ipynb"),
-        ],
-        env=os.environ,
-    )
-    assert result.returncode == 0

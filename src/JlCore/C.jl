@@ -559,6 +559,44 @@ function _pyjl_richcompare(xptr::C.PyPtr, yptr::C.PyPtr, op::Cint)
     end
 end
 
+pyjl_enter(xval, x::Py) = error("Julia '$(typeof(xval))' object does not support the context manager protocol")
+pyjl_enter(xval::Base.AbstractLock, x::Py) = (lock(x); x)
+pyjl_enter(xval::IO, x::Py) = x
+
+pyjl_exit(xval::Base.AbstractLock, x::Py, et::Py, ev::Py, eb::Py) = (unlock(xval); false)
+pyjl_exit(xval::IO, x::Py, et::Py, ev::Py, eb::Py) = (close(xval); false)
+
+function _pyjl_enter(xptr::C.PyPtr, ::C.PyPtr)
+    try
+        xval = PyJl_GetValue(xptr)
+        x = pynew(incref(xptr))
+        v = pyjl_enter(xval, x)
+        _return(v, :any)        
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
+function _pyjl_exit(xptr::C.PyPtr, args::C.PyPtr)
+    try
+        C.PyTuple_Size(args) == 3 || error("expecting 3 arguments to __exit__")
+        xval = PyJl_GetValue(xptr)
+        etptr = C.PyTuple_GetItem(args, 0)
+        evptr = C.PyTuple_GetItem(args, 1)
+        ebptr = C.PyTuple_GetItem(args, 2)
+        x = pynew(incref(xptr))
+        et = pynew(incref(etptr))
+        ev = pynew(incref(evptr))
+        eb = pynew(incref(ebptr))
+        v = pyjl_exit(xval, x, et, ev, eb)::Bool
+        _return(v, :bool)
+    catch exc
+        _raise(exc)
+        C.PyNULL
+    end
+end
+
 struct _pyjl_generic_method{T,N,F}
     func::F
 end
@@ -930,6 +968,8 @@ const _pyjl_doc_name = "jl_doc"
 const _pyjl_dir_name = "__dir__"
 const _pyjl_reversed_name = "__reversed__"
 const _pyjl_complex_name = "__complex__"
+const _pyjl_enter_name = "__enter__"
+const _pyjl_exit_name = "__exit__"
 const _pyjl_methods = Vector{C.PyMethodDef}()
 const _pyjl_as_buffer = fill(C.PyBufferProcs())
 const _pyjl_as_number = fill(C.PyNumberMethods())
@@ -951,6 +991,8 @@ function init_pyjl()
         @pyjl_method(_pyjl_dir, C.Py_METH_NOARGS),
         @pyjl_method(_pyjl_reversed, C.Py_METH_NOARGS),
         @pyjl_method(_pyjl_complex, C.Py_METH_NOARGS),
+        @pyjl_method(_pyjl_enter, C.Py_METH_NOARGS),
+        @pyjl_method(_pyjl_exit, C.Py_METH_VARARGS),
         @pyjl_method(_pyjl_to_py, C.Py_METH_NOARGS),
         @pyjl_method(_pyjl_eval, C.Py_METH_O),
         @pyjl_method(_pyjl_typeof, C.Py_METH_NOARGS),

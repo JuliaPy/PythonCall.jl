@@ -248,32 +248,25 @@ def init():
                 "PYTHON_JULIACALL_HANDLE_SIGNALS=no."
             )
 
-    # Next, automatically load the juliacall extension if we are in a Jupyter notebook
-    CONFIG['autoload_extensions'] = choice('autoload_extensions', ['yes', 'no'])[0]
-    if CONFIG['autoload_extensions'] in {'yes', None}:
+    # Next, automatically load the juliacall extension if we are in IPython or Jupyter
+    CONFIG['autoload_ipython_extension'] = choice('autoload_ipython_extension', ['yes', 'no'])[0]
+    if CONFIG['autoload_ipython_extension'] in {'yes', None}:
         try:
-            # Get IPython `InteractiveShell` instance
             get_ipython = sys.modules['IPython'].get_ipython
 
-            # This line is a check for the IPython kernel being loaded to the
-            # interactive shell, so that we don't activate for other types of
-            # interactive shells).
-            if 'IPKernelApp' not in get_ipython().config:
-                raise ImportError('console')
-
-            if CONFIG['autoload_extensions'] is None:
+            if CONFIG['autoload_ipython_extension'] is None:
                 # Only let the user know if it was not explicitly set
                 print(
-                    "Detected Jupyter notebook. Loading juliacall extension. To disable, you can either "
-                    "set the environment variable PYTHON_JULIACALL_AUTOLOAD_EXTENSIONS=no or pass the "
-                    "command line argument '-X juliacall-autoload-extensions=no'. Inside Jupyter, you can "
-                    "do this with `import os; os.environ['PYTHON_JULIACALL_AUTOLOAD_EXTENSIONS'] = 'no'`. "
-                    "To suppress this message, set PYTHON_JULIACALL_AUTOLOAD_EXTENSIONS=yes."
+                    "Detected IPython. Loading juliacall extension. To disable, you can either "
+                    "set the environment variable PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=no or pass the "
+                    "command line argument '-X juliacall-autoload-ipython-extension=no'. Inside Jupyter, you can "
+                    "do this with `import os; os.environ['PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION'] = 'no'`. "
+                    "To suppress this message, set PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=yes."
                 )
 
             load_ipython_extension(get_ipython())
         except Exception as e:
-            if CONFIG['autoload_extensions'] == 'yes':
+            if CONFIG['autoload_ipython_extension'] == 'yes':
                 # Only warn if the user explicitly requested the extension to be loaded
                 warnings.warn(
                     "Could not load juliacall extension in Jupyter notebook: " + str(e)

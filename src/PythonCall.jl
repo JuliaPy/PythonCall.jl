@@ -1,6 +1,6 @@
 module PythonCall
 
-const VERSION = v"0.9.15"
+const VERSION = v"0.9.17"
 const ROOT_DIR = dirname(@__DIR__)
 
 include("Utils/Utils.jl")

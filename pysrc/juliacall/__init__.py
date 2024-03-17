@@ -1,7 +1,7 @@
 # This module gets modified by PythonCall when it is loaded, e.g. to include Core, Base
 # and Main modules.
 
-__version__ = '0.9.15'
+__version__ = '0.9.17'
 
 _newmodule = None
 
@@ -18,7 +18,7 @@ def convert(T, x):
     "Convert x to a Julia T."
     global _convert
     if _convert is None:
-        _convert = PythonCall.seval("pyjlcallback((T,x)->pyjl(pyconvert(pyjlvalue(T)::Type,x)))")
+        _convert = PythonCall.JlWrap.seval("pyjlcallback((T,x)->pyjl(pyconvert(pyjlvalue(T)::Type,x)))")
     return _convert(T, x)
 
 def interactive(enable=True):

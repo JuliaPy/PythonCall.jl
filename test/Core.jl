@@ -743,12 +743,21 @@ end
     @test pyeq(Bool, l["x"], 4)
     # check global code runs in global scope
     pyexec("global y; y=x+1", g, l)
-    @test_throws PythonCall.PyException PythonCall.@pyexec (err = PythonCall.Core.pybuiltins.ValueError) => `raise err`
     @test pyeq(Bool, g["y"], 5)
     @test !pycontains(l, "y")
     # check pyeval converts types correctly
     @test pyeval(Int, "1+1", g) === 2
     @test pyeval(Nothing, "None", g) === nothing
+    # @pyexec
+    @test_throws PyException @pyexec(`raise ValueError`)
+    @test @pyexec(`1 + 2`) === nothing
+    @test @pyexec(`ans = 1 + 2` => (ans::Int,)) === (ans=3,)
+    @test @pyexec((x=1, y=2) => `ans = x + y` => (ans::Int,)) === (ans=3,)
+    # @pyeval
+    @test_throws PyException @pyeval(`import sys`)  # not an expression
+    @test_throws PyException @pyeval(`None + None`)
+    @test @pyeval(`1 + 2` => Int) === 3
+    @test @pyeval((x=1, y=2) => `x + y` => Int) === 3
 end
 
 @testitem "@pyconst" begin

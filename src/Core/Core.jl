@@ -14,7 +14,7 @@ using ..GC: GC
 using ..Utils: Utils
 using Base: @propagate_inbounds, @kwdef
 using Dates: Date, Time, DateTime, year, month, day, hour, minute, second, millisecond, microsecond, nanosecond
-using MacroTools: @capture
+using MacroTools: MacroTools, @capture
 using Markdown: Markdown
 
 include("Py.jl")

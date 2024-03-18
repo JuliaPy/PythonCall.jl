@@ -130,7 +130,7 @@ function init_gui()
         pycopy!(new_event_loop_callback, g["new_event_loop_callback"])
 
         # add a hook to automatically call fix_qt_plugin_path()
-        fixqthook = Py(() -> (_Py.CONFIG.auto_fix_qt_plugin_path && fix_qt_plugin_path(); nothing))
+        fixqthook = Py(() -> (Core.CONFIG.auto_fix_qt_plugin_path && fix_qt_plugin_path(); nothing))
         pymodulehooks.add_hook("PyQt4", fixqthook)
         pymodulehooks.add_hook("PyQt5", fixqthook)
         pymodulehooks.add_hook("PySide", fixqthook)

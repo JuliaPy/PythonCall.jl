@@ -743,6 +743,7 @@ end
     @test pyeq(Bool, l["x"], 4)
     # check global code runs in global scope
     pyexec("global y; y=x+1", g, l)
+    @test_throws PythonCall.PyException PythonCall.@pyexec (err = PythonCall.Core.pybuiltins.ValueError) => `raise err`
     @test pyeq(Bool, g["y"], 5)
     @test !pycontains(l, "y")
     # check pyeval converts types correctly

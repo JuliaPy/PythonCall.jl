@@ -6,7 +6,7 @@ Misc bits and bobs for compatibility.
 module Compat
     using ..PythonCall: PythonCall  # needed for docstring cross-refs
     using ..Core
-    using ..Core: C, Utils, pynew, incref, getptr, pycopy!, pymodulehooks, pyisnull, pybytes_asvector, pysysmodule, pyosmodule, pystr_fromUTF8
+    using ..Core: Core, C, Utils, pynew, incref, getptr, pycopy!, pymodulehooks, pyisnull, pybytes_asvector, pysysmodule, pyosmodule, pystr_fromUTF8
     using ..Convert: pyconvert, @pyconvert
     using ..Wrap: PyArray, PyPandasDataFrame
     using Serialization: Serialization, AbstractSerializer, serialize, deserialize

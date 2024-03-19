@@ -1,5 +1,8 @@
 # Release Notes
 
+## 0.9.19 (2024-03-19)
+* Bug fixes.
+
 ## 0.9.18 (2024-03-18)
 * Bug fixes.
 

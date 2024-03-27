@@ -67,8 +67,9 @@ The `juliacall` IPython extension adds these features to your IPython session:
 
 The extension is experimental and unstable - the API can change at any time.
 
-Enable the extension with `%load_ext juliacall`.
-See [the IPython docs](https://ipython.readthedocs.io/en/stable/config/extensions/).
+You can explicitly enable the extension with `%load_ext juliacall`, but
+it will automatically be loaded if `juliacall` is imported and IPython is detected.
+You can disable this behavior with an [environment variable](@ref julia-config).
 
 The `%%julia` cell magic can synchronise variables between Julia and Python by listing them
 on the first line:
@@ -87,6 +88,9 @@ In [4]: %%julia x y z
 In [5]: z
 Out[5]: '2^8 = 256'
 ```
+
+Also see [the IPython docs](https://ipython.readthedocs.io/en/stable/config/extensions/)
+for more information on extensions.
 
 ## Asynchronous Julia code (including Makie)
 

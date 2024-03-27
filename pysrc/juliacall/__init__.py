@@ -257,11 +257,7 @@ def init():
             if CONFIG['autoload_ipython_extension'] is None:
                 # Only let the user know if it was not explicitly set
                 print(
-                    "Detected IPython. Loading juliacall extension. To disable, you can either "
-                    "set the environment variable PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=no or pass the "
-                    "command line argument '-X juliacall-autoload-ipython-extension=no'. Inside Jupyter, you can "
-                    "do this with `import os; os.environ['PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION'] = 'no'`. "
-                    "To suppress this message, set PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=yes."
+                    "Detected IPython. Loading juliacall extension. See https://juliapy.github.io/PythonCall.jl/stable/compat/#IPython"
                 )
 
             load_ipython_extension(get_ipython())

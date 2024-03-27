@@ -248,8 +248,30 @@ def init():
                 "PYTHON_JULIACALL_HANDLE_SIGNALS=no."
             )
 
-init()
+    # Next, automatically load the juliacall extension if we are in IPython or Jupyter
+    CONFIG['autoload_ipython_extension'] = choice('autoload_ipython_extension', ['yes', 'no'])[0]
+    if CONFIG['autoload_ipython_extension'] in {'yes', None}:
+        try:
+            get_ipython = sys.modules['IPython'].get_ipython
+
+            if CONFIG['autoload_ipython_extension'] is None:
+                # Only let the user know if it was not explicitly set
+                print(
+                    "Detected IPython. Loading juliacall extension. See https://juliapy.github.io/PythonCall.jl/stable/compat/#IPython"
+                )
+
+            load_ipython_extension(get_ipython())
+        except Exception as e:
+            if CONFIG['autoload_ipython_extension'] == 'yes':
+                # Only warn if the user explicitly requested the extension to be loaded
+                warnings.warn(
+                    "Could not load juliacall extension in Jupyter notebook: " + str(e)
+                )
+            pass
+
 
 def load_ipython_extension(ip):
     import juliacall.ipython
     juliacall.ipython.load_ipython_extension(ip)
+
+init()

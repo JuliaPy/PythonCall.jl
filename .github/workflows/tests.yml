@@ -70,7 +70,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 pytest pytest-cov
+          pip install flake8 pytest pytest-cov nbval numpy
           cp pysrc/juliacall/juliapkg-dev.json pysrc/juliacall/juliapkg.json
           pip install -e .
       - name: Lint with flake8
@@ -81,7 +81,7 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Run tests
         run: |
-          pytest -s --cov=pysrc
+          pytest -s --nbval --cov=pysrc ./pytest/
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
         env:

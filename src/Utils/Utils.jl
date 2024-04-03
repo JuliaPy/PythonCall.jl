@@ -90,8 +90,9 @@ module Utils
         mimes = copy(ALL_MIMES)
         # look for mimes on show methods for this type
         for meth in methods(show, Tuple{IO, MIME, typeof(x)}).ms
-            mimetype = _type_ub(meth.sig).parameters[3]
+            mimetype = _unwrap_unionall(meth.sig).parameters[3]
             mimetype isa DataType || continue
+            mimetype <: MIME || continue
             mime = string(mimetype.parameters[1])
             push!(mimes, mime)
         end
@@ -109,10 +110,7 @@ module Utils
     end
 
     @generated _type_lb(::Type{T}) where {T} = begin
-        R = T
-        while R isa UnionAll
-            R = R.body
-        end
+        R = _unwrap_unionall(T)
         if R isa DataType
             S = T
             while S isa UnionAll
@@ -122,6 +120,14 @@ module Utils
         else
             _type_ub(T)
         end
+    end
+
+    @generated function _unwrap_unionall(::Type{T}) where {T}
+        R = T
+        while R isa UnionAll
+            R = R.body
+        end
+        R
     end
 
     @generated _promote_type_bounded(::Type{S}, ::Type{T}, ::Type{B}) where {S,T,B} = begin

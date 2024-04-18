@@ -783,6 +783,7 @@ For example:
 - `x + y` is translated to `pyadd(x, y)`
 - `x === y` is translated to `pyis(x, y)`
 - `x.foo` is translated to `pygetattr(x, "foo")`
+- `import x: f as g` is translated to `from x import f as g`
 
 Compound statements such as `begin`, `if`, `while` and `for` are supported.
 

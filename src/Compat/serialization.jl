@@ -6,7 +6,7 @@ function serialize_py(s, x::Py)
     if pyisnull(x)
         serialize(s, nothing)
     else
-        b = pyimport("pickle").dumps(x)
+        b = pyimport(get(ENV, "JULIA_PYTHONCALL_PICKLE", "pickle")).dumps(x)
         serialize(s, pybytes_asvector(b))
     end
 end
@@ -16,7 +16,7 @@ function deserialize_py(s)
     if v === nothing
         pynew()
     else
-        pyimport("pickle").loads(pybytes(v))
+        pyimport(get(ENV, "JULIA_PYTHONCALL_PICKLE", "pickle")).loads(pybytes(v))
     end
 end
 

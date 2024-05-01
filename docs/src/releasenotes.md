@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased (2024-05-01)
+## 0.9.20 (2024-05-01)
 * The IPython extension is now automatically loaded upon import if IPython is detected.
 * JuliaCall now compatible with Julia 1.10.3.
 

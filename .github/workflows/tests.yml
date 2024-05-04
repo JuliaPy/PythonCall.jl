@@ -56,21 +56,21 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        pyversion: ["3.x", "3.7"]
+        pyversion: ["3.x", "3.8"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.pyversion }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.pyversion }}
-      - name: Set up Julia 1.10.0
+      - name: Set up Julia
         uses: julia-actions/setup-julia@v1
         with:
-          version: '1.10.0'
+          version: '1'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 pytest pytest-cov
+          pip install flake8 pytest pytest-cov nbval numpy
           cp pysrc/juliacall/juliapkg-dev.json pysrc/juliacall/juliapkg.json
           pip install -e .
       - name: Lint with flake8
@@ -81,7 +81,7 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Run tests
         run: |
-          pytest -s --cov=pysrc
+          pytest -s --nbval --cov=pysrc ./pytest/
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
         env:

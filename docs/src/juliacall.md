@@ -123,3 +123,4 @@ be configured in two ways:
 | `-X juliacall-sysimage=<file>` | `PYTHON_JULIACALL_SYSIMAGE=<file>` | Use the given system image. |
 | `-X juliacall-threads=<N\|auto>` | `PYTHON_JULIACALL_THREADS=<N\|auto>` | Launch N threads. |
 | `-X juliacall-warn-overwrite=<yes\|no>` | `PYTHON_JULIACALL_WARN_OVERWRITE=<yes\|no>` | Enable or disable method overwrite warnings. |
+| `-X juliacall-autoload-ipython-extension=<yes\|no>` | `PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=<yes\|no>` | Enable or disable IPython extension autoloading. |

@@ -5,7 +5,7 @@ Defines the `Py` type and directly related functions.
 """
 module Core
 
-const VERSION = v"0.9.17"
+const VERSION = v"0.9.20"
 const ROOT_DIR = dirname(dirname(@__DIR__))
 
 using ..PythonCall: PythonCall  # needed for docstring cross-refs
@@ -14,7 +14,7 @@ using ..GC: GC
 using ..Utils: Utils
 using Base: @propagate_inbounds, @kwdef
 using Dates: Date, Time, DateTime, year, month, day, hour, minute, second, millisecond, microsecond, nanosecond
-using MacroTools: @capture
+using MacroTools: MacroTools, @capture
 using Markdown: Markdown
 
 include("Py.jl")

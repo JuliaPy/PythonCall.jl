@@ -14,7 +14,7 @@ Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://juliala
 - Fast non-copying conversion of numeric arrays in either direction: modify Python arrays (e.g. `bytes`, `array.array`, `numpy.ndarray`) from Julia or Julia arrays from Python.
 - Helpful wrappers: interpret Python sequences, dictionaries, arrays, dataframes and IO streams as their Julia counterparts, and vice versa.
 - Beautiful stack-traces.
-- Supports modern systems: tested on Windows, MacOS and Linux, 64-bit, Julia 1.6.1 upwards and Python 3.7 upwards.
+- Supports modern systems: tested on Windows, MacOS and Linux, 64-bit, Julia 1.6.1 upwards and Python 3.8 upwards.
 
 ⭐ If you like this, a GitHub star would be lovely thank you. ⭐
 
@@ -45,4 +45,4 @@ The existing package [PyCall](https://github.com/JuliaPy/PyCall.jl) is another s
 - PythonCall by default never copies mutable objects when converting, but instead directly wraps the mutable object. This means that modifying the converted object modifies the original, and conversion is faster.
 - PythonCall does not usually automatically convert results to Julia values, but leaves them as Python objects. This makes it easier to do Pythonic things with these objects (e.g. accessing methods) and is type-stable.
 - PythonCall installs dependencies into a separate Conda environment for each Julia project. This means each Julia project can have an isolated set of Python dependencies.
-- PythonCall supports Julia 1.6.1+ and Python 3.7+ whereas PyCall supports Julia 0.7+ and Python 2.7+.
+- PythonCall supports Julia 1.6.1+ and Python 3.8+ whereas PyCall supports Julia 0.7+ and Python 2.7+.

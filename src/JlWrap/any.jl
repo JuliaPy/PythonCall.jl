@@ -1,20 +1,26 @@
 const pyjlanytype = pynew()
 
+pyjlany(x) = pyjl(pyjlanytype, x)
+
 # pyjlany_repr(self) = Py("<jl $(repr(self))>")
 function pyjlany_repr(self)
     str = repr(MIME("text/plain"), self; context=IOContext(devnull, :limit=>true, :displaysize=>(23,80)))
     # type = self isa Function ? "Function" : self isa Type ? "Type" : nameof(typeof(self))
     sep = '\n' in str ? '\n' : ' '
-    Py("Julia:$sep$str")
+    Py("Julia:$sep$str"::String)
 end
 
 # Note: string(self) doesn't always return a String
-pyjlany_str(self) = Py(sprint(print, self))
+pyjlany_str(self) = Py(sprint(print, self)::String)
+
+pyjl_attr_py2jl(k::String) = replace(k, r"_[b]+$" => (x -> "!"^(length(x) - 1)))
+
+pyjl_attr_jl2py(k::String) = replace(k, r"!+$" => (x -> "_" * "b"^length(x)))
 
 function pyjlany_getattr(self, k_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))
     pydel!(k_)
-    Py(getproperty(self, k))
+    pyjlany(getproperty(self, k))
 end
 pyjl_handle_error_type(::typeof(pyjlany_getattr), self, exc) = pybuiltins.AttributeError
 
@@ -27,18 +33,29 @@ function pyjlany_setattr(self, k_::Py, v_::Py)
 end
 pyjl_handle_error_type(::typeof(pyjlany_setattr), self, exc) = pybuiltins.AttributeError
 
-pyjlany_dir(self) = pylist(pyjl_attr_jl2py(string(k)) for k in propertynames(self, true))
+function pyjlany_dir(self)
+    ks = Symbol[]
+    if self isa Module
+        append!(ks, names(self, all = true, imported = true))
+        for m in ccall(:jl_module_usings, Any, (Any,), self)::Vector
+            append!(ks, names(m))
+        end
+    else
+        append!(propertynames(self, true))
+    end
+    pylist(pyjl_attr_jl2py(string(k)) for k in ks)
+end
 
 function pyjlany_call(self, args_::Py, kwargs_::Py)
     if pylen(kwargs_) > 0
         args = pyconvert(Vector{Any}, args_)
         kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
-        ans = Py(self(args...; kwargs...))
+        ans = pyjlany(self(args...; kwargs...))
     elseif pylen(args_) > 0
         args = pyconvert(Vector{Any}, args_)
-        ans = Py(self(args...))
+        ans = pyjlany(self(args...))
     else
-        ans = Py(self())
+        ans = pyjlany(self())
     end
     pydel!(args_)
     pydel!(kwargs_)
@@ -47,13 +64,24 @@ end
 pyjl_handle_error_type(::typeof(pyjlany_call), self, exc) = exc isa MethodError && exc.f === self ? pybuiltins.TypeError : PyNULL
 
 function pyjlany_getitem(self, k_::Py)
-    if pyistuple(k_)
-        k = pyconvert(Vector{Any}, k_)
-        pydel!(k_)
-        Py(self[k...])
+    if self isa Type
+        if pyistuple(k_)
+            k = pyconvert(Vector{Any}, k_)
+            pydel!(k_)
+            pyjlany(self{k...})
+        else
+            k = pyconvert(Any, k_)
+            pyjlany(self{k})
+        end    
     else
-        k = pyconvert(Any, k_)
-        Py(self[k])
+        if pyistuple(k_)
+            k = pyconvert(Vector{Any}, k_)
+            pydel!(k_)
+            pyjlany(self[k...])
+        else
+            k = pyconvert(Any, k_)
+            pyjlany(self[k])
+        end
     end
 end
 pyjl_handle_error_type(::typeof(pyjlany_getitem), self, exc) = exc isa BoundsError ? pybuiltins.IndexError : exc isa KeyError ? pybuiltins.KeyError : PyNULL
@@ -85,7 +113,7 @@ function pyjlany_delitem(self, k_::Py)
 end
 pyjl_handle_error_type(::typeof(pyjlany_delitem), self, exc) = exc isa BoundsError ? pybuiltins.IndexError : exc isa KeyError ? pybuiltins.KeyError : PyNULL
 
-pyjlany_contains(self, v::Py) = Py(@pyconvert(eltype(self), v, return Py(false)) in self)
+pyjlany_contains(self, v::Py) = Py((@pyconvert(eltype(self), v, return Py(false)) in self)::Bool)
 pyjl_handle_error_type(::typeof(pyjlany_contains), self, exc) = exc isa MethodError && exc.f === in ? pybuiltins.TypeError : PyNULL
 
 struct pyjlany_op{OP}
@@ -96,7 +124,7 @@ function (op::pyjlany_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
         pydel!(other_)
-        Py(op.op(self, other))
+        pyjlany(op.op(self, other))
     else
         pybuiltins.NotImplemented
     end
@@ -107,7 +135,7 @@ function (op::pyjlany_op)(self, other_::Py, other2_::Py)
         other2 = pyjlvalue(other2_)
         pydel!(other_)
         pydel!(other2_)
-        Py(op.op(self, other, other2))
+        pyjlany(op.op(self, other, other2))
     else
         pybuiltins.NotImplemented
     end
@@ -121,7 +149,7 @@ function (op::pyjlany_rev_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
         pydel!(other_)
-        Py(op.op(other, self))
+        pyjlany(op.op(other, self))
     else
         pybuiltins.NotImplemented
     end
@@ -132,14 +160,14 @@ function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
         other2 = pyjlvalue(other2_)
         pydel!(other_)
         pydel!(other2_)
-        Py(op.op(other, self, other2))
+        pyjlany(op.op(other, self, other2))
     else
         pybuiltins.NotImplemented
     end
 end
 pyjl_handle_error_type(op::pyjlany_rev_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
 
-pyjlany_name(self) = Py(string(nameof(self)))
+pyjlany_name(self) = Py(string(nameof(self))::String)
 pyjl_handle_error_type(::typeof(pyjlany_name), self, exc) = exc isa MethodError && exc.f === nameof ? pybuiltins.AttributeError : PyNULL
 
 function pyjlany_display(self, mime_::Py)
@@ -186,6 +214,17 @@ function pyjlany_mimebundle(self, include::Py, exclude::Py)
     end
     return ans
 end
+
+function pyjlany_eval(self, expr::Py)
+    if self isa Module
+        Py(Base.eval(self, Meta.parseall(strip(pyconvert(String, expr)))))
+    else
+        throw(ArgumentError("self must be a Julia 'Module', got a '$(typeof(self))'"))
+    end
+end
+
+pyjl_handle_error_type(::typeof(pyjlany_eval), self, exc) = exc isa ArgumentError ? pybuiltins.TypeError : PyNULL
+
 
 function init_any()
     jl = pyjuliacallmodule
@@ -316,12 +355,12 @@ function init_any()
         @property
         def __name__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_name)))
-        def _jl_raw(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlraw)))
-        def _jl_display(self, mime=None):
+        def jl_display(self, mime=None):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_display)), mime)
-        def _jl_help(self, mime=None):
+        def jl_help(self, mime=None):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_help)), mime)
+        def jl_eval(self, expr):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_eval)), expr)
         def _repr_mimebundle_(self, include=None, exclude=None):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)
     """, @__FILE__(), "exec"), jl.__dict__)

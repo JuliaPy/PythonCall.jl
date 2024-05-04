@@ -11,18 +11,14 @@ using ..Core: C, Utils, pynew, @autopy, incref, decref, setptr!, getptr, pyjulia
 using ..Convert: pyconvert, @pyconvert, PYCONVERT_PRIORITY_WRAP, pyconvert_add_rule, pyconvert_tryconvert, pyconvertarg, pyconvert_result
 using ..GC: GC
 
-using Pkg: Pkg
 using Base: @propagate_inbounds, allocatedinline
 
 import ..Core: Py
 
 include("C.jl")
 include("base.jl")
-include("raw.jl")
 include("any.jl")
 include("iter.jl")
-include("type.jl")
-include("module.jl")
 include("io.jl")
 include("number.jl")
 include("objectarray.jl")
@@ -35,11 +31,8 @@ include("callback.jl")
 function __init__()
     Cjl.C.with_gil() do 
         init_base()
-        init_raw()
         init_any()
         init_iter()
-        init_type()
-        init_module()
         init_io()
         init_number()
         init_array()
@@ -52,7 +45,6 @@ function __init__()
         jl.Core = Base.Core
         jl.Base = Base
         jl.Main = Main
-        jl.Pkg = Pkg
         jl.PythonCall = PythonCall
     end
 end

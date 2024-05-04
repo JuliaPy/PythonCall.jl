@@ -321,6 +321,8 @@ function __init__()
     end
 end
 
+PyJuliaValue_Check(o::C.PyPtr) = C.PyObject_IsInstance(o, PyJuliaBase_Type[])
+
 PyJuliaValue_IsNull(o::C.PyPtr) = UnsafePtr{PyJuliaValueObject}(o).value[] == 0
 
 PyJuliaValue_GetValue(o::C.PyPtr) = PYJLVALUES[UnsafePtr{PyJuliaValueObject}(o).value[]]

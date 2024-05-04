@@ -2,6 +2,13 @@
 
 ## Unreleased (v1)
 * `PythonCall.GC` is now more like `Base.GC`: `enable(true)` replaces `enable()`, `enable(false)` replaces `disable()`, and `gc()` is added.
+* Breaking changes to Julia wrapper types:
+  * Classes renamed: `ValueBase` to `JlBase`, `AnyValue` to `Jl`, `ArrayValue` to `JlArray`, etc.
+  * Classes removed: `RawValue`, `ModuleValue`, `TypeValue`.
+  * `Jl` now behaves similar to how `RawValue` behaved before. In particular, most methods on `Jl` now return a `Jl` instead of an arbitrary Python object.
+  * `juliacall.Pkg` removed.
+  * Methods renamed: `_jl_display()` to `jl_display()`, `_jl_help()` to `jl_help()`, etc.
+  * Methods removed: `_jl_raw()`
 
 ## 0.9.20 (2024-05-01)
 * The IPython extension is now automatically loaded upon import if IPython is detected.

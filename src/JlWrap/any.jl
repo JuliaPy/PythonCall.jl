@@ -63,6 +63,23 @@ function pyjlany_call(self, args_::Py, kwargs_::Py)
 end
 pyjl_handle_error_type(::typeof(pyjlany_call), self, exc) = exc isa MethodError && exc.f === self ? pybuiltins.TypeError : PyNULL
 
+function pyjlany_callback(self, args_::Py, kwargs_::Py)
+    if pylen(kwargs_) > 0
+        args = pyconvert(Vector{Py}, args_)
+        kwargs = pyconvert(Dict{Symbol,Py}, kwargs_)
+        ans = Py(self(args...; kwargs...))
+    elseif pylen(args_) > 0
+        args = pyconvert(Vector{Py}, args_)
+        ans = Py(self(args...))
+    else
+        ans = Py(self())
+    end
+    pydel!(args_)
+    pydel!(kwargs_)
+    ans
+end
+pyjl_handle_error_type(::typeof(pyjlany_callback), self, exc::MethodError) = exc.f === self ? pybuiltins.TypeError : PyNULL
+
 function pyjlany_getitem(self, k_::Py)
     if self isa Type
         if pyistuple(k_)
@@ -418,6 +435,8 @@ function init_any()
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_eval)), expr)
         def jl_to_py(self):
             return self._jl_callmethod($(pyjl_methodnum(Py)))
+        def jl_callback(self, *args, **kwargs):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_callback)), args, kwargs)
         def _repr_mimebundle_(self, include=None, exclude=None):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)
     """, @__FILE__(), "exec"), jl.__dict__)

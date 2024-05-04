@@ -64,7 +64,7 @@ jl.cor(x, y)
 ```
 
 What to read next:
-- The main functionality of this package is in `AnyValue` objects, which represent Julia
+- The main functionality of this package is in `Jl` objects, which represent Julia
   objects, [documented here](@ref julia-wrappers).
 - If you need to install Julia packages, [read here](@ref julia-deps).
 - When you call a Julia function, such as `jl.rand(...)` in the above example, its

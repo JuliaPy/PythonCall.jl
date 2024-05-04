@@ -15,7 +15,7 @@ function init_type()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class TypeValue(AnyValue):
+    class TypeValue(JlBase):
         __slots__ = ()
         def __getitem__(self, k):
             return self._jl_callmethod($(pyjl_methodnum(pyjltype_getitem)), k)

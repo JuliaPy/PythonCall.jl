@@ -1,7 +1,7 @@
 """
     module PythonCall.JlWrap
 
-Defines the Python object wrappers around Julia objects (`juliacall.AnyValue` etc).
+Defines the Python object wrappers around Julia objects (`juliacall.Jl` etc).
 """
 module JlWrap
 

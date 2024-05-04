@@ -39,7 +39,7 @@ function init_callback()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class CallbackValue(ValueBase):
+    class CallbackValue(JlBase):
         __slots__ = ()
         def __repr__(self):
             if self._jl_isnull():

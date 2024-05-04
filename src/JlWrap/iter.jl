@@ -29,7 +29,7 @@ function init_iter()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class IteratorValue(AnyValue):
+    class IteratorValue(JlBase):
         __slots__ = ()
         def __iter__(self):
             return self

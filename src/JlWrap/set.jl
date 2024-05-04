@@ -77,7 +77,7 @@ function init_set()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class SetValue(AnyValue):
+    class SetValue(JlBase):
         __slots__ = ()
         def __bool__(self):
             return bool(len(self))

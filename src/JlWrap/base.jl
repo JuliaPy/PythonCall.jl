@@ -9,7 +9,7 @@ pyjl(t, v) = pynew(errcheck(@autopy t Cjl.PyJuliaValue_New(getptr(t_), v)))
 """
     pyisjl(x)
 
-Test whether `x` is a wrapped Julia value, namely an instance of `juliacall.ValueBase`.
+Test whether `x` is a wrapped Julia value, namely an instance of `juliacall.JlBase`.
 """
 pyisjl(x) = pytypecheck(x, pyjlbasetype)
 export pyisjl
@@ -18,7 +18,7 @@ pyjlisnull(x) = @autopy x begin
     if pyisjl(x_)
         Cjl.PyJuliaValue_IsNull(getptr(x_))
     else
-        error("Expecting a 'juliacall.ValueBase', got a '$(pytype(x_).__name__)'")
+        error("Expecting a 'juliacall.JlBase', got a '$(pytype(x_).__name__)'")
     end
 end
 
@@ -38,11 +38,11 @@ export pyjlvalue
 
 function init_base()
     setptr!(pyjlbasetype, incref(Cjl.PyJuliaBase_Type[]))
-    pyjuliacallmodule.ValueBase = pyjlbasetype
+    pyjuliacallmodule.JlBase = pyjlbasetype
 
     # conversion rule
     priority = PYCONVERT_PRIORITY_WRAP
-    pyconvert_add_rule("juliacall:ValueBase", Any, pyconvert_rule_jlvalue, priority)
+    pyconvert_add_rule("juliacall:JlBase", Any, pyconvert_rule_jlvalue, priority)
 end
 
 pyconvert_rule_jlvalue(::Type{T}, x::Py) where {T} = pyconvert_tryconvert(T, _pyjl_getvalue(x))

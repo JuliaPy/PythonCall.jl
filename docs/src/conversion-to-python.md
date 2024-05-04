@@ -30,7 +30,7 @@ From Python, this occurs when converting the return value of a Julia function.
 | `IO`                                                                | `juliacall.BufferedIOValue`                             |
 | `Module`                                                            | `juliacall.ModuleValue`                                 |
 | `Type`                                                              | `juliacall.TypeValue`                                   |
-| Anything else                                                       | `juliacall.AnyValue`                                    |
+| Anything else                                                       | `juliacall.Jl`                                    |
 
 See [here](@ref julia-wrappers) for an explanation of the `juliacall.*Value` wrapper types.
 
@@ -46,7 +46,7 @@ PythonCall.ispy
 ```
 
 Alternatively, if you define a wrapper type (a subtype of
-[`juliacall.AnyValue`](#juliacall.AnyValue)) then you may instead define `pyjltype(::T)` to
+[`juliacall.Jl`](#juliacall.Jl)) then you may instead define `pyjltype(::T)` to
 be that type.
 
 ```@docs

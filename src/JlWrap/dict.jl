@@ -35,7 +35,7 @@ function init_dict()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class DictValue(AnyValue):
+    class DictValue(JlBase):
         __slots__ = ()
         _jl_undefined_ = object()
         def __bool__(self):

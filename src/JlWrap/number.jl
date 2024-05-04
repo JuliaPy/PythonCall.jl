@@ -87,7 +87,7 @@ function init_number()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class NumberValue(AnyValue):
+    class NumberValue(JlBase):
         __slots__ = ()
         def __bool__(self):
             return not self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(iszero))))

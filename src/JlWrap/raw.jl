@@ -85,7 +85,7 @@ function init_raw()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class RawValue(ValueBase):
+    class RawValue(JlBase):
         __slots__ = ()
         def __repr__(self):
             if self._jl_isnull():
@@ -104,7 +104,7 @@ function init_raw()
                 return self._jl_callmethod($(pyjl_methodnum(pyjlraw_getattr)), k)
         def __setattr__(self, k, v):
             try:
-                ValueBase.__setattr__(self, k, v)
+                JlBase.__setattr__(self, k, v)
             except AttributeError:
                 if k.startswith("__") and k.endswith("__"):
                     raise
@@ -112,7 +112,7 @@ function init_raw()
                 return
             self._jl_callmethod($(pyjl_methodnum(pyjlraw_setattr)), k, v)
         def __dir__(self):
-            return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlraw_dir)))
+            return JlBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlraw_dir)))
         def __call__(self, *args, **kwargs):
             return self._jl_callmethod($(pyjl_methodnum(pyjlraw_call)), args, kwargs)
         def __len__(self):

@@ -251,7 +251,7 @@ function _pyjl_deserialize(t::C.PyPtr, v::C.PyPtr)
     end
 end
 
-const _pyjlbase_name = "juliacall.ValueBase"
+const _pyjlbase_name = "juliacall.JlBase"
 const _pyjlbase_type = fill(C.PyTypeObject())
 const _pyjlbase_isnull_name = "_jl_isnull"
 const _pyjlbase_callmethod_name = "_jl_callmethod"
@@ -311,7 +311,7 @@ function init_c()
     o = PyJuliaBase_Type[] = C.PyPtr(pointer(_pyjlbase_type))
     if C.PyType_Ready(o) == -1
         C.PyErr_Print()
-        error("Error initializing 'juliacall.ValueBase'")
+        error("Error initializing 'juliacall.JlBase'")
     end
 end
 
@@ -344,7 +344,7 @@ end
 
 PyJuliaValue_New(t::C.PyPtr, @nospecialize(v)) = begin
     if C.PyType_IsSubtype(t, PyJuliaBase_Type[]) != 1
-        C.PyErr_SetString(C.POINTERS.PyExc_TypeError, "Expecting a subtype of 'juliacall.ValueBase'")
+        C.PyErr_SetString(C.POINTERS.PyExc_TypeError, "Expecting a subtype of 'juliacall.JlBase'")
         return C.PyNULL
     end
     o = C.PyObject_CallObject(t, C.PyNULL)

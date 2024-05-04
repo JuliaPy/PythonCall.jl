@@ -14,7 +14,7 @@ def test_convert():
     jl = juliacall.Main
     for (x, t) in [(None, jl.Nothing), (True, jl.Bool), ([1,2,3], jl.Vector)]:
         y = juliacall.convert(t, x)
-        assert isinstance(y, juliacall.AnyValue)
+        assert isinstance(y, juliacall.Jl)
         assert jl.isa(y, t)
 
 def test_interactive():

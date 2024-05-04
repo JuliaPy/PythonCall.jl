@@ -191,7 +191,7 @@ function init_any()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class AnyValue(ValueBase):
+    class Jl(JlBase):
         __slots__ = ()
         def __repr__(self):
             if self._jl_isnull():
@@ -210,7 +210,7 @@ function init_any()
                 return self._jl_callmethod($(pyjl_methodnum(pyjlany_getattr)), k)
         def __setattr__(self, k, v):
             try:
-                ValueBase.__setattr__(self, k, v)
+                JlBase.__setattr__(self, k, v)
             except AttributeError:
                 if k.startswith("__") and k.endswith("__"):
                     raise
@@ -218,7 +218,7 @@ function init_any()
                 return
             self._jl_callmethod($(pyjl_methodnum(pyjlany_setattr)), k, v)
         def __dir__(self):
-            return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlany_dir)))
+            return JlBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlany_dir)))
         def __call__(self, *args, **kwargs):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_call)), args, kwargs)
         def __bool__(self):
@@ -325,7 +325,7 @@ function init_any()
         def _repr_mimebundle_(self, include=None, exclude=None):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)
     """, @__FILE__(), "exec"), jl.__dict__)
-    pycopy!(pyjlanytype, jl.AnyValue)
+    pycopy!(pyjlanytype, jl.Jl)
 end
 
 """
@@ -348,7 +348,7 @@ export pyjl
 """
     pyjltype(x)
 
-The subtype of `juliacall.AnyValue` which the Julia object `x` is wrapped as by `pyjl(x)`.
+The subtype of `juliacall.Jl` which the Julia object `x` is wrapped as by `pyjl(x)`.
 
 Overload `pyjltype(::T)` to define a custom conversion for your type `T`.
 """

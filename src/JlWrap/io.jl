@@ -205,7 +205,7 @@ function init_io()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class IOValueBase(AnyValue):
+    class IOValueBase(JlBase):
         __slots__ = ()
         def close(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlio_close)))

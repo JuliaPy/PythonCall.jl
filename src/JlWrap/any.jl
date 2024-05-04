@@ -283,6 +283,46 @@ function pyjlany_round(self, ndigits_::Py)
 end
 pyjl_handle_error_type(::typeof(pyjlany_round), self, exc::MethodError) = pybuiltins.TypeError
 
+mutable struct Iterator
+    value::Any
+    state::Any
+    started::Bool
+    finished::Bool
+end
+
+Iterator(x) = Iterator(x, nothing, false, false)
+Iterator(x::Iterator) = x
+
+function Base.iterate(x::Iterator, ::Nothing=nothing)
+    if x.finished
+        s = nothing
+    elseif x.started
+        s = iterate(x.value, x.state)
+    else
+        s = iterate(x.value)
+    end
+    if s === nothing
+        x.finished = true
+        nothing
+    else
+        x.started = true
+        x.state = s[2]
+        (s[1], nothing)
+    end
+end
+
+function pyjlany_next(self)
+    s = iterate(self)
+    if s === nothing
+        errset(pybuiltins.StopIteration)
+        PyNULL
+    else
+        pyjlany(s[1])
+    end
+end
+
+pyjlany_hash(self) = pyint(hash(self))
+
 function init_any()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
@@ -323,6 +363,8 @@ function init_any()
             self._jl_callmethod($(pyjl_methodnum(pyjlany_delitem)), k)
         def __iter__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(Iterator))))
+        def __next__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_next)))
         def __reversed__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(reverse))))
         def __contains__(self, v):
@@ -404,7 +446,7 @@ function init_any()
         def __gt__(self, other):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(>))), other)
         def __hash__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(hash))))
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_hash)))
         def __int__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_int)))
         def __float__(self):

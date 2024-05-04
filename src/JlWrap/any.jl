@@ -119,26 +119,28 @@ pyjl_handle_error_type(::typeof(pyjlany_contains), self, exc) = exc isa MethodEr
 struct pyjlany_op{OP}
     op :: OP
 end
-(op::pyjlany_op)(self) = Py(op.op(self))
+(op::pyjlany_op)(self) = pyjlany(op.op(self))
 function (op::pyjlany_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
         pydel!(other_)
-        pyjlany(op.op(self, other))
     else
-        pybuiltins.NotImplemented
+        other = pyconvert(Any, other_)
     end
+    pyjlany(op.op(self, other))
 end
 function (op::pyjlany_op)(self, other_::Py, other2_::Py)
-    if pyisjl(other_) && pyisjl(other2_)
+    if pyisjl(other_)
         other = pyjlvalue(other_)
-        other2 = pyjlvalue(other2_)
         pydel!(other_)
-        pydel!(other2_)
-        pyjlany(op.op(self, other, other2))
     else
-        pybuiltins.NotImplemented
+        other = pyconvert(Any, other)
     end
+    if pyisjl(other2_)
+        other2 = pyjlvalue(other2_)
+        pydel!(other2_)
+    end
+    pyjlany(op.op(self, other, other2))
 end
 pyjl_handle_error_type(op::pyjlany_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
 
@@ -149,21 +151,23 @@ function (op::pyjlany_rev_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
         pydel!(other_)
-        pyjlany(op.op(other, self))
     else
-        pybuiltins.NotImplemented
+        other = pyconvert(Any, other_)
     end
+    pyjlany(op.op(other, self))
 end
 function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
-    if pyisjl(other_) && pyisjl(other2_)
+    if pyisjl(other_)
         other = pyjlvalue(other_)
-        other2 = pyjlvalue(other2_)
         pydel!(other_)
-        pydel!(other2_)
-        pyjlany(op.op(other, self, other2))
     else
-        pybuiltins.NotImplemented
+        other = pyconvert(Any, other)
     end
+    if pyisjl(other2_)
+        other2 = pyjlvalue(other2_)
+        pydel!(other2_)
+    end
+    pyjlany(op.op(other, self, other2))
 end
 pyjl_handle_error_type(op::pyjlany_rev_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
 
@@ -215,16 +219,38 @@ function pyjlany_mimebundle(self, include::Py, exclude::Py)
     return ans
 end
 
-function pyjlany_eval(self, expr::Py)
-    if self isa Module
-        Py(Base.eval(self, Meta.parseall(strip(pyconvert(String, expr)))))
+pyjlany_eval(self::Module, expr::Py) = Py(Base.eval(self, Meta.parseall(strip(pyconvert(String, expr)))))
+
+pyjl_handle_error_type(::typeof(pyjlany_eval), self, exc) = exc isa MethodError ? pybuiltins.TypeError : PyNULL
+
+pyjlany_int(self) = pyint(convert(Integer, self))
+
+pyjl_handle_error_type(::typeof(pyjlany_int), self, exc) = exc isa MethodError ? pybuiltins.TypeError : PyNULL
+
+pyjlany_float(self) = pyfloat(convert(AbstractFloat, self))
+
+pyjl_handle_error_type(::typeof(pyjlany_float), self, exc) = exc isa MethodError ? pybuiltins.TypeError : PyNULL
+
+pyjlany_complex(self) = pycomplex(convert(Complex, self))
+
+pyjl_handle_error_type(::typeof(pyjlany_complex), self, exc) = exc isa MethodError ? pybuiltins.TypeError : PyNULL
+
+function pyjlany_index(self)
+    if self isa Integer
+        pyint(self)
     else
-        throw(ArgumentError("self must be a Julia 'Module', got a '$(typeof(self))'"))
+        errset(pybuiltins.TypeError, "Only Julia 'Integer' values can be used as Python indices, not '$(typeof(self))'")
     end
 end
 
-pyjl_handle_error_type(::typeof(pyjlany_eval), self, exc) = exc isa ArgumentError ? pybuiltins.TypeError : PyNULL
-
+function pyjlany_bool(self)
+    if self isa Bool
+        pybool(self)
+    else
+        errset(pybuiltins.TypeError, "Only Julia 'Bool' values can be tested for truthyness, not '$(typeof(self))'")
+        PyNULL
+    end
+end
 
 function init_any()
     jl = pyjuliacallmodule
@@ -255,7 +281,7 @@ function init_any()
         def __call__(self, *args, **kwargs):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_call)), args, kwargs)
         def __bool__(self):
-            return True
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_bool)))
         def __len__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(length))))
         def __getitem__(self, k):
@@ -275,6 +301,8 @@ function init_any()
         def __neg__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(-))))
         def __abs__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(abs))))
+        def abs(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(abs))))
         def __invert__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(~))))
@@ -346,6 +374,14 @@ function init_any()
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(>))), other)
         def __hash__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(hash))))
+        def __int__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_int)))
+        def __float__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_float)))
+        def __complex__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_complex)))
+        def __index__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_index)))
         @property
         def __name__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_name)))

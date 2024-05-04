@@ -220,26 +220,23 @@ function pyjlany_mimebundle(self, include::Py, exclude::Py)
 end
 
 pyjlany_eval(self::Module, expr::Py) = Py(Base.eval(self, Meta.parseall(strip(pyconvert(String, expr)))))
-
-pyjl_handle_error_type(::typeof(pyjlany_eval), self, exc) = exc isa MethodError ? pybuiltins.TypeError : PyNULL
+pyjl_handle_error_type(::typeof(pyjlany_eval), self, exc::MethodError) = pybuiltins.TypeError
 
 pyjlany_int(self) = pyint(convert(Integer, self))
-
-pyjl_handle_error_type(::typeof(pyjlany_int), self, exc) = exc isa MethodError ? pybuiltins.TypeError : PyNULL
+pyjl_handle_error_type(::typeof(pyjlany_int), self, exc::MethodError) = pybuiltins.TypeError
 
 pyjlany_float(self) = pyfloat(convert(AbstractFloat, self))
-
-pyjl_handle_error_type(::typeof(pyjlany_float), self, exc) = exc isa MethodError ? pybuiltins.TypeError : PyNULL
+pyjl_handle_error_type(::typeof(pyjlany_float), self, exc::MethodError) = pybuiltins.TypeError
 
 pyjlany_complex(self) = pycomplex(convert(Complex, self))
-
-pyjl_handle_error_type(::typeof(pyjlany_complex), self, exc) = exc isa MethodError ? pybuiltins.TypeError : PyNULL
+pyjl_handle_error_type(::typeof(pyjlany_complex), self, exc::MethodError) = pybuiltins.TypeError
 
 function pyjlany_index(self)
     if self isa Integer
         pyint(self)
     else
         errset(pybuiltins.TypeError, "Only Julia 'Integer' values can be used as Python indices, not '$(typeof(self))'")
+        PyNULL
     end
 end
 
@@ -251,6 +248,23 @@ function pyjlany_bool(self)
         PyNULL
     end
 end
+
+pyjlany_trunc(self) = pyint(trunc(Integer, self))
+pyjl_handle_error_type(::typeof(pyjlany_trunc), self, exc::MethodError) = pybuiltins.TypeError
+
+pyjlany_floor(self) = pyint(floor(Integer, self))
+pyjl_handle_error_type(::typeof(pyjlany_floor), self, exc::MethodError) = pybuiltins.TypeError
+
+pyjlany_ceil(self) = pyint(ceil(Integer, self))
+pyjl_handle_error_type(::typeof(pyjlany_ceil), self, exc::MethodError) = pybuiltins.TypeError
+
+pyjlany_round(self) = pyint(round(Integer, self))
+function pyjlany_round(self, ndigits_::Py)
+    ndigits = pyconvertarg(Int, ndigits_, "ndigits")
+    pydel!(ndigits_)
+    pyjlany(round(self; digits = ndigits))
+end
+pyjl_handle_error_type(::typeof(pyjlany_round), self, exc::MethodError) = pybuiltins.TypeError
 
 function init_any()
     jl = pyjuliacallmodule
@@ -382,6 +396,17 @@ function init_any()
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_complex)))
         def __index__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_index)))
+        def __trunc__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_trunc)))
+        def __floor__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_floor)))
+        def __ceil__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_ceil)))
+        def __round__(self, ndigits=None):
+            if ndigits is None:
+                return self._jl_callmethod($(pyjl_methodnum(pyjlany_round)))
+            else:
+                return self._jl_callmethod($(pyjl_methodnum(pyjlany_round)), ndigits)
         @property
         def __name__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_name)))
@@ -391,6 +416,8 @@ function init_any()
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_help)), mime)
         def jl_eval(self, expr):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_eval)), expr)
+        def jl_to_py(self):
+            return self._jl_callmethod($(pyjl_methodnum(Py)))
         def _repr_mimebundle_(self, include=None, exclude=None):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)
     """, @__FILE__(), "exec"), jl.__dict__)

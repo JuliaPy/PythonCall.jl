@@ -233,15 +233,9 @@ function init_any()
     class Jl(JlBase):
         __slots__ = ()
         def __repr__(self):
-            if self._jl_isnull():
-                return "<jl NULL>"
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlany_repr)))
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_repr)))
         def __str__(self):
-            if self._jl_isnull():
-                return "NULL"
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlany_str)))
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_str)))
         def __getattr__(self, k):
             if k.startswith("__") and k.endswith("__"):
                 raise AttributeError(k)

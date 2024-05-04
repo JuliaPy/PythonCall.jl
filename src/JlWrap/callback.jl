@@ -42,15 +42,9 @@ function init_callback()
     class CallbackValue(JlBase):
         __slots__ = ()
         def __repr__(self):
-            if self._jl_isnull():
-                return "<jl NULL>"
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_repr)))
+            return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_repr)))
         def __str__(self):
-            if self._jl_isnull():
-                return "NULL"
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_str)))
+            return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_str)))
         def __call__(self, *args, **kwargs):
             return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_call)), args, kwargs)
     """, @__FILE__(), "exec"), jl.__dict__)

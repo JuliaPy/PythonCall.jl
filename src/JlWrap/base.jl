@@ -14,26 +14,12 @@ Test whether `x` is a wrapped Julia value, namely an instance of `juliacall.JlBa
 pyisjl(x) = pytypecheck(x, pyjlbasetype)
 export pyisjl
 
-pyjlisnull(x) = @autopy x begin
-    if pyisjl(x_)
-        Cjl.PyJuliaValue_IsNull(getptr(x_))
-    else
-        error("Expecting a 'juliacall.JlBase', got a '$(pytype(x_).__name__)'")
-    end
-end
-
 """
     pyjlvalue(x)
 
 Extract the value from the wrapped Julia value `x`.
 """
-pyjlvalue(x) = @autopy x begin
-    if pyjlisnull(x_)
-        error("Julia value is NULL")
-    else
-        _pyjl_getvalue(x_)
-    end
-end
+pyjlvalue(x) = @autopy x _pyjl_getvalue(x_)
 export pyjlvalue
 
 function init_base()
@@ -49,10 +35,6 @@ pyconvert_rule_jlvalue(::Type{T}, x::Py) where {T} = pyconvert_tryconvert(T, _py
 
 function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssize_t)
     @nospecialize f
-    if Cjl.PyJuliaValue_IsNull(self_)
-        errset(pybuiltins.TypeError, "Julia object is NULL")
-        return C.PyNULL
-    end
     in_f = false
     self = Cjl.PyJuliaValue_GetValue(self_)
     try

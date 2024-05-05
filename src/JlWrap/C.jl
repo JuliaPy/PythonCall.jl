@@ -15,6 +15,7 @@ using Serialization: serialize, deserialize
 end
 
 const PyJuliaBase_Type = Ref(C.PyNULL)
+const PyJuliaBase_New = Ref(C.PyNULL)
 
 # we store the actual julia values here
 # the `value` field of `PyJuliaValueObject` indexes into here
@@ -88,8 +89,9 @@ function _pyjl_init(xptr::C.PyPtr, argsptr::C.PyPtr, kwargsptr::C.PyPtr)
         PyJuliaValue_SetValue(xptr, v)
         Cint(0)
     catch exc
-        C.PyErr_SetString(C.POINTERS.PyExc_Exception, "error during __init__()")
-        @debug "exception" exc
+        errtype = exc isa MethodError ? C.POINTERS.PyExc_TypeError : C.POINTERS.PyExc_Exception
+        errmsg = sprint(showerror, exc)
+        C.PyErr_SetString(errtype, errmsg)
         Cint(-1)
     end
 end
@@ -354,6 +356,12 @@ function init_c()
         C.PyErr_Print()
         error("Error initializing 'juliacall.JlBase'")
     end
+    n = PyJuliaBase_New[] = C.PyObject_GetAttrString(o, "__new__")
+    if n == C.PyNULL
+        C.PyErr_Print()
+        error("Error accessing 'juliacall.JlBase.__new__'")
+    end
+    nothing
 end
 
 function __init__()
@@ -419,7 +427,18 @@ function PyJuliaValue_New(t::C.PyPtr, @nospecialize(v))
         C.PyErr_SetString(C.POINTERS.PyExc_TypeError, "Expecting a subtype of 'juliacall.JlBase'")
         return C.PyNULL
     end
-    o = C.PyObject_CallObject(t, C.PyNULL)
+    # All of this just to do JuliaBase.__new__(t). We do this to avoid calling `__init__`
+    # which itself sets the value, and so duplicates work. Some classes such as `JlArray` do
+    # not allow calling `__init__` with no args.
+    # TODO: it could be replaced with PyObject_CallOneArg(PyJuliaBase_New[], t) when we drop
+    # support for Python 3.8.
+    args = C.PyTuple_New(1)
+    args == C.PyNULL && return C.PyNULL
+    C.Py_IncRef(t)
+    err = C.PyTuple_SetItem(args, 0, t)
+    err == -1 && (C.Py_DecRef(args); return C.PyNULL)
+    o = C.PyObject_CallObject(PyJuliaBase_New[], args)
+    C.Py_DecRef(args)
     o == C.PyNULL && return C.PyNULL
     PyJuliaValue_SetValue(o, v)
     return o

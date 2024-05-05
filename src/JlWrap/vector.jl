@@ -123,6 +123,10 @@ function init_vector()
     $("\n"^(@__LINE__()-1))
     class JlVector(JlArray):
         __slots__ = ()
+        def __init__(self, value=None):
+            if value is None:
+                value = Base.Vector()
+            JlBase.__init__(self, value, Base.AbstractVector)
         def resize(self, size):
             return self._jl_callmethod($(pyjl_methodnum(pyjlvector_resize)), size)
         def sort(self, reverse=False, key=None):

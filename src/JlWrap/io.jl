@@ -207,6 +207,8 @@ function init_io()
     $("\n"^(@__LINE__()-1))
     class JlIOBase(JlBase):
         __slots__ = ()
+        def __init__(self, value):
+            JlBase.__init__(self, value, Base.IO)
         def close(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlio_close)))
         @property

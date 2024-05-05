@@ -38,6 +38,10 @@ function init_dict()
     class JlDict(JlBase):
         __slots__ = ()
         _jl_undefined_ = object()
+        def __init__(self, value=None):
+            if value is None:
+                value = Base.Dict()
+            JlBase.__init__(self, value, Base.AbstractDict)
         def __bool__(self):
             return bool(len(self))
         def __iter__(self):

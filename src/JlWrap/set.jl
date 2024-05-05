@@ -79,6 +79,8 @@ function init_set()
     $("\n"^(@__LINE__()-1))
     class JlSet(JlBase):
         __slots__ = ()
+        def __init__(self, value=None):
+            JlBase.__init__(self, value, Base.AbstractSet)
         def __bool__(self):
             return bool(len(self))
         def add(self, value):

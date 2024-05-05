@@ -298,6 +298,8 @@ function init_array()
     class JlArray(JlBase):
         __slots__ = ()
         _jl_buffer_info = $(pyjl_methodnum(pyjlarray_buffer_info))
+        def __init__(self, value):
+            JlBase.__init__(self, value, Base.AbstractArray)
         @property
         def ndim(self):
             return self._jl_callmethod($(pyjl_methodnum(Py ∘ ndims)))

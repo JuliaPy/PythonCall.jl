@@ -6,9 +6,13 @@
   * Classes renamed: `ValueBase` to `JlBase`, `AnyValue` to `Jl`, `ArrayValue` to `JlArray`, etc.
   * Classes removed: `RawValue`, `ModuleValue`, `TypeValue`, `NumberValue`, `ComplexValue`, `RealValue`, `RationalValue`, `IntegerValue`.
   * `Jl` now behaves similar to how `RawValue` behaved before. In particular, most methods on `Jl` now return a `Jl` instead of an arbitrary Python object.
-  * `juliacall.Pkg` removed.
+  * `juliacall.Pkg` removed (you can import it yourself).
+  * `juliacall.convert` removed (use `juliacall.Jl` instead).
   * Methods renamed: `_jl_display()` to `jl_display()`, `_jl_help()` to `jl_help()`, etc.
-  * Methods removed: `_jl_raw()`
+  * Methods removed: `_jl_raw()`.
+  * `pyjl(x)` now always returns a `juliacall.Jl` (it used to select a wrapper type if possible).
+  * `pyjltype(x)` removed.
+* New functions: `pyjlarray`, `pyjldict`, `pyjlset`.
 
 ## 0.9.20 (2024-05-01)
 * The IPython extension is now automatically loaded upon import if IPython is detected.

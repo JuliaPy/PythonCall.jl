@@ -1,6 +1,6 @@
 const pywrapcallback = pynew()
 
-pyjlcallback(f) = pyjlany(f).jl_callback
+pyjlcallback(f) = pyjl(f).jl_callback
 
 """
     pyfunc(f; [name], [qualname], [doc], [signature])

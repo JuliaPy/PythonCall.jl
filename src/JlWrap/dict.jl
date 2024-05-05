@@ -107,4 +107,12 @@ function init_dict()
     pycopy!(pyjldicttype, jl.DictValue)
 end
 
-pyjltype(::AbstractDict) = pyjldicttype
+"""
+    pyjldict(x::AbstractDict)
+
+Wrap `x` as a Python `dict`-like object.
+"""
+pyjldict(x::AbstractDict) = pyjl(pyjldicttype, x)
+export pyjldict
+
+Py(x::AbstractDict) = pyjldict(x)

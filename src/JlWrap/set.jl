@@ -122,4 +122,12 @@ function init_set()
     pycopy!(pyjlsettype, jl.SetValue)
 end
 
-pyjltype(::AbstractSet) = pyjlsettype
+"""
+    pyjlset(x::AbstractSet)
+
+Wrap `x` as a Python `set`-like object.
+"""
+pyjlset(x::AbstractSet) = pyjl(pyjlsettype, x)
+export pyjlset
+
+Py(x::AbstractSet) = pyjlset(x)

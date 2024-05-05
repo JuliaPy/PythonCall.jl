@@ -12,15 +12,6 @@ def newmodule(name):
         _newmodule = Main.seval("name -> (n1=Symbol(name); n2=gensym(n1); Main.@eval(module $n2; module $n1; end; end); Main.@eval $n2.$n1)")
     return _newmodule(name)
 
-_convert = None
-
-def convert(T, x):
-    "Convert x to a Julia T."
-    global _convert
-    if _convert is None:
-        _convert = PythonCall.JlWrap.seval("pyjlcallback((T,x)->pyjl(pyconvert(pyjlvalue(T)::Type,x)))")
-    return _convert(T, x)
-
 def interactive(enable=True):
     "Allow the Julia event loop to run in the background of the Python REPL."
     if enable:

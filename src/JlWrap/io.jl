@@ -319,4 +319,4 @@ Wrap `io` as a Python text IO object.
 pytextio(v::IO) = pyjl(pyjltextiotype, v)
 export pytextio
 
-pyjltype(::IO) = pyjlbinaryiotype
+Py(x::IO) = pybinaryio(x)

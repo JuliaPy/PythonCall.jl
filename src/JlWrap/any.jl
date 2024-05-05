@@ -1,7 +1,5 @@
 const pyjlanytype = pynew()
 
-pyjlany(x) = pyjl(pyjlanytype, x)
-
 # pyjlany_repr(self) = Py("<jl $(repr(self))>")
 function pyjlany_repr(self)
     str = repr(MIME("text/plain"), self; context=IOContext(devnull, :limit=>true, :displaysize=>(23,80)))
@@ -20,7 +18,7 @@ pyjl_attr_jl2py(k::String) = replace(k, r"!+$" => (x -> "_" * "b"^length(x)))
 function pyjlany_getattr(self, k_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))
     pydel!(k_)
-    pyjlany(getproperty(self, k))
+    pyjl(getproperty(self, k))
 end
 pyjl_handle_error_type(::typeof(pyjlany_getattr), self, exc) = pybuiltins.AttributeError
 
@@ -50,12 +48,12 @@ function pyjlany_call(self, args_::Py, kwargs_::Py)
     if pylen(kwargs_) > 0
         args = pyconvert(Vector{Any}, args_)
         kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
-        ans = pyjlany(self(args...; kwargs...))
+        ans = pyjl(self(args...; kwargs...))
     elseif pylen(args_) > 0
         args = pyconvert(Vector{Any}, args_)
-        ans = pyjlany(self(args...))
+        ans = pyjl(self(args...))
     else
-        ans = pyjlany(self())
+        ans = pyjl(self())
     end
     pydel!(args_)
     pydel!(kwargs_)
@@ -85,19 +83,19 @@ function pyjlany_getitem(self, k_::Py)
         if pyistuple(k_)
             k = pyconvert(Vector{Any}, k_)
             pydel!(k_)
-            pyjlany(self{k...})
+            pyjl(self{k...})
         else
             k = pyconvert(Any, k_)
-            pyjlany(self{k})
+            pyjl(self{k})
         end    
     else
         if pyistuple(k_)
             k = pyconvert(Vector{Any}, k_)
             pydel!(k_)
-            pyjlany(self[k...])
+            pyjl(self[k...])
         else
             k = pyconvert(Any, k_)
-            pyjlany(self[k])
+            pyjl(self[k])
         end
     end
 end
@@ -136,7 +134,7 @@ pyjl_handle_error_type(::typeof(pyjlany_contains), self, exc) = exc isa MethodEr
 struct pyjlany_op{OP}
     op :: OP
 end
-(op::pyjlany_op)(self) = pyjlany(op.op(self))
+(op::pyjlany_op)(self) = pyjl(op.op(self))
 function (op::pyjlany_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
@@ -144,7 +142,7 @@ function (op::pyjlany_op)(self, other_::Py)
     else
         other = pyconvert(Any, other_)
     end
-    pyjlany(op.op(self, other))
+    pyjl(op.op(self, other))
 end
 function (op::pyjlany_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_)
@@ -157,7 +155,7 @@ function (op::pyjlany_op)(self, other_::Py, other2_::Py)
         other2 = pyjlvalue(other2_)
         pydel!(other2_)
     end
-    pyjlany(op.op(self, other, other2))
+    pyjl(op.op(self, other, other2))
 end
 pyjl_handle_error_type(op::pyjlany_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
 
@@ -171,7 +169,7 @@ function (op::pyjlany_rev_op)(self, other_::Py)
     else
         other = pyconvert(Any, other_)
     end
-    pyjlany(op.op(other, self))
+    pyjl(op.op(other, self))
 end
 function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_)
@@ -184,7 +182,7 @@ function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
         other2 = pyjlvalue(other2_)
         pydel!(other2_)
     end
-    pyjlany(op.op(other, self, other2))
+    pyjl(op.op(other, self, other2))
 end
 pyjl_handle_error_type(op::pyjlany_rev_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
 
@@ -279,7 +277,7 @@ pyjlany_round(self) = pyint(round(Integer, self))
 function pyjlany_round(self, ndigits_::Py)
     ndigits = pyconvertarg(Int, ndigits_, "ndigits")
     pydel!(ndigits_)
-    pyjlany(round(self; digits = ndigits))
+    pyjl(round(self; digits = ndigits))
 end
 pyjl_handle_error_type(::typeof(pyjlany_round), self, exc::MethodError) = pybuiltins.TypeError
 
@@ -317,7 +315,7 @@ function pyjlany_next(self)
         errset(pybuiltins.StopIteration)
         PyNULL
     else
-        pyjlany(s[1])
+        pyjl(s[1])
     end
 end
 
@@ -486,28 +484,9 @@ function init_any()
 end
 
 """
-    pyjl([t=pyjltype(x)], x)
+    pyjl(x)
 
-Create a Python object wrapping the Julia object `x`.
-
-If `x` is mutable, then mutating the returned object also mutates `x`, and vice versa.
-
-Its Python type is normally inferred from the type of `x`, but can be specified with `t`.
-
-For example if `x` is an `AbstractVector` then the object will have type `juliacall.VectorValue`.
-This object will satisfy the Python sequence interface, so for example uses 0-up indexing.
-
-To define a custom conversion for your type `T`, overload `pyjltype(::T)`.
+Create a Python `juliacall.Jl` object wrapping the Julia object `x`.
 """
-pyjl(v) = pyjl(pyjltype(v), v)
+pyjl(v) = pyjl(pyjlanytype, v)
 export pyjl
-
-"""
-    pyjltype(x)
-
-The subtype of `juliacall.Jl` which the Julia object `x` is wrapped as by `pyjl(x)`.
-
-Overload `pyjltype(::T)` to define a custom conversion for your type `T`.
-"""
-pyjltype(::Any) = pyjlanytype
-export pyjltype

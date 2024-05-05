@@ -44,11 +44,3 @@ object, then also define `ispy(::T) = true`.
 ```@docs
 PythonCall.ispy
 ```
-
-Alternatively, if you define a wrapper type (a subtype of
-[`juliacall.Jl`](#juliacall.Jl)) then you may instead define `pyjltype(::T)` to
-be that type.
-
-```@docs
-PythonCall.pyjltype
-```

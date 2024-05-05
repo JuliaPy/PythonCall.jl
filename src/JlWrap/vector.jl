@@ -154,4 +154,4 @@ function init_vector()
     pycopy!(pyjlvectortype, jl.VectorValue)
 end
 
-pyjltype(::AbstractVector) = pyjlvectortype
+pyjlarray(x::AbstractVector) = pyjl(pyjlvectortype, x)

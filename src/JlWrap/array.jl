@@ -266,8 +266,8 @@ pytypestrdescr(::Type{T}) where {T} = get!(PYTYPESTRDESCR, T) do
     end
 end
 
-pyjlarray_array__array(x::AbstractArray) = x isa Array ? Py(nothing) : pyjl(Array(x))
-pyjlarray_array__pyobjectarray(x::AbstractArray) = pyjl(PyObjectArray(x))
+pyjlarray_array__array(x::AbstractArray) = x isa Array ? Py(nothing) : pyjlarray(Array(x))
+pyjlarray_array__pyobjectarray(x::AbstractArray) = pyjlarray(PyObjectArray(x))
 
 function pyjlarray_array_interface(x::AbstractArray{T,N}) where {T,N}
     if pyjlarray_isarrayabletype(eltype(x))
@@ -342,4 +342,17 @@ function init_array()
     pycopy!(pyjlarraytype, jl.ArrayValue)
 end
 
-pyjltype(::AbstractArray) = pyjlarraytype
+"""
+    pyjlarray(x::AbstractArray)
+
+Wrap `x` as a Python array-like object.
+
+This object can be converted to a Numpy array with `numpy.array(v)`, `v.to_numpy()` or
+`v.__array__()` and supports these Numpy attributes: `ndim`, `shape`, `copy`, `reshape`.
+
+If `x` is one-dimensional (an `AbstractVector`) then it also behaves as a `list`.
+"""
+pyjlarray(x::AbstractArray) = pyjl(pyjlarraytype, x)
+export pyjlarray
+
+Py(x::AbstractArray) = pyjlarray(x)

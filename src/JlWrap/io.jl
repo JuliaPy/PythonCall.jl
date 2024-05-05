@@ -205,7 +205,7 @@ function init_io()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class IOValueBase(JlBase):
+    class JlIOBase(JlBase):
         __slots__ = ()
         def close(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlio_close)))
@@ -256,7 +256,7 @@ function init_io()
                 return line
             else:
                 raise StopIteration
-    class BinaryIOValue(IOValueBase):
+    class JlBinaryIO(JlIOBase):
         __slots__ = ()
         def detach(self):
             raise ValueError("Cannot detach '{}'.".format(type(self)))
@@ -272,7 +272,7 @@ function init_io()
             return self.readinto(b)
         def write(self, b):
             return self._jl_callmethod($(pyjl_methodnum(pyjlbinaryio_write)), b)
-    class TextIOValue(IOValueBase):
+    class JlTextIO(JlIOBase):
         __slots__ = ()
         @property
         def encoding(self):
@@ -289,14 +289,14 @@ function init_io()
         def write(self, s):
             return self._jl_callmethod($(pyjl_methodnum(pyjltextio_write)), s)
     import io
-    io.IOBase.register(IOValueBase)
-    io.BufferedIOBase.register(BinaryIOValue)
-    io.TextIOBase.register(TextIOValue)
+    io.IOBase.register(JlIOBase)
+    io.BufferedIOBase.register(JlBinaryIO)
+    io.TextIOBase.register(JlTextIO)
     del io
     """, @__FILE__(), "exec"), jl.__dict__)
-    pycopy!(pyjliobasetype, jl.IOValueBase)
-    pycopy!(pyjlbinaryiotype, jl.BinaryIOValue)
-    pycopy!(pyjltextiotype, jl.TextIOValue)
+    pycopy!(pyjliobasetype, jl.JlIOBase)
+    pycopy!(pyjlbinaryiotype, jl.JlBinaryIO)
+    pycopy!(pyjltextiotype, jl.JlTextIO)
 end
 
 pyiobase(v::IO) = pyjl(pyjliobasetype, v)

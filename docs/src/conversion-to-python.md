@@ -24,9 +24,9 @@ From Python, this occurs when converting the return value of a Julia function.
 | `Date`, `Time`, `DateTime` (from `Dates`)                           | `date`, `time`, `datetime` (from `datetime`)            |
 | `Second`, `Millisecond`, `Microsecond`, `Nanosecond` (from `Dates`) | `timedelta` (from `datetime`)                           |
 | `Number`                                                            | `juliacall.NumberValue`, `juliacall.ComplexValue`, etc. |
-| `AbstractArray`                                                     | `juliacall.ArrayValue`, `juliacall.VectorValue`         |
-| `AbstractDict`                                                      | `juliacall.DictValue`                                   |
-| `AbstractSet`                                                       | `juliacall.SetValue`                                    |
+| `AbstractArray`                                                     | `juliacall.JlArray`, `juliacall.JlVector`         |
+| `AbstractDict`                                                      | `juliacall.JlDict`                                   |
+| `AbstractSet`                                                       | `juliacall.JlSet`                                    |
 | `IO`                                                                | `juliacall.BufferedIOValue`                             |
 | `Module`                                                            | `juliacall.ModuleValue`                                 |
 | `Type`                                                              | `juliacall.TypeValue`                                   |

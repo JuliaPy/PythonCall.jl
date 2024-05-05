@@ -295,7 +295,7 @@ function init_array()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class ArrayValue(JlBase):
+    class JlArray(JlBase):
         __slots__ = ()
         _jl_buffer_info = $(pyjl_methodnum(pyjlarray_buffer_info))
         @property
@@ -339,7 +339,7 @@ function init_array()
             import numpy
             return numpy.array(self, dtype=dtype, copy=copy, order=order)
     """, @__FILE__(), "exec"), jl.__dict__)
-    pycopy!(pyjlarraytype, jl.ArrayValue)
+    pycopy!(pyjlarraytype, jl.JlArray)
 end
 
 """

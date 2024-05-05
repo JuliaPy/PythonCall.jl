@@ -121,7 +121,7 @@ function init_vector()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class VectorValue(ArrayValue):
+    class JlVector(JlArray):
         __slots__ = ()
         def resize(self, size):
             return self._jl_callmethod($(pyjl_methodnum(pyjlvector_resize)), size)
@@ -148,10 +148,10 @@ function init_vector()
         def count(self, value):
             return self._jl_callmethod($(pyjl_methodnum(pyjlvector_count)), value)
     import collections.abc
-    collections.abc.MutableSequence.register(VectorValue)
+    collections.abc.MutableSequence.register(JlVector)
     del collections
     """, @__FILE__(), "exec"), jl.__dict__)
-    pycopy!(pyjlvectortype, jl.VectorValue)
+    pycopy!(pyjlvectortype, jl.JlVector)
 end
 
 pyjlarray(x::AbstractVector) = pyjl(pyjlvectortype, x)

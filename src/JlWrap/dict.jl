@@ -35,7 +35,7 @@ function init_dict()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class DictValue(JlBase):
+    class JlDict(JlBase):
         __slots__ = ()
         _jl_undefined_ = object()
         def __bool__(self):
@@ -101,10 +101,10 @@ function init_dict()
         def copy(self):
             return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
     import collections.abc
-    collections.abc.MutableMapping.register(DictValue)
+    collections.abc.MutableMapping.register(JlDict)
     del collections
     """, @__FILE__(), "exec"), jl.__dict__)
-    pycopy!(pyjldicttype, jl.DictValue)
+    pycopy!(pyjldicttype, jl.JlDict)
 end
 
 """

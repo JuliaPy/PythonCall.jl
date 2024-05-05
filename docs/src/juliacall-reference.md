@@ -21,18 +21,6 @@ The modules `Base`, `Core` and `PythonCall` are also available.
 ## Utilities
 
 `````@customdoc
-juliacall.convert - Function
-
-```python
-convert(T, x)
-```
-
-Convert `x` to a Julia object of type `T`.
-
-You can use this to pass an argument to a Julia function of a specific type.
-`````
-
-`````@customdoc
 juliacall.newmodule - Function
 
 ```python
@@ -45,39 +33,27 @@ A new module with the given name.
 ## [Wrapper types](@id julia-wrappers)
 
 Apart from a few fundamental immutable types, all Julia values are by default converted into
-Python to some [`Jl`](#juliacall.Jl) object, which wraps the original value, but
-giving it a Pythonic interface.
+Python to a [`Jl`](#juliacall.Jl) object, which wraps the original value and gives it a
+Pythonic interface.
 
-Subclasses of [`Jl`](#juliacall.Jl) provide additional Python semantics. For
-example a Julia vector is converted to a [`VectorValue`](#juliacall.VectorValue) which
-satisfies the Python sequence interface and behaves very similar to a list.
-
-There is also a [`RawValue`](#juliacall.RawValue) object, which gives a stricter
-"Julia-only" interface, documented below. These types all inherit from `JlBase`:
+Other wrapper classes provide more specific Python semantics. For example a Julia vector can
+be converted to a [`JlVector`](#juliacall.JlVector) which satisfies the Python sequence
+interface and behaves very similar to a list.
 
 - `JlBase`
-  - [`RawValue`](#juliacall.RawValue)
   - [`Jl`](#juliacall.Jl)
-    - [`NumberValue`](#juliacall.NumberValue)
-      - `ComplexValue`
-      - `RealValue`
-        - `RationalValue`
-        - `IntegerValue`
-    - [`ArrayValue`](#juliacall.ArrayValue)
-      - [`VectorValue`](#juliacall.VectorValue)
-    - [`DictValue`](#juliacall.DictValue)
-    - [`SetValue`](#juliacall.SetValue)
-    - [`IOValue`](#juliacall.IOValue)
-      - `BinaryIOValue`
-      - `TextIOValue`
-    - [`ModuleValue`](#juliacall.ModuleValue)
-    - [`TypeValue`](#juliacall.TypeValue)
+  - [`JlArray`](#juliacall.JlArray)
+    - [`JlVector`](#juliacall.JlVector)
+  - [`JlDict`](#juliacall.JlDict)
+  - [`JlSet`](#juliacall.JlSet)
+  - [`JlIOBase`](#juliacall.JlIOBase)
+    - `JlBinaryIO`
+    - `JlTextIO`
 
 `````@customdoc
 juliacall.Jl - Class
 
-Wraps any Julia object, giving it some basic Python semantics. Subtypes provide extra
-semantics.
+Wraps any Julia object, giving it some basic Python semantics.
 
 Supports `repr(x)`, `str(x)`, attributes (`x.attr`), calling (`x(a,b)`), iteration,
 comparisons, `len(x)`, `a in x`, `dir(x)`.
@@ -92,24 +68,13 @@ naming conventions, `_b` at the end of an attribute is replaced with `!` and `_b
 replaced with `!!`.
 
 ###### Members
-- `_jl_raw()`: Convert to a [`RawValue`](#juliacall.RawValue). (See also [`pyjlraw`](@ref).)
-- `_jl_display()`: Display the object using Julia's display mechanism.
-- `_jl_help()`: Display help for the object.
+- `jl_raw()`: Convert to a [`RawValue`](#juliacall.RawValue). (See also [`pyjlraw`](@ref).)
+- `jl_display()`: Display the object using Julia's display mechanism.
+- `jl_help()`: Display help for the object.
 `````
 
 `````@customdoc
-juliacall.NumberValue - Class
-
-This wraps any Julia `Number` value. It is a subclass of `numbers.Number` and behaves
-similar to other Python numbers.
-
-There are also subtypes `ComplexValue`, `RealValue`, `RationalValue`, `IntegerValue` which
-wrap values of the corresponding Julia types, and are subclasses of the corresponding
-`numbers` ABC.
-`````
-
-`````@customdoc
-juliacall.ArrayValue - Class
+juliacall.JlArray - Class
 
 This wraps any Julia `AbstractArray` value. It is a subclass of
 `collections.abc.Collection`.
@@ -136,9 +101,9 @@ copy of the original array.
 `````
 
 `````@customdoc
-juliacall.VectorValue - Class
+juliacall.JlVector - Class
 
-This wraps any Julia `AbstractVector` value. It is a subclass of `juliacall.ArrayValue` and
+This wraps any Julia `AbstractVector` value. It is a subclass of `juliacall.JlArray` and
 `collections.abc.MutableSequence` and behaves similar to a Python `list`.
 
 ###### Members
@@ -156,65 +121,23 @@ This wraps any Julia `AbstractVector` value. It is a subclass of `juliacall.Arra
 `````
 
 `````@customdoc
-juliacall.DictValue - Class
+juliacall.JlDict - Class
 This wraps any Julia `AbstractDict` value. It is a subclass of `collections.abc.Mapping` and
 behaves similar to a Python `dict`.
 `````
 
 `````@customdoc
-juliacall.SetValue - Class
+juliacall.JlSet - Class
 This wraps any Julia `AbstractSet` value. It is a subclass of `collections.abc.Set` and
 behaves similar to a Python `set`.
 `````
 
 `````@customdoc
-juliacall.IOValue - Class
+juliacall.JlIOBase - Class
 
 This wraps any Julia `IO` value. It is a subclass of `io.IOBase` and behaves like Python
 files.
 
-There are also subtypes `BinaryIOValue` and `TextIOValue`, which are subclasses of
+There are also subtypes `JlBinaryIO` and `JlTextIO`, which are subclasses of
 `io.BufferedIOBase` (buffered bytes) and `io.TextIOBase` (text).
-`````
-
-`````@customdoc
-juliacall.ModuleValue - Class
-This wraps any Julia `Module` value.
-
-It is the same as [`Jl`](#juliacall.Jl) except for one additional convenience
-method:
-- `seval([module=self], code)`: Evaluates the given code (a string) in the given module.
-`````
-
-`````@customdoc
-juliacall.TypeValue - Class
-
-This wraps any Julia `Type` value.
-
-It is the same as [`Jl`](#juliacall.Jl) except that indexing is used to access
-Julia's "curly" syntax for specifying parametric types:
-
-```python
-from juliacall import Main as jl
-# equivalent to Vector{Int}() in Julia
-jl.Vector[jl.Int]()
-```
-`````
-
-`````@customdoc
-juliacall.RawValue - Class
-
-Wraps any Julia value with a rigid interface suitable for generic programming.
-
-Supports `repr(x)`, `str(x)`, attributes (`x.attr`), calling (`x(a,b)`), `len(x)`, `dir(x)`.
-
-This is very similar to [`Jl`](#juliacall.Jl) except that indexing, calling,
-etc. will always return a `RawValue`.
-
-Indexing with a tuple corresponds to indexing in Julia with multiple values. To index with a
-single tuple, it will need to be wrapped in another tuple.
-
-###### Members
-- `_jl_any()`: Convert to a [`Jl`](#juliacall.Jl) (or subclass). (See also
-  [`pyjl`](@ref).)
 `````

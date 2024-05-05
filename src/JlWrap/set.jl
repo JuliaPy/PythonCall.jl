@@ -77,7 +77,7 @@ function init_set()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class SetValue(JlBase):
+    class JlSet(JlBase):
         __slots__ = ()
         def __bool__(self):
             return bool(len(self))
@@ -116,10 +116,10 @@ function init_set()
         def update(self, other):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_update)), other)
     import collections.abc
-    collections.abc.MutableSet.register(SetValue)
+    collections.abc.MutableSet.register(JlSet)
     del collections
     """, @__FILE__(), "exec"), jl.__dict__)
-    pycopy!(pyjlsettype, jl.SetValue)
+    pycopy!(pyjlsettype, jl.JlSet)
 end
 
 """

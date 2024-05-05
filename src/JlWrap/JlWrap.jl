@@ -35,7 +35,6 @@ function __init__()
         init_vector()
         init_dict()
         init_set()
-        init_callback()
         # add packages to juliacall
         jl = pyjuliacallmodule
         jl.Core = Base.Core

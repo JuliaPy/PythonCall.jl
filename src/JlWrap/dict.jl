@@ -9,8 +9,6 @@ Base.iterate(x::DictPairSet, st) =
 Base.in(v::Pair, x::DictPairSet) = v in x.dict
 Base.in(v::Tuple{Any,Any}, x::DictPairSet) = Pair(v[1], v[2]) in x.dict
 
-pyjldict_iter(x::AbstractDict) = Py(Iterator(keys(x)))
-
 pyjldict_contains(x::AbstractDict, k::Py) = Py(haskey(x, @pyconvert(keytype(x), k, return Py(false))))
 
 pyjldict_clear(x::AbstractDict) = (empty!(x); Py(nothing))
@@ -35,17 +33,15 @@ function init_dict()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class JlDict(JlBase):
+    class JlDict(JlBase, _JlContainerMixin):
         __slots__ = ()
         _jl_undefined_ = object()
         def __init__(self, value=None):
             if value is None:
                 value = Base.Dict()
             JlBase.__init__(self, value, Base.AbstractDict)
-        def __bool__(self):
-            return bool(len(self))
         def __iter__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjldict_iter)))
+            return self._jl_callmethod($(pyjl_methodnum(pyjliter ∘ Iterator ∘ keys)))
         def __contains__(self, key):
             return self._jl_callmethod($(pyjl_methodnum(pyjldict_contains)), key)
         def __getitem__(self, key):
@@ -61,11 +57,11 @@ function init_dict()
             else:
                 raise KeyError(key)
         def keys(self):
-            return self._jl_callmethod($(pyjl_methodnum(Py ∘ keys)))
+            return self._jl_callmethod($(pyjl_methodnum(pyset ∘ keys)))
         def values(self):
             return self._jl_callmethod($(pyjl_methodnum(Py ∘ values)))
         def items(self):
-            return self._jl_callmethod($(pyjl_methodnum(Py ∘ DictPairSet)))
+            return self._jl_callmethod($(pyjl_methodnum(pyset ∘ DictPairSet)))
         def get(self, key, default=None):
             if key in self:
                 return self[key]

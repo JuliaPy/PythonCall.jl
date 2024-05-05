@@ -295,7 +295,7 @@ function init_array()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class JlArray(JlBase):
+    class JlArray(JlBase, _JlContainerMixin):
         __slots__ = ()
         _jl_buffer_info = $(pyjl_methodnum(pyjlarray_buffer_info))
         def __init__(self, value):
@@ -310,14 +310,14 @@ function init_array()
             return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
         def reshape(self, shape):
             return self._jl_callmethod($(pyjl_methodnum(pyjlarray_reshape)), shape)
-        def __bool__(self):
-            return bool(len(self))
         def __getitem__(self, k):
             return self._jl_callmethod($(pyjl_methodnum(pyjlarray_getitem)), k)
         def __setitem__(self, k, v):
             self._jl_callmethod($(pyjl_methodnum(pyjlarray_setitem)), k, v)
         def __delitem__(self, k):
             self._jl_callmethod($(pyjl_methodnum(pyjlarray_delitem)), k)
+        def __iter__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjliter ∘ Iterator)))
         @property
         def __array_interface__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlarray_array_interface)))

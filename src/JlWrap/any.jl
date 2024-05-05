@@ -1,11 +1,12 @@
 const pyjlanytype = pynew()
+const pyjlitertype = pynew()
 
 # pyjlany_repr(self) = Py("<jl $(repr(self))>")
 function pyjlany_repr(self)
     str = repr(MIME("text/plain"), self; context=IOContext(devnull, :limit=>true, :displaysize=>(23,80)))
     # type = self isa Function ? "Function" : self isa Type ? "Type" : nameof(typeof(self))
     sep = '\n' in str ? '\n' : ' '
-    Py("Julia:$sep$str"::String)
+    Py("$(sep)$(str)"::String)
 end
 
 # Note: string(self) doesn't always return a String
@@ -319,16 +320,48 @@ function pyjlany_next(self)
     end
 end
 
+function pyjliter_next(self)
+    s = iterate(self)
+    if s === nothing
+        errset(pybuiltins.StopIteration)
+        PyNULL
+    else
+        Py(s[1])
+    end
+end
+
 pyjlany_hash(self) = pyint(hash(self))
 
 function init_any()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class Jl(JlBase):
+    class _JlReprMixin:
         __slots__ = ()
         def __repr__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_repr)))
+            t = type(self)
+            if t is Jl:
+                name = "Julia"
+            else:
+                name = t.__name__
+            return name + ":" + self._jl_callmethod($(pyjl_methodnum(pyjlany_repr)))
+    class _JlHashMixin:
+        __slots__ = ()
+        def __hash__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyint ∘ hash)))
+    class JlIter(JlBase, _JlReprMixin, _JlHashMixin):
+        def __iter__(self):
+            return self
+        def __next__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjliter_next)))
+    class _JlContainerMixin(_JlReprMixin, _JlHashMixin):
+        __slots__ = ()
+        def __len__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyint ∘ length)))
+        def __bool__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pybool ∘ !isempty)))
+    class Jl(JlBase, _JlReprMixin, _JlHashMixin):
+        __slots__ = ()
         def __str__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_str)))
         def __getattr__(self, k):
@@ -443,8 +476,6 @@ function init_any()
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(≥))), other)
         def __gt__(self, other):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(>))), other)
-        def __hash__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_hash)))
         def __int__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_int)))
         def __float__(self):
@@ -481,6 +512,7 @@ function init_any()
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)
     """, @__FILE__(), "exec"), jl.__dict__)
     pycopy!(pyjlanytype, jl.Jl)
+    pycopy!(pyjlitertype, jl.JlIter)
 end
 
 """
@@ -490,3 +522,5 @@ Create a Python `juliacall.Jl` object wrapping the Julia object `x`.
 """
 pyjl(v) = pyjl(pyjlanytype, v)
 export pyjl
+
+pyjliter(x) = pyjl(pyjlitertype, x)

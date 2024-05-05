@@ -77,12 +77,12 @@ function init_set()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class JlSet(JlBase):
+    class JlSet(JlBase, _JlContainerMixin):
         __slots__ = ()
         def __init__(self, value=None):
             JlBase.__init__(self, value, Base.AbstractSet)
-        def __bool__(self):
-            return bool(len(self))
+        def __iter__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjliter ∘ Iterator)))
         def add(self, value):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_add)), value)
         def discard(self, value):
@@ -90,7 +90,7 @@ function init_set()
         def clear(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_clear)))
         def copy(self):
-            return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
+            return self._jl_callmethod($(pyjl_methodnum(pyjlset ∘ copy)))
         def pop(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_pop)))
         def remove(self, value):

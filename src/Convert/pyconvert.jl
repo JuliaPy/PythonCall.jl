@@ -7,12 +7,12 @@
 end
 
 struct PyConvertRule
-    type :: Type
-    func :: Function
-    priority :: PyConvertPriority
+    type::Type
+    func::Function
+    priority::PyConvertPriority
 end
 
-const PYCONVERT_RULES = Dict{String, Vector{PyConvertRule}}()
+const PYCONVERT_RULES = Dict{String,Vector{PyConvertRule}}()
 const PYCONVERT_EXTRATYPES = Py[]
 
 """
@@ -201,7 +201,7 @@ function _pyconvert_get_rules(pytype::Py)
     # check the original MRO is preserved
     omro_ = filter(t -> pyisin(t, omro), mro)
     @assert length(omro) == length(omro_)
-    @assert all(pyis(x,y) for (x,y) in zip(omro, omro_))
+    @assert all(pyis(x, y) for (x, y) in zip(omro, omro_))
 
     # get the names of the types in the MRO of pytype
     xmro = [String[pyconvert_typename(t)] for t in mro]
@@ -240,22 +240,23 @@ function _pyconvert_get_rules(pytype::Py)
     rules = PyConvertRule[rule for tname in mro for rule in get!(Vector{PyConvertRule}, PYCONVERT_RULES, tname)]
 
     # order the rules by priority, then by original order
-    order = sort(axes(rules, 1), by = i -> (rules[i].priority, -i), rev = true)
+    order = sort(axes(rules, 1), by=i -> (rules[i].priority, -i), rev=true)
     rules = rules[order]
 
-    @debug "pyconvert" pytype mro=join(mro, " ")
+    @debug "pyconvert" pytype mro = join(mro, " ")
     return rules
 end
 
 const PYCONVERT_PREFERRED_TYPE = Dict{Py,Type}()
 
-pyconvert_preferred_type(pytype::Py) = get!(PYCONVERT_PREFERRED_TYPE, pytype) do
-    if pyissubclass(pytype, pybuiltins.int)
-        Union{Int,BigInt}
-    else
-        _pyconvert_get_rules(pytype)[1].type
+pyconvert_preferred_type(pytype::Py) =
+    get!(PYCONVERT_PREFERRED_TYPE, pytype) do
+        if pyissubclass(pytype, pybuiltins.int)
+            Union{Int,BigInt}
+        else
+            _pyconvert_get_rules(pytype)[1].type
+        end
     end
-end
 
 function pyconvert_get_rules(type::Type, pytype::Py)
     @nospecialize type
@@ -281,15 +282,15 @@ end
 
 pyconvert_fix(::Type{T}, func) where {T} = x -> func(T, x)
 
-const PYCONVERT_RULES_CACHE = Dict{Type, Dict{C.PyPtr, Vector{Function}}}()
+const PYCONVERT_RULES_CACHE = Dict{Type,Dict{C.PyPtr,Vector{Function}}}()
 
-@generated pyconvert_rules_cache(::Type{T}) where {T} = get!(Dict{C.PyPtr, Vector{Function}}, PYCONVERT_RULES_CACHE, T)
+@generated pyconvert_rules_cache(::Type{T}) where {T} = get!(Dict{C.PyPtr,Vector{Function}}, PYCONVERT_RULES_CACHE, T)
 
 function pyconvert_rule_fast(::Type{T}, x::Py) where {T}
     if T isa Union
-        a = pyconvert_rule_fast(T.a, x) :: pyconvert_returntype(T.a)
+        a = pyconvert_rule_fast(T.a, x)::pyconvert_returntype(T.a)
         pyconvert_isunconverted(a) || return a
-        b = pyconvert_rule_fast(T.b, x) :: pyconvert_returntype(T.b)
+        b = pyconvert_rule_fast(T.b, x)::pyconvert_returntype(T.b)
         pyconvert_isunconverted(b) || return b
     elseif (T == Nothing) | (T == Missing)
         pyisnone(x) && return pyconvert_return(T())
@@ -318,7 +319,7 @@ function pytryconvert(::Type{T}, x_) where {T}
 
     # We can optimize the conversion for some types by overloading pytryconvert_fast.
     # It MUST give the same results as via the slower route using rules.
-    ans1 = pyconvert_rule_fast(T, x) :: pyconvert_returntype(T)
+    ans1 = pyconvert_rule_fast(T, x)::pyconvert_returntype(T)
     pyconvert_isunconverted(ans1) || return ans1
 
     # get rules from the cache
@@ -334,7 +335,7 @@ function pytryconvert(::Type{T}, x_) where {T}
 
     # apply the rules
     for rule in rules
-        ans2 = rule(x) :: pyconvert_returntype(T)
+        ans2 = rule(x)::pyconvert_returntype(T)
         pyconvert_isunconverted(ans2) || return ans2
     end
 
@@ -386,8 +387,8 @@ pyconvertarg(::Type{T}, x, name) where {T} = @autopy x @pyconvert T x_ begin
 end
 
 function init_pyconvert()
-    push!(PYCONVERT_EXTRATYPES, pyimport("io"=>"IOBase"))
-    push!(PYCONVERT_EXTRATYPES, pyimport("numbers"=>("Number", "Complex", "Real", "Rational", "Integral"))...)
+    push!(PYCONVERT_EXTRATYPES, pyimport("io" => "IOBase"))
+    push!(PYCONVERT_EXTRATYPES, pyimport("numbers" => ("Number", "Complex", "Real", "Rational", "Integral"))...)
     push!(PYCONVERT_EXTRATYPES, pyimport("collections.abc" => ("Iterable", "Sequence", "Set", "Mapping"))...)
 
     priority = PYCONVERT_PRIORITY_CANONICAL
@@ -405,6 +406,7 @@ function init_pyconvert()
     pyconvert_add_rule("datetime:datetime", DateTime, pyconvert_rule_datetime, priority)
     pyconvert_add_rule("datetime:date", Date, pyconvert_rule_date, priority)
     pyconvert_add_rule("datetime:time", Time, pyconvert_rule_time, priority)
+    pyconvert_add_rule("datetime:timedelta", Microsecond, pyconvert_rule_timedelta, priority)
     pyconvert_add_rule("builtins:BaseException", PyException, pyconvert_rule_exception, priority)
 
     priority = PYCONVERT_PRIORITY_NORMAL
@@ -428,6 +430,9 @@ function init_pyconvert()
     pyconvert_add_rule("collections.abc:Sequence", Tuple, pyconvert_rule_iterable, priority)
     pyconvert_add_rule("collections.abc:Set", Set, pyconvert_rule_iterable, priority)
     pyconvert_add_rule("collections.abc:Mapping", Dict, pyconvert_rule_mapping, priority)
+    pyconvert_add_rule("datetime:timedelta", Millisecond, pyconvert_rule_timedelta, priority)
+    pyconvert_add_rule("datetime:timedelta", Second, pyconvert_rule_timedelta, priority)
+    pyconvert_add_rule("datetime:timedelta", Nanosecond, pyconvert_rule_timedelta, priority)
 
     priority = PYCONVERT_PRIORITY_FALLBACK
     pyconvert_add_rule("builtins:object", Py, pyconvert_rule_object, priority)

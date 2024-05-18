@@ -133,7 +133,7 @@ function pyconvert_rule_range(::Type{R}, x::Py, ::Type{StepRange{T0,S0}}=Utils._
     a′, c′ = promote(a, c - oftype(c, sign(b)))
     T2 = Utils._promote_type_bounded(T0, typeof(a′), typeof(c′), T1)
     S2 = Utils._promote_type_bounded(S0, typeof(c′), S1)
-    pyconvert_return(StepRange{T2, S2}(a′, b, c′))
+    pyconvert_return(StepRange{T2,S2}(a′, b, c′))
 end
 
 function pyconvert_rule_range(::Type{R}, x::Py, ::Type{UnitRange{T0}}=Utils._type_lb(R), ::Type{UnitRange{T1}}=Utils._type_ub(R)) where {R<:UnitRange,T0,T1}
@@ -261,7 +261,7 @@ function pyconvert_rule_iterable(::Type{T}, xs::Py) where {T<:Tuple}
     zs = Any[]
     for x in xs
         if length(zs) < length(ts)
-            t = ts[length(zs) + 1]
+            t = ts[length(zs)+1]
         elseif isvararg
             t = vartype
         else
@@ -282,7 +282,7 @@ for N in 0:16
         n = pylen(xs)
         n == $N || return pyconvert_unconverted()
         $((
-            :($z = @pyconvert($T, pytuple_getitem(xs, $(i-1))))
+            :($z = @pyconvert($T, pytuple_getitem(xs, $(i - 1))))
             for (i, T, z) in zip(1:N, Ts, zs)
         )...)
         return pyconvert_return(($(zs...),))
@@ -293,12 +293,12 @@ for N in 0:16
         n = pylen(xs)
         n ≥ $N || return pyconvert_unconverted()
         $((
-            :($z = @pyconvert($T, pytuple_getitem(xs, $(i-1))))
+            :($z = @pyconvert($T, pytuple_getitem(xs, $(i - 1))))
             for (i, T, z) in zip(1:N, Ts, zs)
         )...)
         vs = V[]
-        for i in $(N+1):n
-            v = @pyconvert(V, pytuple_getitem(xs, i-1))
+        for i in $(N + 1):n
+            v = @pyconvert(V, pytuple_getitem(xs, i - 1))
             push!(vs, v)
         end
         return pyconvert_return(($(zs...), vs...))
@@ -394,4 +394,48 @@ function pyconvert_rule_datetime(::Type{DateTime}, x::Py)
     pydel!(d)
     iszero(mod(microseconds, 1000)) || return pyconvert_unconverted()
     return pyconvert_return(_base_datetime + Millisecond(div(microseconds, 1000) + 1000 * (seconds + 60 * 60 * 24 * days)))
+end
+
+function pyconvert_rule_timedelta(::Type{Nanosecond}, x::Py)
+    days = pyconvert(Int, x.days)
+    if abs(days) ≥ 106751
+        # overflow
+        return pyconvert_unconverted()
+    end
+    seconds = pyconvert(Int, x.seconds)
+    microseconds = pyconvert(Int, x.microseconds)
+    return Nanosecond(((days * 3600 * 24 + seconds) * 1000000 + microseconds) * 1000)
+end
+
+function pyconvert_rule_timedelta(::Type{Microsecond}, x::Py)
+    days = pyconvert(Int, x.days)
+    if abs(days) ≥ 106751990
+        # overflow
+        return pyconvert_unconverted()
+    end
+    seconds = pyconvert(Int, x.seconds)
+    microseconds = pyconvert(Int, x.microseconds)
+    return Microsecond((days * 3600 * 24 + seconds) * 1000000 + microseconds)
+end
+
+function pyconvert_rule_timedelta(::Type{Millisecond}, x::Py)
+    days = pyconvert(Int, x.days)
+    seconds = pyconvert(Int, x.seconds)
+    microseconds = pyconvert(Int, x.microseconds)
+    if mod(microseconds, 1000) != 0
+        # inexact
+        return pyconvert_unconverted()
+    end
+    return Millisecond((days * 3600 * 24 + seconds) * 1000 + div(microseconds, 1000))
+end
+
+function pyconvert_rule_timedelta(::Type{Second}, x::Py)
+    days = pyconvert(Int, x.days)
+    seconds = pyconvert(Int, x.seconds)
+    microseconds = pyconvert(Int, x.microseconds)
+    if microseconds != 0
+        # inexact
+        return pyconvert_unconverted()
+    end
+    return Second(days * 3600 * 24 + seconds)
 end

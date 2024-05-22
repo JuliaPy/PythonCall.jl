@@ -2,7 +2,8 @@
 
 ## Unreleased
 * `Serialization.serialize` can use `dill` instead of `pickle` by setting the env var `JULIA_PYTHONCALL_PICKLE=dill`.
-* Added conversion from `numpy.bool_` to `Bool` and other number types.
+* `numpy.bool_` can now be converted to `Bool` and other number types.
+* `datetime.timedelta` can now be converted to `Dates.Nanosecond`, `Microsecond`, `Millisecond` and `Second`. This behaviour was already documented.
 
 ## 0.9.20 (2024-05-01)
 * The IPython extension is now automatically loaded upon import if IPython is detected.

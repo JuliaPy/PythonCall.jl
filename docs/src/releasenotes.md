@@ -2,6 +2,7 @@
 
 ## Unreleased
 * `Serialization.serialize` can use `dill` instead of `pickle` by setting the env var `JULIA_PYTHONCALL_PICKLE=dill`.
+* Added conversion from `numpy.bool_` to `Bool` and other number types.
 
 ## 0.9.20 (2024-05-01)
 * The IPython extension is now automatically loaded upon import if IPython is detected.

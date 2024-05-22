@@ -11,6 +11,19 @@ using Dates: Date, Time, DateTime, Second, Millisecond, Microsecond, Nanosecond
 
 import ..Core: pyconvert
 
-include("core.jl")
+include("pyconvert.jl")
+include("rules.jl")
+include("ctypes.jl")
+include("numpy.jl")
+include("pandas.jl")
+
+function __init__()
+    C.with_gil() do
+        init_pyconvert()
+        init_ctypes()
+        init_numpy()
+        init_pandas()
+    end
+end
 
 end

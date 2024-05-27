@@ -174,7 +174,7 @@ function Base.show(io::IO, x::Py)
     end
 end
 
-printPyPrefix::Bool = true
+printPyPrefix = true
 
 function printPyPrefix!(printPrefix::Bool=true)
     global printPyPrefix = printPrefix

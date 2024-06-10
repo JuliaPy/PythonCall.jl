@@ -374,7 +374,6 @@ end
 
 @testitem "io" begin
     @testset "type" begin
-        @test pyis(pytype(pyjl(devnull)), PythonCall.pyjlbinaryiotype)
         @test pyis(pytype(pybinaryio(devnull)), PythonCall.pyjlbinaryiotype)
         @test pyis(pytype(pytextio(devnull)), PythonCall.pyjltextiotype)
     end

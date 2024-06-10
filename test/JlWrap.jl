@@ -364,11 +364,11 @@ end
 
 @testitem "dict" begin
     @testset "type" begin
-        @test pyis(pytype(pyjl(Dict())), PythonCall.pyjldicttype)
+        @test pyis(pytype(pyjldict(Dict())), PythonCall.pyjldicttype)
     end
     @testset "bool" begin
-        @test !pytruth(pyjl(Dict()))
-        @test pytruth(pyjl(Dict("one" => 1, "two" => 2)))
+        @test !pytruth(pyjldict(Dict()))
+        @test pytruth(pyjldict(Dict("one" => 1, "two" => 2)))
     end
 end
 

@@ -54,6 +54,9 @@
     end
     @testset "dir" begin
         @test pycontains(pydir(pyjl(Foo(99))), "value")
+        @test pycontains(pydir(pyjl(Base)), "+")
+        @test pycontains(pydir(pyjl(Base)), "Type")
+        @test pycontains(pydir(pyjl(Base)), "nfields")
     end
     @testset "call" begin
         z = pyjl(Foo(1))(4, 5)
@@ -214,6 +217,11 @@
     @testset "help" begin
         pyjl(Foo(1)).jl_help()
         pyjl(Foo(1)).jl_help(mime="text/plain")
+    end
+    @testset "eval" begin
+        m = pyjl(Main)
+        @test pyconvert(Any, m.jl_eval("1 + 1")) === 2 # Basic behavior
+        @test pyconvert(Any, m.jl_eval("1 + 1\n ")) === 2 # Trailing whitespace
     end
 end
 
@@ -384,42 +392,6 @@ end
     @test x1 == x4
 end
 
-@testitem "module" begin
-    @testset "type" begin
-        @test pyis(pytype(pyjl(PythonCall)), PythonCall.pyjlmoduletype)
-    end
-    @testset "bool" begin
-        @test pytruth(pyjl(PythonCall))
-    end
-    @testset "seval" begin
-        m = Py(Main)
-        @test pyconvert(Any, m.seval("1 + 1")) === 2 # Basic behavior
-        @test pyconvert(Any, m.seval("1 + 1\n ")) === 2 # Trailing whitespace
-    end
-end
-
-@testitem "number" begin
-    @testset "type" begin
-        @test pyis(pytype(pyjl(false)), PythonCall.pyjlintegertype)
-        @test pyis(pytype(pyjl(0)), PythonCall.pyjlintegertype)
-        @test pyis(pytype(pyjl(0 // 1)), PythonCall.pyjlrationaltype)
-        @test pyis(pytype(pyjl(0.0)), PythonCall.pyjlrealtype)
-        @test pyis(pytype(pyjl(Complex(0.0))), PythonCall.pyjlcomplextype)
-    end
-    @testset "bool" begin
-        @test !pytruth(pyjl(false))
-        @test !pytruth(pyjl(0))
-        @test !pytruth(pyjl(0 // 1))
-        @test !pytruth(pyjl(0.0))
-        @test !pytruth(pyjl(Complex(0.0)))
-        @test pytruth(pyjl(true))
-        @test pytruth(pyjl(3))
-        @test pytruth(pyjl(5 // 2))
-        @test pytruth(pyjl(2.3))
-        @test pytruth(pyjl(Complex(1.2, 3.4)))
-    end
-end
-
 @testitem "objectarray" begin
 
 end
@@ -431,15 +403,6 @@ end
     @testset "bool" begin
         @test !pytruth(pyjl(Set()))
         @test pytruth(pyjl(Set([1, 2, 3])))
-    end
-end
-
-@testitem "type" begin
-    @testset "type" begin
-        @test pyis(pytype(pyjl(Int)), PythonCall.pyjltypetype)
-    end
-    @testset "bool" begin
-        @test pytruth(pyjl(Int))
     end
 end
 

@@ -223,6 +223,48 @@ end
     @test x1 === DateTime(2001, 2, 3, 4, 5, 6, 7)
 end
 
+@testitem "timedelta → Nanosecond" begin
+    using Dates
+    td = pyimport("datetime").timedelta
+    @testset for x in [-1_000_000_000, -1_000_000, -1_000, -1, 0, 1, 1_000, 1_000_000, 1_000_000_000]
+        y = pyconvert(Nanosecond, td(microseconds=x))
+        @test y === Nanosecond(x * 1000)
+    end
+    @test_throws Exception pyconvert(Nanosecond, td(days=200_000))
+    @test_throws Exception pyconvert(Nanosecond, td(days=-200_000))
+end
+
+@testitem "timedelta → Microsecond" begin
+    using Dates
+    td = pyimport("datetime").timedelta
+    @testset for x in [-1_000_000_000, -1_000_000, -1_000, -1, 0, 1, 1_000, 1_000_000, 1_000_000_000]
+        y = pyconvert(Microsecond, td(microseconds=x))
+        @test y === Microsecond(x)
+    end
+    @test_throws Exception pyconvert(Microsecond, td(days=200_000_000))
+    @test_throws Exception pyconvert(Microsecond, td(days=-200_000_000))
+end
+
+@testitem "timedelta → Millisecond" begin
+    using Dates
+    td = pyimport("datetime").timedelta
+    @testset for x in [-1_000_000_000, -1_000_000, -1_000, -1, 0, 1, 1_000, 1_000_000, 1_000_000_000]
+        y = pyconvert(Millisecond, td(microseconds=x*1000))
+        @test y === Millisecond(x)
+    end
+    @test_throws Exception pyconvert(Millisecond, td(microseconds=1))
+end
+
+@testitem "timedelta → Second" begin
+    using Dates
+    td = pyimport("datetime").timedelta
+    @testset for x in [-1_000_000_000, -1_000_000, -1_000, -1, 0, 1, 1_000, 1_000_000, 1_000_000_000]
+        y = pyconvert(Second, td(seconds=x))
+        @test y === Second(x)
+    end
+    @test_throws Exception pyconvert(Second, td(microseconds=1000))
+end
+
 @testitem "pyconvert_add_rule (#364)" begin
     id = string(rand(UInt128), base=16)
     pyexec("""

@@ -47,7 +47,7 @@ From Python, the arguments to a Julia function will be converted according to th
 | `ctypes.c_voidp`                                                                                             | `Ptr{Cvoid}`, `Ptr`                                         |
 | `ctypes.c_char_p`                                                                                            | `Cstring`, `Ptr{Cchar}`, `Ptr`                              |
 | `ctypes.c_wchar_p`                                                                                           | `Cwstring`, `Ptr{Cwchar}`, `Ptr`                            |
-| `numpy.intXX`/`numpy.uintXX`/`numpy.floatXX`                                                                 | `Integer`, `Rational`, `Real`, `Number`                     |
+| `numpy.bool_`/`numpy.intXX`/`numpy.uintXX`/`numpy.floatXX`                                                   | `Bool`, `Integer`, `Rational`, `Real`, `Number`             |
 | Objects satisfying the buffer or array interface                                                             | `Array`, `AbstractArray`                                    |
 | **Low priority (fallback to `Py`).**                                                                         |                                                             |
 | Anything                                                                                                     | `Py`                                                        |

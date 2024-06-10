@@ -3,7 +3,7 @@ const pyjlitertype = pynew()
 
 # pyjlany_repr(self) = Py("<jl $(repr(self))>")
 function pyjlany_repr(self)
-    str = repr(MIME("text/plain"), self; context=IOContext(devnull, :limit=>true, :displaysize=>(23,80)))
+    str = repr(MIME("text/plain"), self; context=IOContext(devnull, :limit => true, :displaysize => (23, 80)))
     # type = self isa Function ? "Function" : self isa Type ? "Type" : nameof(typeof(self))
     sep = '\n' in str ? '\n' : ' '
     Py("$(sep)$(str)"::String)
@@ -35,12 +35,12 @@ pyjl_handle_error_type(::typeof(pyjlany_setattr), self, exc) = pybuiltins.Attrib
 function pyjlany_dir(self)
     ks = Symbol[]
     if self isa Module
-        append!(ks, names(self, all = true, imported = true))
+        append!(ks, names(self, all=true, imported=true))
         for m in ccall(:jl_module_usings, Any, (Any,), self)::Vector
             append!(ks, names(m))
         end
     else
-        append!(propertynames(self, true))
+        append!(ks, propertynames(self, true))
     end
     pylist(pyjl_attr_jl2py(string(k)) for k in ks)
 end
@@ -88,7 +88,7 @@ function pyjlany_getitem(self, k_::Py)
         else
             k = pyconvert(Any, k_)
             pyjl(self{k})
-        end    
+        end
     else
         if pyistuple(k_)
             k = pyconvert(Vector{Any}, k_)
@@ -133,7 +133,7 @@ pyjlany_contains(self, v::Py) = Py((@pyconvert(eltype(self), v, return Py(false)
 pyjl_handle_error_type(::typeof(pyjlany_contains), self, exc) = exc isa MethodError && exc.f === in ? pybuiltins.TypeError : PyNULL
 
 struct pyjlany_op{OP}
-    op :: OP
+    op::OP
 end
 (op::pyjlany_op)(self) = pyjl(op.op(self))
 function (op::pyjlany_op)(self, other_::Py)
@@ -161,7 +161,7 @@ end
 pyjl_handle_error_type(op::pyjlany_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
 
 struct pyjlany_rev_op{OP}
-    op :: OP
+    op::OP
 end
 function (op::pyjlany_rev_op)(self, other_::Py)
     if pyisjl(other_)
@@ -224,7 +224,7 @@ function pyjlany_mimebundle(self, include::Py, exclude::Py)
     for m in mimes
         try
             io = IOBuffer()
-            show(IOContext(io, :limit=>true), MIME(m), self)
+            show(IOContext(io, :limit => true), MIME(m), self)
             v = take!(io)
             ans[m] = vo = istextmime(m) ? pystr(String(v)) : pybytes(v)
             pydel!(vo)
@@ -278,7 +278,7 @@ pyjlany_round(self) = pyint(round(Integer, self))
 function pyjlany_round(self, ndigits_::Py)
     ndigits = pyconvertarg(Int, ndigits_, "ndigits")
     pydel!(ndigits_)
-    pyjl(round(self; digits = ndigits))
+    pyjl(round(self; digits=ndigits))
 end
 pyjl_handle_error_type(::typeof(pyjlany_round), self, exc::MethodError) = pybuiltins.TypeError
 

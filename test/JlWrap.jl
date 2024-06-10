@@ -398,11 +398,11 @@ end
 
 @testitem "set" begin
     @testset "type" begin
-        @test pyis(pytype(pyjl(Set())), PythonCall.pyjlsettype)
+        @test pyis(pytype(pyjlset(Set())), PythonCall.pyjlsettype)
     end
     @testset "bool" begin
-        @test !pytruth(pyjl(Set()))
-        @test pytruth(pyjl(Set([1, 2, 3])))
+        @test !pytruth(pyjlset(Set()))
+        @test pytruth(pyjlset(Set([1, 2, 3])))
     end
 end
 

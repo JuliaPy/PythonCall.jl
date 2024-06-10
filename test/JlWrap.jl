@@ -227,30 +227,31 @@ end
 
 @testitem "array" begin
     @testset "type" begin
-        @test pyis(pytype(pyjl(fill(nothing))), PythonCall.pyjlarraytype)
-        @test pyis(pytype(pyjl([1 2; 3 4])), PythonCall.pyjlarraytype)
+        @test pyis(pytype(pyjlarray(fill(nothing))), PythonCall.pyjlarraytype)
+        @test pyis(pytype(pyjlarray([1, 2, 3])), PythonCall.pyjlvectortype)
+        @test pyis(pytype(pyjlarray([1 2; 3 4])), PythonCall.pyjlarraytype)
     end
     @testset "bool" begin
-        @test !pytruth(pyjl(fill(nothing, 0, 1)))
-        @test !pytruth(pyjl(fill(nothing, 1, 0)))
-        @test pytruth(pyjl(fill(nothing)))
-        @test pytruth(pyjl(fill(nothing, 1, 2)))
-        @test pytruth(pyjl(fill(nothing, 1, 2, 3)))
+        @test !pytruth(pyjlarray(fill(nothing, 0, 1)))
+        @test !pytruth(pyjlarray(fill(nothing, 1, 0)))
+        @test pytruth(pyjlarray(fill(nothing)))
+        @test pytruth(pyjlarray(fill(nothing, 1, 2)))
+        @test pytruth(pyjlarray(fill(nothing, 1, 2, 3)))
     end
     @testset "ndim" begin
-        @test pyeq(Bool, pyjl(fill(nothing)).ndim, 0)
-        @test pyeq(Bool, pyjl(fill(nothing, 1)).ndim, 1)
-        @test pyeq(Bool, pyjl(fill(nothing, 1, 1)).ndim, 2)
-        @test pyeq(Bool, pyjl(fill(nothing, 1, 1, 1)).ndim, 3)
+        @test pyeq(Bool, pyjlarray(fill(nothing)).ndim, 0)
+        @test pyeq(Bool, pyjlarray(fill(nothing, 1)).ndim, 1)
+        @test pyeq(Bool, pyjlarray(fill(nothing, 1, 1)).ndim, 2)
+        @test pyeq(Bool, pyjlarray(fill(nothing, 1, 1, 1)).ndim, 3)
     end
     @testset "shape" begin
-        @test pyeq(Bool, pyjl(fill(nothing)).shape, ())
-        @test pyeq(Bool, pyjl(fill(nothing, 3)).shape, (3,))
-        @test pyeq(Bool, pyjl(fill(nothing, 3, 5)).shape, (3, 5))
-        @test pyeq(Bool, pyjl(fill(nothing, 3, 5, 2)).shape, (3, 5, 2))
+        @test pyeq(Bool, pyjlarray(fill(nothing)).shape, ())
+        @test pyeq(Bool, pyjlarray(fill(nothing, 3)).shape, (3,))
+        @test pyeq(Bool, pyjlarray(fill(nothing, 3, 5)).shape, (3, 5))
+        @test pyeq(Bool, pyjlarray(fill(nothing, 3, 5, 2)).shape, (3, 5, 2))
     end
     @testset "getitem" begin
-        x = pyjl([1, 2, 3, 4, 5])
+        x = pyjlarray([1, 2, 3, 4, 5])
         @test pyeq(Bool, x[0], 1)
         @test pyeq(Bool, x[1], 2)
         @test pyeq(Bool, x[2], 3)
@@ -267,7 +268,7 @@ end
         @test pyjlvalue(x[pyslice(nothing, nothing, 2)]) == [1, 3, 5]
         @test pyjlvalue(x[pyslice(1, nothing, 2)]) == [2, 4]
         @test pyjlvalue(x[pyslice(0, nothing, 3)]) == [1, 4]
-        x = pyjl([1 2; 3 4])
+        x = pyjlarray([1 2; 3 4])
         @test pyeq(Bool, x[0, 0], 1)
         @test pyeq(Bool, x[0, 1], 2)
         @test pyeq(Bool, x[1, 0], 3)
@@ -277,7 +278,7 @@ end
     end
     @testset "setitem" begin
         x = [0 0; 0 0]
-        y = pyjl(x)
+        y = pyjlarray(x)
         y[0, 0] = 1
         @test x == [1 0; 0 0]
         y[0, 1] = 2
@@ -295,7 +296,7 @@ end
     end
     @testset "delitem" begin
         x = [1, 2, 3, 4, 5, 6, 7, 8]
-        y = pyjl(x)
+        y = pyjlarray(x)
         pydelitem(y, 0)
         @test x == [2, 3, 4, 5, 6, 7, 8]
         pydelitem(y, 2)
@@ -306,14 +307,14 @@ end
         @test x == [2, 5, 8]
     end
     @testset "reshape" begin
-        x = pyjl([1, 2, 3, 4, 5, 6, 7, 8])
+        x = pyjlarray([1, 2, 3, 4, 5, 6, 7, 8])
         @test pyeq(Bool, x.shape, (8,))
         y = x.reshape((2, 4))
         @test pyeq(Bool, y.shape, (2, 4))
         @test pyjlvalue(y) == [1 3 5 7; 2 4 6 8]
     end
     @testset "copy" begin
-        x = pyjl([1 2; 3 4])
+        x = pyjlarray([1 2; 3 4])
         y = x.copy()
         @test pyis(pytype(y), PythonCall.pyjlarraytype)
         @test pyjlvalue(x) == pyjlvalue(y)
@@ -324,7 +325,7 @@ end
         @test pyjlvalue(y) == [1 2; 3 4]
     end
     @testset "array_interface" begin
-        x = pyjl(Float32[1 2 3; 4 5 6]).__array_interface__
+        x = pyjlarray(Float32[1 2 3; 4 5 6]).__array_interface__
         @test pyisinstance(x, pybuiltins.dict)
         @test pyeq(Bool, x["shape"], (2, 3))
         @test pyeq(Bool, x["typestr"], "<f4")
@@ -338,7 +339,7 @@ end
         # x = pyjl(Float32[1 2 3; 4 5 6]).__array_struct__
     end
     @testset "buffer" begin
-        m = pybuiltins.memoryview(pyjl(Float32[1 2 3; 4 5 6]))
+        m = pybuiltins.memoryview(pyjlarray(Float32[1 2 3; 4 5 6]))
         @test !pytruth(m.c_contiguous)
         @test pytruth(m.contiguous)
         @test pytruth(m.f_contiguous)

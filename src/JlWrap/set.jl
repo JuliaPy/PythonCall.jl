@@ -77,7 +77,7 @@ function init_set()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class JlSet(JlBase, _JlContainerMixin):
+    class JlSet(JlCollection):
         __slots__ = ()
         def __init__(self, value=None):
             JlBase.__init__(self, value, Base.AbstractSet)

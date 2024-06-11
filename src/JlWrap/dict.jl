@@ -33,7 +33,7 @@ function init_dict()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class JlDict(JlBase, _JlContainerMixin):
+    class JlDict(JlCollection):
         __slots__ = ()
         _jl_undefined_ = object()
         def __init__(self, value=None):

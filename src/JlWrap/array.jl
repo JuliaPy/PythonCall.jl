@@ -297,7 +297,7 @@ function init_array()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class JlArray(JlBase, _JlContainerMixin):
+    class JlArray(JlCollection):
         __slots__ = ()
         _jl_buffer_info = $(pyjl_methodnum(pyjlarray_buffer_info))
         def __init__(self, value):

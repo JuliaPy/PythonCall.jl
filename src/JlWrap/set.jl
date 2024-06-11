@@ -8,8 +8,6 @@ function pyjlset_discard(x::AbstractSet, v_::Py)
     Py(nothing)
 end
 
-pyjlset_clear(x::AbstractSet) = (empty!(x); Py(nothing))
-
 function pyjlset_pop(x::AbstractSet)
     if isempty(x)
         errset(pybuiltins.KeyError, "pop from an empty set")
@@ -85,10 +83,6 @@ function init_set()
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_add)), value)
         def discard(self, value):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_discard)), value)
-        def clear(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlset_clear)))
-        def copy(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlset ∘ copy)))
         def pop(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_pop)))
         def remove(self, value):

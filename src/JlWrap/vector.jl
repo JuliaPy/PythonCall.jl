@@ -25,11 +25,6 @@ function pyjlvector_reverse(x::AbstractVector)
     Py(nothing)
 end
 
-function pyjlvector_clear(x::AbstractVector)
-    empty!(x)
-    Py(nothing)
-end
-
 function pyjlvector_reversed(x::AbstractVector)
     Py(reverse(x))
 end
@@ -39,12 +34,12 @@ function pyjlvector_insert(x::AbstractVector, k_::Py, v_::Py)
     pydel!(k_)
     a = axes(x, 1)
     k′ = k < 0 ? (last(a) + 1 + k) : (first(a) + k)
-    if checkbounds(Bool, x, k′) || k′ == last(a)+1
+    if checkbounds(Bool, x, k′) || k′ == last(a) + 1
         v = pyconvertarg(eltype(x), v_, "value")
         insert!(x, k′, v)
         return Py(nothing)
     else
-        errset(pybuiltins.IndexError, "array index out of bounds");
+        errset(pybuiltins.IndexError, "array index out of bounds")
         return PyNULL
     end
 end
@@ -133,8 +128,6 @@ function init_vector()
             return self._jl_callmethod($(pyjl_methodnum(pyjlvector_sort)), reverse, key)
         def reverse(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlvector_reverse)))
-        def clear(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlvector_clear)))
         def __reversed__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlvector_reversed)))
         def insert(self, index, value):

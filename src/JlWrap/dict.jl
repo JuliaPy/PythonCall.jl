@@ -11,8 +11,6 @@ Base.in(v::Tuple{Any,Any}, x::DictPairSet) = Pair(v[1], v[2]) in x.dict
 
 pyjldict_contains(x::AbstractDict, k::Py) = Py(haskey(x, @pyconvert(keytype(x), k, return Py(false))))
 
-pyjldict_clear(x::AbstractDict) = (empty!(x); Py(nothing))
-
 pyjldict_getitem(x::AbstractDict, k::Py) = Py(x[pyconvert(keytype(x), k)])
 
 pyjldict_setitem(x::AbstractDict, k::Py, v::Py) = (x[pyconvertarg(keytype(x), k, "key")] = pyconvertarg(valtype(x), v, "value"); Py(nothing))
@@ -71,8 +69,6 @@ function init_dict()
             if key not in self:
                 self[key] = default
             return self[key]
-        def clear(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjldict_clear)))
         def pop(self, key, default=_jl_undefined_):
             if key in self:
                 ans = self[key]
@@ -98,8 +94,6 @@ function init_dict()
                 self._jl_callmethod($(pyjl_methodnum(pyjldict_update)), items)
             if kwargs:
                 self.update(kwargs)
-        def copy(self):
-            return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
     import collections.abc
     collections.abc.MutableMapping.register(JlDict)
     del collections

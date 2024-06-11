@@ -332,13 +332,11 @@ end
 
 pyjlany_hash(self) = pyint(hash(self))
 
-pyjlmixin_eq_bool(self, other) = pybool((self == pyjlvalue(other))::Bool)
-
 function init_any()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class _JlReprMixin:
+    class JlBase2(JlBase):
         __slots__ = ()
         def __repr__(self):
             t = type(self)
@@ -347,7 +345,7 @@ function init_any()
             else:
                 name = t.__name__
             return name + ":" + self._jl_callmethod($(pyjl_methodnum(pyjlany_repr)))
-    class JlIter(JlBase, _JlReprMixin):
+    class JlIter(JlBase2):
         __slots__ = ()
         def __iter__(self):
             return self
@@ -355,7 +353,7 @@ function init_any()
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_hash)))
         def __next__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjliter_next)))
-    class Jl(JlBase, _JlReprMixin):
+    class Jl(JlBase2):
         __slots__ = ()
         def __str__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_str)))

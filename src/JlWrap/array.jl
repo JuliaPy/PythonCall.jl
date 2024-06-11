@@ -308,8 +308,6 @@ function init_array()
         @property
         def shape(self):
             return self._jl_callmethod($(pyjl_methodnum(Py ∘ size)))
-        def copy(self):
-            return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
         def reshape(self, shape):
             return self._jl_callmethod($(pyjl_methodnum(pyjlarray_reshape)), shape)
         def __getitem__(self, k):

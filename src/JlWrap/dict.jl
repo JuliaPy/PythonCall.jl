@@ -55,11 +55,11 @@ function init_dict()
             else:
                 raise KeyError(key)
         def keys(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyset ∘ keys)))
+            return self._jl_callmethod($(pyjl_methodnum(pyjlset ∘ keys)))
         def values(self):
-            return self._jl_callmethod($(pyjl_methodnum(Py ∘ values)))
+            return self._jl_callmethod($(pyjl_methodnum(pyjlcollection ∘ values)))
         def items(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyset ∘ DictPairSet)))
+            return self._jl_callmethod($(pyjl_methodnum(pyjlset ∘ DictPairSet)))
         def get(self, key, default=None):
             if key in self:
                 return self[key]

@@ -332,6 +332,8 @@ end
 
 pyjlany_hash(self) = pyint(hash(self))
 
+pyjlmixin_eq_bool(self, other) = pybool((self == pyjlvalue(other))::Bool)
+
 function init_any()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
@@ -345,22 +347,30 @@ function init_any()
             else:
                 name = t.__name__
             return name + ":" + self._jl_callmethod($(pyjl_methodnum(pyjlany_repr)))
-    class _JlHashMixin:
+    class JlIter(JlBase, _JlReprMixin):
         __slots__ = ()
-        def __hash__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyint ∘ hash)))
-    class JlIter(JlBase, _JlReprMixin, _JlHashMixin):
         def __iter__(self):
             return self
+        def __hash__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_hash)))
         def __next__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjliter_next)))
-    class _JlContainerMixin(_JlReprMixin, _JlHashMixin):
+    class _JlContainerMixin(_JlReprMixin):
         __slots__ = ()
         def __len__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyint ∘ length)))
         def __bool__(self):
             return self._jl_callmethod($(pyjl_methodnum(pybool ∘ !isempty)))
-    class Jl(JlBase, _JlReprMixin, _JlHashMixin):
+        def __iter__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjliter ∘ Iterator)))
+        def __hash__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_hash)))
+        def __eq__(self, other):
+            if isinstance(self, type(other)) or isinstance(other, type(self)):
+                return self._jl_callmethod($(pyjl_methodnum(pyjlmixin_eq_bool)), other)
+            else:
+                return NotImplemented
+    class Jl(JlBase, _JlReprMixin):
         __slots__ = ()
         def __str__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_str)))
@@ -464,6 +474,8 @@ function init_any()
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(⊻))), other)
         def __ror__(self, other):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(|))), other)
+        def __hash__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_hash)))
         def __eq__(self, other):
             return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(==))), other)
         def __ne__(self, other):

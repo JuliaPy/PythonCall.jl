@@ -205,10 +205,12 @@ function init_io()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class JlIOBase(JlBase, _JlReprMixin, _JlHashMixin):
+    class JlIOBase(JlBase, _JlReprMixin):
         __slots__ = ()
         def __init__(self, value):
             JlBase.__init__(self, value, Base.IO)
+        def __hash__(self):
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_hash)))
         def close(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlio_close)))
         @property

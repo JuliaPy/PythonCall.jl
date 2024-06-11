@@ -81,8 +81,6 @@ function init_set()
         __slots__ = ()
         def __init__(self, value=None):
             JlBase.__init__(self, value, Base.AbstractSet)
-        def __iter__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjliter ∘ Iterator)))
         def add(self, value):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_add)), value)
         def discard(self, value):

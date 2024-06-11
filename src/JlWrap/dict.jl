@@ -21,7 +21,7 @@ pyjldict_delitem(x::AbstractDict, k::Py) = (delete!(x, pyconvert(keytype(x), k))
 
 function pyjldict_update(x::AbstractDict, items_::Py)
     for item_ in items_
-        (k, v) = pyconvert(Tuple{keytype(x), valtype(x)}, item_)
+        (k, v) = pyconvert(Tuple{keytype(x),valtype(x)}, item_)
         x[k] = v
     end
     Py(nothing)

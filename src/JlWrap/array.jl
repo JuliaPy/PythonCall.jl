@@ -63,7 +63,7 @@ function pyjl_getarrayindices(x::AbstractArray{T,N}, ks::Py) where {T,N}
     if pyistuple(ks)
         if pylen(ks) == N
             return ntuple(N) do i
-                k = pytuple_getitem(ks, i-1)
+                k = pytuple_getitem(ks, i - 1)
                 ans = pyjl_getaxisindex(axes(x, i), k)
                 pydel!(k)
                 return ans
@@ -149,12 +149,12 @@ pyjlarray_isbufferabletype(::Type{NamedTuple{names,T}}) where {names,T} =
 function pyjlarray_buffer_info(x::AbstractArray{T,N}) where {T,N}
     if pyjlarray_isbufferabletype(T)
         Cjl.PyBufferInfo{N}(
-            ptr = Base.unsafe_convert(Ptr{T}, x),
-            readonly = !Utils.ismutablearray(x),
-            itemsize = sizeof(T),
-            format = pybufferformat(T),
-            shape = size(x),
-            strides = strides(x) .* Base.aligned_sizeof(T),
+            ptr=Base.unsafe_convert(Ptr{T}, x),
+            readonly=!Utils.ismutablearray(x),
+            itemsize=sizeof(T),
+            format=pybufferformat(T),
+            shape=size(x),
+            strides=strides(x) .* Base.aligned_sizeof(T),
         )
     else
         error("element type is not bufferable")
@@ -163,43 +163,44 @@ end
 
 const PYBUFFERFORMAT = IdDict{Type,String}()
 
-pybufferformat(::Type{T}) where {T} = get!(PYBUFFERFORMAT, T) do
-    T == Cchar ? "b" :
-    T == Cuchar ? "B" :
-    T == Cshort ? "h" :
-    T == Cushort ? "H" :
-    T == Cint ? "i" :
-    T == Cuint ? "I" :
-    T == Clong ? "l" :
-    T == Culong ? "L" :
-    T == Clonglong ? "q" :
-    T == Culonglong ? "Q" :
-    T == Float16 ? "e" :
-    T == Cfloat ? "f" :
-    T == Cdouble ? "d" :
-    T == Complex{Float16} ? "Ze" :
-    T == Complex{Cfloat} ? "Zf" :
-    T == Complex{Cdouble} ? "Zd" :
-    T == Bool ? "?" :
-    T == Ptr{Cvoid} ? "P" :
-    if isstructtype(T) && isconcretetype(T) && allocatedinline(T)
-        n = fieldcount(T)
-        flds = []
-        for i = 1:n
-            nm = fieldname(T, i)
-            tp = fieldtype(T, i)
-            push!(flds, string(pybufferformat(tp), nm isa Symbol ? ":$nm:" : ""))
-            d =
-                (i == n ? sizeof(T) : fieldoffset(T, i + 1)) -
-                (fieldoffset(T, i) + sizeof(tp))
-            @assert d ≥ 0
-            d > 0 && push!(flds, "$(d)x")
+pybufferformat(::Type{T}) where {T} =
+    get!(PYBUFFERFORMAT, T) do
+        T == Cchar ? "b" :
+        T == Cuchar ? "B" :
+        T == Cshort ? "h" :
+        T == Cushort ? "H" :
+        T == Cint ? "i" :
+        T == Cuint ? "I" :
+        T == Clong ? "l" :
+        T == Culong ? "L" :
+        T == Clonglong ? "q" :
+        T == Culonglong ? "Q" :
+        T == Float16 ? "e" :
+        T == Cfloat ? "f" :
+        T == Cdouble ? "d" :
+        T == Complex{Float16} ? "Ze" :
+        T == Complex{Cfloat} ? "Zf" :
+        T == Complex{Cdouble} ? "Zd" :
+        T == Bool ? "?" :
+        T == Ptr{Cvoid} ? "P" :
+        if isstructtype(T) && isconcretetype(T) && allocatedinline(T)
+            n = fieldcount(T)
+            flds = []
+            for i = 1:n
+                nm = fieldname(T, i)
+                tp = fieldtype(T, i)
+                push!(flds, string(pybufferformat(tp), nm isa Symbol ? ":$nm:" : ""))
+                d =
+                    (i == n ? sizeof(T) : fieldoffset(T, i + 1)) -
+                    (fieldoffset(T, i) + sizeof(tp))
+                @assert d ≥ 0
+                d > 0 && push!(flds, "$(d)x")
+            end
+            string("T{", join(flds, " "), "}")
+        else
+            "$(sizeof(T))x"
         end
-        string("T{", join(flds, " "), "}")
-    else
-        "$(sizeof(T))x"
     end
-end
 
 pyjlarray_isarrayabletype(::Type{T}) where {T} = T in (
     UInt8,
@@ -227,44 +228,45 @@ pyjlarray_isarrayabletype(::Type{NamedTuple{names,types}}) where {names,types} =
 
 const PYTYPESTRDESCR = IdDict{Type,Tuple{String,Py}}()
 
-pytypestrdescr(::Type{T}) where {T} = get!(PYTYPESTRDESCR, T) do
-    c = Utils.islittleendian() ? '<' : '>'
-    T == Bool ? ("$(c)b$(sizeof(Bool))", PyNULL) :
-    T == Int8 ? ("$(c)i1", PyNULL) :
-    T == UInt8 ? ("$(c)u1", PyNULL) :
-    T == Int16 ? ("$(c)i2", PyNULL) :
-    T == UInt16 ? ("$(c)u2", PyNULL) :
-    T == Int32 ? ("$(c)i4", PyNULL) :
-    T == UInt32 ? ("$(c)u4", PyNULL) :
-    T == Int64 ? ("$(c)i8", PyNULL) :
-    T == UInt64 ? ("$(c)u8", PyNULL) :
-    T == Float16 ? ("$(c)f2", PyNULL) :
-    T == Float32 ? ("$(c)f4", PyNULL) :
-    T == Float64 ? ("$(c)f8", PyNULL) :
-    T == Complex{Float16} ? ("$(c)c4", PyNULL) :
-    T == Complex{Float32} ? ("$(c)c8", PyNULL) :
-    T == Complex{Float64} ? ("$(c)c16", PyNULL) :
-    if isstructtype(T) && isconcretetype(T) && Base.allocatedinline(T)
-        n = fieldcount(T)
-        flds = []
-        for i = 1:n
-            nm = fieldname(T, i)
-            tp = fieldtype(T, i)
-            ts, ds = pytypestrdescr(tp)
-            isempty(ts) && return ("", PyNULL)
-            push!(
-                flds,
-                (nm isa Integer ? "f$(nm-1)" : string(nm), pyisnull(ds) ? ts : ds),
-            )
-            d = (i == n ? sizeof(T) : fieldoffset(T, i + 1)) - (fieldoffset(T, i) + sizeof(tp))
-            @assert d ≥ 0
-            d > 0 && push!(flds, ("", "|V$(d)"))
+pytypestrdescr(::Type{T}) where {T} =
+    get!(PYTYPESTRDESCR, T) do
+        c = Utils.islittleendian() ? '<' : '>'
+        T == Bool ? ("$(c)b$(sizeof(Bool))", PyNULL) :
+        T == Int8 ? ("$(c)i1", PyNULL) :
+        T == UInt8 ? ("$(c)u1", PyNULL) :
+        T == Int16 ? ("$(c)i2", PyNULL) :
+        T == UInt16 ? ("$(c)u2", PyNULL) :
+        T == Int32 ? ("$(c)i4", PyNULL) :
+        T == UInt32 ? ("$(c)u4", PyNULL) :
+        T == Int64 ? ("$(c)i8", PyNULL) :
+        T == UInt64 ? ("$(c)u8", PyNULL) :
+        T == Float16 ? ("$(c)f2", PyNULL) :
+        T == Float32 ? ("$(c)f4", PyNULL) :
+        T == Float64 ? ("$(c)f8", PyNULL) :
+        T == Complex{Float16} ? ("$(c)c4", PyNULL) :
+        T == Complex{Float32} ? ("$(c)c8", PyNULL) :
+        T == Complex{Float64} ? ("$(c)c16", PyNULL) :
+        if isstructtype(T) && isconcretetype(T) && Base.allocatedinline(T)
+            n = fieldcount(T)
+            flds = []
+            for i = 1:n
+                nm = fieldname(T, i)
+                tp = fieldtype(T, i)
+                ts, ds = pytypestrdescr(tp)
+                isempty(ts) && return ("", PyNULL)
+                push!(
+                    flds,
+                    (nm isa Integer ? "f$(nm-1)" : string(nm), pyisnull(ds) ? ts : ds),
+                )
+                d = (i == n ? sizeof(T) : fieldoffset(T, i + 1)) - (fieldoffset(T, i) + sizeof(tp))
+                @assert d ≥ 0
+                d > 0 && push!(flds, ("", "|V$(d)"))
+            end
+            ("|$(sizeof(T))V", pylist(flds))
+        else
+            ("", PyNULL)
         end
-        ("|$(sizeof(T))V", pylist(flds))
-    else
-        ("", PyNULL)
     end
-end
 
 pyjlarray_array__array(x::AbstractArray) = x isa Array ? Py(nothing) : pyjlarray(Array(x))
 pyjlarray_array__pyobjectarray(x::AbstractArray) = pyjlarray(PyObjectArray(x))
@@ -316,8 +318,6 @@ function init_array()
             self._jl_callmethod($(pyjl_methodnum(pyjlarray_setitem)), k, v)
         def __delitem__(self, k):
             self._jl_callmethod($(pyjl_methodnum(pyjlarray_delitem)), k)
-        def __iter__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjliter ∘ Iterator)))
         @property
         def __array_interface__(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlarray_array_interface)))

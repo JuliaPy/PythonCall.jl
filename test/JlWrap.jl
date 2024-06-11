@@ -353,6 +353,29 @@ end
         @test pyeq(Bool, m.suboffsets, ())
         @test pyeq(Bool, m.tolist(), pylist([pylist([1, 2, 3]), pylist([4, 5, 6])]))
     end
+    @testset "iter" begin
+        @test pyeq(Bool, pybuiltins.list(pyjlarray(fill(0))), pylist([0]))
+        @test pyeq(Bool, pybuiltins.list(pyjlarray([1, 2, 3])), pylist([1, 2, 3]))
+        @test pyeq(Bool, pybuiltins.list(pyjlarray([1 2; 3 4])), pylist([1, 3, 2, 4]))
+    end
+    @testset "eq" begin
+        @test pyeq(Bool, pyjlarray([1, 2, 3]), pyjlarray([1, 2, 3]))
+        @test pyeq(Bool, pyjlarray([1, 2, 3]), pyjlarray(1:3))
+        @test !pyeq(Bool, pyjlarray([1, 2, 3]), pyjlarray([2, 3, 4]))
+        @test !pyeq(Bool, pyjlarray([1, 2, 3]), pylist([1, 2, 3]))
+    end
+    @testset "hash" begin
+        @test pyhash(pyjlarray([1, 2, 3])) == pyhash(pyjlarray([1, 2, 3]))
+        @test pyhash(pyjlarray([1, 2, 3])) == pyhash(pyjlarray(1:3))
+        @test pyhash(pyjlarray([1, 2, 3])) != pyhash(pyjlarray([2, 3, 4]))
+        @test pyhash(pyjlarray([1, 2, 3])) != pyhash(pytuple([1, 2, 3]))
+    end
+    @testset "len" begin
+        @test pylen(pyjlarray([1, 2, 3])) == 3
+        @test pylen(pyjlarray([])) == 0
+        @test pylen(pyjlarray(fill(0))) == 1
+        @test pylen(pyjlarray([1 2; 3 4])) == 4
+    end
 end
 
 @testitem "base" begin

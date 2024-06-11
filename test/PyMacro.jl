@@ -84,11 +84,11 @@
         @test x isa Py
         @test pyis(pytype(x), pybuiltins.dict)
         @test pyeq(Bool, x, pydict())
-        x = @py {x=1, y=2}
+        x = @py {x = 1, y = 2}
         @test x isa Py
         @test pyis(pytype(x), pybuiltins.dict)
         @test pyeq(Bool, x, pydict(x=1, y=2))
-        x = @py {"x": 1, "y": 2}
+        x = @py {"x":1, "y":2}
         @test x isa Py
         @test pyis(pytype(x), pybuiltins.dict)
         @test pyeq(Bool, x, pydict(x=1, y=2))
@@ -197,35 +197,59 @@
         @test pyis(_ver, sys.version_info)
     end
     @testset "short-circuit" begin
-        x = @py 3 && pylist([1,2])
+        x = @py 3 && @jl(pylist([1, 2]))
         @test pyeq(Bool, x, pylist([1, 2]))
         x = @py None && True
         @test pyis(x, pybuiltins.None)
-        x = @py None || 0 || pyset()
+        x = @py None || 0 || @jl(pyset())
         @test pyeq(Bool, x, pyset())
-        x = @py pydict() || 8 || ""
+        x = @py @jl(pydict()) || 8 || ""
         @test pyeq(Bool, x, 8)
     end
     @testset "if" begin
-        x = @py if 1 == 2; "a"; end
+        x = @py if 1 == 2
+            "a"
+        end
         @test x isa Py
         @test pyis(x, pybuiltins.None)
-        x = @py if 1 < 2; "a"; end
+        x = @py if 1 < 2
+            "a"
+        end
         @test x isa Py
         @test pyeq(Bool, x, "a")
-        x = @py if 1 == 2; "a"; else; "b"; end
+        x = @py if 1 == 2
+            "a"
+        else
+            "b"
+        end
         @test x isa Py
         @test pyeq(Bool, x, "b")
-        x = @py if 1 < 2; "a"; else; "b"; end
+        x = @py if 1 < 2
+            "a"
+        else
+            "b"
+        end
         @test x isa Py
         @test pyeq(Bool, x, "a")
-        x = @py if 1 == 2; "a"; elseif 1 < 2; "b"; end
+        x = @py if 1 == 2
+            "a"
+        elseif 1 < 2
+            "b"
+        end
         @test x isa Py
         @test pyeq(Bool, x, "b")
-        x = @py if 1 < 2; "a"; elseif 2 < 3; "b"; end
+        x = @py if 1 < 2
+            "a"
+        elseif 2 < 3
+            "b"
+        end
         @test x isa Py
         @test pyeq(Bool, x, "a")
-        x = @py if 1 == 2; "a"; elseif 2 == 3; "b"; end
+        x = @py if 1 == 2
+            "a"
+        elseif 2 == 3
+            "b"
+        end
         @test x isa Py
         @test pyis(x, pybuiltins.None)
     end

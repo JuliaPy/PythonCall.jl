@@ -42,10 +42,11 @@ interface and behaves very similar to a list.
 
 - `JlBase`
   - [`Jl`](#juliacall.Jl)
-  - [`JlArray`](#juliacall.JlArray)
-    - [`JlVector`](#juliacall.JlVector)
-  - [`JlDict`](#juliacall.JlDict)
-  - [`JlSet`](#juliacall.JlSet)
+  - [`JlCollection`](#juliacall.JlCollection)
+    - [`JlArray`](#juliacall.JlArray)
+      - [`JlVector`](#juliacall.JlVector)
+    - [`JlDict`](#juliacall.JlDict)
+    - [`JlSet`](#juliacall.JlSet)
   - [`JlIOBase`](#juliacall.JlIOBase)
     - `JlBinaryIO`
     - `JlTextIO`
@@ -58,26 +59,44 @@ Wraps any Julia object, giving it some basic Python semantics.
 Supports `repr(x)`, `str(x)`, attributes (`x.attr`), calling (`x(a,b)`), iteration,
 comparisons, `len(x)`, `a in x`, `dir(x)`.
 
-Calling, indexing, attribute access, etc. will convert the result to a Python object
-according to [this table](@ref jl2py). This is typically a builtin Python type (for
-immutables) or a subtype of `Jl`.
+Calling, indexing, attribute access, etc. will always return a `Jl`. To get the result
+as an ordinary Python object, you can use the `.jl_to_py()` method.
 
-Attribute access can be used to access Julia properties as well as normal class members. In
-the case of a name clash, the class member will take precedence. For convenience with Julia
-naming conventions, `_b` at the end of an attribute is replaced with `!` and `_bb` is
-replaced with `!!`.
+Attribute access (`x.attr`) can be used to access Julia properties except those starting
+and ending with `__` (since these are Python special methods) or starting with `jl_` or
+`_jl_` (which are reserved by `juliacall` for Julia-specific methods).
 
 ###### Members
-- `jl_raw()`: Convert to a [`RawValue`](#juliacall.RawValue). (See also [`pyjlraw`](@ref).)
+- `jl_callback(*args, **kwargs)`: Calls the Julia object with the given arguments.
+  Unlike ordinary calling syntax, the arguments are passed as `Py` objects instead of
+  being converted.
 - `jl_display()`: Display the object using Julia's display mechanism.
+- `jl_eval(expr)`: If the object is a Julia `Module`, evaluates the given expression.
 - `jl_help()`: Display help for the object.
+- `jl_to_py()`: Convert to a Python object using the [usual conversion rules](@ref jl2py).
+`````
+
+`````@customdoc
+juliacall.JlCollection - Class
+
+Wraps any Julia collection. It is a subclass of `collections.abc.Collection`.
+
+Julia collections are arrays, sets, dicts, tuples, named tuples, refs, and in general
+anything which is a collection of values in the sense that it supports functions like
+`iterate`, `in`, `length`, `hash`, `==`, `isempty`, `copy`, `empty!`.
+
+It supports `in`, `iter`, `len`, `hash`, `bool`, `==`.
+
+###### Members
+- `clear()`: Empty the collection in-place.
+- `copy()`: A copy of the collection.
 `````
 
 `````@customdoc
 juliacall.JlArray - Class
 
 This wraps any Julia `AbstractArray` value. It is a subclass of
-`collections.abc.Collection`.
+`juliacall.JlCollection`.
 
 It supports zero-up indexing, and can be indexed with integers or slices. Slicing returns a
 view of the original array.
@@ -95,7 +114,6 @@ copy of the original array.
 ###### Members
 - `ndim`: The number of dimensions.
 - `shape`: Tuple of lengths in each dimension.
-- `copy()`: A copy of the array.
 - `reshape(shape)`: A reshaped view of the array.
 - `to_numpy(dtype=None, copy=True, order="K")`: Convert to a numpy array.
 `````
@@ -110,7 +128,6 @@ This wraps any Julia `AbstractVector` value. It is a subclass of `juliacall.JlAr
 - `resize(size)`: Change the length of the vector.
 - `sort(reverse=False, key=None)`: Sort the vector in-place.
 - `reverse()`: Reverse the vector.
-- `clear()`: Empty the vector.
 - `insert(index, value)`: Insert the value at the given index.
 - `append(value)`: Append the value to the end of the vector.
 - `extend(values)`: Append the values to the end of the vector.

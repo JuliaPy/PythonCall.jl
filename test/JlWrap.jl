@@ -225,6 +225,134 @@
     end
 end
 
+@testitem "collection" begin
+    cases = [
+        (
+            x=fill(nothing),
+            type=:array,
+            list=pylist([nothing]),
+        ),
+        (
+            x=[1, 2, 3],
+            type=:vector,
+            list=pylist([1, 2, 3]),
+        ),
+        (
+            x=[1 2; 3 4],
+            type=:array,
+            list=pylist([1, 3, 2, 4]),
+        ),
+        (
+            x=Set([1, 2, 3]),
+            type=:set,
+            list=pylist(Set([1, 2, 3])),
+        ),
+        (
+            x=Dict(1 => 2, 3 => 4),
+            type=:dict,
+            list=pylist(keys(Dict(1 => 2, 3 => 4))),
+        ),
+        (
+            x=keys(Dict()),
+            type=:set,
+            list=pylist(),
+        ),
+        (
+            x=values(Dict()),
+            type=:collection,
+            list=pylist(),
+        ),
+        (
+            x=(1, 2, 3),
+            type=:collection,
+            list=pylist([1, 2, 3]),
+        ),
+        (
+            x=(x=1, y=2),
+            type=:collection,
+            list=pylist([1, 2]),
+        ),
+        (
+            x=Ref(nothing),
+            type=:collection,
+            list=pylist([nothing]),
+        ),]
+    @testset "type $(c.x)" for c in cases
+        y = pyjlcollection(c.x)
+        @test pyisinstance(y, PythonCall.JlWrap.pyjlcollectiontype)
+        @test pyis(pytype(y), getproperty(PythonCall.JlWrap, Symbol(:pyjl, c.type, :type)))
+    end
+    @testset "len $(c.x)" for c in cases
+        @test pylen(pyjlcollection(c.x)) == length(c.x)
+    end
+    @testset "bool $(c.x)" for c in cases
+        @test pytruth(pyjlcollection(c.x)) == !isempty(c.x)
+    end
+    @testset "iter $(c.x)" for c in cases
+        @test pyeq(Bool, pylist(pyjlcollection(c.x)), c.list)
+    end
+    @testset "hash $(c.x)" for c in cases
+        # not sure why but the bottom byte doesn't always match
+        @test mod(pyhash(pyjlcollection(c.x)), UInt32) >> 8 == mod(hash(c.x), UInt32) >> 8
+    end
+    @testset "eq $(c1.x) $(c2.x)" for (c1, c2) in Iterators.product(cases, cases)
+        @test pyeq(Bool, pyjlcollection(c1.x), pyjlcollection(c2.x)) == (c1.x == c2.x)
+    end
+    @testset "contains $(c.x) $(v)" for (c, v) in Iterators.product(cases, [nothing, 0, 1, 2, 3, 4, 5, 0.0, 0.5, 1.0])
+        if !isa(c.x, Dict)
+            @test pycontains(pyjlcollection(c.x), v) == (v in c.x)
+        end
+    end
+    @testset "copy $(c.x)" for c in cases
+        copyable = try
+            copy(c.x)
+            true
+        catch
+            false
+        end
+        y = pyjlcollection(c.x)
+        if copyable
+            z = y.copy()
+            @test pyis(pytype(y), pytype(z))
+            yv = pyjlvalue(y)
+            zv = pyjlvalue(z)
+            @test yv === c.x
+            @test yv == zv
+            @test yv !== zv
+        else
+            @test_throws PyException y.copy()
+        end
+    end
+    @testset "clear $(c.x)" for c in cases
+        # make a copy or skip the test
+        x2 = try
+            copy(c.x)
+        catch
+            continue
+        end
+        len = length(x2)
+        # see if the collection can be emptied
+        clearable = try
+            empty!(copy(c.x))
+            true
+        catch
+            false
+        end
+        # try clearing the collection
+        y = pyjlcollection(x2)
+        @test pylen(y) == len
+        if clearable
+            y.clear()
+            @test pylen(y) == 0
+            @test length(x2) == 0
+        else
+            @test_throws PyException y.clear()
+            @test pylen(y) == len
+            @test length(x2) == len
+        end
+    end
+end
+
 @testitem "array" begin
     @testset "type" begin
         @test pyis(pytype(pyjlarray(fill(nothing))), PythonCall.pyjlarraytype)

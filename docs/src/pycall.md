@@ -10,7 +10,7 @@ On this page, we give some tips for migrating between the two modules and a comp
   - On Unix (Linux, Mac, etc.) the Python interpreter used by PythonCall and PyCall must be the same (see below).
   - On Windows, it appears to be possible for PythonCall and PyCall to use different interpreters.
 - To force PythonCall to use the same Python interpreter as PyCall, set the environment variable `JULIA_PYTHONCALL_EXE` to `"@PyCall"`. Note that this will opt out of automatic dependency management using CondaPkg.
-- Alternatively, to force PyCall to use the same interpreter as PythonCall, set the environment variable `PYTHON` to `PythonCall.C.CTX.exe_path` and then `Pkg.build("PyCall")`. You will need to do this each time you change project, because PythonCall by default uses a different Python for each project.
+- Alternatively, to force PyCall to use the same interpreter as PythonCall, set the environment variable `PYTHON` to `PythonCall.python_executable_path()` and then `Pkg.build("PyCall")`. You will need to do this each time you change project, because PythonCall by default uses a different Python for each project.
 
 ## Comparison
 
@@ -72,4 +72,4 @@ Note also that JuliaCall will use a separate Julia project for each virtual/cond
 
 ### Compatibility
 
-PyCall supports Julia 0.7+ and Python 2.7+, whereas PythonCall supports Julia 1.6.1+ and Python 3.7+. PyCall requires numpy to be installed, PythonCall doesn't (it provides the same fast array access through the buffer protocol and array interface).
+PyCall supports Julia 0.7+ and Python 2.7+, whereas PythonCall supports Julia 1.6.1+ and Python 3.8+. PyCall requires numpy to be installed, PythonCall doesn't (it provides the same fast array access through the buffer protocol and array interface).

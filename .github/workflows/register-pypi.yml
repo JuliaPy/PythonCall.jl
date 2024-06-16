@@ -2,12 +2,18 @@ name: Register to PyPI
 
 on:
   workflow_dispatch:
+    inputs:
+      git_ref:
+        description: Git tag, branch or commit to register (e.g. v0.9.10)
+        required: true
 
 jobs:
   register:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ inputs.git_ref }}
     - name: Set up Python
       uses: actions/setup-python@v3
       with:

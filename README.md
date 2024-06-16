@@ -1,11 +1,10 @@
-<h1><img src="https://raw.githubusercontent.com/cjdoris/PythonCall.jl/main/docs/src/assets/logo.png" alt="PythonCall.jl logo" style="width: 100px;"><br>PythonCall &amp;&nbsp;JuliaCall</h1>
+<h1><img src="docs/src/assets/logo.png" alt="PythonCall.jl logo" style="width: 100px;"><br>PythonCall &amp;&nbsp;JuliaCall</h1>
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://cjdoris.github.io/PythonCall.jl/stable)
-[![Dev Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://cjdoris.github.io/PythonCall.jl/dev)
-[![Tests](https://github.com/cjdoris/PythonCall.jl/actions/workflows/tests.yml/badge.svg)](https://github.com/cjdoris/PythonCall.jl/actions/workflows/tests.yml)
-[![Tests (nightly)](https://github.com/cjdoris/PythonCall.jl/actions/workflows/tests-nightly.yml/badge.svg)](https://github.com/cjdoris/PythonCall.jl/actions/workflows/tests-nightly.yml)
-[![Codecov](https://codecov.io/gh/cjdoris/PythonCall.jl/branch/main/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/cjdoris/PythonCall.jl)
+[![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliapy.github.io/PythonCall.jl/stable)
+[![Dev Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliapy.github.io/PythonCall.jl/dev)
+[![Tests](https://github.com/JuliaPy/PythonCall.jl/actions/workflows/tests.yml/badge.svg)](https://github.com/JuliaPy/PythonCall.jl/actions/workflows/tests.yml)
+[![Codecov](https://codecov.io/gh/JuliaPy/PythonCall.jl/branch/main/graph/badge.svg?token=A813UUIHGS)](https://codecov.io/gh/JuliaPy/PythonCall.jl)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/P/PythonCall.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/P/PythonCall.html)
 
 Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://julialang.org/) together in seamless harmony:
@@ -15,11 +14,11 @@ Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://juliala
 - Fast non-copying conversion of numeric arrays in either direction: modify Python arrays (e.g. `bytes`, `array.array`, `numpy.ndarray`) from Julia or Julia arrays from Python.
 - Helpful wrappers: interpret Python sequences, dictionaries, arrays, dataframes and IO streams as their Julia counterparts, and vice versa.
 - Beautiful stack-traces.
-- Supports modern systems: tested on Windows, MacOS and Linux, 64-bit, Julia 1.6.1 upwards and Python 3.7 upwards.
+- Supports modern systems: tested on Windows, MacOS and Linux, 64-bit, Julia 1.6.1 upwards and Python 3.8 upwards.
 
 ⭐ If you like this, a GitHub star would be lovely thank you. ⭐
 
-To get started, read the [documentation](https://cjdoris.github.io/PythonCall.jl/stable).
+To get started, read the [documentation](https://juliapy.github.io/PythonCall.jl/stable).
 
 ## Example 1: Calling Python from Julia
 
@@ -28,7 +27,7 @@ In this example, we use the Julia module PythonCall from a [Pluto](https://githu
 - We use `pytable(df)` to convert it to a Python [Pandas DataFrame](https://pandas.pydata.org/).
 - We use the Python package [Seaborn](https://seaborn.pydata.org/) to produce a pair-plot, which is automatically displayed.
 
-![Seaborn example screenshot](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/main/examples/seaborn.png)
+![Seaborn example screenshot](https://raw.githubusercontent.com/JuliaPy/PythonCall.jl/main/examples/seaborn.png)
 
 ## Example 2: Calling Julia from Python
 
@@ -37,7 +36,7 @@ In this example we use the Python module JuliaCall from an IPython notebook to t
 - We construct and train a neural network model using Julia's Flux.
 - We plot some sample output from the model using Python's MatPlotLib.
 
-![Flux example screenshot](https://raw.githubusercontent.com/cjdoris/PythonCall.jl/main/examples/flux.png)
+![Flux example screenshot](https://raw.githubusercontent.com/JuliaPy/PythonCall.jl/main/examples/flux.png)
 
 ## What about PyCall?
 
@@ -46,4 +45,4 @@ The existing package [PyCall](https://github.com/JuliaPy/PyCall.jl) is another s
 - PythonCall by default never copies mutable objects when converting, but instead directly wraps the mutable object. This means that modifying the converted object modifies the original, and conversion is faster.
 - PythonCall does not usually automatically convert results to Julia values, but leaves them as Python objects. This makes it easier to do Pythonic things with these objects (e.g. accessing methods) and is type-stable.
 - PythonCall installs dependencies into a separate Conda environment for each Julia project. This means each Julia project can have an isolated set of Python dependencies.
-- PythonCall supports Julia 1.6.1+ and Python 3.7+ whereas PyCall supports Julia 0.7+ and Python 2.7+.
+- PythonCall supports Julia 1.6.1+ and Python 3.8+ whereas PyCall supports Julia 0.7+ and Python 2.7+.

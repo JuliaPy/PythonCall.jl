@@ -1,5 +1,46 @@
 # Release Notes
 
+## Unreleased
+* `Serialization.serialize` can use `dill` instead of `pickle` by setting the env var `JULIA_PYTHONCALL_PICKLE=dill`.
+* `numpy.bool_` can now be converted to `Bool` and other number types.
+* `datetime.timedelta` can now be converted to `Dates.Nanosecond`, `Microsecond`, `Millisecond` and `Second`. This behaviour was already documented.
+
+## 0.9.20 (2024-05-01)
+* The IPython extension is now automatically loaded upon import if IPython is detected.
+* JuliaCall now compatible with Julia 1.10.3.
+* Minimum supported Python version is now 3.8.
+
+## 0.9.19 (2024-03-19)
+* Bug fixes.
+
+## 0.9.18 (2024-03-18)
+* Bug fixes.
+
+## 0.9.17 (2024-03-16)
+* Bug fixes.
+
+## 0.9.16 (2024-03-14)
+* Big internal refactor.
+* New unexported functions: `python_executable_path`, `python_library_path`, `python_library_handle` and `python_version`.
+* `Py` is now treated as a scalar when broadcasting.
+* `PyArray` is now serializable.
+* Removed compatibility with Julia 1.10.1 and 1.10.2 (to be fixed in 1.10.3 and 1.11.0) due to an upstream bug.
+* Bug fixes.
+
+## 0.9.15 (2023-10-25)
+* JuliaCall now supports `-X juliacall-startup-file=no` to disable running startup.jl.
+* If you are using CondaPkg then Python can optionally now be installed from the anaconda
+  channel (instead of only conda-forge).
+* Bug fixes.
+
+## 0.9.14 (2023-07-26)
+* Wrapped Julia values support truthiness (`__bool__`) better: all values are true, except
+  for zero numbers and empty arrays, dicts and sets.
+* JuliaCall now supports the Julia `--handle-signals` option. Setting this to `yes` allows
+  allocating multithreaded Julia code to be called from JuliaCall without segfaulting. The
+  default is `no` while compatibility concerns are investigated, and may be changed to `yes`
+  in a future release.
+
 ## 0.9.13 (2023-05-14)
 * Conversion to wrapper types `PyList`, `PySet`, `PyDict` or `PyIterable` now default to
   having element type `Any` instead of `Py`.

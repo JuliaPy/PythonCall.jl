@@ -7,9 +7,9 @@ It's as simple as
 pip install juliacall
 ```
 
-Developers may wish to clone the repo (https://github.com/cjdoris/PythonCall.jl) directly
+Developers may wish to clone the repo (https://github.com/JuliaPy/PythonCall.jl) directly
 and pip install the module in editable mode. You should add `"dev":true, "path":"../.."` to
-`python/juliacall/juliapkg.json` to ensure you use the development version of PythonCall
+`pysrc/juliacall/juliapkg.json` to ensure you use the development version of PythonCall
 in conjunction with JuliaCall.
 
 ## Getting started
@@ -73,7 +73,7 @@ What to read next:
 
 ## [Managing Julia dependencies](@id julia-deps)
 
-JuliaCall manages its Julia dependencies using [JuliaPkg](https://github.com/cjdoris/PyJuliaPkg).
+JuliaCall manages its Julia dependencies using [JuliaPkg](https://github.com/JuliaPy/PyJuliaPkg).
 
 It will automatically download a suitable version of Julia if required.
 
@@ -98,7 +98,7 @@ Here is an example:
 
 Alternatively you can use `add`, `rm`, etc. from JuliaPkg to edit this file.
 
-See [JuliaPkg](https://github.com/cjdoris/PyJuliaPkg) for more details.
+See [JuliaPkg](https://github.com/JuliaPy/PyJuliaPkg) for more details.
 
 ## [Configuration](@id julia-config)
 
@@ -114,10 +114,13 @@ be configured in two ways:
 | `-X juliacall-compile=<yes\|no\|all\|min>` | `PYTHON_JULIACALL_COMPILE=<yes\|no\|all\|min>` | Enable or disable JIT compilation. |
 | `-X juliacall-compiled-modules=<yes\|no>` | `PYTHON_JULIACALL_COMPILED_MODULES=<yes\|no>` | Enable or disable incrementally compiling modules. |
 | `-X juliacall-depwarn=<yes\|no\|error>` | `PYTHON_JULIACALL_DEPWARN=<yes\|no\|error>` | Enable or disable deprecation warnings. |
+| `-X juliacall-handle-signals=<yes\|no>` | `PYTHON_JULIACALL_HANDLE_SIGNALS=<yes\|no>` | Enable or disable Julia signal handling. |
 | `-X juliacall-inline=<yes\|no>` | `PYTHON_JULIACALL_INLINE=<yes\|no>` | Enable or disable inlining. |
 | `-X juliacall-min-optlevel=<0\|1\|2\|3>` | `PYTHON_JULIACALL_MIN_OPTLEVEL=<0\|1\|2\|3>` | Optimization level. |
 | `-X juliacall-optimize=<0\|1\|2\|3>` | `PYTHON_JULIACALL_OPTIMIZE=<0\|1\|2\|3>` | Minimum optimization level. |
 | `-X juliacall-procs=<N\|auto>` | `PYTHON_JULIACALL_PROCS=<N\|auto>` | Launch N local worker process. |
+| `-X juliacall-startup-file=<yes\|no>` | `PYTHON_JULIACALL_STARTUP_FILE=<yes\|no>` | Enable or disable your startup.jl file. |
 | `-X juliacall-sysimage=<file>` | `PYTHON_JULIACALL_SYSIMAGE=<file>` | Use the given system image. |
 | `-X juliacall-threads=<N\|auto>` | `PYTHON_JULIACALL_THREADS=<N\|auto>` | Launch N threads. |
 | `-X juliacall-warn-overwrite=<yes\|no>` | `PYTHON_JULIACALL_WARN_OVERWRITE=<yes\|no>` | Enable or disable method overwrite warnings. |
+| `-X juliacall-autoload-ipython-extension=<yes\|no>` | `PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=<yes\|no>` | Enable or disable IPython extension autoloading. |

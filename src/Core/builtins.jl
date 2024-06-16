@@ -1065,6 +1065,24 @@ end
 pydatetime(x::Date) = pydatetime(year(x), month(x), day(x))
 export pydatetime
 
+function pytimedelta(
+    _day::Int=0, _second::Int=0, _microsecond::Int=0, _millisecond::Int=0, _minute::Int=0, _hour::Int=0, _week::Int=0;
+    day::Int=_day, second::Int=_second, microsecond::Int=_microsecond, millisecond::Int=_millisecond, minute::Int=_minute, hour::Int=_hour, week::Int=_week
+)
+    pyimport("datetime").timedelta(day, second, microsecond, millisecond, minute, hour, week)
+end
+function pytimedelta(@nospecialize(x::T)) where T <: Period
+    T <: Union{Week, Day, Hour, Minute, Second, Millisecond, Microsecond} || 
+        error("Unsupported Period type: ", "Year, Month and Nanosecond are not supported, consider using pytimedelta64 instead.")
+    args = T .== (Day, Second, Millisecond, Microsecond,  Minute, Hour, Week)
+    pytimedelta(x.value .* args...)
+end
+function pytimedelta(x::CompoundPeriod)
+    x =  canonicalize(x)
+    isempty(x.periods) ? pytimedelta(Second(0)) : sum(pytimedelta.(x.periods))
+end
+export pytimedelta
+
 function pytime_isaware(x)
     tzinfo = pygetattr(x, "tzinfo")
     if pyisnone(tzinfo)

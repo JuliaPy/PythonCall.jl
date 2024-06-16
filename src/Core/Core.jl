@@ -14,6 +14,8 @@ using ..GC: GC
 using ..Utils: Utils
 using Base: @propagate_inbounds, @kwdef
 using Dates: Date, Time, DateTime, year, month, day, hour, minute, second, millisecond, microsecond, nanosecond
+using Dates: Day, Second, Millisecond, Microsecond, Minute, Hour, Week
+using Dates: Period, CompoundPeriod, canonicalize
 using MacroTools: MacroTools, @capture
 using Markdown: Markdown
 

@@ -51,7 +51,7 @@ function pytimedelta64(
     year::Int=_year, month::Int=_month, day::Int=_day, hour::Int=_hour, minute::Int=_minute, second::Int=_second, microsecond::Int=_microsecond, millisecond::Int=_millisecond, nanosecond::Int=_nanosecond, week::Int=_week)
     pytimedelta64(sum((
         Year(year), Month(month), # you cannot mix year or month with any of the below units in python, the error will be thrown by `pytimedelta64(::CompoundPeriod)`
-        Day(day), Hour(hour), Minute(minute), Second(second), Millisecond(millisecond), Microsecond(microsecond), Nanosecond(nanosecond))
+        Day(day), Hour(hour), Minute(minute), Second(second), Millisecond(millisecond), Microsecond(microsecond), Nanosecond(nanosecond), Week(week))
     ))
 end
 function pytimedelta64(@nospecialize(x::T)) where T <: Period

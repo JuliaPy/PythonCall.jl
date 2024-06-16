@@ -1074,7 +1074,7 @@ end
 function pytimedelta(@nospecialize(x::T)) where T <: Period
     T <: Union{Week, Day, Hour, Minute, Second, Millisecond, Microsecond} || 
         error("Unsupported Period type: ", "Year, Month and Nanosecond are not supported, consider using pytimedelta64 instead.")
-    args = T .== (Day, Second, Millisecond, Microsecond,  Minute, Hour, Week)
+    args = T .== (Day, Second, Millisecond, Microsecond, Minute, Hour, Week)
     pytimedelta(x.value .* args...)
 end
 function pytimedelta(x::CompoundPeriod)

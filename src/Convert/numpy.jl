@@ -66,25 +66,21 @@ end
 export pytimedelta64
 
 function pyconvert_rule_datetime64(::Type{DateTime}, x::Py)
-    unit, value = pyconvert(Tuple, pyimport("numpy").datetime_data(x))
-    # strangely, datetime_data does not return the value correctly
-    # so we retrieve the value from the byte representation
+    unit, count = pyconvert(Tuple, pyimport("numpy").datetime_data(x))
     value = reinterpret(Int64, pyconvert(Vector, x))[1]
     units = ("Y", "M", "W", "D", "h", "m", "s", "ms", "us", "ns")
     types = (Year, Month, Week, Day, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond)
     T = types[findfirst(==(unit), units)]
-    pyconvert_return(DateTime(_base_datetime) + T(value))
+    pyconvert_return(DateTime(_base_datetime) + T(value * count))
 end
 
 function pyconvert_rule_timedelta64(::Type{CompoundPeriod}, x::Py)
-    unit, value = pyconvert(Tuple, pyimport("numpy").datetime_data(x))
-    # strangely, datetime_data does not return the value correctly
-    # so we retrieve the value from the byte representation 
+    unit, count = pyconvert(Tuple, pyimport("numpy").datetime_data(x))
     value = reinterpret(Int64, pyconvert(Vector, x))[1]
     units = ("Y", "M", "W", "D", "h", "m", "s", "ms", "us", "ns")
     types = (Year, Month, Week, Day, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond)
     T = types[findfirst(==(unit), units)]
-    pyconvert_return(CompoundPeriod(T(value)) |> canonicalize)
+    pyconvert_return(CompoundPeriod(T(value * count)) |> canonicalize)
 end
 
 function pyconvert_rule_timedelta64(::Type{T}, x::Py) where T<:Period

@@ -593,6 +593,122 @@ end
         @test !pytruth(pyjldict(Dict()))
         @test pytruth(pyjldict(Dict("one" => 1, "two" => 2)))
     end
+    @testset "iter" begin
+        @test pyeq(Bool, pyset(pyjldict(Dict())), pyset())
+        @test pyeq(Bool, pyset(pyjldict(Dict(1 => 2, 3 => 4))), pyset([1, 3]))
+    end
+    @testset "contains" begin
+        x = pyjldict(Dict(1 => 2, 3 => 4))
+        @test pycontains(x, 1)
+        @test !pycontains(x, 2)
+        @test pycontains(x, 3)
+        @test !pycontains(x, 4)
+        @test !pycontains(x, 1.2)
+        @test pycontains(x, 1.0)
+        @test !pycontains(x, nothing)
+    end
+    @testset "getitem" begin
+        x = pyjldict(Dict(1 => 2, 3 => 4))
+        @test pyisinstance(x[1], pybuiltins.int)
+        @test pyeq(Bool, x[1], 2)
+        @test pyisinstance(x[3], pybuiltins.int)
+        @test pyeq(Bool, x[3], 4)
+        @test_throws PyException x[2]
+    end
+    @testset "setitem" begin
+        x = Dict(1 => 2, 3 => 4)
+        y = pyjldict(x)
+        y[1] = pyint(11)
+        @test x[1] === 11
+        y[2] = pyfloat(22.0)
+        @test x[2] === 22
+    end
+    @testset "delitem" begin
+        x = Dict(1 => 2, 3 => 4)
+        y = pyjldict(x)
+        pydelitem(y, 3)
+        @test x == Dict(1 => 2)
+        pydelitem(y, 1)
+        @test x == Dict()
+    end
+    @testset "keys" begin
+        x = pyjldict(Dict(1 => 2, 3 => 4)).keys()
+        @test all(pyisinstance(k, pybuiltins.int) for k in x)
+        @test pyeq(Bool, pyset(x), pyset([1, 3]))
+    end
+    @testset "values" begin
+        x = pyjldict(Dict(1 => 2, 3 => 4)).values()
+        @test all(pyisinstance(k, pybuiltins.int) for k in x)
+        @test pyeq(Bool, pyset(x), pyset([2, 4]))
+    end
+    @testset "items" begin
+        x = pyjldict(Dict(1 => 2, 3 => 4)).items()
+        @test all(pyisinstance(i, pybuiltins.tuple) for i in x)
+        @test all(pylen(i) == 2 for i in x)
+        @test all(pyisinstance(i[0], pybuiltins.int) for i in x)
+        @test all(pyisinstance(i[1], pybuiltins.int) for i in x)
+        @test pyeq(Bool, pyset(x), pyset([(1, 2), (3, 4)]))
+    end
+    @testset "get" begin
+        x = pyjldict(Dict(1 => 2, 3 => 4))
+        y = x.get(1)
+        @test pyisinstance(y, pybuiltins.int)
+        @test pyeq(Bool, y, 2)
+        y = x.get(3)
+        @test pyisinstance(y, pybuiltins.int)
+        @test pyeq(Bool, y, 4)
+        y = x.get(5)
+        @test pyis(y, pybuiltins.None)
+        y = x.get(5, 0)
+        @test pyisinstance(y, pybuiltins.int)
+        @test pyeq(Bool, y, 0)
+    end
+    @testset "setdefault" begin
+        x = Dict(1 => 2, 3 => 4)
+        y = pyjldict(x)
+        z = y.setdefault(1, 0)
+        @test pyisinstance(z, pybuiltins.int)
+        @test pyeq(Bool, z, 2)
+        @test x == Dict(1 => 2, 3 => 4)
+        z = y.setdefault(2, 0)
+        @test pyisinstance(z, pybuiltins.int)
+        @test pyeq(Bool, z, 0)
+        @test x == Dict(1 => 2, 3 => 4, 2 => 0)
+        z = y.setdefault(2, 99)
+        @test pyisinstance(z, pybuiltins.int)
+        @test pyeq(Bool, z, 0)
+        @test x == Dict(1 => 2, 3 => 4, 2 => 0)
+    end
+    @testset "pop" begin
+        x = Dict(1 => 2, 3 => 4)
+        y = pyjldict(x)
+        z1 = y.pop(1)
+        @test pyisinstance(z1, pybuiltins.int)
+        @test pyeq(Bool, z1, 2)
+        @test x == Dict(3 => 4)
+        @test_throws PyException y.pop(2)
+        z2 = y.pop(3)
+        @test pyisinstance(z2, pybuiltins.int)
+        @test pyeq(Bool, z2, 4)
+        @test x == Dict()
+    end
+    @testset "popitem" begin
+        x = Dict(1 => 2, 3 => 4)
+        y = pyjldict(x)
+        z1 = y.popitem()
+        z2 = y.popitem()
+        @test all(pyisinstance(z, pybuiltins.tuple) for z in [z1, z2])
+        @test all(pylen(z) == 2 for z in [z1, z2])
+        @test all(pyisinstance(z[0], pybuiltins.int) for z in [z1, z2])
+        @test all(pyisinstance(z[1], pybuiltins.int) for z in [z1, z2])
+        @test pyeq(Bool, pyset([z1, z2]), pyset([(1, 2), (3, 4)]))
+    end
+    @testset "update" begin
+        x = Dict(1 => 2, 3 => 4)
+        y = pyjldict(x)
+        y.update(pydict([(3, 3.0), (2, 2.0)]))
+        @test x == Dict(1 => 2, 2 => 2, 3 => 3)
+    end
 end
 
 @testitem "io" begin

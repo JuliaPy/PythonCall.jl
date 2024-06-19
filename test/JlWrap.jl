@@ -711,14 +711,268 @@ end
     end
 end
 
-@testitem "io" begin
+@testitem "io/base" begin
+    @testset "close" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        @test isopen(x)
+        y.close()
+        @test !isopen(x)
+    end
+    @testset "closed" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        z = y.closed
+        @test pyisinstance(z, pybuiltins.bool)
+        @test pyeq(Bool, z, false)
+        close(x)
+        z = y.closed
+        @test pyisinstance(z, pybuiltins.bool)
+        @test pyeq(Bool, z, true)
+    end
+    @testset "fileno" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        # TODO
+    end
+    @testset "flush" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        # TODO
+    end
+    @testset "isatty $(typeof(x))" for (x, y) in [(IOBuffer(), false), (devnull, false), (stdout, false)]
+        # TODO: how to get a TTY in a test environment??
+        z = pytextio(x).isatty()
+        @test pyisinstance(z, pybuiltins.bool)
+        @test pyeq(Bool, z, y)
+    end
+    @testset "readable $(typeof(x))" for (x, y) in [(IOBuffer(), true), (devnull, false), (stdin, true)]
+        z = pytextio(x).readable()
+        @test pyisinstance(z, pybuiltins.bool)
+        @test pyeq(Bool, z, y)
+    end
+    @testset "readlines" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        # TODO
+    end
+    @testset "seek" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        # TODO
+    end
+    @testset "seekable $(typeof(x))" for (x, y) in [(IOBuffer(), true), (devnull, true), (stdin, true), (stdout, true)]
+        # TODO: currently always returns true, can this be improved??
+        z = pytextio(x).seekable()
+        @test pyisinstance(z, pybuiltins.bool)
+        @test pyeq(Bool, z, y)
+    end
+    @testset "tell" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        # TODO
+    end
+    @testset "truncate" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        # TODO
+    end
+    @testset "writable" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        # TODO
+    end
+    @testset "writelines" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        # TODO
+    end
+    @testset "enter/exit" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        # TODO
+    end
+    @testset "iter" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        # TODO
+    end
+    @testset "next" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        # TODO
+    end
+end
+
+@testitem "io/binary" begin
     @testset "type" begin
         @test pyis(pytype(pybinaryio(devnull)), PythonCall.pyjlbinaryiotype)
-        @test pyis(pytype(pytextio(devnull)), PythonCall.pyjltextiotype)
     end
     @testset "bool" begin
         @test pytruth(pybinaryio(devnull))
+    end
+    @testset "detach" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pybinaryio(x)
+        @test_throws PyException y.detach()
+    end
+    @testset "read" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        print(x, "world\n")
+        seekstart(x)
+        y = pybinaryio(x)
+        z = y.read()
+        @test pyisinstance(z, pybuiltins.bytes)
+        @test pyeq(Bool, z, pybytes(b"hello\nworld\n"))
+        z = y.read()
+        @test pyisinstance(z, pybuiltins.bytes)
+        @test pyeq(Bool, z, pybytes(b""))
+    end
+    @testset "read1" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        print(x, "world\n")
+        seekstart(x)
+        y = pybinaryio(x)
+        z = y.read1()
+        @test pyisinstance(z, pybuiltins.bytes)
+        @test pyeq(Bool, z, pybytes(b"hello\nworld\n"))
+        z = y.read1()
+        @test pyisinstance(z, pybuiltins.bytes)
+        @test pyeq(Bool, z, pybytes(b""))
+    end
+    @testset "readline" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pybinaryio(x)
+        z = y.readline()
+        @test pyisinstance(z, pybuiltins.bytes)
+        @test pyeq(Bool, z, pybytes(b"hello\n"))
+        z = y.readline()
+        @test pyisinstance(z, pybuiltins.bytes)
+        @test pyeq(Bool, z, pybytes(b""))
+    end
+    @testset "readinto" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pybinaryio(x)
+        z = pybuiltins.bytearray(pybytes(b"xxxxxxxxxx"))
+        n = y.readinto(z)
+        @test pyisinstance(n, pybuiltins.int)
+        @test pyeq(Bool, n, 6)
+        @test pyeq(Bool, pybytes(z), pybytes(b"hello\nxxxx"))
+    end
+    @testset "readinto1" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pybinaryio(x)
+        z = pybuiltins.bytearray(pybytes(b"xxxxxxxxxx"))
+        n = y.readinto(z)
+        @test pyisinstance(n, pybuiltins.int)
+        @test pyeq(Bool, n, 6)
+        @test pyeq(Bool, pybytes(z), pybytes(b"hello\nxxxx"))
+    end
+    @testset "write" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        y = pybinaryio(x)
+        y.write(pybytes(b"world\n"))
+        @test String(take!(x)) == "hello\nworld\n"
+    end
+end
+
+@testitem "io/text" begin
+    @testset "type" begin
+        @test pyis(pytype(pytextio(devnull)), PythonCall.pyjltextiotype)
+    end
+    @testset "bool" begin
         @test pytruth(pytextio(devnull))
+    end
+    @testset "encoding" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        y = pytextio(x)
+        z = y.encoding
+        @test pyisinstance(z, pybuiltins.str)
+        @test pyeq(Bool, z, "UTF-8")
+    end
+    @testset "errors" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        y = pytextio(x)
+        z = y.errors
+        @test pyisinstance(z, pybuiltins.str)
+        @test pyeq(Bool, z, "strict")
+    end
+    @testset "detach" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        y = pytextio(x)
+        @test_throws PyException y.detach()
+    end
+    @testset "read" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        print(x, "world\n")
+        seekstart(x)
+        y = pytextio(x)
+        z = y.read()
+        @test pyisinstance(z, pybuiltins.str)
+        @test pyeq(Bool, z, "hello\nworld\n")
+        z = y.read()
+        @test pyisinstance(z, pybuiltins.str)
+        @test pyeq(Bool, z, "")
+    end
+    @testset "readline" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        seekstart(x)
+        y = pytextio(x)
+        z = y.readline()
+        @test pyisinstance(z, pybuiltins.str)
+        @test pyeq(Bool, z, "hello\n")
+        z = y.readline()
+        @test pyisinstance(z, pybuiltins.str)
+        @test pyeq(Bool, z, "")
+    end
+    @testset "write" begin
+        x = IOBuffer()
+        print(x, "hello\n")
+        y = pytextio(x)
+        y.write("world!")
+        @test String(take!(x)) == "hello\nworld!"
     end
 end
 

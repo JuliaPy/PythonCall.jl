@@ -742,6 +742,114 @@ end
         @test !pytruth(pyjlset(Set()))
         @test pytruth(pyjlset(Set([1, 2, 3])))
     end
+    @testset "add" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        y.add(1)
+        @test x == Set([1, 2, 3])
+        y.add(0)
+        @test x == Set([0, 1, 2, 3])
+        @test_throws PyException y.add(nothing)
+    end
+    @testset "discard" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        y.discard(1)
+        @test x == Set([2, 3])
+        y.discard(1)
+        @test x == Set([2, 3])
+    end
+    @testset "pop" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        zs = Py[]
+        for i in 1:3
+            push!(zs, y.pop())
+            @test length(x) == 3 - i
+        end
+        @test_throws PyException y.pop()
+        @test all(pyisinstance(z, pybuiltins.int) for z in zs)
+        @test pyeq(Bool, pyset(zs), pyset([1, 2, 3]))
+    end
+    @testset "remove" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        y.remove(1)
+        @test x == Set([2, 3])
+        @test_throws PyException y.remove(1)
+    end
+    @testset "difference" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        z = y.difference(pyset([1, 3, 5]))
+        @test pyeq(Bool, z, pyset([2]))
+    end
+    @testset "intersection" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        z = y.intersection(pyset([1, 3, 5]))
+        @test pyeq(Bool, z, pyset([1, 3]))
+    end
+    @testset "symmetric_difference" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        z = y.symmetric_difference(pyset([1, 3, 5]))
+        @test pyeq(Bool, z, pyset([2, 5]))
+    end
+    @testset "union" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        z = y.union(pyset([1, 3, 5]))
+        @test pyeq(Bool, z, pyset([1, 2, 3, 5]))
+    end
+    @testset "isdisjoint" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        z = y.isdisjoint(pyset([1, 3, 5]))
+        @test pyeq(Bool, z, false)
+        z = y.isdisjoint(pyset([0, 5]))
+        @test pyeq(Bool, z, true)
+    end
+    @testset "issubset" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        z = y.issubset(pyset([1, 3, 5]))
+        @test pyeq(Bool, z, false)
+        z = y.issubset(pyset([1, 2, 3, 4, 5]))
+        @test pyeq(Bool, z, true)
+    end
+    @testset "issuperset" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        z = y.issuperset(pyset([1, 3, 5]))
+        @test pyeq(Bool, z, false)
+        z = y.issuperset(pyset([1, 3]))
+        @test pyeq(Bool, z, true)
+    end
+    @testset "difference_update" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        y.difference_update(pyset([1, 3, 5]))
+        @test x == Set([2])
+    end
+    @testset "intersection_update" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        y.intersection_update(pyset([1, 3, 5]))
+        @test x == Set([1, 3])
+    end
+    @testset "symmetric_difference_update" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        y.symmetric_difference_update(pyset([1, 3, 5]))
+        @test x == Set([2, 5])
+    end
+    @testset "update" begin
+        x = Set([1, 2, 3])
+        y = pyjlset(x)
+        y.update(pyset([1, 3, 5]))
+        @test x == Set([1, 2, 3, 5])
+    end
 end
 
 @testitem "vector" begin

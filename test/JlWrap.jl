@@ -24,6 +24,7 @@
     Base.delete!(x::Foo, idx...) = (x.value = -sum(idx); x)
     Base.in(v::Int, x::Foo) = x.value == v
     Base.nameof(x::Foo) = "nameof $(x.value)"
+    Base.iterate(x::Foo, st::Int=1) = st <= x.value ? (st, st + 1) : nothing
     @testset "type" begin
         @test pyis(pytype(pyjl(Foo(1))), PythonCall.pyjlanytype)
         @test pyis(pytype(pyjl(nothing)), PythonCall.pyjlanytype)
@@ -63,6 +64,10 @@
         @test pyconvert(String, z) == "1((4, 5))0"
         z = pyjl(Foo(1))(4, 5; foo=true, bar=true)
         @test pyconvert(String, z) == "1((4, 5))2"
+    end
+    @testset "callback" begin
+        z = pyjl(Foo(1)).jl_callback(4, 5)
+        @test pyconvert(String, z) == "1((<py 4>, <py 5>))0"
     end
     @testset "getitem" begin
         z = pygetitem(pyjl(Foo(1)), 3)
@@ -222,6 +227,72 @@
         m = pyjl(Main)
         @test pyconvert(Any, m.jl_eval("1 + 1")) === 2 # Basic behavior
         @test pyconvert(Any, m.jl_eval("1 + 1\n ")) === 2 # Trailing whitespace
+    end
+    @testset "to_py $x" for x in [1, 2.3, nothing, "foo"]
+        y = Py(x)
+        z = pyjl(x).jl_to_py()
+        @test pyeq(Bool, pytype(z), pytype(y))
+        @test pyeq(Bool, z, y)
+    end
+    @testset "iter" begin
+        z = pylist(pyjl(Foo(3)))
+        @test pyeq(Bool, z, pylist([pyjl(1), pyjl(2), pyjl(3)]))
+    end
+    @testset "next" begin
+        z = pynext(pyjl(Foo(3)))
+        @test pyisjl(z)
+        @test pyeq(Bool, z, pyjl(1))
+    end
+    @testset "reversed" begin
+        x = pyjl([1, 2, 3])
+        y = x.__reversed__()
+        @test pyisjl(y)
+        @test pyjlvalue(y) == [3, 2, 1]
+        @test pyjlvalue(x) == [1, 2, 3]
+    end
+    @testset "int" begin
+        x = pyjl(34.0)
+        y = x.__int__()
+        @test pyisinstance(y, pybuiltins.int)
+        @test pyeq(Bool, y, 34)
+    end
+    @testset "float" begin
+        x = pyjl(12)
+        y = x.__float__()
+        @test pyisinstance(y, pybuiltins.float)
+        @test pyeq(Bool, y, 12.0)
+    end
+    @testset "complex" begin
+        x = pyjl(Complex(1, 2))
+        y = x.__complex__()
+        @test pyisinstance(y, pybuiltins.complex)
+        @test pyeq(Bool, y, pycomplex(1, 2))
+    end
+    @testset "index" begin
+        y = pyjl(12).__index__()
+        @test pyisinstance(y, pybuiltins.int)
+        @test pyeq(Bool, y, 12)
+        @test_throws PyException pyjl(12.0).__index__()
+    end
+    @testset "trunc $x" for (x, y) in [(1.1, 1), (8.9, 8), (-1.3, -1), (-7.8, -7)]
+        z = pyjl(x).__trunc__()
+        @test pyisinstance(z, pybuiltins.int)
+        @test pyeq(Bool, z, y)
+    end
+    @testset "floor $x" for (x, y) in [(1.1, 1), (8.9, 8), (-1.3, -2), (-7.8, -8)]
+        z = pyjl(x).__floor__()
+        @test pyisinstance(z, pybuiltins.int)
+        @test pyeq(Bool, z, y)
+    end
+    @testset "ceil $x" for (x, y) in [(1.1, 2), (8.9, 9), (-1.3, -1), (-7.8, -7)]
+        z = pyjl(x).__ceil__()
+        @test pyisinstance(z, pybuiltins.int)
+        @test pyeq(Bool, z, y)
+    end
+    @testset "round $x" for (x, y) in [(1.1, 1), (8.9, 9), (-1.3, -1), (-7.8, -8)]
+        z = pyjl(x).__round__()
+        @test pyisinstance(z, pybuiltins.int)
+        @test pyeq(Bool, z, y)
     end
 end
 

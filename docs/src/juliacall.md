@@ -50,11 +50,11 @@ import juliacall
 jl = juliacall.newmodule("SomeName")
 ```
 
-Julia modules have a special method `seval` which will evaluate a given piece of code given
+Julia modules have a special method `jl_eval` which will evaluate a given piece of code given
 as a string in the module. This is most frequently used to import modules:
 ```python
 from array import array
-jl.seval("using Statistics")
+jl.jl_eval("using Statistics")
 x = array('i', [1, 2, 3])
 jl.mean(x)
 # 2.0

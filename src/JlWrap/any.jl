@@ -235,7 +235,7 @@ function pyjlany_mimebundle(self, include::Py, exclude::Py)
     return ans
 end
 
-pyjlany_eval(self::Module, expr::Py) = Py(Base.eval(self, Meta.parseall(strip(pyconvert(String, expr)))))
+pyjlany_eval(self::Module, expr::Py) = pyjl(Base.eval(self, Meta.parseall(strip(pyconvert(String, expr)))))
 pyjl_handle_error_type(::typeof(pyjlany_eval), self, exc::MethodError) = pybuiltins.TypeError
 
 pyjlany_int(self) = pyint(convert(Integer, self))

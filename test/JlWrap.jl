@@ -225,8 +225,14 @@
     end
     @testset "eval" begin
         m = pyjl(Main)
-        @test pyconvert(Any, m.jl_eval("1 + 1")) === 2 # Basic behavior
-        @test pyconvert(Any, m.jl_eval("1 + 1\n ")) === 2 # Trailing whitespace
+        # Basic behavior
+        z = m.jl_eval("1 + 1")
+        @test pyisjl(z)
+        @test pyconvert(Any, z) === 2
+        # Trailing whitespace
+        z = m.jl_eval("1 + 2\n ")
+        @test pyisjl(z)
+        @test pyconvert(Any, z) === 3
     end
     @testset "to_py $x" for x in [1, 2.3, nothing, "foo"]
         y = Py(x)
@@ -236,6 +242,7 @@
     end
     @testset "iter" begin
         z = pylist(pyjl(Foo(3)))
+        @test all(pyisjl, z)
         @test pyeq(Bool, z, pylist([pyjl(1), pyjl(2), pyjl(3)]))
     end
     @testset "next" begin

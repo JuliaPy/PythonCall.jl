@@ -9,7 +9,7 @@ def newmodule(name):
     "A new module with the given name."
     global _newmodule
     if _newmodule is None:
-        _newmodule = Main.seval("name -> (n1=Symbol(name); n2=gensym(n1); Main.@eval(module $n2; module $n1; end; end); Main.@eval $n2.$n1)")
+        _newmodule = Main.jl_eval("name -> (n1=Symbol(name); n2=gensym(n1); Main.@eval(module $n2; module $n1; end; end); Main.@eval $n2.$n1)")
     return _newmodule(name)
 
 def interactive(enable=True):

@@ -9,14 +9,6 @@ def test_newmodule():
     assert jl.isa(m, jl.Module)
     assert str(jl.nameof(m)) == "TestModule"
 
-def test_convert():
-    import juliacall
-    jl = juliacall.Main
-    for (x, t) in [(None, jl.Nothing), (True, jl.Bool), ([1,2,3], jl.Vector)]:
-        y = juliacall.convert(t, x)
-        assert isinstance(y, juliacall.Jl)
-        assert jl.isa(y, t)
-
 def test_interactive():
     import juliacall
     juliacall.interactive(True)
@@ -47,26 +39,26 @@ def test_issue_394():
     f = lambda x: x+1
     y = 5
     jl.x = x
-    assert jl.x is x
+    assert jl.x.jl_to_py() is x
     jl.f = f
-    assert jl.f is f
+    assert jl.f.jl_to_py() is f
     jl.y = y
-    assert jl.y is y
-    assert jl.x is x
-    assert jl.f is f
-    assert jl.y is y
-    assert jl.seval("f(x)") == 4
+    assert jl.y.jl_to_py() is y
+    assert jl.x.jl_to_py() is x
+    assert jl.f.jl_to_py() is f
+    assert jl.y.jl_to_py() is y
+    assert jl.jl_eval("f(x)").jl_to_py() == 4
 
 def test_issue_433():
     "https://github.com/JuliaPy/PythonCall.jl/issues/433"
     from juliacall import Main as jl
 
     # Smoke test
-    jl.seval("x=1\nx=1")
+    jl.jl_eval("x=1\nx=1")
     assert jl.x == 1
 
     # Do multiple things
-    out = jl.seval(
+    out = jl.jl_eval(
         """
         function _issue_433_g(x)
             return x^2

@@ -5,7 +5,7 @@
 `````@customdoc
 juliacall.Main - Constant
 
-The Julia `Main` module, as a [`ModuleValue`](#juliacall.ModuleValue).
+The Julia `Main` module, as a [`Jl`](#juliacall.Jl).
 
 In interactive scripts, you can use this as the main entry-point to JuliaCall:
 ```python

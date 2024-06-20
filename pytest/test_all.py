@@ -5,7 +5,7 @@ def test_newmodule():
     import juliacall
     jl = juliacall.Main
     m = juliacall.newmodule("TestModule")
-    assert isinstance(m, juliacall.ModuleValue)
+    assert isinstance(m, juliacall.Jl)
     assert jl.isa(m, jl.Module)
     assert str(jl.nameof(m)) == "TestModule"
 

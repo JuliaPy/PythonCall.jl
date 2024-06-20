@@ -23,16 +23,13 @@ From Python, this occurs when converting the return value of a Julia function.
 | Standard integer range (`AbstractRange{T}`, `T` a standard integer) | `range`                                                 |
 | `Date`, `Time`, `DateTime` (from `Dates`)                           | `date`, `time`, `datetime` (from `datetime`)            |
 | `Second`, `Millisecond`, `Microsecond`, `Nanosecond` (from `Dates`) | `timedelta` (from `datetime`)                           |
-| `Number`                                                            | `juliacall.NumberValue`, `juliacall.ComplexValue`, etc. |
-| `AbstractArray`                                                     | `juliacall.JlArray`, `juliacall.JlVector`         |
-| `AbstractDict`                                                      | `juliacall.JlDict`                                   |
-| `AbstractSet`                                                       | `juliacall.JlSet`                                    |
-| `IO`                                                                | `juliacall.BufferedIOValue`                             |
-| `Module`                                                            | `juliacall.ModuleValue`                                 |
-| `Type`                                                              | `juliacall.TypeValue`                                   |
-| Anything else                                                       | `juliacall.Jl`                                    |
+| `AbstractArray`                                                     | `juliacall.JlArray`, `juliacall.JlVector`               |
+| `AbstractDict`                                                      | `juliacall.JlDict`                                      |
+| `AbstractSet`                                                       | `juliacall.JlSet`                                       |
+| `IO`                                                                | `juliacall.JlBinaryIO`                                  |
+| Anything else                                                       | `juliacall.Jl`                                          |
 
-See [here](@ref julia-wrappers) for an explanation of the `juliacall.*Value` wrapper types.
+See [here](@ref julia-wrappers) for an explanation of the `juliacall.Jl*` wrapper types.
 
 ## [Custom rules](@id jl2py-conversion-custom)
 

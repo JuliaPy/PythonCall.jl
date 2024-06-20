@@ -735,18 +735,27 @@ end
         @test pyeq(Bool, z, true)
     end
     @testset "fileno" begin
+        # IOBuffer has no fileno
         x = IOBuffer()
         print(x, "hello\n")
         seekstart(x)
         y = pytextio(x)
-        # TODO
+        @test_throws PyException y.fileno()
+        # check some file that has a fileno
+        mktemp() do name, x
+            y = pytextio(x)
+            z = y.fileno()
+            @test pyisinstance(z, pybuiltins.int)
+            @test pyeq(Bool, z, fd(x))
+        end
     end
     @testset "flush" begin
         x = IOBuffer()
         print(x, "hello\n")
         seekstart(x)
         y = pytextio(x)
-        # TODO
+        y.flush()
+        # TODO: check it actually flushed something
     end
     @testset "isatty $(typeof(x))" for (x, y) in [(IOBuffer(), false), (devnull, false), (stdout, false)]
         # TODO: how to get a TTY in a test environment??
@@ -762,19 +771,34 @@ end
     @testset "readlines" begin
         x = IOBuffer()
         print(x, "hello\n")
+        print(x, "world\n")
         seekstart(x)
         y = pytextio(x)
-        # TODO
+        z = y.readlines()
+        @test pyisinstance(z, pybuiltins.list)
+        @test pylen(z) == 2
+        @test all(pyisinstance(line, pybuiltins.str) for line in z)
+        @test pyeq(Bool, z, pylist(["hello\n", "world\n"]))
     end
     @testset "seek" begin
         x = IOBuffer()
         print(x, "hello\n")
         seekstart(x)
         y = pytextio(x)
-        # TODO
+        @test position(x) == 0
+        zs = Py[]
+        push!(zs, y.seek(1))
+        @test position(x) == 1
+        push!(zs, y.seek(2, 0))
+        @test position(x) == 2
+        push!(zs, y.seek(1, 1))
+        @test position(x) == 3
+        push!(zs, y.seek(-2, 2))
+        @test position(x) == 4
+        @test all(pyisinstance(z, pybuiltins.int) for z in zs)
+        @test pyeq(Bool, pylist(zs), pylist([1, 2, 3, 4]))
     end
     @testset "seekable $(typeof(x))" for (x, y) in [(IOBuffer(), true), (devnull, true), (stdin, true), (stdout, true)]
-        # TODO: currently always returns true, can this be improved??
         z = pytextio(x).seekable()
         @test pyisinstance(z, pybuiltins.bool)
         @test pyeq(Bool, z, y)
@@ -784,49 +808,85 @@ end
         print(x, "hello\n")
         seekstart(x)
         y = pytextio(x)
-        # TODO
+        zs = Py[]
+        @test position(x) == 0
+        push!(zs, y.tell())
+        seek(x, 5)
+        push!(zs, y.tell())
+        @test all(pyisinstance(z, pybuiltins.int) for z in zs)
+        @test pyeq(Bool, pylist(zs), pylist([0, 5]))
     end
     @testset "truncate" begin
         x = IOBuffer()
         print(x, "hello\n")
         seekstart(x)
         y = pytextio(x)
-        # TODO
-    end
-    @testset "writable" begin
-        x = IOBuffer()
-        print(x, "hello\n")
+        y.truncate(5)
+        seekend(x)
+        @test position(x) == 5
+        seek(x, 3)
+        y.truncate()
         seekstart(x)
-        y = pytextio(x)
-        # TODO
+        seekend(x)
+        @test position(x) == 3
+    end
+    @testset "writable $(typeof(x))" for (x, y) in [(IOBuffer(), true), (IOBuffer(""), false), (devnull, true), (stdout, true)]
+        z = pytextio(x).writable()
+        @test pyisinstance(z, pybuiltins.bool)
+        @test pyeq(Bool, z, y)
     end
     @testset "writelines" begin
         x = IOBuffer()
-        print(x, "hello\n")
-        seekstart(x)
         y = pytextio(x)
-        # TODO
+        y.writelines(pylist(["test\n", "message\n"]))
+        seekstart(x)
+        @test readline(x) == "test"
+        @test readline(x) == "message"
+        @test readline(x) == ""
     end
     @testset "enter/exit" begin
         x = IOBuffer()
-        print(x, "hello\n")
         seekstart(x)
         y = pytextio(x)
-        # TODO
+        @test isopen(x)
+        r = pywith(y) do z
+            @test pyis(z, y)
+            12
+        end
+        @test r === 12
+        @test !isopen(x)
+        # same again by cause an error
+        x = IOBuffer()
+        seekstart(x)
+        y = pytextio(x)
+        @test isopen(x)
+        @test_throws PyException pywith(y) do z
+            z.invalid_attr
+        end
+        @test !isopen(x)  # should still get closed
     end
     @testset "iter" begin
         x = IOBuffer()
         print(x, "hello\n")
+        print(x, "world\n")
         seekstart(x)
         y = pytextio(x)
-        # TODO
+        zs = pylist(y)
+        @test all(pyisinstance(z, pybuiltins.str) for z in zs)
+        @test pyeq(Bool, zs, pylist(["hello\n", "world\n"]))
     end
     @testset "next" begin
         x = IOBuffer()
         print(x, "hello\n")
+        print(x, "world\n")
         seekstart(x)
         y = pytextio(x)
-        # TODO
+        zs = Py[]
+        push!(zs, y.__next__())
+        push!(zs, y.__next__())
+        @test_throws PyException y.__next__()
+        @test all(pyisinstance(z, pybuiltins.str) for z in zs)
+        @test pyeq(Bool, pylist(zs), pylist(["hello\n", "world\n"]))
     end
 end
 

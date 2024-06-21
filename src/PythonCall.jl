@@ -38,7 +38,7 @@ for k in [:event_loop_on, :event_loop_off, :fix_qt_plugin_path]
 end
 
 # not API but used in tests
-for k in [:pyjlanytype, :pyjlarraytype, :pyjlvectortype, :pyjlbinaryiotype, :pyjltextiotype, :pyjldicttype, :pyjlmoduletype, :pyjlintegertype, :pyjlrationaltype, :pyjlrealtype, :pyjlcomplextype, :pyjlsettype, :pyjltypetype]
+for k in [:pyjlanytype, :pyjlarraytype, :pyjlvectortype, :pyjlbinaryiotype, :pyjltextiotype, :pyjldicttype, :pyjlsettype]
     @eval using .JlWrap: $k
 end
 

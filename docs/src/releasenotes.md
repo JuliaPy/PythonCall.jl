@@ -2,6 +2,17 @@
 
 ## Unreleased (v1)
 * `PythonCall.GC` is now more like `Base.GC`: `enable(true)` replaces `enable()`, `enable(false)` replaces `disable()`, and `gc()` is added.
+* Breaking changes to Julia wrapper types:
+  * Classes renamed: `ValueBase` to `JlBase`, `AnyValue` to `Jl`, `ArrayValue` to `JlArray`, etc.
+  * Classes removed: `RawValue`, `ModuleValue`, `TypeValue`, `NumberValue`, `ComplexValue`, `RealValue`, `RationalValue`, `IntegerValue`.
+  * `Jl` now behaves similar to how `RawValue` behaved before. In particular, most methods on `Jl` now return a `Jl` instead of an arbitrary Python object.
+  * `juliacall.Pkg` removed (you can import it yourself).
+  * `juliacall.convert` removed (use `juliacall.Jl` instead).
+  * Methods renamed: `_jl_display()` to `jl_display()`, `_jl_help()` to `jl_help()`, etc.
+  * Methods removed: `_jl_raw()`.
+  * `pyjl(x)` now always returns a `juliacall.Jl` (it used to select a wrapper type if possible).
+  * `pyjltype(x)` removed.
+* New functions: `pyjlarray`, `pyjldict`, `pyjlset`.
 
 ## Unreleased
 * `Serialization.serialize` can use `dill` instead of `pickle` by setting the env var `JULIA_PYTHONCALL_PICKLE=dill`.

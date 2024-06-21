@@ -1,7 +1,7 @@
 """
     module PythonCall.JlWrap
 
-Defines the Python object wrappers around Julia objects (`juliacall.AnyValue` etc).
+Defines the Python object wrappers around Julia objects (`juliacall.Jl` etc).
 """
 module JlWrap
 
@@ -11,21 +11,16 @@ using ..Core: C, Utils, pynew, @autopy, incref, decref, setptr!, getptr, pyjulia
 using ..Convert: pyconvert, @pyconvert, PYCONVERT_PRIORITY_WRAP, pyconvert_add_rule, pyconvert_tryconvert, pyconvertarg, pyconvert_result
 using ..GC: GC
 
-using Pkg: Pkg
 using Base: @propagate_inbounds, allocatedinline
 
 import ..Core: Py
 
 include("C.jl")
 include("base.jl")
-include("raw.jl")
 include("any.jl")
-include("iter.jl")
-include("type.jl")
-include("module.jl")
 include("io.jl")
-include("number.jl")
 include("objectarray.jl")
+include("collection.jl")
 include("array.jl")
 include("vector.jl")
 include("dict.jl")
@@ -33,26 +28,20 @@ include("set.jl")
 include("callback.jl")
 
 function __init__()
-    Cjl.C.with_gil() do 
+    Cjl.C.with_gil() do
         init_base()
-        init_raw()
         init_any()
-        init_iter()
-        init_type()
-        init_module()
         init_io()
-        init_number()
+        init_collection()
         init_array()
         init_vector()
         init_dict()
         init_set()
-        init_callback()
         # add packages to juliacall
         jl = pyjuliacallmodule
         jl.Core = Base.Core
         jl.Base = Base
         jl.Main = Main
-        jl.Pkg = Pkg
         jl.PythonCall = PythonCall
     end
 end

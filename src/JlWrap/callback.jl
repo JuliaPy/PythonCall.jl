@@ -1,64 +1,6 @@
 const pywrapcallback = pynew()
-const pyjlcallbacktype = pynew()
 
-pyjlcallback_repr(self) = Py("<jl $(repr(self))>")
-
-pyjlcallback_str(self) = Py(sprint(print, self))
-
-function pyjlcallback_call(self, args_::Py, kwargs_::Py)
-    if pylen(kwargs_) > 0
-        args = pyconvert(Vector{Py}, args_)
-        kwargs = pyconvert(Dict{Symbol,Py}, kwargs_)
-        ans = Py(self(args...; kwargs...))
-    elseif (nargs = pylen(args_)) > 0
-        args = pyconvert(Vector{Py}, args_)
-        @assert length(args) == nargs
-        if nargs == 1
-            ans = Py(self(args[1]))
-        elseif nargs == 2
-            ans = Py(self(args[1], args[2]))
-        elseif nargs == 3
-            ans = Py(self(args[1], args[2], args[3]))
-        elseif nargs == 4
-            ans = Py(self(args[1], args[2], args[3], args[4]))
-        elseif nargs == 5
-            ans = Py(self(args[1], args[2], args[3], args[4], args[5]))
-        else
-            ans = Py(self(args...))
-        end
-    else
-        ans = Py(self())
-    end
-    pydel!(args_)
-    pydel!(kwargs_)
-    ans
-end
-pyjl_handle_error_type(::typeof(pyjlcallback_call), self, exc::MethodError) = exc.f === self ? pybuiltins.TypeError : PyNULL
-
-function init_callback()
-    jl = pyjuliacallmodule
-    pybuiltins.exec(pybuiltins.compile("""
-    $("\n"^(@__LINE__()-1))
-    class CallbackValue(ValueBase):
-        __slots__ = ()
-        def __repr__(self):
-            if self._jl_isnull():
-                return "<jl NULL>"
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_repr)))
-        def __str__(self):
-            if self._jl_isnull():
-                return "NULL"
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_str)))
-        def __call__(self, *args, **kwargs):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_call)), args, kwargs)
-    """, @__FILE__(), "exec"), jl.__dict__)
-    pycopy!(pyjlcallbacktype, jl.CallbackValue)
-    pycopy!(pywrapcallback, pybuiltins.eval("lambda f: lambda *args, **kwargs: f(*args, **kwargs)", pydict()))
-end
-
-pyjlcallback(f) = pyjl(pyjlcallbacktype, f)
+pyjlcallback(f) = pyjl(f).jl_callback
 
 """
     pyfunc(f; [name], [qualname], [doc], [signature])
@@ -66,25 +8,33 @@ pyjlcallback(f) = pyjl(pyjlcallbacktype, f)
 Wrap the callable `f` as an ordinary Python function.
 
 The name, qualname, docstring or signature can optionally be set with `name`, `qualname`,
-`doc` or `signature`.
+`doc` or `signature`. If either of `name` or `qualname` are given, the other is inferred.
 
 Unlike `Py(f)` (or `pyjl(f)`), the arguments passed to `f` are always of type `Py`, i.e.
 they are never converted.
 """
-function pyfunc(f; name=nothing, qualname=name, doc=nothing, signature=nothing, wrap=pywrapcallback)
+function pyfunc(f; name=nothing, qualname=nothing, doc=nothing, signature=nothing, wrap=pywrapcallback)
     f2 = ispy(f) ? f : pyjlcallback(f)
     if wrap isa Pair
         wrapargs, wrapfunc = wrap
     else
         wrapargs, wrapfunc = (), wrap
     end
+    if wrapfunc === pywrapcallback && pyisnull(pywrapcallback)
+        pycopy!(pywrapcallback, pybuiltins.eval("lambda f: lambda *args, **kwargs: f(*args, **kwargs)", pydict()))
+    end
     if wrapfunc isa AbstractString
         f3 = pybuiltins.eval(wrapfunc, pydict())(f2, wrapargs...)
     else
         f3 = wrapfunc(f2, wrapargs...)
     end
+    if name === nothing && qualname !== nothing
+        name = split(qualname, '.')[end]
+    elseif name !== nothing && qualname === nothing
+        qualname = name
+    end
     f3.__name__ = name === nothing ? "<lambda>" : name
-    f3.__qualname__ = name === nothing ? "<lambda>" : qualname
+    f3.__qualname__ = qualname === nothing ? "<lambda>" : qualname
     if doc !== nothing
         f3.__doc__ = doc
     end
@@ -120,8 +70,8 @@ pystaticmethod(f; kw...) = pybuiltins.staticmethod(ispy(f) ? f : pyfunc(f; kw...
 export pystaticmethod
 
 """
-    pyproperty(; get=nothing, set=nothing, del=nothing, doc=nothing)
-    pyproperty(get)
+    pyproperty(; get=nothing, set=nothing, del=nothing, doc=nothing, ...)
+    pyproperty(get, set=nothing, del=nothing; doc=nothing, ...)
 
 Create a Python `property` with the given getter, setter and deleter.
 
@@ -129,12 +79,12 @@ If `get`, `set` or `del` is not a Python object (e.g. if it is a `Function`) the
 converted to one with [`pyfunc`](@ref PythonCall.pyfunc). In particular this means the arguments passed to it
 are always of type `Py`.
 """
-pyproperty(; get=nothing, set=nothing, del=nothing, doc=nothing) =
+pyproperty(; get=nothing, set=nothing, del=nothing, doc=nothing, kw...) =
     pybuiltins.property(
-        fget = ispy(get) || get === nothing ? get : pyfunc(get),
-        fset = ispy(set) || set === nothing ? set : pyfunc(set),
-        fdel = ispy(del) || del === nothing ? del : pyfunc(del),
+        fget = ispy(get) || get === nothing ? get : pyfunc(get; kw...),
+        fset = ispy(set) || set === nothing ? set : pyfunc(set; kw...),
+        fdel = ispy(del) || del === nothing ? del : pyfunc(del; kw...),
         doc = doc,
     )
-pyproperty(get) = pyproperty(get=get)
+pyproperty(get, set=nothing, del=nothing; doc=nothing, kw...) = pyproperty(; get=get, set=set, del=del, doc=doc, kw...)
 export pyproperty

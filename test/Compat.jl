@@ -45,7 +45,7 @@ end
 @testitem "Serialization.jl" begin
     using Serialization
     @testset "Py" begin
-        for x in Py[Py(123), Py(1.23), Py("hello"), pylist([1, 2, 3]), pytuple([1, 2, 3]), Py(nothing), Py([1, 2, 3]), Py(:hello)]
+        @testset for x in Py[Py(123), Py(1.23), Py("hello"), pylist([1, 2, 3]), pytuple([1, 2, 3]), Py(nothing), Py([1, 2, 3]), Py(:hello)]
             io = IOBuffer()
             serialize(io, x)
             seekstart(io)

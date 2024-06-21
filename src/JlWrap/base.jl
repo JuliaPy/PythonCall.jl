@@ -9,50 +9,32 @@ pyjl(t, v) = pynew(errcheck(@autopy t Cjl.PyJuliaValue_New(getptr(t_), v)))
 """
     pyisjl(x)
 
-Test whether `x` is a wrapped Julia value, namely an instance of `juliacall.ValueBase`.
+Test whether `x` is a wrapped Julia value, namely an instance of `juliacall.JlBase`.
 """
 pyisjl(x) = pytypecheck(x, pyjlbasetype)
 export pyisjl
-
-pyjlisnull(x) = @autopy x begin
-    if pyisjl(x_)
-        Cjl.PyJuliaValue_IsNull(getptr(x_))
-    else
-        error("Expecting a 'juliacall.ValueBase', got a '$(pytype(x_).__name__)'")
-    end
-end
 
 """
     pyjlvalue(x)
 
 Extract the value from the wrapped Julia value `x`.
 """
-pyjlvalue(x) = @autopy x begin
-    if pyjlisnull(x_)
-        error("Julia value is NULL")
-    else
-        _pyjl_getvalue(x_)
-    end
-end
+pyjlvalue(x) = @autopy x _pyjl_getvalue(x_)
 export pyjlvalue
 
 function init_base()
     setptr!(pyjlbasetype, incref(Cjl.PyJuliaBase_Type[]))
-    pyjuliacallmodule.ValueBase = pyjlbasetype
+    pyjuliacallmodule.JlBase = pyjlbasetype
 
     # conversion rule
     priority = PYCONVERT_PRIORITY_WRAP
-    pyconvert_add_rule("juliacall:ValueBase", Any, pyconvert_rule_jlvalue, priority)
+    pyconvert_add_rule("juliacall:JlBase", Any, pyconvert_rule_jlvalue, priority)
 end
 
 pyconvert_rule_jlvalue(::Type{T}, x::Py) where {T} = pyconvert_tryconvert(T, _pyjl_getvalue(x))
 
 function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssize_t)
     @nospecialize f
-    if Cjl.PyJuliaValue_IsNull(self_)
-        errset(pybuiltins.TypeError, "Julia object is NULL")
-        return C.PyNULL
-    end
     in_f = false
     self = Cjl.PyJuliaValue_GetValue(self_)
     try
@@ -91,7 +73,7 @@ function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssi
                 if in_f
                     return pyjl_handle_error(f, self, exc)
                 else
-                    errset(pyJuliaError, pytuple((pyjlraw(exc), pyjlraw(catch_backtrace()))))
+                    errset(pyJuliaError, pytuple((pyjl(exc), pyjl(catch_backtrace()))))
                     return C.PyNULL
                 end
             catch
@@ -107,7 +89,7 @@ function pyjl_handle_error(f, self, exc)
     t = pyjl_handle_error_type(f, self, exc)::Py
     if pyisnull(t)
         # NULL => raise JuliaError
-        errset(pyJuliaError, pytuple((pyjlraw(exc), pyjlraw(catch_backtrace()))))
+        errset(pyJuliaError, pytuple((pyjl(exc), pyjl(catch_backtrace()))))
         return C.PyNULL
     elseif pyistype(t)
         # Exception type => raise this type of error

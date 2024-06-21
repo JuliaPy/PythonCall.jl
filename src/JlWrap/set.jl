@@ -8,8 +8,6 @@ function pyjlset_discard(x::AbstractSet, v_::Py)
     Py(nothing)
 end
 
-pyjlset_clear(x::AbstractSet) = (empty!(x); Py(nothing))
-
 function pyjlset_pop(x::AbstractSet)
     if isempty(x)
         errset(pybuiltins.KeyError, "pop from an empty set")
@@ -77,18 +75,14 @@ function init_set()
     jl = pyjuliacallmodule
     pybuiltins.exec(pybuiltins.compile("""
     $("\n"^(@__LINE__()-1))
-    class SetValue(AnyValue):
+    class JlSet(JlCollection):
         __slots__ = ()
-        def __bool__(self):
-            return bool(len(self))
+        def __init__(self, value=None):
+            JlBase.__init__(self, value, Base.AbstractSet)
         def add(self, value):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_add)), value)
         def discard(self, value):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_discard)), value)
-        def clear(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlset_clear)))
-        def copy(self):
-            return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
         def pop(self):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_pop)))
         def remove(self, value):
@@ -116,10 +110,18 @@ function init_set()
         def update(self, other):
             return self._jl_callmethod($(pyjl_methodnum(pyjlset_update)), other)
     import collections.abc
-    collections.abc.MutableSet.register(SetValue)
+    collections.abc.MutableSet.register(JlSet)
     del collections
     """, @__FILE__(), "exec"), jl.__dict__)
-    pycopy!(pyjlsettype, jl.SetValue)
+    pycopy!(pyjlsettype, jl.JlSet)
 end
 
-pyjltype(::AbstractSet) = pyjlsettype
+"""
+    pyjlset(x::AbstractSet)
+
+Wrap `x` as a Python `set`-like object.
+"""
+pyjlset(x::AbstractSet) = pyjl(pyjlsettype, x)
+export pyjlset
+
+Py(x::AbstractSet) = pyjlset(x)

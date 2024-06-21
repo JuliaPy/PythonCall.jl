@@ -26,7 +26,7 @@ Furthermore, `pyconvert` can be extended to support more types, whereas `convert
 
 Both packages allow conversion of Julia values to Python: `PyObject(x)` in PyCall, `Py(x)` in PythonCall.
 
-Whereas both packages convert numbers, booleans, tuples and strings to their Python counterparts, they differ in handling other types. For example PyCall converts `AbstractVector` to `list` whereas PythonCall converts `AbstractVector` to `juliacall.VectorValue` which is a sequence type directly wrapping the Julia value - this has the advantage that mutating the Python object also mutates the original Julia object.
+Whereas both packages convert numbers, booleans, tuples and strings to their Python counterparts, they differ in handling other types. For example PyCall converts `AbstractVector` to `list` whereas PythonCall converts `AbstractVector` to `juliacall.JlVector` which is a sequence type directly wrapping the Julia value - this has the advantage that mutating the Python object also mutates the original Julia object.
 
 Hence with PyCall the following does not mutate the original array `x`:
 ```julia

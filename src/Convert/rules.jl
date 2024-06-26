@@ -439,3 +439,16 @@ function pyconvert_rule_timedelta(::Type{Second}, x::Py)
     end
     return Second(days * 3600 * 24 + seconds)
 end
+
+function pyconvert_rule_timedelta(::Type{<:CompoundPeriod}, x::Py)
+    days = pyconvert(Int, x.days)
+    seconds = pyconvert(Int, x.seconds)
+    microseconds = pyconvert(Int, x.microseconds)
+    nanoseconds = pyhasattr(x, "nanoseconds") ? pyconvert(Int, x.nanoseconds) : 0
+    timedelta = Day(days) + Second(seconds) + Microsecond(microseconds) + Nanosecond(nanoseconds)
+    return pyconvert_return(timedelta)
+end
+
+function pyconvert_rule_timedelta(::Type{T}, x::Py) where T<:Period
+    pyconvert_return(convert(T, pyconvert_rule_timedelta(CompoundPeriod, x)))
+end

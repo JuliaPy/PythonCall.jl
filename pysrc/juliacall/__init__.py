@@ -3,6 +3,8 @@
 
 __version__ = '0.9.20'
 
+import atexit
+
 _newmodule = None
 
 def newmodule(name):
@@ -198,6 +200,13 @@ def init():
         (default_bindir if bindir is None else bindir).encode('utf8'),
         None if sysimg is None else sysimg.encode('utf8'),
     )
+
+    @atexit.register
+    def at_jl_exit():
+        jl_atexit_hook = lib.jl_atexit_hook
+        jl_atexit_hook.argtypes = [c.c_int]
+        jl_atexit_hook.restype = None
+        jl_atexit_hook(0)
 
     # initialise PythonCall
     jl_eval = lib.jl_eval_string

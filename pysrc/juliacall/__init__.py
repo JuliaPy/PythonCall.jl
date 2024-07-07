@@ -3,8 +3,6 @@
 
 __version__ = '0.9.20'
 
-import atexit
-
 _newmodule = None
 
 def newmodule(name):
@@ -51,6 +49,7 @@ class JuliaError(Exception):
 CONFIG = {'inited': False}
 
 def init():
+    import atexit
     import os
     import ctypes as c
     import sys
@@ -201,6 +200,8 @@ def init():
         None if sysimg is None else sysimg.encode('utf8'),
     )
 
+    # call jl_atexit_hook() when python exits to gracefully stop the julia runtime,
+    # including running finalizers for any objects that still exist
     @atexit.register
     def at_jl_exit():
         jl_atexit_hook = lib.jl_atexit_hook

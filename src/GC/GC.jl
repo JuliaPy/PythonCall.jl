@@ -21,7 +21,7 @@ const QUEUE = Channel{C.PyPtr}(Inf)
 const GC_TASK = Ref{Task}()
 
 # This we use in testing to know when our GC is running
-const GC_FINISHED = Threads.Condition(ReentrantLock())
+const GC_FINISHED = Threads.Condition()
 
 """
     PythonCall.GC.disable()

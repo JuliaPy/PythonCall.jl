@@ -113,6 +113,7 @@ end
 
 function __init__()
     launch_gc_task()
+    enable() # start enabled
     nothing
 end
 

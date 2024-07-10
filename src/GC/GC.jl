@@ -26,12 +26,8 @@ const GC_FINISHED = Threads.Condition()
 """
     PythonCall.GC.disable()
 
-Disable the PythonCall garbage collector.
+Disable the PythonCall garbage collector. This should generally not be required.
 
-This means that whenever a Python object owned by Julia is finalized, it is not immediately
-freed but is instead added to a queue of objects to free later when `enable()` is called.
-
-Like most PythonCall functions, you must only call this from the main thread.
 """
 function disable()
     ENABLED[] = false
@@ -42,12 +38,8 @@ end
 """
     PythonCall.GC.enable()
 
-Re-enable the PythonCall garbage collector.
+Re-enable the PythonCall garbage collector. This should generally not be required.
 
-This frees any Python objects which were finalized while the GC was disabled, and allows
-objects finalized in the future to be freed immediately.
-
-Like most PythonCall functions, you must only call this from the main thread.
 """
 function enable()
     ENABLED[] = true

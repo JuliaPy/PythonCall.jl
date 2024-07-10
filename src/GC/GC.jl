@@ -86,12 +86,7 @@ function gc_loop()
         if ENABLED[] && !isempty(QUEUE)
             unsafe_process_queue!()
             # just for testing purposes
-            lock(GC_FINISHED)
-            try
-                notify(GC_FINISHED) 
-            finally
-                unlock(GC_FINISHED)
-            end
+            Base.@lock GC_FINISHED notify(GC_FINISHED)
         end
         # wait until there is both something to process
         # and GC is `enabled`

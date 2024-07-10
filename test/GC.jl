@@ -28,12 +28,9 @@ end
         # that the ordering is correct and we can't miss the event.
         is_waiting = Threads.Atomic{Bool}(false)
         rdy = Threads.@spawn begin
-            lock(PythonCall.GC.GC_FINISHED)
-            try
+            Base.@lock PythonCall.GC.GC_FINISHED begin
                 is_waiting[] = true
                 wait(PythonCall.GC.GC_FINISHED)
-            finally
-                unlock(PythonCall.GC.GC_FINISHED)
             end
         end
         # Wait until the task starts

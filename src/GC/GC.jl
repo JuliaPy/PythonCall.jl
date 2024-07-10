@@ -104,7 +104,9 @@ function launch_gc_task()
     # ensure the task runs from thread 1
     ccall(:jl_set_task_tid, Cvoid, (Any, Cint), task, 0)
     schedule(task)
-    Base.errormonitor(task)
+    if isdefined(Base, :errormonitor)
+        Base.errormonitor(task)
+    end
     GC_TASK[] = task
     task
 end

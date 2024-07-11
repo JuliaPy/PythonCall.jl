@@ -12,6 +12,10 @@ using ..C: C
 # `ENABLED`: whether or not python GC is enabled, or paused to process later
 const ENABLED = Threads.Atomic{Bool}(true)
 # this event allows us to `wait` in a task until GC is re-enabled
+# we have both this and `ENABLED` since there is no `isready(::Event)`
+# for us to do a non-blocking check. Instead we must keep the event being triggered
+# in-sync with `ENABLED[]`.
+# We therefore modify both in `enable()` and `disable()` and nowhere else.
 const ENABLED_EVENT = Threads.Event()
 
 # this is the queue to process pointers for GC (`C.Py_DecRef`)

@@ -1,4 +1,5 @@
 Manifest.toml
+Manifest-*.toml
 .ipynb_checkpoints
 __pycache__
 *.egg-info

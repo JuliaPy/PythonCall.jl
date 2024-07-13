@@ -30,6 +30,18 @@ const GC_FINISHED = Threads.Condition()
 # This is used for basic profiling
 const SECONDS_SPENT_IN_GC = Threads.Atomic{Float64}()
 
+const LOGGING_ENABLED = Ref{Bool}(false)
+
+"""
+    PythonCall.GC.enable_logging(enable=true)
+
+Enables printed logging (similar to Julia's `GC.enable_logging`).
+"""
+function enable_logging(enable=true)
+    LOGGING_ENABLED[] = enable
+    return nothing
+end
+
 """
     PythonCall.GC.disable()
 
@@ -54,28 +66,121 @@ function enable()
     return
 end
 
-function enqueue(ptr::C.PyPtr)
-    if ptr != C.PyNULL && C.CTX.is_initialized    
-        t = @elapsed put!(QUEUE, ptr)
-        Threads.atomic_add!(SECONDS_SPENT_IN_GC, t)
+function enqueue_wrapper(f, g)
+    t = @elapsed begin
+        if C.CTX.is_initialized
+            # Eager path: if we are already on thread 1,
+            # we eagerly decrement
+            handled = false
+            if ENABLED[] && Threads.threadid() == 1
+                # temporarily disable thread migration to be sure
+                # we call `C.Py_DecRef` from thread 1
+                old_sticky = current_task().sticky
+                if !old_sticky
+                    current_task().sticky = true
+                end
+                if Threads.threadid() == 1
+                    f()
+                    # if ptr != C.PyNULL
+                    # C.Py_DecRef(ptr)
+                    # end
+                    handled = true
+                end
+                if !old_sticky
+                    current_task().sticky = old_sticky
+                end
+            end
+            if !handled
+                g()
+                # if ptr != C.PyNULL
+                # put!(QUEUE, ptr)
+                # end
+            end
+        end
     end
+    Threads.atomic_add!(SECONDS_SPENT_IN_GC, t)
     return
+end
+
+function enqueue(ptr::C.PyPtr)
+    # if we are on thread 1:
+    f = () -> begin
+        if ptr != C.PyNULL
+            C.Py_DecRef(ptr)
+        end
+    end
+    # otherwise:
+    g = () -> begin
+        if ptr != C.PyNULL
+            put!(QUEUE, ptr)
+        end
+    end
+    enqueue_wrapper(f, g)
 end
 
 function enqueue_all(ptrs)
-    if C.CTX.is_initialized
-        t = @elapsed for ptr in ptrs
-            put!(QUEUE, ptr)
+    # if we are on thread 1:
+    f = () -> begin
+        for ptr in ptrs
+            if ptr != C.PyNULL
+                C.Py_DecRef(ptr)
+            end
         end
-        Threads.atomic_add!(SECONDS_SPENT_IN_GC, t)
     end
-    return
+    # otherwise:
+    g = () -> begin
+        for ptr in ptrs
+            if ptr != C.PyNULL
+                put!(QUEUE, ptr)
+            end
+        end
+    end
+    enqueue_wrapper(f, g)
 end
+
+# function enqueue_all(ptrs)
+#     t = @elapsed begin
+#         if C.CTX.is_initialized
+#             # Eager path: if we are already on thread 1,
+#             # we eagerly decrement
+#             handled = false
+#             if ENABLED[] && Threads.threadid() == 1
+#                 # temporarily disable thread migration to be sure
+#                 # we call `C.Py_DecRef` from thread 1
+#                 old_sticky = current_task().sticky
+#                 if !old_sticky
+#                     current_task().sticky = true
+#                 end
+#                 if Threads.threadid() == 1
+#                     for ptr in ptrs
+#                         if ptr != C.PyNULL
+#                             C.Py_DecRef(ptr)
+#                         end
+#                     end
+#                     handled = true
+#                 end
+#                 if !old_sticky
+#                     current_task().sticky = old_sticky
+#                 end
+#             end
+#             if !handled
+#                 for ptr in ptrs
+#                     if ptr != C.PyNULL
+#                         put!(QUEUE, ptr)
+#                     end
+#                 end
+#             end
+#         end
+#     end
+#     Threads.atomic_add!(SECONDS_SPENT_IN_GC, t)
+#     return
+# end
 
 # must only be called from thread 1 by the task in `GC_TASK[]`
 function unsafe_process_queue!()
+    n = 0
     if !isempty(QUEUE)
-        C.with_gil(false) do
+        t = @elapsed C.with_gil(false) do
             while !isempty(QUEUE) && ENABLED[]
                 # This should never block, since there should
                 # only be one consumer
@@ -83,17 +188,24 @@ function unsafe_process_queue!()
                 ptr = take!(QUEUE)
                 if ptr != C.PyNULL
                     C.Py_DecRef(ptr)
+                    n += 1
                 end
             end
         end
+        if LOGGING_ENABLED[]
+            Base.time_print(stdout, t; msg="Python GC ($n items)")
+            println(stdout)
+        end
+    else
+        t = 0.0
     end
-    return nothing
+    return t
 end
 
 function gc_loop()
     while true
         if ENABLED[] && !isempty(QUEUE)
-            t = @elapsed unsafe_process_queue!()
+            t = unsafe_process_queue!()
             Threads.atomic_add!(SECONDS_SPENT_IN_GC, t)
             # just for testing purposes
             Base.@lock GC_FINISHED notify(GC_FINISHED)

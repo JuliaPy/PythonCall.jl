@@ -27,6 +27,9 @@ const GC_TASK = Ref{Task}()
 # This we use in testing to know when our GC is running
 const GC_FINISHED = Threads.Condition()
 
+# This is used for basic profiling
+const SECONDS_SPENT_IN_GC = Threads.Atomic{Float64}()
+
 """
     PythonCall.GC.disable()
 
@@ -53,16 +56,18 @@ end
 
 function enqueue(ptr::C.PyPtr)
     if ptr != C.PyNULL && C.CTX.is_initialized    
-        put!(QUEUE, ptr)
+        t = @elapsed put!(QUEUE, ptr)
+        Threads.atomic_add!(SECONDS_SPENT_IN_GC, t)
     end
     return
 end
 
 function enqueue_all(ptrs)
     if C.CTX.is_initialized
-        for ptr in ptrs
+        t = @elapsed for ptr in ptrs
             put!(QUEUE, ptr)
         end
+        Threads.atomic_add!(SECONDS_SPENT_IN_GC, t)
     end
     return
 end
@@ -88,7 +93,8 @@ end
 function gc_loop()
     while true
         if ENABLED[] && !isempty(QUEUE)
-            unsafe_process_queue!()
+            t = @elapsed unsafe_process_queue!()
+            Threads.atomic_add!(SECONDS_SPENT_IN_GC, t)
             # just for testing purposes
             Base.@lock GC_FINISHED notify(GC_FINISHED)
         end

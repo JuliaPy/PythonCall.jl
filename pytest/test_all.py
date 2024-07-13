@@ -75,3 +75,18 @@ def test_issue_433():
         """
     )
     assert out == 25
+
+def test_julia_gc():
+    from juliacall import Main as jl
+    # We make a bunch of python objects with no reference to them,
+    # then call GC to try to finalize them.
+    # We want to make sure we don't segfault.
+    jl.seval(
+        """
+        using PythonCall
+        let
+            pyobjs = map(pylist, 1:100)
+        end
+        GC.gc()
+        """
+    )

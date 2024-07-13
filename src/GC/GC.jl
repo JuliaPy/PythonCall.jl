@@ -105,8 +105,10 @@ end
 function enqueue(ptr::C.PyPtr)
     # if we are on thread 1:
     f = () -> begin
-        if ptr != C.PyNULL
-            C.Py_DecRef(ptr)
+        C.with_gil(false) do
+            if ptr != C.PyNULL
+                C.Py_DecRef(ptr)
+            end
         end
     end
     # otherwise:
@@ -121,9 +123,11 @@ end
 function enqueue_all(ptrs)
     # if we are on thread 1:
     f = () -> begin
-        for ptr in ptrs
-            if ptr != C.PyNULL
-                C.Py_DecRef(ptr)
+        C.with_gil(false) do
+            for ptr in ptrs
+                if ptr != C.PyNULL
+                    C.Py_DecRef(ptr)
+                end
             end
         end
     end

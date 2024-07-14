@@ -14,12 +14,15 @@ jobs:
   julia:
     name: Test (${{ matrix.os }}, julia ${{ matrix.jlversion }})
     runs-on: ${{ matrix.os }}
+    env:
+      JULIA_NUM_THREADS: ${{ matrix.jl_nthreads }}
     strategy:
       fail-fast: true
       matrix:
         arch: [x64] # x86 unsupported by MicroMamba
         os: [ubuntu-latest, windows-latest, macos-latest]
-        jlversion: ['1','1.6']
+        jlversion: ['1', '1.6']
+        jl_nthreads: ['1', '2']
     steps:
       - uses: actions/checkout@v2
       - name: Set up Julia ${{ matrix.jlversion }}
@@ -52,11 +55,14 @@ jobs:
   python:
     name: Test (${{ matrix.os }}, python ${{ matrix.pyversion }})
     runs-on: ${{ matrix.os }}
+    env:
+      JULIA_NUM_THREADS: ${{ matrix.jl_nthreads }}
     strategy:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         pyversion: ["3.x", "3.8"]
+        jl_nthreads: ['1', '2']
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.pyversion }}

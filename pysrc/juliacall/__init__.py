@@ -147,6 +147,17 @@ def init():
     CONFIG['opt_handle_signals'] = choice('handle_signals', ['yes', 'no'])[0]
     CONFIG['opt_startup_file'] = choice('startup_file', ['yes', 'no'])[0]
 
+    if CONFIG['opt_handle_signals'] is None:
+        cli_threads = CONFIG['opt_threads']
+        multi = isinstance(cli_threads, int) and cli_threads > 1
+        env_threads = os.environ.get('JULIA_NUM_THREADS', '0')
+        if env_threads == 'auto' or int(env_threads) > 1:
+            multi=True
+        if multi:
+            # We must handle signals if Julia has more than 1 thread.
+            # Should we issue a warning here that we are turning on signal-handling?
+            CONFIG['opt_handle_signals'] = "yes"
+
     # Stop if we already initialised
     if CONFIG['inited']:
         return
@@ -239,24 +250,6 @@ def init():
         raise Exception('PythonCall.jl did not start properly')
 
     CONFIG['inited'] = True
-
-    if CONFIG['opt_handle_signals'] is None:
-        if Base.Threads.nthreads() > 1:
-            # a warning to help multithreaded users
-            # TODO: should we set PYTHON_JULIACALL_HANDLE_SIGNALS=yes whenever PYTHON_JULIACALL_THREADS != 1?
-            warnings.warn(
-                "Julia was started with multiple threads "
-                "but multithreading support is experimental in JuliaCall. "
-                "It is recommended to restart Python with the environment variable "
-                "PYTHON_JULIACALL_HANDLE_SIGNALS=yes "
-                "set, otherwise you may experience segfaults or other crashes. "
-                "Note however that this interferes with Python's own signal handling, "
-                "so for example Ctrl-C will not raise KeyboardInterrupt. "
-                "See https://juliapy.github.io/PythonCall.jl/stable/faq/#Is-PythonCall/JuliaCall-thread-safe? "
-                "for further information. "
-                "You can suppress this warning by setting "
-                "PYTHON_JULIACALL_HANDLE_SIGNALS=no."
-            )
 
     # Next, automatically load the juliacall extension if we are in IPython or Jupyter
     CONFIG['autoload_ipython_extension'] = choice('autoload_ipython_extension', ['yes', 'no'])[0]

@@ -66,6 +66,8 @@ function enable()
     return
 end
 
+# This is called within a finalizer so we must not task switch
+# (so no printing nor blocking on Julia-side locks)
 function enqueue_wrapper(f, g)
     t = @elapsed begin
         if C.CTX.is_initialized
@@ -81,9 +83,6 @@ function enqueue_wrapper(f, g)
                 end
                 if Threads.threadid() == 1
                     f()
-                    # if ptr != C.PyNULL
-                    # C.Py_DecRef(ptr)
-                    # end
                     handled = true
                 end
                 if !old_sticky
@@ -92,9 +91,6 @@ function enqueue_wrapper(f, g)
             end
             if !handled
                 g()
-                # if ptr != C.PyNULL
-                # put!(QUEUE, ptr)
-                # end
             end
         end
     end
@@ -141,44 +137,6 @@ function enqueue_all(ptrs)
     end
     enqueue_wrapper(f, g)
 end
-
-# function enqueue_all(ptrs)
-#     t = @elapsed begin
-#         if C.CTX.is_initialized
-#             # Eager path: if we are already on thread 1,
-#             # we eagerly decrement
-#             handled = false
-#             if ENABLED[] && Threads.threadid() == 1
-#                 # temporarily disable thread migration to be sure
-#                 # we call `C.Py_DecRef` from thread 1
-#                 old_sticky = current_task().sticky
-#                 if !old_sticky
-#                     current_task().sticky = true
-#                 end
-#                 if Threads.threadid() == 1
-#                     for ptr in ptrs
-#                         if ptr != C.PyNULL
-#                             C.Py_DecRef(ptr)
-#                         end
-#                     end
-#                     handled = true
-#                 end
-#                 if !old_sticky
-#                     current_task().sticky = old_sticky
-#                 end
-#             end
-#             if !handled
-#                 for ptr in ptrs
-#                     if ptr != C.PyNULL
-#                         put!(QUEUE, ptr)
-#                     end
-#                 end
-#             end
-#         end
-#     end
-#     Threads.atomic_add!(SECONDS_SPENT_IN_GC, t)
-#     return
-# end
 
 # must only be called from thread 1 by the task in `GC_TASK[]`
 function unsafe_process_queue!()

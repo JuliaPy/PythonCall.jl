@@ -4,6 +4,6 @@ using PythonCall
 let
     pyobjs = map(pylist, 1:100)
     Threads.@threads for obj in pyobjs
-        PythonCall.Core.py_finalizer(obj)
+        finalize(obj)
     end
 end

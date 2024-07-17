@@ -9,16 +9,20 @@ end
 
 function pyshow(io::IO, mime::MIME, x)
     x_ = Py(x)
-    for rule in PYSHOW_RULES
-        rule(io, string(mime), x_) && return
+    if !pyisnull(x_)
+        for rule in PYSHOW_RULES
+            rule(io, string(mime), x_) && return
+        end
     end
     throw(MethodError(show, (io, mime, x_)))
 end
 
 function pyshowable(mime::MIME, x)
     x_ = Py(x)
-    for rule in PYSHOW_RULES
-        rule(devnull, string(mime), x_) && return true
+    if !pyisnull(x_)
+        for rule in PYSHOW_RULES
+            rule(devnull, string(mime), x_) && return true
+        end
     end
     return false
 end

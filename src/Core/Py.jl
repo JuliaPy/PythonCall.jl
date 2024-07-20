@@ -174,6 +174,14 @@ function Base.show(io::IO, x::Py)
     end
 end
 
+printPyPrefix = true
+
+function printPyPrefix!(printPrefix::Bool=true)
+    global printPyPrefix = printPrefix
+    return printPyPrefix
+end
+export printPyPrefix!
+
 function Base.show(io::IO, ::MIME"text/plain", o::Py)
     if pyisnull(o)
         str = "NULL"
@@ -184,7 +192,7 @@ function Base.show(io::IO, ::MIME"text/plain", o::Py)
     compact = get(io, :compact, false)::Bool
     multiline = '\n' in str
     prefix = hasprefix ? compact ? "Py:$(multiline ? '\n' : ' ')" : "Python:$(multiline ? '\n' : ' ')" : ""
-    print(io, prefix)
+    printPyPrefix && print(io, prefix)
     h, w = displaysize(io)
     if get(io, :limit, true)
         h, w = displaysize(io)

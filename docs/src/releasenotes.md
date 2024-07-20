@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased
+## 0.9.21 (2024-07-20)
 * `Serialization.serialize` can use `dill` instead of `pickle` by setting the env var `JULIA_PYTHONCALL_PICKLE=dill`.
 * `numpy.bool_` can now be converted to `Bool` and other number types.
 * `datetime.timedelta` can now be converted to `Dates.Nanosecond`, `Microsecond`, `Millisecond` and `Second`. This behaviour was already documented.

@@ -25,8 +25,14 @@
     @testset "pygetattr" begin
         @test pyisinstance(pygetattr(pybuiltins.None, "__class__"), pybuiltins.type)
         @test_throws PyException pygetattr(pybuiltins.None, "not_an_attr")
-        @test pyisinstance(pygetattr(pybuiltins.None, "__class__", pybuiltins.None), pybuiltins.type)
-        @test pyis(pygetattr(pybuiltins.None, "not_an_attr", pybuiltins.None), pybuiltins.None)
+        @test pyisinstance(
+            pygetattr(pybuiltins.None, "__class__", pybuiltins.None),
+            pybuiltins.type,
+        )
+        @test pyis(
+            pygetattr(pybuiltins.None, "not_an_attr", pybuiltins.None),
+            pybuiltins.None,
+        )
     end
     @testset "pysetattr" begin
         x = pytype("Foo", (), ())()
@@ -77,25 +83,25 @@
     @testset "pytruth" begin
         @test !pytruth(pybuiltins.None)
         @test pytruth(pybuiltins.object)
-        for n in -2:2
+        for n = -2:2
             @test pytruth(pyint(n)) == (n != 0)
         end
-        for n in 0:3
+        for n = 0:3
             @test pytruth(pylist(zeros(n))) == (n != 0)
         end
     end
     @testset "pynot" begin
         @test pynot(pybuiltins.None)
         @test !pynot(pybuiltins.int)
-        for n in -2:2
+        for n = -2:2
             @test pynot(pyfloat(n)) == (n == 0)
         end
-        for n in 0:3
+        for n = 0:3
             @test pynot(pylist(zeros(n))) == (n == 0)
         end
     end
     @testset "pylen" begin
-        for n in 0:3
+        for n = 0:3
             @test pylen(pytuple(zeros(n))) == n
             @test pylen(pylist(zeros(n))) == n
         end
@@ -142,9 +148,9 @@
         @test_throws PyException pycall(pybuiltins.None)
         @test pyeq(Bool, pycall(pybuiltins.int, "10"), 10)
         @test_throws PyException pycall(pybuiltins.int, "10", "20")
-        @test pyeq(Bool, pycall(pybuiltins.int, "10", base=16), 16)
-        @test_throws PyException pycall(pybuiltins.int, "10", base="16")
-        @test_throws PyException pycall(pybuiltins.int, "10", bad_argument=0)
+        @test pyeq(Bool, pycall(pybuiltins.int, "10", base = 16), 16)
+        @test_throws PyException pycall(pybuiltins.int, "10", base = "16")
+        @test_throws PyException pycall(pybuiltins.int, "10", bad_argument = 0)
     end
     @testset "pyeq" begin
         @test pyis(pyeq(pybuiltins.None, pybuiltins.None), pybuiltins.True)
@@ -159,32 +165,32 @@
         @test pyne(Bool, pybuiltins.None, pybuiltins.int)
     end
     @testset "pylt" begin
-        for a in -1:1
-            for b in -1:1
+        for a = -1:1
+            for b = -1:1
                 @test pyis(pylt(pyint(a), pyint(b)), pybool(a < b))
                 @test pylt(Bool, pyint(a), pyint(b)) == (a < b)
             end
         end
     end
     @testset "pyle" begin
-        for a in -1:1
-            for b in -1:1
+        for a = -1:1
+            for b = -1:1
                 @test pyis(pyle(pyint(a), pyint(b)), pybool(a ≤ b))
                 @test pyle(Bool, pyint(a), pyint(b)) == (a ≤ b)
             end
         end
     end
     @testset "pygt" begin
-        for a in -1:1
-            for b in -1:1
+        for a = -1:1
+            for b = -1:1
                 @test pyis(pygt(pyint(a), pyint(b)), pybool(a > b))
                 @test pygt(Bool, pyint(a), pyint(b)) == (a > b)
             end
         end
     end
     @testset "pyge" begin
-        for a in -1:1
-            for b in -1:1
+        for a = -1:1
+            for b = -1:1
                 @test pyis(pyge(pyint(a), pyint(b)), pybool(a ≥ b))
                 @test pyge(Bool, pyint(a), pyint(b)) == (a ≥ b)
             end
@@ -240,47 +246,47 @@ end
 
 @testitem "number" begin
     @testset "pyneg" begin
-        for n in -2:2
+        for n = -2:2
             @test pyeq(Bool, pyneg(pyint(n)), pyint(-n))
         end
     end
     @testset "pypos" begin
-        for n in -2:2
+        for n = -2:2
             @test pyeq(Bool, pypos(pyint(n)), pyint(n))
         end
     end
     @testset "pyabs" begin
-        for n in -2:2
+        for n = -2:2
             @test pyeq(Bool, pyabs(pyint(n)), pyint(abs(n)))
         end
     end
     @testset "pyinv" begin
-        for n in -2:2
+        for n = -2:2
             @test pyeq(Bool, pyinv(pyint(n)), pyint(-n - 1))
         end
     end
     @testset "pyindex" begin
-        for n in -2:2
+        for n = -2:2
             @test pyeq(Bool, pyindex(pyint(n)), pyint(n))
         end
     end
     @testset "pyadd" begin
-        for x in -2:2
-            for y in -2:2
+        for x = -2:2
+            for y = -2:2
                 @test pyeq(Bool, pyadd(pyint(x), pyint(y)), pyint(x + y))
             end
         end
     end
     @testset "pysub" begin
-        for x in -2:2
-            for y in -2:2
+        for x = -2:2
+            for y = -2:2
                 @test pyeq(Bool, pysub(pyint(x), pyint(y)), pyint(x - y))
             end
         end
     end
     @testset "pymul" begin
-        for x in -2:2
-            for y in -2:2
+        for x = -2:2
+            for y = -2:2
                 @test pyeq(Bool, pymul(pyint(x), pyint(y)), pyint(x * y))
             end
         end
@@ -294,8 +300,8 @@ end
     #     end
     # end
     @testset "pytruediv" begin
-        for x in -2:2
-            for y in -2:2
+        for x = -2:2
+            for y = -2:2
                 if y == 0
                     @test_throws PyException pytruediv(pyint(x), pyint(y))
                 else
@@ -305,8 +311,8 @@ end
         end
     end
     @testset "pyfloordiv" begin
-        for x in -2:2
-            for y in -2:2
+        for x = -2:2
+            for y = -2:2
                 if y == 0
                     @test_throws PyException pyfloordiv(pyint(x), pyint(y))
                 else
@@ -316,8 +322,8 @@ end
         end
     end
     @testset "pymod" begin
-        for x in -2:2
-            for y in -2:2
+        for x = -2:2
+            for y = -2:2
                 if y == 0
                     @test_throws PyException pymod(pyint(x), pyint(y))
                 else
@@ -327,8 +333,8 @@ end
         end
     end
     @testset "pydivmod" begin
-        for x in -2:2
-            for y in -2:2
+        for x = -2:2
+            for y = -2:2
                 if y == 0
                     @test_throws PyException pydivmod(pyint(x), pyint(y))
                 else
@@ -338,32 +344,32 @@ end
         end
     end
     @testset "pylshift" begin
-        for n in 0:3
+        for n = 0:3
             @test pyeq(Bool, pylshift(pyint(123), pyint(n)), pyint(123 << n))
         end
     end
     @testset "pyrshift" begin
-        for n in 0:3
+        for n = 0:3
             @test pyeq(Bool, pyrshift(pyint(123), pyint(n)), pyint(123 >> n))
         end
     end
     @testset "pyand" begin
-        for x in 0:3
-            for y in 0:3
+        for x = 0:3
+            for y = 0:3
                 @test pyeq(Bool, pyand(pyint(x), pyint(y)), pyint(x & y))
             end
         end
     end
     @testset "pyxor" begin
-        for x in 0:3
-            for y in 0:3
+        for x = 0:3
+            for y = 0:3
                 @test pyeq(Bool, pyxor(pyint(x), pyint(y)), pyint(x ⊻ y))
             end
         end
     end
     @testset "pyor" begin
-        for x in 0:3
-            for y in 0:3
+        for x = 0:3
+            for y = 0:3
                 @test pyeq(Bool, pyor(pyint(x), pyint(y)), pyint(x | y))
             end
         end
@@ -374,7 +380,7 @@ end
 @testitem "builtins" begin
     @testset "pyprint" begin
         buf = pyimport("io").StringIO()
-        ans = pyprint("hello", 12, file=buf)
+        ans = pyprint("hello", 12, file = buf)
         @test ans === nothing
         buf.seek(0)
         @test pyeq(Bool, buf.read().strip(), "hello 12")
@@ -441,7 +447,11 @@ end
     @test pyisinstance(pybytes(UInt8[1, 2, 3]), pybuiltins.bytes)
     @test pyeq(Bool, pybytes(pylist([1, 2, 3])), pybytes(UInt8[1, 2, 3]))
     @test pyeq(Bool, pybytes(b"foo"), pystr("foo").encode("ascii"))
-    @test pyeq(Bool, pybytes(codeunits(SubString("foobarbaz", 4:6))), pystr("bar").encode("ascii"))
+    @test pyeq(
+        Bool,
+        pybytes(codeunits(SubString("foobarbaz", 4:6))),
+        pystr("bar").encode("ascii"),
+    )
     @test pybytes(Vector, pylist([1, 2, 3])) == UInt8[1, 2, 3]
     @test pybytes(Vector{UInt8}, pylist([1, 2, 3])) == UInt8[1, 2, 3]
     @test pybytes(Base.CodeUnits, pystr("foo").encode("ascii")) == b"foo"
@@ -459,7 +469,7 @@ end
     @test pyeq(Bool, pygetitem(x, 1), 2)
     @test pyeq(Bool, pygetitem(x, 2), 3)
     @test pyeq(Bool, pytuple([1, 2, 3]), x)
-    @test pyeq(Bool, pytuple(i + 1 for i in 0:10 if i < 3), x)
+    @test pyeq(Bool, pytuple(i + 1 for i = 0:10 if i < 3), x)
     @test pyeq(Bool, pytuple(pytuple((1, 2, 3))), x)
     @test pyeq(Bool, pytuple(pylist([1, 2, 3])), x)
 end
@@ -475,7 +485,7 @@ end
     @test pyeq(Bool, pygetitem(x, 1), 2)
     @test pyeq(Bool, pygetitem(x, 2), 3)
     @test pyeq(Bool, pylist([1, 2, 3]), x)
-    @test pyeq(Bool, pylist(i + 1 for i in 0:10 if i < 3), x)
+    @test pyeq(Bool, pylist(i + 1 for i = 0:10 if i < 3), x)
     @test pyeq(Bool, pylist(pylist((1, 2, 3))), x)
     @test pyeq(Bool, pylist(pytuple([1, 2, 3])), x)
     @test pyeq(Bool, pycollist([1, 2, 3]), pylist([1, 2, 3]))
@@ -488,7 +498,7 @@ end
     z = pydict()
     @test pyisinstance(z, pybuiltins.dict)
     @test pylen(z) == 0
-    x = pydict(foo=1, bar=2)
+    x = pydict(foo = 1, bar = 2)
     @test pyisinstance(x, pybuiltins.dict)
     @test pylen(x) == 2
     @test pyeq(Bool, pygetitem(x, "foo"), 1)
@@ -496,7 +506,7 @@ end
     @test pyeq(Bool, pydict(["foo" => 1, "bar" => 2]), x)
     @test pyeq(Bool, pydict([("foo" => 1), ("bar" => 2)]), x)
     @test pyeq(Bool, pydict(Dict("foo" => 1, "bar" => 2)), x)
-    @test pyeq(Bool, pydict((foo=1, bar=2)), x)
+    @test pyeq(Bool, pydict((foo = 1, bar = 2)), x)
     @test pyeq(Bool, pydict(x), x)
 end
 
@@ -736,7 +746,7 @@ end
     @test pyeq(Bool, pyeval("x+1", g, l), 4)
     @test pyeq(Bool, pyeval("x+1", g, Dict()), 3)
     @test pyeq(Bool, pyeval("x+1", g, Dict("x" => 0)), 1)
-    @test pyeq(Bool, pyeval("x+1", g, (x=1,)), 2)
+    @test pyeq(Bool, pyeval("x+1", g, (x = 1,)), 2)
     # check pyexec runs in local scope
     pyexec("x=4", g, l)
     @test pyeq(Bool, g["x"], 2)
@@ -751,13 +761,13 @@ end
     # @pyexec
     @test_throws PyException @pyexec(`raise ValueError`)
     @test @pyexec(`1 + 2`) === nothing
-    @test @pyexec(`ans = 1 + 2` => (ans::Int,)) === (ans=3,)
-    @test @pyexec((x=1, y=2) => `ans = x + y` => (ans::Int,)) === (ans=3,)
+    @test @pyexec(`ans = 1 + 2` => (ans::Int,)) === (ans = 3,)
+    @test @pyexec((x = 1, y = 2) => `ans = x + y` => (ans::Int,)) === (ans = 3,)
     # @pyeval
     @test_throws PyException @pyeval(`import sys`)  # not an expression
     @test_throws PyException @pyeval(`None + None`)
     @test @pyeval(`1 + 2` => Int) === 3
-    @test @pyeval((x=1, y=2) => `x + y` => Int) === 3
+    @test @pyeval((x = 1, y = 2) => `x + y` => Int) === 3
 end
 
 @testitem "@pyconst" begin

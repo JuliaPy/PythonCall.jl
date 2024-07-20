@@ -10,7 +10,8 @@ using UnsafePointers: UnsafePtr
 using CondaPkg: CondaPkg
 using Pkg: Pkg
 using Requires: @require
-using Libdl: dlpath, dlopen, dlopen_e, dlclose, dlsym, dlsym_e, RTLD_LAZY, RTLD_DEEPBIND, RTLD_GLOBAL
+using Libdl:
+    dlpath, dlopen, dlopen_e, dlclose, dlsym, dlsym_e, RTLD_LAZY, RTLD_DEEPBIND, RTLD_GLOBAL
 
 include("consts.jl")
 include("pointers.jl")

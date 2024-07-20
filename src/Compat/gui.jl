@@ -62,75 +62,79 @@ function init_gui()
     if !C.CTX.is_embedded
         # define callbacks
         g = pydict()
-        pyexec("""
-        def new_event_loop_callback(g, interval=0.04):
-            if g in ("pyqt4","pyqt5","pyside","pyside2"):
-                if g == "pyqt4":
-                    import PyQt4.QtCore as QtCore
-                elif g == "pyqt5":
-                    import PyQt5.QtCore as QtCore
-                elif g == "pyside":
-                    import PySide.QtCore as QtCore
-                elif g == "pyside2":
-                    import PySide2.QtCore as QtCore
-                instance = QtCore.QCoreApplication.instance
-                AllEvents = QtCore.QEventLoop.AllEvents
-                processEvents = QtCore.QCoreApplication.processEvents
-                maxtime = int(interval * 1000)
-                def callback():
-                    app = instance()
-                    if app is not None:
-                        app._in_event_loop = True
-                        processEvents(AllEvents, maxtime)
-            elif g in ("gtk","gtk3"):
-                if g == "gtk3":
-                    import gi
-                    if gi.get_required_version("Gtk") is None:
-                        gi.require_version("Gtk", "3.0")
-                    import gi.repository.Gtk as gtk
-                elif g == "gtk":
-                    import gtk
-                events_pending = gtk.events_pending
-                main_iteration = gtk.main_iteration
-                def callback():
-                    while events_pending():
-                        main_iteration()
-            elif g == "wx":
-                import wx
-                GetApp = wx.GetApp
-                EventLoop = wx.EventLoop
-                EventLoopActivator = wx.EventLoopActivator
-                def callback():
-                    app = GetApp()
-                    if app is not None:
-                        app._in_event_loop = True
-                        evtloop = EventLoop()
-                        ea = EventLoopActivator(evtloop)
-                        Pending = evtloop.Pending
-                        Dispatch = evtloop.Dispatch
-                        while Pending():
-                            Dispatch()
-                        app.ProcessIdle()
-            elif g == "tkinter":
-                import tkinter, _tkinter
-                flag = _tkinter.ALL_EVENTS | _tkinter.DONT_WAIT
-                root = None
-                def callback():
-                    global root
-                    new_root = tkinter._default_root
-                    if new_root is not None:
-                        root = new_root
-                    if root is not None:
-                        while root.dooneevent(flag):
-                            pass
-            else:
-                raise ValueError("invalid event loop name: {}".format(g))
-            return callback
-        """, g)
+        pyexec(
+            """
+     def new_event_loop_callback(g, interval=0.04):
+         if g in ("pyqt4","pyqt5","pyside","pyside2"):
+             if g == "pyqt4":
+                 import PyQt4.QtCore as QtCore
+             elif g == "pyqt5":
+                 import PyQt5.QtCore as QtCore
+             elif g == "pyside":
+                 import PySide.QtCore as QtCore
+             elif g == "pyside2":
+                 import PySide2.QtCore as QtCore
+             instance = QtCore.QCoreApplication.instance
+             AllEvents = QtCore.QEventLoop.AllEvents
+             processEvents = QtCore.QCoreApplication.processEvents
+             maxtime = int(interval * 1000)
+             def callback():
+                 app = instance()
+                 if app is not None:
+                     app._in_event_loop = True
+                     processEvents(AllEvents, maxtime)
+         elif g in ("gtk","gtk3"):
+             if g == "gtk3":
+                 import gi
+                 if gi.get_required_version("Gtk") is None:
+                     gi.require_version("Gtk", "3.0")
+                 import gi.repository.Gtk as gtk
+             elif g == "gtk":
+                 import gtk
+             events_pending = gtk.events_pending
+             main_iteration = gtk.main_iteration
+             def callback():
+                 while events_pending():
+                     main_iteration()
+         elif g == "wx":
+             import wx
+             GetApp = wx.GetApp
+             EventLoop = wx.EventLoop
+             EventLoopActivator = wx.EventLoopActivator
+             def callback():
+                 app = GetApp()
+                 if app is not None:
+                     app._in_event_loop = True
+                     evtloop = EventLoop()
+                     ea = EventLoopActivator(evtloop)
+                     Pending = evtloop.Pending
+                     Dispatch = evtloop.Dispatch
+                     while Pending():
+                         Dispatch()
+                     app.ProcessIdle()
+         elif g == "tkinter":
+             import tkinter, _tkinter
+             flag = _tkinter.ALL_EVENTS | _tkinter.DONT_WAIT
+             root = None
+             def callback():
+                 global root
+                 new_root = tkinter._default_root
+                 if new_root is not None:
+                     root = new_root
+                 if root is not None:
+                     while root.dooneevent(flag):
+                         pass
+         else:
+             raise ValueError("invalid event loop name: {}".format(g))
+         return callback
+     """,
+            g,
+        )
         pycopy!(new_event_loop_callback, g["new_event_loop_callback"])
 
         # add a hook to automatically call fix_qt_plugin_path()
-        fixqthook = Py(() -> (Core.CONFIG.auto_fix_qt_plugin_path && fix_qt_plugin_path(); nothing))
+        fixqthook =
+            Py(() -> (Core.CONFIG.auto_fix_qt_plugin_path && fix_qt_plugin_path(); nothing))
         pymodulehooks.add_hook("PyQt4", fixqthook)
         pymodulehooks.add_hook("PyQt5", fixqthook)
         pymodulehooks.add_hook("PySide", fixqthook)

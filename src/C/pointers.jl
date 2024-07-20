@@ -1,4 +1,4 @@
-const CAPI_FUNC_SIGS = Dict{Symbol, Pair{Tuple, Type}}(
+const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     # INITIALIZE
     :Py_Initialize => () => Cvoid,
     :Py_InitializeEx => (Cint,) => Cvoid,
@@ -270,29 +270,33 @@ const CAPI_OBJECTS = Set([
 ])
 
 @eval @kwdef mutable struct CAPIPointers
-    $([:($name :: Ptr{Cvoid} = C_NULL) for name in CAPI_FUNCS]...)
-    $([:($name :: PyPtr = C_NULL) for name in CAPI_EXCEPTIONS]...)
-    $([:($name :: PyPtr = C_NULL) for name in CAPI_OBJECTS]...)
-    PyOS_InputHookPtr :: Ptr{Ptr{Cvoid}} = C_NULL
+    $([:($name::Ptr{Cvoid} = C_NULL) for name in CAPI_FUNCS]...)
+    $([:($name::PyPtr = C_NULL) for name in CAPI_EXCEPTIONS]...)
+    $([:($name::PyPtr = C_NULL) for name in CAPI_OBJECTS]...)
+    PyOS_InputHookPtr::Ptr{Ptr{Cvoid}} = C_NULL
 end
 
 const POINTERS = CAPIPointers()
 
-@eval init_pointers(p::CAPIPointers=POINTERS, lib::Ptr=CTX.lib_ptr) = begin
+@eval init_pointers(p::CAPIPointers = POINTERS, lib::Ptr = CTX.lib_ptr) = begin
     $([
         if name == :Py_FinalizeEx
             :(p.$name = dlsym_e(lib, $(QuoteNode(name))))
         else
             :(p.$name = dlsym(lib, $(QuoteNode(name))))
-        end
-        for name in CAPI_FUNCS
+        end for name in CAPI_FUNCS
     ]...)
-    $([:(p.$name = Base.unsafe_load(Ptr{PyPtr}(dlsym(lib, $(QuoteNode(name)))::Ptr))) for name in CAPI_EXCEPTIONS]...)
+    $(
+        [
+            :(p.$name =
+                    Base.unsafe_load(Ptr{PyPtr}(dlsym(lib, $(QuoteNode(name)))::Ptr))) for name in CAPI_EXCEPTIONS
+        ]...
+    )
     $([:(p.$name = dlsym(lib, $(QuoteNode(name)))) for name in CAPI_OBJECTS]...)
     p.PyOS_InputHookPtr = dlsym(CTX.lib_ptr, :PyOS_InputHook)
 end
 
 for (name, (argtypes, rettype)) in CAPI_FUNC_SIGS
-    args = [Symbol("x", i) for (i,_) in enumerate(argtypes)]
+    args = [Symbol("x", i) for (i, _) in enumerate(argtypes)]
     @eval $name($(args...)) = ccall(POINTERS.$name, $rettype, ($(argtypes...),), $(args...))
 end

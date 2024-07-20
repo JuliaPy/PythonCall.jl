@@ -15,7 +15,12 @@ struct PyPandasDataFrame <: PyTable
     indexname::Union{Symbol,Nothing}
     columnnames::Function # Py -> Symbol
     columntypes::Function # Symbol -> Union{Type,Nothing}
-    function PyPandasDataFrame(x; indexname::Union{Symbol,Nothing}=nothing, columnnames::Function=x->Symbol(x), columntypes::Function=x->nothing)
+    function PyPandasDataFrame(
+        x;
+        indexname::Union{Symbol,Nothing} = nothing,
+        columnnames::Function = x -> Symbol(x),
+        columntypes::Function = x -> nothing,
+    )
         new(Py(x), indexname, columnnames, columntypes)
     end
 end
@@ -24,7 +29,8 @@ export PyPandasDataFrame
 ispy(x::PyPandasDataFrame) = true
 Py(x::PyPandasDataFrame) = x.py
 
-pyconvert_rule_pandasdataframe(::Type{PyPandasDataFrame}, x::Py) = pyconvert_return(PyPandasDataFrame(x))
+pyconvert_rule_pandasdataframe(::Type{PyPandasDataFrame}, x::Py) =
+    pyconvert_return(PyPandasDataFrame(x))
 
 ### Show
 
@@ -84,7 +90,7 @@ function _columns(df, columnnames, columntypes)
     # output a table
     # TODO: realising columns to vectors could be done lazily with a different table type
     schema = Tables.Schema(colnames, coltypes)
-    coldict = Tables.OrderedDict(k=>v for (k,v) in zip(colnames, columns))
+    coldict = Tables.OrderedDict(k => v for (k, v) in zip(colnames, columns))
     table = Tables.DictColumnTable(schema, coldict)
     Tables.columns(table)
 end

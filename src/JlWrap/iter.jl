@@ -27,15 +27,22 @@ end
 
 function init_iter()
     jl = pyjuliacallmodule
-    pybuiltins.exec(pybuiltins.compile("""
-    $("\n"^(@__LINE__()-1))
-    class IteratorValue(AnyValue):
-        __slots__ = ()
-        def __iter__(self):
-            return self
-        def __next__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjliter_next)))
-    """, @__FILE__(), "exec"), jl.__dict__)
+    pybuiltins.exec(
+        pybuiltins.compile(
+            """
+$("\n"^(@__LINE__()-1))
+class IteratorValue(AnyValue):
+    __slots__ = ()
+    def __iter__(self):
+        return self
+    def __next__(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjliter_next)))
+""",
+            @__FILE__(),
+            "exec",
+        ),
+        jl.__dict__,
+    )
     pycopy!(pyjlitertype, jl.IteratorValue)
 end
 

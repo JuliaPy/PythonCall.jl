@@ -1,0 +1,8 @@
+ignore = [
+    "examples",
+    ".git",
+    ".CondaPkg",
+    ".ipynb_checkpoints",
+    ".pytest_cache",
+    ".venv",
+]

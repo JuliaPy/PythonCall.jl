@@ -1,6 +1,7 @@
 const pyjlsettype = pynew()
 
-pyjlset_add(x::AbstractSet, v::Py) = (push!(x, pyconvertarg(eltype(x), v, "value")); Py(nothing))
+pyjlset_add(x::AbstractSet, v::Py) =
+    (push!(x, pyconvertarg(eltype(x), v, "value")); Py(nothing))
 
 function pyjlset_discard(x::AbstractSet, v_::Py)
     v = @pyconvert(eltype(x), v_, return Py(nothing))
@@ -75,50 +76,57 @@ end
 
 function init_set()
     jl = pyjuliacallmodule
-    pybuiltins.exec(pybuiltins.compile("""
-    $("\n"^(@__LINE__()-1))
-    class SetValue(AnyValue):
-        __slots__ = ()
-        def __bool__(self):
-            return bool(len(self))
-        def add(self, value):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlset_add)), value)
-        def discard(self, value):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlset_discard)), value)
-        def clear(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlset_clear)))
-        def copy(self):
-            return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
-        def pop(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlset_pop)))
-        def remove(self, value):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlset_remove)), value)
-        def difference(self, other):
-            return set(self).difference(other)
-        def intersection(self, other):
-            return set(self).intersection(other)
-        def symmetric_difference(self, other):
-            return set(self).symmetric_difference(other)
-        def union(self, other):
-            return set(self).union(other)
-        def isdisjoint(self, other):
-            return set(self).isdisjoint(other)
-        def issubset(self, other):
-            return set(self).issubset(other)
-        def issuperset(self, other):
-            return set(self).issuperset(other)
-        def difference_update(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlset_difference_update)), other)
-        def intersection_update(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlset_intersection_update)), other)
-        def symmetric_difference_update(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlset_symmetric_difference_update)), other)
-        def update(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlset_update)), other)
-    import collections.abc
-    collections.abc.MutableSet.register(SetValue)
-    del collections
-    """, @__FILE__(), "exec"), jl.__dict__)
+    pybuiltins.exec(
+        pybuiltins.compile(
+            """
+$("\n"^(@__LINE__()-1))
+class SetValue(AnyValue):
+    __slots__ = ()
+    def __bool__(self):
+        return bool(len(self))
+    def add(self, value):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlset_add)), value)
+    def discard(self, value):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlset_discard)), value)
+    def clear(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlset_clear)))
+    def copy(self):
+        return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
+    def pop(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlset_pop)))
+    def remove(self, value):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlset_remove)), value)
+    def difference(self, other):
+        return set(self).difference(other)
+    def intersection(self, other):
+        return set(self).intersection(other)
+    def symmetric_difference(self, other):
+        return set(self).symmetric_difference(other)
+    def union(self, other):
+        return set(self).union(other)
+    def isdisjoint(self, other):
+        return set(self).isdisjoint(other)
+    def issubset(self, other):
+        return set(self).issubset(other)
+    def issuperset(self, other):
+        return set(self).issuperset(other)
+    def difference_update(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlset_difference_update)), other)
+    def intersection_update(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlset_intersection_update)), other)
+    def symmetric_difference_update(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlset_symmetric_difference_update)), other)
+    def update(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlset_update)), other)
+import collections.abc
+collections.abc.MutableSet.register(SetValue)
+del collections
+""",
+            @__FILE__(),
+            "exec",
+        ),
+        jl.__dict__,
+    )
     pycopy!(pyjlsettype, jl.SetValue)
 end
 

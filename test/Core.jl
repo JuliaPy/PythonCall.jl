@@ -130,7 +130,7 @@
         @test pylen(x) == 0
     end
     @testset "pydir" begin
-        x = pytype("Foo", (), ["foo"=>1, "bar"=>2])()
+        x = pytype("Foo", (), ["foo" => 1, "bar" => 2])()
         d = pydir(x)
         @test pycontains(d, "__class__")
         @test pycontains(d, "foo")
@@ -256,7 +256,7 @@ end
     end
     @testset "pyinv" begin
         for n in -2:2
-            @test pyeq(Bool, pyinv(pyint(n)), pyint(-n-1))
+            @test pyeq(Bool, pyinv(pyint(n)), pyint(-n - 1))
         end
     end
     @testset "pyindex" begin
@@ -267,21 +267,21 @@ end
     @testset "pyadd" begin
         for x in -2:2
             for y in -2:2
-                @test pyeq(Bool, pyadd(pyint(x), pyint(y)), pyint(x+y))
+                @test pyeq(Bool, pyadd(pyint(x), pyint(y)), pyint(x + y))
             end
         end
     end
     @testset "pysub" begin
         for x in -2:2
             for y in -2:2
-                @test pyeq(Bool, pysub(pyint(x), pyint(y)), pyint(x-y))
+                @test pyeq(Bool, pysub(pyint(x), pyint(y)), pyint(x - y))
             end
         end
     end
     @testset "pymul" begin
         for x in -2:2
             for y in -2:2
-                @test pyeq(Bool, pymul(pyint(x), pyint(y)), pyint(x*y))
+                @test pyeq(Bool, pymul(pyint(x), pyint(y)), pyint(x * y))
             end
         end
     end
@@ -299,7 +299,7 @@ end
                 if y == 0
                     @test_throws PyException pytruediv(pyint(x), pyint(y))
                 else
-                    @test pyeq(Bool, pytruediv(pyint(x), pyint(y)), pyfloat(x/y))
+                    @test pyeq(Bool, pytruediv(pyint(x), pyint(y)), pyfloat(x / y))
                 end
             end
         end
@@ -409,7 +409,7 @@ end
     @test pyeq(Bool, sys.__name__, "sys")
     @test pyeq(Bool, os.__name__, "os")
     sysos = pyimport("sys", "os")
-    @test sysos isa Tuple{Py, Py}
+    @test sysos isa Tuple{Py,Py}
     @test pyis(sysos[1], sys)
     @test pyis(sysos[2], os)
     ver = pyimport("sys" => "version")
@@ -417,7 +417,7 @@ end
     path = pyimport("sys" => "path")
     @test pyis(path, sys.path)
     verpath = pyimport("sys" => ("version", "path"))
-    @test verpath isa Tuple{Py, Py}
+    @test verpath isa Tuple{Py,Py}
     @test pyis(verpath[1], ver)
     @test pyis(verpath[2], path)
 end
@@ -438,12 +438,12 @@ end
 end
 
 @testitem "bytes" begin
-    @test pyisinstance(pybytes(UInt8[1,2,3]), pybuiltins.bytes)
-    @test pyeq(Bool, pybytes(pylist([1,2,3])), pybytes(UInt8[1,2,3]))
+    @test pyisinstance(pybytes(UInt8[1, 2, 3]), pybuiltins.bytes)
+    @test pyeq(Bool, pybytes(pylist([1, 2, 3])), pybytes(UInt8[1, 2, 3]))
     @test pyeq(Bool, pybytes(b"foo"), pystr("foo").encode("ascii"))
     @test pyeq(Bool, pybytes(codeunits(SubString("foobarbaz", 4:6))), pystr("bar").encode("ascii"))
-    @test pybytes(Vector, pylist([1,2,3])) == UInt8[1,2,3]
-    @test pybytes(Vector{UInt8}, pylist([1,2,3])) == UInt8[1,2,3]
+    @test pybytes(Vector, pylist([1, 2, 3])) == UInt8[1, 2, 3]
+    @test pybytes(Vector{UInt8}, pylist([1, 2, 3])) == UInt8[1, 2, 3]
     @test pybytes(Base.CodeUnits, pystr("foo").encode("ascii")) == b"foo"
     @test pybytes(Base.CodeUnits{UInt8,String}, pystr("bar").encode("ascii")) == b"bar"
 end
@@ -452,36 +452,36 @@ end
     z = pytuple()
     @test pyisinstance(z, pybuiltins.tuple)
     @test pylen(z) == 0
-    x = pytuple((1,2,3))
+    x = pytuple((1, 2, 3))
     @test pyisinstance(x, pybuiltins.tuple)
     @test pylen(x) == 3
     @test pyeq(Bool, pygetitem(x, 0), 1)
     @test pyeq(Bool, pygetitem(x, 1), 2)
     @test pyeq(Bool, pygetitem(x, 2), 3)
-    @test pyeq(Bool, pytuple([1,2,3]), x)
-    @test pyeq(Bool, pytuple(i+1 for i in 0:10 if i<3), x)
-    @test pyeq(Bool, pytuple(pytuple((1,2,3))), x)
-    @test pyeq(Bool, pytuple(pylist([1,2,3])), x)
+    @test pyeq(Bool, pytuple([1, 2, 3]), x)
+    @test pyeq(Bool, pytuple(i + 1 for i in 0:10 if i < 3), x)
+    @test pyeq(Bool, pytuple(pytuple((1, 2, 3))), x)
+    @test pyeq(Bool, pytuple(pylist([1, 2, 3])), x)
 end
 
 @testitem "list" begin
     z = pylist()
     @test pyisinstance(z, pybuiltins.list)
     @test pylen(z) == 0
-    x = pylist((1,2,3))
+    x = pylist((1, 2, 3))
     @test pyisinstance(x, pybuiltins.list)
     @test pylen(x) == 3
     @test pyeq(Bool, pygetitem(x, 0), 1)
     @test pyeq(Bool, pygetitem(x, 1), 2)
     @test pyeq(Bool, pygetitem(x, 2), 3)
-    @test pyeq(Bool, pylist([1,2,3]), x)
-    @test pyeq(Bool, pylist(i+1 for i in 0:10 if i<3), x)
-    @test pyeq(Bool, pylist(pylist((1,2,3))), x)
-    @test pyeq(Bool, pylist(pytuple([1,2,3])), x)
-    @test pyeq(Bool, pycollist([1,2,3]), pylist([1,2,3]))
-    @test pyeq(Bool, pycollist([1 2; 3 4]), pylist((pylist([1,3]), pylist([2,4]))))
-    @test pyeq(Bool, pyrowlist([1,2,3]), pylist([1,2,3]))
-    @test pyeq(Bool, pyrowlist([1 2; 3 4]), pylist((pylist([1,2]), pylist([3,4]))))
+    @test pyeq(Bool, pylist([1, 2, 3]), x)
+    @test pyeq(Bool, pylist(i + 1 for i in 0:10 if i < 3), x)
+    @test pyeq(Bool, pylist(pylist((1, 2, 3))), x)
+    @test pyeq(Bool, pylist(pytuple([1, 2, 3])), x)
+    @test pyeq(Bool, pycollist([1, 2, 3]), pylist([1, 2, 3]))
+    @test pyeq(Bool, pycollist([1 2; 3 4]), pylist((pylist([1, 3]), pylist([2, 4]))))
+    @test pyeq(Bool, pyrowlist([1, 2, 3]), pylist([1, 2, 3]))
+    @test pyeq(Bool, pyrowlist([1 2; 3 4]), pylist((pylist([1, 2]), pylist([3, 4]))))
 end
 
 @testitem "dict" begin
@@ -493,9 +493,9 @@ end
     @test pylen(x) == 2
     @test pyeq(Bool, pygetitem(x, "foo"), 1)
     @test pyeq(Bool, pygetitem(x, "bar"), 2)
-    @test pyeq(Bool, pydict(["foo"=>1, "bar"=>2]), x)
-    @test pyeq(Bool, pydict([("foo"=>1), ("bar"=>2)]), x)
-    @test pyeq(Bool, pydict(Dict("foo"=>1, "bar"=>2)), x)
+    @test pyeq(Bool, pydict(["foo" => 1, "bar" => 2]), x)
+    @test pyeq(Bool, pydict([("foo" => 1), ("bar" => 2)]), x)
+    @test pyeq(Bool, pydict(Dict("foo" => 1, "bar" => 2)), x)
     @test pyeq(Bool, pydict((foo=1, bar=2)), x)
     @test pyeq(Bool, pydict(x), x)
 end
@@ -508,7 +508,7 @@ end
     @test pyis(pybool(-1.2), pybuiltins.True)
     @test pyis(pybool(pybuiltins.None), pybuiltins.False)
     @test pyis(pybool(pylist()), pybuiltins.False)
-    @test pyis(pybool(pylist([1,2,3])), pybuiltins.True)
+    @test pyis(pybool(pylist([1, 2, 3])), pybuiltins.True)
 end
 
 @testitem "int" begin
@@ -546,7 +546,7 @@ end
     y = pyfloat(x)
     @test pyisinstance(y, pybuiltins.float)
     @test pyeq(Bool, y, pytruediv(1, 4))
-    x = 1//4
+    x = 1 // 4
     y = pyfloat(x)
     @test pyisinstance(y, pybuiltins.float)
     @test pyeq(Bool, y, pyfloat(float(x)))
@@ -584,7 +584,7 @@ end
     @test pyisinstance(yf, pybuiltins.frozenset)
     @test pylen(yf) == 0
     @test pyeq(Bool, y, yf)
-    x = [1,2,3,2,1]
+    x = [1, 2, 3, 2, 1]
     y = pyset(x)
     yf = pyfrozenset(x)
     @test pyisinstance(y, pybuiltins.set)
@@ -649,7 +649,7 @@ end
     x = pytype(pybuiltins.type)
     @test pyisinstance(x, pybuiltins.type)
     @test pyis(x, pybuiltins.type)
-    x = pytype("Foo", (), ["foo"=>1, "bar"=>2])
+    x = pytype("Foo", (), ["foo" => 1, "bar" => 2])
     @test pyisinstance(x, pybuiltins.type)
     @test pyeq(Bool, x.__name__, "Foo")
     @test pyeq(Bool, x.foo, 1)
@@ -781,6 +781,20 @@ end
         # this previously treated the list as a shape (2,) object
         # but now tries to do `1 + [1, 2]` which properly fails
         @test_throws PyException [1 2; 3 4] .+ pylist([1, 2])
+    end
+    @testset "showable" begin
+        @test showable(MIME("text/plain"), Py(nothing))
+        @test showable(MIME("text/plain"), Py(12))
+        # https://github.com/JuliaPy/PythonCall.jl/issues/522
+        @test showable(MIME("text/plain"), PythonCall.pynew())
+        @test !showable(MIME("text/html"), PythonCall.pynew())
+    end
+    @testset "show" begin
+        @test sprint(show, MIME("text/plain"), Py(nothing)) == "Python: None"
+        @test sprint(show, MIME("text/plain"), Py(12)) == "Python: 12"
+        # https://github.com/JuliaPy/PythonCall.jl/issues/522
+        @test sprint(show, MIME("text/plain"), PythonCall.pynew()) == "Python: NULL"
+        @test_throws MethodError sprint(show, MIME("text/html"), PythonCall.pynew())
     end
 end
 

@@ -4,20 +4,20 @@
 A handle to a loaded instance of libpython, its interpreter, function pointers, etc.
 """
 @kwdef mutable struct Context
-    is_embedded :: Bool = false
-    is_initialized :: Bool = false
-    is_preinitialized :: Bool = false
-    lib_ptr :: Ptr{Cvoid} = C_NULL
-    exe_path :: Union{String, Missing} = missing
-    lib_path :: Union{String, Missing} = missing
-    dlopen_flags :: UInt32 = RTLD_LAZY | RTLD_DEEPBIND | RTLD_GLOBAL
-    pyprogname :: Union{String, Missing} = missing
-    pyprogname_w :: Any = missing
-    pyhome :: Union{String, Missing} = missing
-    pyhome_w :: Any = missing
-    which :: Symbol = :unknown # :CondaPkg, :PyCall, :embedded or :unknown
-    version :: Union{VersionNumber, Missing} = missing
-    matches_pycall :: Union{Bool, Missing} = missing
+    is_embedded::Bool = false
+    is_initialized::Bool = false
+    is_preinitialized::Bool = false
+    lib_ptr::Ptr{Cvoid} = C_NULL
+    exe_path::Union{String,Missing} = missing
+    lib_path::Union{String,Missing} = missing
+    dlopen_flags::UInt32 = RTLD_LAZY | RTLD_DEEPBIND | RTLD_GLOBAL
+    pyprogname::Union{String,Missing} = missing
+    pyprogname_w::Any = missing
+    pyhome::Union{String,Missing} = missing
+    pyhome_w::Any = missing
+    which::Symbol = :unknown # :CondaPkg, :PyCall, :embedded or :unknown
+    version::Union{VersionNumber,Missing} = missing
+    matches_pycall::Union{Bool,Missing} = missing
 end
 
 const CTX = Context()
@@ -60,7 +60,9 @@ function init_context()
                 exe_path::String
             else
                 # By default, we use Python installed by CondaPkg.
-                exe_path = Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") : joinpath(CondaPkg.envdir(), "bin", "python")
+                exe_path =
+                    Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") :
+                    joinpath(CondaPkg.envdir(), "bin", "python")
                 # It's not sufficient to only activate the env while Python is initialising,
                 # it must also be active when loading extension modules (e.g. numpy). So we
                 # activate the environment globally.
@@ -83,7 +85,7 @@ function init_context()
 
         # Ensure Python is runnable
         try
-            run(pipeline(`$exe_path --version`, stdout=devnull, stderr=devnull))
+            run(pipeline(`$exe_path --version`, stdout = devnull, stderr = devnull))
         catch
             error("Python executable $(repr(exe_path)) is not executable.")
         end
@@ -99,9 +101,9 @@ function init_context()
 
         # Find and open Python library
         lib_path = something(
-            CTX.lib_path===missing ? nothing : CTX.lib_path,
+            CTX.lib_path === missing ? nothing : CTX.lib_path,
             get(ENV, "JULIA_PYTHONCALL_LIB", nothing),
-            Some(nothing)
+            Some(nothing),
         )
         if lib_path !== nothing
             lib_ptr = dlopen_e(lib_path, CTX.dlopen_flags)
@@ -112,7 +114,9 @@ function init_context()
                 CTX.lib_ptr = lib_ptr
             end
         else
-            for lib_path in readlines(python_cmd([joinpath(@__DIR__, "find_libpython.py"), "--list-all"]))
+            for lib_path in readlines(
+                python_cmd([joinpath(@__DIR__, "find_libpython.py"), "--list-all"]),
+            )
                 lib_ptr = dlopen_e(lib_path, CTX.dlopen_flags)
                 if lib_ptr == C_NULL
                     @warn "Python library $(repr(lib_path)) could not be opened."
@@ -138,7 +142,7 @@ function init_context()
         init_pointers()
 
         # Compare libpath with PyCall
-        @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
+        @require PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
 
         # Initialize the interpreter
         with_gil() do

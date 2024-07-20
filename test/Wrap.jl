@@ -1,5 +1,5 @@
 @testitem "PyArray" begin
-    x = pyimport("array").array("i", pylist([1,2,3]))
+    x = pyimport("array").array("i", pylist([1, 2, 3]))
     y = PyArray(x)
     z = PyArray{Cint,1,false,false,Cint}(x)
     @testset "construct" begin
@@ -85,7 +85,7 @@
 end
 
 @testitem "PyDict" begin
-    x = pydict(["foo"=>12])
+    x = pydict(["foo" => 12])
     y = PyDict(x)
     z = PyDict{String,Int}(x)
     @testset "construct" begin
@@ -106,8 +106,8 @@ end
         @test t isa PyDict{String,Int}
         @test !pyis(t, z)
         t["bar"] = 34
-        @test z == Dict("foo"=>12)
-        @test t == Dict("foo"=>12, "bar"=>34)
+        @test z == Dict("foo" => 12)
+        @test t == Dict("foo" => 12, "bar" => 34)
     end
     @testset "iterate" begin
         @test collect(z) == ["foo" => 12]
@@ -122,19 +122,19 @@ end
     @testset "setindex!" begin
         t = copy(z)
         @test setindex!(t, 34, "bar") === t
-        @test t == Dict("foo"=>12, "bar"=>34)
+        @test t == Dict("foo" => 12, "bar" => 34)
         @test setindex!(t, 56, "foo") === t
-        @test t == Dict("foo"=>56, "bar"=>34)
+        @test t == Dict("foo" => 56, "bar" => 34)
         @test_throws Exception setindex!(t, 0, nothing)
         @test_throws Exception setindex!(t, nothing, "foo")
-        @test t == Dict("foo"=>56, "bar"=>34)
+        @test t == Dict("foo" => 56, "bar" => 34)
     end
     @testset "delete!" begin
         t = copy(z)
         @test delete!(t, "bar") === t
-        @test t == Dict("foo"=>12)
+        @test t == Dict("foo" => 12)
         @test delete!(t, 0) === t
-        @test t == Dict("foo"=>12)
+        @test t == Dict("foo" => 12)
         @test delete!(t, "foo") === t
         @test isempty(t)
         @test delete!(t, "foo") === t
@@ -160,23 +160,23 @@ end
         @test get(t, 0, 1) === 1
         @test get(Vector, t, "foo") === 12
         @test get(Vector, t, "bar") == []
-        @test t == Dict("foo"=>12)
+        @test t == Dict("foo" => 12)
     end
     @testset "get!" begin
         t = copy(z)
         @test get!(t, "foo", 0) === 12
-        @test t == Dict("foo"=>12)
+        @test t == Dict("foo" => 12)
         @test get!(t, "bar", 0) === 0
-        @test t == Dict("foo"=>12, "bar"=>0)
-        @test get!(()->99, t, "foo") === 12
-        @test t == Dict("foo"=>12, "bar"=>0)
-        @test get!(()->99, t, "baz") === 99
-        @test t == Dict("foo"=>12, "bar"=>0, "baz"=>99)
+        @test t == Dict("foo" => 12, "bar" => 0)
+        @test get!(() -> 99, t, "foo") === 12
+        @test t == Dict("foo" => 12, "bar" => 0)
+        @test get!(() -> 99, t, "baz") === 99
+        @test t == Dict("foo" => 12, "bar" => 0, "baz" => 99)
         @test_throws Exception get!(t, 0, 0)
         @test_throws Exception get!(t, "", "")
-        @test_throws Exception get!(()->99, t, 0)
+        @test_throws Exception get!(() -> 99, t, 0)
         @test_throws Exception get!(Vector, t, "")
-        @test t == Dict("foo"=>12, "bar"=>0, "baz"=>99)
+        @test t == Dict("foo" => 12, "bar" => 0, "baz" => 99)
     end
     @testset "construct empty" begin
         @test PyDict() isa PyDict{Py,Py}
@@ -332,7 +332,7 @@ end
         t = copy(z)
         @test setindex!(t, 11, 1) === t
         @test setindex!(t, 22.0, 2) === t
-        @test setindex!(t, 66//2, 3) == t
+        @test setindex!(t, 66 // 2, 3) == t
         @test t == [11, 22, 33]
         @test_throws BoundsError t[-1] = 0
         @test_throws BoundsError t[0] = 0
@@ -440,7 +440,7 @@ end
         def __init__(self, **kw):
             self.__dict__.update(kw)
     """ => DataFrame
-    df = DataFrame(shape=(4, 3), columns=pylist(["foo", "bar", "baz"]))
+    df = DataFrame(shape = (4, 3), columns = pylist(["foo", "bar", "baz"]))
     x = PyPandasDataFrame(df)
     @test ispy(x)
     @test Py(x) === df

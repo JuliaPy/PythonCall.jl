@@ -13,17 +13,24 @@ end
 
 function init_type()
     jl = pyjuliacallmodule
-    pybuiltins.exec(pybuiltins.compile("""
-    $("\n"^(@__LINE__()-1))
-    class TypeValue(AnyValue):
-        __slots__ = ()
-        def __getitem__(self, k):
-            return self._jl_callmethod($(pyjl_methodnum(pyjltype_getitem)), k)
-        def __setitem__(self, k, v):
-            raise TypeError("not supported")
-        def __delitem__(self, k):
-            raise TypeError("not supported")
-    """, @__FILE__(), "exec"), jl.__dict__)
+    pybuiltins.exec(
+        pybuiltins.compile(
+            """
+$("\n"^(@__LINE__()-1))
+class TypeValue(AnyValue):
+    __slots__ = ()
+    def __getitem__(self, k):
+        return self._jl_callmethod($(pyjl_methodnum(pyjltype_getitem)), k)
+    def __setitem__(self, k, v):
+        raise TypeError("not supported")
+    def __delitem__(self, k):
+        raise TypeError("not supported")
+""",
+            @__FILE__(),
+            "exec",
+        ),
+        jl.__dict__,
+    )
     pycopy!(pyjltypetype, jl.TypeValue)
 end
 

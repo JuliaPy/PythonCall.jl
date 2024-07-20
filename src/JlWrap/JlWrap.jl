@@ -7,8 +7,40 @@ module JlWrap
 
 using ..PythonCall: PythonCall
 using ..Core
-using ..Core: C, Utils, pynew, @autopy, incref, decref, setptr!, getptr, pyjuliacallmodule, pycopy!, errcheck, errset, PyNULL, pyistuple, pyisnull, pyJuliaError, pydel!, pyistype, pytypecheck, pythrow, pytuple_getitem, pyisslice, pystr_asstring, pyosmodule, pyisstr
-using ..Convert: pyconvert, @pyconvert, PYCONVERT_PRIORITY_WRAP, pyconvert_add_rule, pyconvert_tryconvert, pyconvertarg, pyconvert_result
+using ..Core:
+    C,
+    Utils,
+    pynew,
+    @autopy,
+    incref,
+    decref,
+    setptr!,
+    getptr,
+    pyjuliacallmodule,
+    pycopy!,
+    errcheck,
+    errset,
+    PyNULL,
+    pyistuple,
+    pyisnull,
+    pyJuliaError,
+    pydel!,
+    pyistype,
+    pytypecheck,
+    pythrow,
+    pytuple_getitem,
+    pyisslice,
+    pystr_asstring,
+    pyosmodule,
+    pyisstr
+using ..Convert:
+    pyconvert,
+    @pyconvert,
+    PYCONVERT_PRIORITY_WRAP,
+    pyconvert_add_rule,
+    pyconvert_tryconvert,
+    pyconvertarg,
+    pyconvert_result
 using ..GC: GC
 
 using Pkg: Pkg
@@ -33,7 +65,7 @@ include("set.jl")
 include("callback.jl")
 
 function __init__()
-    Cjl.C.with_gil() do 
+    Cjl.C.with_gil() do
         init_base()
         init_raw()
         init_any()

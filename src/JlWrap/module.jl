@@ -15,15 +15,22 @@ end
 
 function init_module()
     jl = pyjuliacallmodule
-    pybuiltins.exec(pybuiltins.compile("""
-    $("\n"^(@__LINE__()-1))
-    class ModuleValue(AnyValue):
-        __slots__ = ()
-        def __dir__(self):
-            return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlmodule_dir)))
-        def seval(self, expr):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlmodule_seval)), expr)
-    """, @__FILE__(), "exec"), jl.__dict__)
+    pybuiltins.exec(
+        pybuiltins.compile(
+            """
+$("\n"^(@__LINE__()-1))
+class ModuleValue(AnyValue):
+    __slots__ = ()
+    def __dir__(self):
+        return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlmodule_dir)))
+    def seval(self, expr):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlmodule_seval)), expr)
+""",
+            @__FILE__(),
+            "exec",
+        ),
+        jl.__dict__,
+    )
     pycopy!(pyjlmoduletype, jl.ModuleValue)
 end
 

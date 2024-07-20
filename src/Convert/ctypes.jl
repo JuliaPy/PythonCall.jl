@@ -33,7 +33,7 @@ const CTYPES_SIMPLE_TYPES = [
 ]
 
 function init_ctypes()
-    for (t,T) in CTYPES_SIMPLE_TYPES
+    for (t, T) in CTYPES_SIMPLE_TYPES
         isptr = endswith(t, "_p")
         isreal = !isptr
         isnumber = isreal
@@ -42,15 +42,17 @@ function init_ctypes()
         isuint = isint && (startswith(t, "u") || t == "size_t")
 
         name = "ctypes:c_$t"
-        rule = pyconvert_rule_ctypessimplevalue{T, false}()
-        saferule = pyconvert_rule_ctypessimplevalue{T, true}()
+        rule = pyconvert_rule_ctypessimplevalue{T,false}()
+        saferule = pyconvert_rule_ctypessimplevalue{T,true}()
 
         t == "char_p" && pyconvert_add_rule(name, Cstring, saferule)
         t == "wchar_p" && pyconvert_add_rule(name, Cwstring, saferule)
         pyconvert_add_rule(name, T, saferule)
         isuint && pyconvert_add_rule(name, UInt, sizeof(T) ≤ sizeof(UInt) ? saferule : rule)
         isuint && pyconvert_add_rule(name, Int, sizeof(T) < sizeof(Int) ? saferule : rule)
-        isint && !isuint && pyconvert_add_rule(name, Int, sizeof(T) ≤ sizeof(Int) ? saferule : rule)
+        isint &&
+            !isuint &&
+            pyconvert_add_rule(name, Int, sizeof(T) ≤ sizeof(Int) ? saferule : rule)
         isint && pyconvert_add_rule(name, Integer, rule)
         isfloat && pyconvert_add_rule(name, Float64, saferule)
         isreal && pyconvert_add_rule(name, Real, rule)

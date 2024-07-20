@@ -79,55 +79,63 @@ function pyjlraw_delitem(self, k_::Py)
 end
 
 pyjlraw_bool(self::Bool) = Py(self)
-pyjlraw_bool(self) = (errset(pybuiltins.TypeError, "Only Julia 'Bool' can be tested for truthyness"); PyNULL)
+pyjlraw_bool(self) =
+    (errset(pybuiltins.TypeError, "Only Julia 'Bool' can be tested for truthyness"); PyNULL)
 
 function init_raw()
     jl = pyjuliacallmodule
-    pybuiltins.exec(pybuiltins.compile("""
-    $("\n"^(@__LINE__()-1))
-    class RawValue(ValueBase):
-        __slots__ = ()
-        def __repr__(self):
-            if self._jl_isnull():
-                return "<jl NULL>"
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlraw_repr)))
-        def __str__(self):
-            if self._jl_isnull():
-                return "NULL"
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlraw_str)))
-        def __getattr__(self, k):
+    pybuiltins.exec(
+        pybuiltins.compile(
+            """
+$("\n"^(@__LINE__()-1))
+class RawValue(ValueBase):
+    __slots__ = ()
+    def __repr__(self):
+        if self._jl_isnull():
+            return "<jl NULL>"
+        else:
+            return self._jl_callmethod($(pyjl_methodnum(pyjlraw_repr)))
+    def __str__(self):
+        if self._jl_isnull():
+            return "NULL"
+        else:
+            return self._jl_callmethod($(pyjl_methodnum(pyjlraw_str)))
+    def __getattr__(self, k):
+        if k.startswith("__") and k.endswith("__"):
+            raise AttributeError(k)
+        else:
+            return self._jl_callmethod($(pyjl_methodnum(pyjlraw_getattr)), k)
+    def __setattr__(self, k, v):
+        try:
+            ValueBase.__setattr__(self, k, v)
+        except AttributeError:
             if k.startswith("__") and k.endswith("__"):
-                raise AttributeError(k)
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlraw_getattr)), k)
-        def __setattr__(self, k, v):
-            try:
-                ValueBase.__setattr__(self, k, v)
-            except AttributeError:
-                if k.startswith("__") and k.endswith("__"):
-                    raise
-            else:
-                return
-            self._jl_callmethod($(pyjl_methodnum(pyjlraw_setattr)), k, v)
-        def __dir__(self):
-            return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlraw_dir)))
-        def __call__(self, *args, **kwargs):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlraw_call)), args, kwargs)
-        def __len__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlraw_len)))
-        def __getitem__(self, k):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlraw_getitem)), k)
-        def __setitem__(self, k, v):
-            self._jl_callmethod($(pyjl_methodnum(pyjlraw_setitem)), k, v)
-        def __delitem__(self, k):
-            self._jl_callmethod($(pyjl_methodnum(pyjlraw_delitem)), k)
-        def __bool__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlraw_bool)))
-        def _jl_any(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjl)))
-    """, @__FILE__(), "exec"), jl.__dict__)
+                raise
+        else:
+            return
+        self._jl_callmethod($(pyjl_methodnum(pyjlraw_setattr)), k, v)
+    def __dir__(self):
+        return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlraw_dir)))
+    def __call__(self, *args, **kwargs):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlraw_call)), args, kwargs)
+    def __len__(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlraw_len)))
+    def __getitem__(self, k):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlraw_getitem)), k)
+    def __setitem__(self, k, v):
+        self._jl_callmethod($(pyjl_methodnum(pyjlraw_setitem)), k, v)
+    def __delitem__(self, k):
+        self._jl_callmethod($(pyjl_methodnum(pyjlraw_delitem)), k)
+    def __bool__(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlraw_bool)))
+    def _jl_any(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjl)))
+""",
+            @__FILE__(),
+            "exec",
+        ),
+        jl.__dict__,
+    )
     pycopy!(pyjlrawtype, jl.RawValue)
 end
 

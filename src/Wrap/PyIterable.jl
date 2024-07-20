@@ -4,7 +4,7 @@
 This object iterates over iterable Python object `x`, yielding values of type `T`.
 """
 struct PyIterable{T}
-    py :: Py
+    py::Py
     PyIterable{T}(x) where {T} = new{T}(Py(x))
 end
 export PyIterable
@@ -17,7 +17,7 @@ Py(x::PyIterable) = x.py
 Base.IteratorSize(::Type{PyIterable{T}}) where {T} = Base.SizeUnknown()
 Base.eltype(::Type{PyIterable{T}}) where {T} = T
 
-function Base.iterate(x::PyIterable{T}, it::Py=pyiter(x)) where {T}
+function Base.iterate(x::PyIterable{T}, it::Py = pyiter(x)) where {T}
     y = unsafe_pynext(it)
     if pyisnull(y)
         pydel!(it)
@@ -27,6 +27,10 @@ function Base.iterate(x::PyIterable{T}, it::Py=pyiter(x)) where {T}
     end
 end
 
-function pyconvert_rule_iterable(::Type{T}, x::Py, ::Type{T1}=Utils._type_ub(T)) where {T<:PyIterable,T1}
+function pyconvert_rule_iterable(
+    ::Type{T},
+    x::Py,
+    ::Type{T1} = Utils._type_ub(T),
+) where {T<:PyIterable,T1}
     pyconvert_return(T1(x))
 end

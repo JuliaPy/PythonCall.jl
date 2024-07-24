@@ -55,12 +55,10 @@ include("numpy.jl")
 include("pandas.jl")
 
 function __init__()
-    C.with_gil() do
-        init_pyconvert()
-        init_ctypes()
-        init_numpy()
-        init_pandas()
-    end
+    init_pyconvert()
+    init_ctypes()
+    init_numpy()
+    init_pandas()
 end
 
 end

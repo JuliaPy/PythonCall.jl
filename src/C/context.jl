@@ -145,63 +145,61 @@ function init_context()
         @require PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
 
         # Initialize the interpreter
-        with_gil() do
-            CTX.is_preinitialized = Py_IsInitialized() != 0
-            if CTX.is_preinitialized
-                @assert CTX.which == :PyCall || CTX.matches_pycall isa Bool
+        CTX.is_preinitialized = Py_IsInitialized() != 0
+        if CTX.is_preinitialized
+            @assert CTX.which == :PyCall || CTX.matches_pycall isa Bool
+        else
+            @assert CTX.which != :PyCall
+            # Find ProgramName and PythonHome
+            script = if Sys.iswindows()
+                """
+                import sys
+                print(sys.executable)
+                if hasattr(sys, "base_exec_prefix"):
+                    sys.stdout.write(sys.base_exec_prefix)
+                else:
+                    sys.stdout.write(sys.exec_prefix)
+                """
             else
-                @assert CTX.which != :PyCall
-                # Find ProgramName and PythonHome
-                script = if Sys.iswindows()
-                    """
-                    import sys
-                    print(sys.executable)
-                    if hasattr(sys, "base_exec_prefix"):
-                        sys.stdout.write(sys.base_exec_prefix)
-                    else:
-                        sys.stdout.write(sys.exec_prefix)
-                    """
+                """
+                import sys
+                print(sys.executable)
+                if hasattr(sys, "base_exec_prefix"):
+                    sys.stdout.write(sys.base_prefix)
+                    sys.stdout.write(":")
+                    sys.stdout.write(sys.base_exec_prefix)
+                else:
+                    sys.stdout.write(sys.prefix)
+                    sys.stdout.write(":")
+                    sys.stdout.write(sys.exec_prefix)
+                """
+            end
+            CTX.pyprogname, CTX.pyhome = readlines(python_cmd(["-c", script]))
+
+            # Set PythonHome
+            CTX.pyhome_w = Base.cconvert(Cwstring, CTX.pyhome)
+            Py_SetPythonHome(pointer(CTX.pyhome_w))
+
+            # Set ProgramName
+            CTX.pyprogname_w = Base.cconvert(Cwstring, CTX.pyprogname)
+            Py_SetProgramName(pointer(CTX.pyprogname_w))
+
+            # Start the interpreter and register exit hooks
+            Py_InitializeEx(0)
+            atexit() do
+                CTX.is_initialized = false
+                if CTX.version === missing || CTX.version < v"3.6"
+                    Py_Finalize()
                 else
-                    """
-                    import sys
-                    print(sys.executable)
-                    if hasattr(sys, "base_exec_prefix"):
-                        sys.stdout.write(sys.base_prefix)
-                        sys.stdout.write(":")
-                        sys.stdout.write(sys.base_exec_prefix)
-                    else:
-                        sys.stdout.write(sys.prefix)
-                        sys.stdout.write(":")
-                        sys.stdout.write(sys.exec_prefix)
-                    """
-                end
-                CTX.pyprogname, CTX.pyhome = readlines(python_cmd(["-c", script]))
-
-                # Set PythonHome
-                CTX.pyhome_w = Base.cconvert(Cwstring, CTX.pyhome)
-                Py_SetPythonHome(pointer(CTX.pyhome_w))
-
-                # Set ProgramName
-                CTX.pyprogname_w = Base.cconvert(Cwstring, CTX.pyprogname)
-                Py_SetProgramName(pointer(CTX.pyprogname_w))
-
-                # Start the interpreter and register exit hooks
-                Py_InitializeEx(0)
-                atexit() do
-                    CTX.is_initialized = false
-                    if CTX.version === missing || CTX.version < v"3.6"
-                        Py_Finalize()
-                    else
-                        if Py_FinalizeEx() == -1
-                            @warn "Py_FinalizeEx() error"
-                        end
+                    if Py_FinalizeEx() == -1
+                        @warn "Py_FinalizeEx() error"
                     end
                 end
             end
-            CTX.is_initialized = true
-            if Py_AtExit(@cfunction(_atpyexit, Cvoid, ())) == -1
-                @warn "Py_AtExit() error"
-            end
+        end
+        CTX.is_initialized = true
+        if Py_AtExit(@cfunction(_atpyexit, Cvoid, ())) == -1
+            @warn "Py_AtExit() error"
         end
     end
 
@@ -218,20 +216,16 @@ function init_context()
         ENV["JULIA_PYTHONCALL_EXE"] = CTX.exe_path::String
     end
 
-    with_gil() do
-
-        # Get the python version
-        verstr = Base.unsafe_string(Py_GetVersion())
-        vermatch = match(r"^[0-9.]+", verstr)
-        if vermatch === nothing
-            error("Cannot parse version from version string: $(repr(verstr))")
-        end
-        CTX.version = VersionNumber(vermatch.match)
-        v"3.5" ≤ CTX.version < v"4" || error(
-            "Only Python 3.5+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
-        )
-
+    # Get the python version
+    verstr = Base.unsafe_string(Py_GetVersion())
+    vermatch = match(r"^[0-9.]+", verstr)
+    if vermatch === nothing
+        error("Cannot parse version from version string: $(repr(verstr))")
     end
+    CTX.version = VersionNumber(vermatch.match)
+    v"3.5" ≤ CTX.version < v"4" || error(
+        "Only Python 3.5+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
+    )
 
     @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version
 

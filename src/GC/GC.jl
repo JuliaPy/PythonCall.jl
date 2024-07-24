@@ -40,11 +40,9 @@ Like most PythonCall functions, you must only call this from the main thread.
 function enable()
     ENABLED[] = true
     if !isempty(QUEUE)
-        C.with_gil(false) do
-            for ptr in QUEUE
-                if ptr != C.PyNULL
-                    C.Py_DecRef(ptr)
-                end
+        for ptr in QUEUE
+            if ptr != C.PyNULL
+                C.Py_DecRef(ptr)
             end
         end
     end
@@ -55,9 +53,7 @@ end
 function enqueue(ptr::C.PyPtr)
     if ptr != C.PyNULL && C.CTX.is_initialized
         if ENABLED[]
-            C.with_gil(false) do
-                C.Py_DecRef(ptr)
-            end
+            C.Py_DecRef(ptr)
         else
             push!(QUEUE, ptr)
         end
@@ -68,11 +64,9 @@ end
 function enqueue_all(ptrs)
     if C.CTX.is_initialized
         if ENABLED[]
-            C.with_gil(false) do
-                for ptr in ptrs
-                    if ptr != C.PyNULL
-                        C.Py_DecRef(ptr)
-                    end
+            for ptr in ptrs
+                if ptr != C.PyNULL
+                    C.Py_DecRef(ptr)
                 end
             end
         else

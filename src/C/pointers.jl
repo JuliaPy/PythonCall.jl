@@ -22,6 +22,8 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     :PyEval_RestoreThread => (Ptr{Cvoid},) => Cvoid,
     :PyGILState_Ensure => () => PyGILState_STATE,
     :PyGILState_Release => (PyGILState_STATE,) => Cvoid,
+    :PyGILState_GetThisThreadState => () => Ptr{Cvoid},
+    :PyGILState_Check => () => Cint,
     # IMPORT
     :PyImport_ImportModule => (Ptr{Cchar},) => PyPtr,
     :PyImport_Import => (PyPtr,) => PyPtr,

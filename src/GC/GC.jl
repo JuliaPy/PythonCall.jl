@@ -39,25 +39,36 @@ Like most PythonCall functions, you must only call this from the main thread.
 """
 function enable()
     ENABLED[] = true
-    if !isempty(QUEUE)
-        C.with_gil(false) do
-            for ptr in QUEUE
-                if ptr != C.PyNULL
-                    C.Py_DecRef(ptr)
-                end
-            end
+    if !isempty(QUEUE) && C.PyGILState_Check() == 1
+        free_queue()
+    end
+    return
+end
+
+function free_queue()
+    for ptr in QUEUE
+        if ptr != C.PyNULL
+            C.Py_DecRef(ptr)
         end
     end
     empty!(QUEUE)
-    return
+    nothing
+end
+
+function gc()
+    if ENABLED[] && C.PyGILState_Check() == 1
+        free_queue()
+        true
+    else
+        false
+    end
 end
 
 function enqueue(ptr::C.PyPtr)
     if ptr != C.PyNULL && C.CTX.is_initialized
-        if ENABLED[]
-            C.with_gil(false) do
-                C.Py_DecRef(ptr)
-            end
+        if ENABLED[] && C.PyGILState_Check() == 1
+            C.Py_DecRef(ptr)
+            isempty(QUEUE) || free_queue()
         else
             push!(QUEUE, ptr)
         end
@@ -67,19 +78,35 @@ end
 
 function enqueue_all(ptrs)
     if C.CTX.is_initialized
-        if ENABLED[]
-            C.with_gil(false) do
-                for ptr in ptrs
-                    if ptr != C.PyNULL
-                        C.Py_DecRef(ptr)
-                    end
+        if ENABLED[] && C.PyGILState_Check() == 1
+            for ptr in ptrs
+                if ptr != C.PyNULL
+                    C.Py_DecRef(ptr)
                 end
             end
+            isempty(QUEUE) || free_queue()
         else
             append!(QUEUE, ptrs)
         end
     end
     return
+end
+
+mutable struct GCHook
+    function GCHook()
+        finalizer(_gchook_finalizer, new())
+    end
+end
+
+function _gchook_finalizer(x)
+    gc()
+    finalizer(_gchook_finalizer, x)
+    nothing
+end
+
+function __init__()
+    GCHook()
+    nothing
 end
 
 end # module GC

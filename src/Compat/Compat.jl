@@ -34,11 +34,9 @@ include("tables.jl")
 include("pycall.jl")
 
 function __init__()
-    C.with_gil() do
-        init_gui()
-        init_pyshow()
-        init_tables()
-    end
+    init_gui()
+    init_pyshow()
+    init_tables()
     @require PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
 end
 end

@@ -78,9 +78,15 @@ const PYJLBUFCACHE = Dict{Ptr{Cvoid},Any}()
     suboffsets::NTuple{N,Int} = ntuple(i -> -1, N)
 end
 
-_pyjl_get_buffer_impl(obj::C.PyPtr, buf::Ptr{C.Py_buffer}, flags::Cint, x, f) = _pyjl_get_buffer_impl(obj, buf, flags, f(x)::PyBufferInfo)
+_pyjl_get_buffer_impl(obj::C.PyPtr, buf::Ptr{C.Py_buffer}, flags::Cint, x, f) =
+    _pyjl_get_buffer_impl(obj, buf, flags, f(x)::PyBufferInfo)
 
-function _pyjl_get_buffer_impl(obj::C.PyPtr, buf::Ptr{C.Py_buffer}, flags::Cint, info::PyBufferInfo{N}) where {N}
+function _pyjl_get_buffer_impl(
+    obj::C.PyPtr,
+    buf::Ptr{C.Py_buffer},
+    flags::Cint,
+    info::PyBufferInfo{N},
+) where {N}
     b = UnsafePtr(buf)
     c = []
 
@@ -126,7 +132,10 @@ function _pyjl_get_buffer_impl(obj::C.PyPtr, buf::Ptr{C.Py_buffer}, flags::Cint,
     elseif Utils.size_to_cstrides(info.itemsize, info.shape) == info.strides
         b.strides[] = C_NULL
     else
-        C.PyErr_SetString(C.POINTERS.PyExc_BufferError, "not C contiguous and strides not requested")
+        C.PyErr_SetString(
+            C.POINTERS.PyExc_BufferError,
+            "not C contiguous and strides not requested",
+        )
         return Cint(-1)
     end
 
@@ -138,7 +147,10 @@ function _pyjl_get_buffer_impl(obj::C.PyPtr, buf::Ptr{C.Py_buffer}, flags::Cint,
         push!(c, suboffsets)
         b.suboffsets[] = pointer(suboffsets)
     else
-        C.PyErr_SetString(C.POINTERS.PyExc_BufferError, "indirect array and suboffsets not requested")
+        C.PyErr_SetString(
+            C.POINTERS.PyExc_BufferError,
+            "indirect array and suboffsets not requested",
+        )
         return Cint(-1)
     end
 
@@ -176,7 +188,9 @@ end
 
 function _pyjl_get_buffer(o::C.PyPtr, buf::Ptr{C.Py_buffer}, flags::Cint)
     num_ = C.PyObject_GetAttrString(o, "_jl_buffer_info")
-    num_ == C_NULL && (C.PyErr_Clear(); C.PyErr_SetString(C.POINTERS.PyExc_BufferError, "not a buffer"); return Cint(-1))
+    num_ == C_NULL && (
+        C.PyErr_Clear(); C.PyErr_SetString(C.POINTERS.PyExc_BufferError, "not a buffer"); return Cint(-1)
+    )
     num = C.PyLong_AsLongLong(num_)
     C.Py_DecRef(num_)
     num == -1 && return Cint(-1)
@@ -186,7 +200,10 @@ function _pyjl_get_buffer(o::C.PyPtr, buf::Ptr{C.Py_buffer}, flags::Cint)
         return _pyjl_get_buffer_impl(o, buf, flags, x, f)::Cint
     catch exc
         @debug "error getting the buffer" exc
-        C.PyErr_SetString(C.POINTERS.PyExc_BufferError, "some error occurred getting the buffer")
+        C.PyErr_SetString(
+            C.POINTERS.PyExc_BufferError,
+            "some error occurred getting the buffer",
+        )
         return Cint(-1)
     end
 end
@@ -263,7 +280,8 @@ const _pyjlbase_as_buffer = fill(C.PyBufferProcs())
 
 function init_c()
     empty!(_pyjlbase_methods)
-    push!(_pyjlbase_methods,
+    push!(
+        _pyjlbase_methods,
         C.PyMethodDef(
             name = pointer(_pyjlbase_callmethod_name),
             meth = @cfunction(_pyjl_callmethod, C.PyPtr, (C.PyPtr, C.PyPtr)),
@@ -316,9 +334,7 @@ function init_c()
 end
 
 function __init__()
-    C.with_gil() do 
-        init_c()
-    end
+    init_c()
 end
 
 PyJuliaValue_IsNull(o::C.PyPtr) = UnsafePtr{PyJuliaValueObject}(o).value[] == 0
@@ -344,7 +360,10 @@ end
 
 PyJuliaValue_New(t::C.PyPtr, @nospecialize(v)) = begin
     if C.PyType_IsSubtype(t, PyJuliaBase_Type[]) != 1
-        C.PyErr_SetString(C.POINTERS.PyExc_TypeError, "Expecting a subtype of 'juliacall.ValueBase'")
+        C.PyErr_SetString(
+            C.POINTERS.PyExc_TypeError,
+            "Expecting a subtype of 'juliacall.ValueBase'",
+        )
         return C.PyNULL
     end
     o = C.PyObject_CallObject(t, C.PyNULL)

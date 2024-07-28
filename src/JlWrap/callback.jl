@@ -33,29 +33,40 @@ function pyjlcallback_call(self, args_::Py, kwargs_::Py)
     pydel!(kwargs_)
     ans
 end
-pyjl_handle_error_type(::typeof(pyjlcallback_call), self, exc::MethodError) = exc.f === self ? pybuiltins.TypeError : PyNULL
+pyjl_handle_error_type(::typeof(pyjlcallback_call), self, exc::MethodError) =
+    exc.f === self ? pybuiltins.TypeError : PyNULL
 
 function init_callback()
     jl = pyjuliacallmodule
-    pybuiltins.exec(pybuiltins.compile("""
-    $("\n"^(@__LINE__()-1))
-    class CallbackValue(ValueBase):
-        __slots__ = ()
-        def __repr__(self):
-            if self._jl_isnull():
-                return "<jl NULL>"
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_repr)))
-        def __str__(self):
-            if self._jl_isnull():
-                return "NULL"
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_str)))
-        def __call__(self, *args, **kwargs):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_call)), args, kwargs)
-    """, @__FILE__(), "exec"), jl.__dict__)
+    pybuiltins.exec(
+        pybuiltins.compile(
+            """
+$("\n"^(@__LINE__()-1))
+class CallbackValue(ValueBase):
+    __slots__ = ()
+    def __repr__(self):
+        if self._jl_isnull():
+            return "<jl NULL>"
+        else:
+            return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_repr)))
+    def __str__(self):
+        if self._jl_isnull():
+            return "NULL"
+        else:
+            return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_str)))
+    def __call__(self, *args, **kwargs):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlcallback_call)), args, kwargs)
+""",
+            @__FILE__(),
+            "exec",
+        ),
+        jl.__dict__,
+    )
     pycopy!(pyjlcallbacktype, jl.CallbackValue)
-    pycopy!(pywrapcallback, pybuiltins.eval("lambda f: lambda *args, **kwargs: f(*args, **kwargs)", pydict()))
+    pycopy!(
+        pywrapcallback,
+        pybuiltins.eval("lambda f: lambda *args, **kwargs: f(*args, **kwargs)", pydict()),
+    )
 end
 
 pyjlcallback(f) = pyjl(pyjlcallbacktype, f)
@@ -71,7 +82,14 @@ The name, qualname, docstring or signature can optionally be set with `name`, `q
 Unlike `Py(f)` (or `pyjl(f)`), the arguments passed to `f` are always of type `Py`, i.e.
 they are never converted.
 """
-function pyfunc(f; name=nothing, qualname=name, doc=nothing, signature=nothing, wrap=pywrapcallback)
+function pyfunc(
+    f;
+    name = nothing,
+    qualname = name,
+    doc = nothing,
+    signature = nothing,
+    wrap = pywrapcallback,
+)
     f2 = ispy(f) ? f : pyjlcallback(f)
     if wrap isa Pair
         wrapargs, wrapfunc = wrap
@@ -129,12 +147,12 @@ If `get`, `set` or `del` is not a Python object (e.g. if it is a `Function`) the
 converted to one with [`pyfunc`](@ref PythonCall.pyfunc). In particular this means the arguments passed to it
 are always of type `Py`.
 """
-pyproperty(; get=nothing, set=nothing, del=nothing, doc=nothing) =
+pyproperty(; get = nothing, set = nothing, del = nothing, doc = nothing) =
     pybuiltins.property(
         fget = ispy(get) || get === nothing ? get : pyfunc(get),
         fset = ispy(set) || set === nothing ? set : pyfunc(set),
         fdel = ispy(del) || del === nothing ? del : pyfunc(del),
         doc = doc,
     )
-pyproperty(get) = pyproperty(get=get)
+pyproperty(get) = pyproperty(get = get)
 export pyproperty

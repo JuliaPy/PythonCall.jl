@@ -6,24 +6,28 @@ Wraps the Python dict `x` (or anything satisfying the mapping interface) as an `
 If `x` is not a Python object, it is converted to one using `pydict`.
 """
 struct PyDict{K,V} <: AbstractDict{K,V}
-    py :: Py
-    PyDict{K,V}(x=pydict()) where {K,V} = new{K,V}(ispy(x) ? Py(x) : pydict(x))
+    py::Py
+    PyDict{K,V}(x = pydict()) where {K,V} = new{K,V}(ispy(x) ? Py(x) : pydict(x))
 end
 export PyDict
 
-PyDict{K}(x=pydict()) where {K} = PyDict{K,Py}(x)
-PyDict(x=pydict()) = PyDict{Py,Py}(x)
+PyDict{K}(x = pydict()) where {K} = PyDict{K,Py}(x)
+PyDict(x = pydict()) = PyDict{Py,Py}(x)
 
 ispy(::PyDict) = true
 Py(x::PyDict) = x.py
 
-function pyconvert_rule_mapping(::Type{T}, x::Py, ::Type{T1}=Utils._type_ub(T)) where {T<:PyDict,T1}
+function pyconvert_rule_mapping(
+    ::Type{T},
+    x::Py,
+    ::Type{T1} = Utils._type_ub(T),
+) where {T<:PyDict,T1}
     pyconvert_return(T1(x))
 end
 
 Base.length(x::PyDict) = Int(pylen(x))
 
-function Base.iterate(x::PyDict{K,V}, it::Py=pyiter(x)) where {K,V}
+function Base.iterate(x::PyDict{K,V}, it::Py = pyiter(x)) where {K,V}
     k_ = unsafe_pynext(it)
     pyisnull(k_) && return nothing
     v_ = pygetitem(x, k_)
@@ -32,7 +36,7 @@ function Base.iterate(x::PyDict{K,V}, it::Py=pyiter(x)) where {K,V}
     return (k => v, it)
 end
 
-function Base.iterate(x::Base.KeySet{K,PyDict{K,V}}, it::Py=pyiter(x.dict)) where {K,V}
+function Base.iterate(x::Base.KeySet{K,PyDict{K,V}}, it::Py = pyiter(x.dict)) where {K,V}
     k_ = unsafe_pynext(it)
     pyisnull(k_) && return nothing
     k = pyconvert(K, k_)

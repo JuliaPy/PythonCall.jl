@@ -1,9 +1,11 @@
 # Release Notes
 
-## Unreleased
+## 0.9.21 (2024-07-20)
 * `Serialization.serialize` can use `dill` instead of `pickle` by setting the env var `JULIA_PYTHONCALL_PICKLE=dill`.
 * `numpy.bool_` can now be converted to `Bool` and other number types.
 * `datetime.timedelta` can now be converted to `Dates.Nanosecond`, `Microsecond`, `Millisecond` and `Second`. This behaviour was already documented.
+* In JuliaCall, the Julia runtime is now properly terminated when Python exits. This means all finalizers should always run.
+* NULL Python objects (such as from `pynew()`) can be safely displayed in multimedia contexts (VSCode/Pluto/etc.)
 
 ## 0.9.20 (2024-05-01)
 * The IPython extension is now automatically loaded upon import if IPython is detected.

@@ -1,7 +1,7 @@
 # This module gets modified by PythonCall when it is loaded, e.g. to include Core, Base
 # and Main modules.
 
-__version__ = '0.9.20'
+__version__ = '0.9.21'
 
 _newmodule = None
 
@@ -49,6 +49,7 @@ class JuliaError(Exception):
 CONFIG = {'inited': False}
 
 def init():
+    import atexit
     import os
     import ctypes as c
     import sys
@@ -177,7 +178,7 @@ def init():
             os.environ['PATH'] = libdir
 
     # Open the library
-    CONFIG['lib'] = lib = c.CDLL(libpath, mode=c.RTLD_GLOBAL)
+    CONFIG['lib'] = lib = c.PyDLL(libpath, mode=c.RTLD_GLOBAL)
 
     # parse options
     argc, argv = args_from_config()
@@ -198,6 +199,15 @@ def init():
         (default_bindir if bindir is None else bindir).encode('utf8'),
         None if sysimg is None else sysimg.encode('utf8'),
     )
+
+    # call jl_atexit_hook() when python exits to gracefully stop the julia runtime,
+    # including running finalizers for any objects that still exist
+    @atexit.register
+    def at_jl_exit():
+        jl_atexit_hook = lib.jl_atexit_hook
+        jl_atexit_hook.argtypes = [c.c_int]
+        jl_atexit_hook.restype = None
+        jl_atexit_hook(0)
 
     # initialise PythonCall
     jl_eval = lib.jl_eval_string

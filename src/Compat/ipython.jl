@@ -8,7 +8,7 @@ struct PythonDisplay <: AbstractDisplay end
 function Base.display(d::PythonDisplay, m::MIME, @nospecialize(x))
     istextmime(m) || throw(MethodError(display, (d, m, x)))
     buf = IOBuffer()
-    io = IOContext(buf, :limit=>true)
+    io = IOContext(buf, :limit => true)
     try
         show(io, m, x)
     catch
@@ -33,7 +33,7 @@ struct IPythonDisplay <: AbstractDisplay end
 function Base.display(d::IPythonDisplay, m::MIME, @nospecialize(x))
     ipy = pyimport("IPython")
     buf = IOBuffer()
-    io = IOContext(buf, :limit=>true)
+    io = IOContext(buf, :limit => true)
     dict = pydict()
     try
         show(io, m, x)
@@ -42,7 +42,7 @@ function Base.display(d::IPythonDisplay, m::MIME, @nospecialize(x))
     end
     data = take!(buf)
     dict[string(m)] = istextmime(m) ? pystr_fromUTF8(data) : pybytes(data)
-    ipy.display.display(dict, raw=true)
+    ipy.display.display(dict, raw = true)
     return
 end
 
@@ -53,7 +53,7 @@ function Base.display(d::IPythonDisplay, @nospecialize(x))
         return
     end
     buf = IOBuffer()
-    io = IOContext(buf, :limit=>true)
+    io = IOContext(buf, :limit => true)
     dict = pydict()
     for m in Utils.mimes_for(x)
         try
@@ -65,6 +65,6 @@ function Base.display(d::IPythonDisplay, @nospecialize(x))
         dict[m] = istextmime(m) ? pystr_fromUTF8(data) : pybytes(data)
     end
     length(dict) == 0 && throw(MethodError(display, (d, x)))
-    ipy.display.display(dict, raw=true)
+    ipy.display.display(dict, raw = true)
     return
 end

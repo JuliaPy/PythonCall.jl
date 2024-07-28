@@ -1,5 +1,5 @@
 struct UnsafePyObject
-    ptr :: C.PyPtr
+    ptr::C.PyPtr
 end
 
 """
@@ -25,7 +25,14 @@ struct PyArray{T,N,M,L,R} <: AbstractArray{T,N}
     strides::NTuple{N,Int}  # strides (in bytes) between elements
     py::Py                  # underlying python object
     handle::Py              # the data in this array is valid as long as this handle is alive
-    function PyArray{T,N,M,L,R}(::Val{:new}, ptr::Ptr{R}, size::NTuple{N,Int}, strides::NTuple{N,Int}, py::Py, handle::Py) where {T,N,M,L,R}
+    function PyArray{T,N,M,L,R}(
+        ::Val{:new},
+        ptr::Ptr{R},
+        size::NTuple{N,Int},
+        strides::NTuple{N,Int},
+        py::Py,
+        handle::Py,
+    ) where {T,N,M,L,R}
         T isa Type || error("T must be a Type")
         N isa Int || error("N must be an Int")
         M isa Bool || error("M must be a Bool")
@@ -47,20 +54,31 @@ for N in (missing, 1, 2)
                     "Py",
                     M === missing ? "" : M ? "Mutable" : "Immutable",
                     L === missing ? "" : L ? "Linear" : "Cartesian",
-                        R ? "Raw" : "",
+                    R ? "Raw" : "",
                     N === missing ? "Array" : N == 1 ? "Vector" : "Matrix",
                 )
                 name == :PyArray && continue
-                    vars = Any[:T, N===missing ? :N : N, M===missing ? :M : M, L===missing ? :L : L, R ? :T : :R]
-                    @eval const $name{$(unique([v for v in vars if v isa Symbol])...)} = PyArray{$(vars...)}
+                vars = Any[
+                    :T,
+                    N === missing ? :N : N,
+                    M === missing ? :M : M,
+                    L === missing ? :L : L,
+                    R ? :T : :R,
+                ]
+                @eval const $name{$(unique([v for v in vars if v isa Symbol])...)} = PyArray{$(vars...)}
                 @eval export $name
             end
         end
     end
 end
 
-(::Type{A})(x; array::Bool=true, buffer::Bool=true, copy::Bool=true) where {A<:PyArray} = @autopy x begin
-    r = pyarray_make(A, x_, array=array, buffer=buffer, copy=copy)
+(::Type{A})(
+    x;
+    array::Bool = true,
+    buffer::Bool = true,
+    copy::Bool = true,
+) where {A<:PyArray} = @autopy x begin
+    r = pyarray_make(A, x_, array = array, buffer = buffer, copy = copy)
     if pyconvert_isunconverted(r)
         error("cannot convert this Python '$(pytype(x_).__name__)' to a '$A'")
     else
@@ -68,7 +86,8 @@ end
     end
 end
 
-pyconvert_rule_array_nocopy(::Type{A}, x::Py) where {A<:PyArray} = pyarray_make(A, x, copy=false)
+pyconvert_rule_array_nocopy(::Type{A}, x::Py) where {A<:PyArray} =
+    pyarray_make(A, x, copy = false)
 
 function pyconvert_rule_array(::Type{A}, x::Py) where {A<:AbstractArray}
     r = pyarray_make(PyArray, x)
@@ -81,28 +100,34 @@ end
 
 abstract type PyArraySource end
 
-function pyarray_make(::Type{A}, x::Py; array::Bool=true, buffer::Bool=true, copy::Bool=true) where {A<:PyArray}
+function pyarray_make(
+    ::Type{A},
+    x::Py;
+    array::Bool = true,
+    buffer::Bool = true,
+    copy::Bool = true,
+) where {A<:PyArray}
     # TODO: try/catch is SLOW if an error is thrown, think about sending errors via return values instead
     A == Union{} && return pyconvert_unconverted()
     if array && (xa = pygetattr(x, "__array_struct__", PyNULL); !pyisnull(xa))
         try
             return pyarray_make(A, x, PyArraySource_ArrayStruct(x, xa))
         catch exc
-            @debug "failed to make PyArray from __array_struct__" exc=exc
+            @debug "failed to make PyArray from __array_struct__" exc = exc
         end
     end
     if array && (xi = pygetattr(x, "__array_interface__", PyNULL); !pyisnull(xi))
         try
             return pyarray_make(A, x, PyArraySource_ArrayInterface(x, xi))
         catch exc
-            @debug "failed to make PyArray from __array_interface__" exc=exc
+            @debug "failed to make PyArray from __array_interface__" exc = exc
         end
     end
     if buffer && C.PyObject_CheckBuffer(getptr(x))
         try
             return pyarray_make(A, x, PyArraySource_Buffer(x))
         catch exc
-            @debug "failed to make PyArray from buffer" exc=exc
+            @debug "failed to make PyArray from buffer" exc = exc
         end
     end
     if copy && array && pyhasattr(x, "__array__")
@@ -111,31 +136,39 @@ function pyarray_make(::Type{A}, x::Py; array::Bool=true, buffer::Bool=true, cop
             try
                 return pyarray_make(A, y, PyArraySource_ArrayStruct(y, ya))
             catch exc
-                @debug "failed to make PyArray from __array__().__array_interface__" exc=exc
+                @debug "failed to make PyArray from __array__().__array_interface__" exc =
+                    exc
             end
         end
         if (yi = pygetattr(y, "__array_interface__", PyNULL); !pyisnull(yi))
             try
                 return pyarray_make(A, y, PyArraySource_ArrayInterface(y, yi))
             catch exc
-                @debug "failed to make PyArray from __array__().__array_interface__" exc=exc
+                @debug "failed to make PyArray from __array__().__array_interface__" exc =
+                    exc
             end
         end
     end
     return pyconvert_unconverted()
 end
 
-function pyarray_make(::Type{A}, x::Py, info::PyArraySource, ::Type{PyArray{T0,N0,M0,L0,R0}}=Utils._type_lb(A), ::Type{PyArray{T1,N1,M1,L1,R1}}=Utils._type_ub(A)) where {A<:PyArray,T0,N0,M0,L0,R0,T1,N1,M1,L1,R1}
+function pyarray_make(
+    ::Type{A},
+    x::Py,
+    info::PyArraySource,
+    ::Type{PyArray{T0,N0,M0,L0,R0}} = Utils._type_lb(A),
+    ::Type{PyArray{T1,N1,M1,L1,R1}} = Utils._type_ub(A),
+) where {A<:PyArray,T0,N0,M0,L0,R0,T1,N1,M1,L1,R1}
     # R (buffer eltype)
     R′ = pyarray_get_R(info)::DataType
     if R0 == R1
         R = R1
         R == R′ || error("incorrect R, got $R, should be $R′")
-    # elseif T0 == T1 && T1 in (Bool, Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128, Float16, Float32, Float64, ComplexF16, ComplexF32, ComplexF64)
-    #     R = T1
-    #     R == R′ || error("incorrect R, got $R, should be $R′")
-    #     R <: R1 || error("R out of bounds, got $R, should be <: $R1")
-    #     R >: R0 || error("R out of bounds, got $R, should be >: $R0")
+        # elseif T0 == T1 && T1 in (Bool, Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128, Float16, Float32, Float64, ComplexF16, ComplexF32, ComplexF64)
+        #     R = T1
+        #     R == R′ || error("incorrect R, got $R, should be $R′")
+        #     R <: R1 || error("R out of bounds, got $R, should be <: $R1")
+        #     R >: R0 || error("R out of bounds, got $R, should be >: $R0")
     else
         R = R′
     end
@@ -190,13 +223,13 @@ end
 # array interface
 
 struct PyArraySource_ArrayInterface <: PyArraySource
-    obj :: Py
-    dict :: Py
-    ptr :: Ptr{Cvoid}
-    readonly :: Bool
-    handle :: Py
+    obj::Py
+    dict::Py
+    ptr::Ptr{Cvoid}
+    readonly::Bool
+    handle::Py
 end
-function PyArraySource_ArrayInterface(x::Py, d::Py=x.__array_interface__)
+function PyArraySource_ArrayInterface(x::Py, d::Py = x.__array_interface__)
     # offset
     # TODO: how is the offset measured?
     offset = pyconvert(Int, @py d.get("offset", 0))
@@ -272,7 +305,8 @@ pyarray_typestrdescr_to_type(ts::String, descr::Py) = begin
         pyisnull(descr) && error("not supported: void dtype with null descr")
         sz = parse(Int, ts[3:end])
         T = pyarray_descr_to_type(descr)
-        sizeof(T) == sz || error("size mismatch: itemsize=$sz but sizeof(descr)=$(sizeof(T))")
+        sizeof(T) == sz ||
+            error("size mismatch: itemsize=$sz but sizeof(descr)=$(sizeof(T))")
         return T
     else
         error("not supported: dtype of kind: $(repr(etc))")
@@ -328,10 +362,10 @@ function pyarray_descr_to_type(descr::Py)
     end
     sizeof(T) == curoffset || error("not supported: dtype with end padding: $descr")
     # return the tuple type if the field names are f0, f1, ..., else return a named tuple
-    if fnames == [Symbol(:f, i-1) for i in 1:length(fnames)]
+    if fnames == [Symbol(:f, i - 1) for i = 1:length(fnames)]
         return T
     else
-        return NamedTuple{Tuple(fnames), T}
+        return NamedTuple{Tuple(fnames),T}
     end
 end
 
@@ -347,9 +381,15 @@ pyarray_get_ptr(src::PyArraySource_ArrayInterface, ::Type{R}) where {R} = Ptr{R}
 
 pyarray_get_N(src::PyArraySource_ArrayInterface) = Int(@py jllen(@jl(src.dict)["shape"]))
 
-pyarray_get_size(src::PyArraySource_ArrayInterface, ::Val{N}) where {N} = pyconvert(NTuple{N,Int}, src.dict["shape"])
+pyarray_get_size(src::PyArraySource_ArrayInterface, ::Val{N}) where {N} =
+    pyconvert(NTuple{N,Int}, src.dict["shape"])
 
-function pyarray_get_strides(src::PyArraySource_ArrayInterface, ::Val{N}, ::Type{R}, size::NTuple{N,Int}) where {R,N}
+function pyarray_get_strides(
+    src::PyArraySource_ArrayInterface,
+    ::Val{N},
+    ::Type{R},
+    size::NTuple{N,Int},
+) where {R,N}
     @py strides = @jl(src.dict).get("strides")
     if pyisnone(strides)
         pydel!(strides)
@@ -366,11 +406,11 @@ pyarray_get_handle(src::PyArraySource_ArrayInterface) = src.handle
 # array struct
 
 struct PyArraySource_ArrayStruct <: PyArraySource
-    obj :: Py
-    capsule :: Py
-    info :: C.PyArrayInterface
+    obj::Py
+    capsule::Py
+    info::C.PyArrayInterface
 end
-function PyArraySource_ArrayStruct(x::Py, capsule::Py=x.__array_struct__)
+function PyArraySource_ArrayStruct(x::Py, capsule::Py = x.__array_struct__)
     name = C.PyCapsule_GetName(getptr(capsule))
     ptr = C.PyCapsule_GetPointer(getptr(capsule), name)
     info = unsafe_load(Ptr{C.PyArrayInterface}(ptr))
@@ -451,7 +491,8 @@ function pyarray_get_R(src::PyArraySource_ArrayStruct)
         hasdescr || error("not supported: void dtype with no descr")
         descr = pynew(incref(src.info.descr))
         T = pyarray_descr_to_type(descr)
-        sizeof(T) == size || error("size mismatch: itemsize=$size but sizeof(descr)=$(sizeof(T))")
+        sizeof(T) == size ||
+            error("size mismatch: itemsize=$size but sizeof(descr)=$(sizeof(T))")
         return T
     else
         error("not supported: dtype of kind: $(Char(kind))")
@@ -469,12 +510,17 @@ end
 
 function pyarray_get_size(src::PyArraySource_ArrayStruct, ::Val{N}) where {N}
     ptr = src.info.shape
-    return ntuple(i->Int(unsafe_load(ptr, i)), Val(N))
+    return ntuple(i -> Int(unsafe_load(ptr, i)), Val(N))
 end
 
-function pyarray_get_strides(src::PyArraySource_ArrayStruct, ::Val{N}, ::Type{R}, size::NTuple{N,Int}) where {N,R}
+function pyarray_get_strides(
+    src::PyArraySource_ArrayStruct,
+    ::Val{N},
+    ::Type{R},
+    size::NTuple{N,Int},
+) where {N,R}
     ptr = src.info.strides
-    return ntuple(i->Int(unsafe_load(ptr, i)), Val(N))
+    return ntuple(i -> Int(unsafe_load(ptr, i)), Val(N))
 end
 
 function pyarray_get_M(src::PyArraySource_ArrayStruct)
@@ -488,9 +534,9 @@ end
 # buffer protocol
 
 struct PyArraySource_Buffer <: PyArraySource
-    obj :: Py
-    memview :: Py
-    buf :: C.UnsafePtr{C.Py_buffer}
+    obj::Py
+    memview::Py
+    buf::C.UnsafePtr{C.Py_buffer}
 end
 function PyArraySource_Buffer(x::Py)
     memview = pybuiltins.memoryview(x)
@@ -535,7 +581,11 @@ const PYARRAY_BUFFERFORMAT_TO_TYPE = let c = Utils.islittleendian() ? '<' : '>'
     )
 end
 
-pyarray_bufferformat_to_type(fmt::String) = get(()->error("not implemented: buffer format $(repr(fmt))"), PYARRAY_BUFFERFORMAT_TO_TYPE, fmt)
+pyarray_bufferformat_to_type(fmt::String) = get(
+    () -> error("not implemented: buffer format $(repr(fmt))"),
+    PYARRAY_BUFFERFORMAT_TO_TYPE,
+    fmt,
+)
 
 function pyarray_get_R(src::PyArraySource_Buffer)
     ptr = src.buf.format[]
@@ -551,17 +601,22 @@ function pyarray_get_size(src::PyArraySource_Buffer, ::Val{N}) where {N}
     if size == C_NULL
         N == 0 ? () : N == 1 ? (Int(src.buf.len[]),) : @assert false
     else
-        ntuple(i->Int(size[i]), N)
+        ntuple(i -> Int(size[i]), N)
     end
 end
 
-function pyarray_get_strides(src::PyArraySource_Buffer, ::Val{N}, ::Type{R}, size::NTuple{N,Int}) where {N,R}
+function pyarray_get_strides(
+    src::PyArraySource_Buffer,
+    ::Val{N},
+    ::Type{R},
+    size::NTuple{N,Int},
+) where {N,R}
     strides = src.buf.strides[]
     if strides == C_NULL
         itemsize = src.buf.shape[] == C_NULL ? 1 : src.buf.itemsize[]
         Utils.size_to_cstrides(itemsize, size)
     else
-        ntuple(i->Int(strides[i]), N)
+        ntuple(i -> Int(strides[i]), N)
     end
 end
 
@@ -577,7 +632,8 @@ Base.size(x::PyArray) = x.size
 
 Utils.ismutablearray(x::PyArray{T,N,M,L,R}) where {T,N,M,L,R} = M
 
-Base.IndexStyle(::Type{PyArray{T,N,M,L,R}}) where {T,N,M,L,R} = L ? Base.IndexLinear() : Base.IndexCartesian()
+Base.IndexStyle(::Type{PyArray{T,N,M,L,R}}) where {T,N,M,L,R} =
+    L ? Base.IndexLinear() : Base.IndexCartesian()
 
 Base.unsafe_convert(::Type{Ptr{T}}, x::PyArray{T,N,M,L,T}) where {T,N,M,L} = x.ptr
 
@@ -588,7 +644,7 @@ Base.strides(x::PyArray{T,N,M,L,R}) where {T,N,M,L,R} =
         error("strides are not a multiple of element size")
     end
 
-function Base.showarg(io::IO, x::PyArray{T,N}, toplevel::Bool) where {T, N}
+function Base.showarg(io::IO, x::PyArray{T,N}, toplevel::Bool) where {T,N}
     toplevel || print(io, "::")
     print(io, "PyArray{")
     show(io, T)
@@ -596,18 +652,24 @@ function Base.showarg(io::IO, x::PyArray{T,N}, toplevel::Bool) where {T, N}
     return
 end
 
-@propagate_inbounds Base.getindex(x::PyArray{T,N}, i::Vararg{Int,N}) where {T,N} = pyarray_getindex(x, i...)
-@propagate_inbounds Base.getindex(x::PyArray{T,N,M,true}, i::Int) where {T,N,M} = pyarray_getindex(x, i)
-@propagate_inbounds Base.getindex(x::PyArray{T,1,M,true}, i::Int) where {T,M} = pyarray_getindex(x, i)
+@propagate_inbounds Base.getindex(x::PyArray{T,N}, i::Vararg{Int,N}) where {T,N} =
+    pyarray_getindex(x, i...)
+@propagate_inbounds Base.getindex(x::PyArray{T,N,M,true}, i::Int) where {T,N,M} =
+    pyarray_getindex(x, i)
+@propagate_inbounds Base.getindex(x::PyArray{T,1,M,true}, i::Int) where {T,M} =
+    pyarray_getindex(x, i)
 
 @propagate_inbounds function pyarray_getindex(x::PyArray, i...)
     @boundscheck checkbounds(x, i...)
     pyarray_load(eltype(x), x.ptr + pyarray_offset(x, i...))
 end
 
-@propagate_inbounds Base.setindex!(x::PyArray{T,N,true}, v, i::Vararg{Int,N}) where {T,N} = pyarray_setindex!(x, v, i...)
-@propagate_inbounds Base.setindex!(x::PyArray{T,N,true,true}, v, i::Int) where {T,N} = pyarray_setindex!(x, v, i)
-@propagate_inbounds Base.setindex!(x::PyArray{T,1,true,true}, v, i::Int) where {T} = pyarray_setindex!(x, v, i)
+@propagate_inbounds Base.setindex!(x::PyArray{T,N,true}, v, i::Vararg{Int,N}) where {T,N} =
+    pyarray_setindex!(x, v, i...)
+@propagate_inbounds Base.setindex!(x::PyArray{T,N,true,true}, v, i::Int) where {T,N} =
+    pyarray_setindex!(x, v, i)
+@propagate_inbounds Base.setindex!(x::PyArray{T,1,true,true}, v, i::Int) where {T} =
+    pyarray_setindex!(x, v, i)
 
 @propagate_inbounds function pyarray_setindex!(x::PyArray{T,N,true}, v, i...) where {T,N}
     @boundscheck checkbounds(x, i...)
@@ -615,7 +677,8 @@ end
     x
 end
 
-pyarray_offset(x::PyArray{T,N,M,true}, i::Int) where {T,N,M} = N == 0 ? 0 : (i - 1) * x.strides[1]
+pyarray_offset(x::PyArray{T,N,M,true}, i::Int) where {T,N,M} =
+    N == 0 ? 0 : (i - 1) * x.strides[1]
 pyarray_offset(x::PyArray{T,1,M,true}, i::Int) where {T,M} = (i - 1) .* x.strides[1]
 pyarray_offset(x::PyArray{T,N}, i::Vararg{Int,N}) where {T,N} = sum((i .- 1) .* x.strides)
 pyarray_offset(x::PyArray{T,0}) where {T} = 0
@@ -671,4 +734,4 @@ function pyarray_check_T(::Type{T}, ::Type{R}) where {T,R}
     else
         error("invalid eltype T=$T for raw eltype R=$R")
     end
-end   
+end

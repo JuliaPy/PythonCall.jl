@@ -38,7 +38,7 @@ Such an object supports attribute access (`obj.attr`), indexing (`obj[idx]`), ca
 return `Py`.
 """
 mutable struct Py
-    ptr :: C.PyPtr
+    ptr::C.PyPtr
     Py(::Val{:new}, ptr::C.PyPtr) = finalizer(py_finalizer, new(ptr))
 end
 export Py
@@ -136,16 +136,25 @@ end
 Py(x::Py) = x
 Py(x::Nothing) = pybuiltins.None
 Py(x::Bool) = x ? pybuiltins.True : pybuiltins.False
-Py(x::Union{String, SubString{String}, Char}) = pystr(x)
-Py(x::Base.CodeUnits{UInt8, String}) = pybytes(x)
-Py(x::Base.CodeUnits{UInt8, SubString{String}}) = pybytes(x)
+Py(x::Union{String,SubString{String},Char}) = pystr(x)
+Py(x::Base.CodeUnits{UInt8,String}) = pybytes(x)
+Py(x::Base.CodeUnits{UInt8,SubString{String}}) = pybytes(x)
 Py(x::Tuple) = pytuple_fromiter(x)
 Py(x::Pair) = pytuple_fromiter(x)
-Py(x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}) = pyint(x)
-Py(x::Rational{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = pyfraction(x)
+Py(x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}) =
+    pyint(x)
+Py(
+    x::Rational{
+        <:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt},
+    },
+) = pyfraction(x)
 Py(x::Union{Float16,Float32,Float64}) = pyfloat(x)
 Py(x::Complex{<:Union{Float16,Float32,Float64}}) = pycomplex(x)
-Py(x::AbstractRange{<:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}}) = pyrange_fromrange(x)
+Py(
+    x::AbstractRange{
+        <:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt},
+    },
+) = pyrange_fromrange(x)
 Py(x::Date) = pydate(x)
 Py(x::Time) = pytime(x)
 Py(x::DateTime) = pydatetime(x)
@@ -184,12 +193,14 @@ function Base.show(io::IO, ::MIME"text/plain", o::Py)
     hasprefix = (get(io, :typeinfo, Any) != Py)::Bool
     compact = get(io, :compact, false)::Bool
     multiline = '\n' in str
-    prefix = hasprefix ? compact ? "Py:$(multiline ? '\n' : ' ')" : "Python:$(multiline ? '\n' : ' ')" : ""
+    prefix =
+        hasprefix ?
+        compact ? "Py:$(multiline ? '\n' : ' ')" : "Python:$(multiline ? '\n' : ' ')" : ""
     print(io, prefix)
     h, w = displaysize(io)
     if get(io, :limit, true)
         h, w = displaysize(io)
-        h = max(h-3, 5) # use 3 fewer lines to allow for the prompt, but always allow at least 5 lines
+        h = max(h - 3, 5) # use 3 fewer lines to allow for the prompt, but always allow at least 5 lines
         if multiline
             h -= 1 # for the prefix
             lines = split(str, '\n')
@@ -199,7 +210,7 @@ function Base.show(io::IO, ::MIME"text/plain", o::Py)
                         println(io)
                     end
                     if length(line) > w
-                        print(io, line[1:nextind(line, 0, w-1)], '…')
+                        print(io, line[1:nextind(line, 0, w - 1)], '…')
                     else
                         print(io, line)
                     end
@@ -208,8 +219,8 @@ function Base.show(io::IO, ::MIME"text/plain", o::Py)
             if length(lines) ≤ h
                 printlines(io, lines, w)
             else
-                h0 = cld(h-1, 2)
-                h1 = h-1-h0
+                h0 = cld(h - 1, 2)
+                h1 = h - 1 - h0
                 i0 = h0
                 i1 = length(lines) - h1 + 1
                 # this indent computation tries to center the "more lines" message near the
@@ -227,22 +238,27 @@ function Base.show(io::IO, ::MIME"text/plain", o::Py)
                 indent = max(0, fld(maxlen + indent - length(msg), 2))
                 printlines(io, lines[1:h0], w)
                 println(io)
-                printstyled(io, " "^indent, msg, color=:light_black)
+                printstyled(io, " "^indent, msg, color = :light_black)
                 println(io)
                 printlines(io, lines[end-h1+1:end], w)
             end
         else
-            maxlen = h*w - length(prefix)
+            maxlen = h * w - length(prefix)
             if length(str) ≤ maxlen
                 print(io, str)
             else
-                h0 = cld(h-1, 2)
-                i0 = nextind(str, 0, h0*w-length(prefix))
-                h1 = h-1-h0
-                i1 = prevind(str, ncodeunits(str)+1, h1*w)
+                h0 = cld(h - 1, 2)
+                i0 = nextind(str, 0, h0 * w - length(prefix))
+                h1 = h - 1 - h0
+                i1 = prevind(str, ncodeunits(str) + 1, h1 * w)
                 println(io, str[1:i0])
                 msg = "... $(length(str[nextind(str,i0):prevind(str,i1)])) more chars ..."
-                printstyled(io, " "^max(0, fld(w-length(msg), 2)), msg, color=:light_black)
+                printstyled(
+                    io,
+                    " "^max(0, fld(w - length(msg), 2)),
+                    msg,
+                    color = :light_black,
+                )
                 println(io)
                 print(io, str[i1:end])
             end
@@ -264,7 +280,7 @@ Base.hasproperty(x::Py, k::String) = pyhasattr(x, k)
 Base.setproperty!(x::Py, k::Symbol, v) = pysetattr(x, string(k), v)
 Base.setproperty!(x::Py, k::String, v) = pysetattr(x, k, v)
 
-function Base.propertynames(x::Py, private::Bool=false)
+function Base.propertynames(x::Py, private::Bool = false)
     # this follows the logic of rlcompleter.py
     function classmembers(c)
         r = pydir(c)
@@ -307,21 +323,23 @@ function Base.get(f::Base.Callable, x::Py, i)
     v === nothing ? f() : v
 end
 
-Base.get!(x::Py, i, d) = get(x, i) do
-    pysetitem(x, i, d)
-    pygetitem(x, i)
-end
+Base.get!(x::Py, i, d) =
+    get(x, i) do
+        pysetitem(x, i, d)
+        pygetitem(x, i)
+    end
 
-Base.get!(f::Base.Callable, x::Py, i) = get(x, i) do
-    pysetitem(x, i, f())
-    pygetitem(x, i)
-end
+Base.get!(f::Base.Callable, x::Py, i) =
+    get(x, i) do
+        pysetitem(x, i, f())
+        pygetitem(x, i)
+    end
 
 Base.eltype(::Type{Py}) = Py
 
 Base.IteratorSize(::Type{Py}) = Base.SizeUnknown()
 
-function Base.iterate(x::Py, it::Py=pyiter(x))
+function Base.iterate(x::Py, it::Py = pyiter(x))
     v = unsafe_pynext(it)
     if pyisnull(v)
         pydel!(it)
@@ -343,9 +361,9 @@ Base.broadcastable(x::Py) = Ref(x)
 Base.:(==)(x::Py, y::Py) = pyeq(x, y)
 Base.:(!=)(x::Py, y::Py) = pyne(x, y)
 Base.:(<=)(x::Py, y::Py) = pyle(x, y)
-Base.:(< )(x::Py, y::Py) = pylt(x, y)
+Base.:(<)(x::Py, y::Py) = pylt(x, y)
 Base.:(>=)(x::Py, y::Py) = pyge(x, y)
-Base.:(> )(x::Py, y::Py) = pygt(x, y)
+Base.:(>)(x::Py, y::Py) = pygt(x, y)
 Base.isless(x::Py, y::Py) = pylt(Bool, x, y)
 Base.isequal(x::Py, y::Py) = pyeq(Bool, x, y)
 
@@ -353,18 +371,18 @@ Base.isequal(x::Py, y::Py) = pyeq(Bool, x, y)
 Base.:(==)(x::Py, y::Number) = pyeq(x, y)
 Base.:(!=)(x::Py, y::Number) = pyne(x, y)
 Base.:(<=)(x::Py, y::Number) = pyle(x, y)
-Base.:(< )(x::Py, y::Number) = pylt(x, y)
+Base.:(<)(x::Py, y::Number) = pylt(x, y)
 Base.:(>=)(x::Py, y::Number) = pyge(x, y)
-Base.:(> )(x::Py, y::Number) = pygt(x, y)
+Base.:(>)(x::Py, y::Number) = pygt(x, y)
 Base.isless(x::Py, y::Number) = pylt(Bool, x, y)
 Base.isequal(x::Py, y::Number) = pyeq(Bool, x, y)
 
 Base.:(==)(x::Number, y::Py) = pyeq(x, y)
 Base.:(!=)(x::Number, y::Py) = pyne(x, y)
 Base.:(<=)(x::Number, y::Py) = pyle(x, y)
-Base.:(< )(x::Number, y::Py) = pylt(x, y)
+Base.:(<)(x::Number, y::Py) = pylt(x, y)
 Base.:(>=)(x::Number, y::Py) = pyge(x, y)
-Base.:(> )(x::Number, y::Py) = pygt(x, y)
+Base.:(>)(x::Number, y::Py) = pygt(x, y)
 Base.isless(x::Number, y::Py) = pylt(Bool, x, y)
 Base.isequal(x::Number, y::Py) = pyeq(Bool, x, y)
 
@@ -433,7 +451,7 @@ Base.powermod(x::Number, y::Py, z::Number) = pypow(x, y, z)
 Base.powermod(x::Py, y::Number, z::Number) = pypow(x, y, z)
 
 # documentation
-function Base.Docs.getdoc(x::Py, @nospecialize(sig)=Union{})
+function Base.Docs.getdoc(x::Py, @nospecialize(sig) = Union{})
     pyisnull(x) && return nothing
     parts = []
     inspect = pyimport("inspect")
@@ -468,5 +486,5 @@ function Base.Docs.getdoc(x::Py, @nospecialize(sig)=Union{})
     end
     return Markdown.MD(parts)
 end
-Base.Docs.doc(x::Py, sig::Type=Union{}) = Base.Docs.getdoc(x, sig)
+Base.Docs.doc(x::Py, sig::Type = Union{}) = Base.Docs.getdoc(x, sig)
 Base.Docs.Binding(x::Py, k::Symbol) = getproperty(x, k)

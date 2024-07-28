@@ -6,17 +6,21 @@ Wraps the Python list `x` (or anything satisfying the sequence interface) as an 
 If `x` is not a Python object, it is converted to one using `pylist`.
 """
 struct PyList{T} <: AbstractVector{T}
-    py :: Py
-    PyList{T}(x=pylist()) where {T} = new{T}(ispy(x) ? Py(x) : pylist(x))
+    py::Py
+    PyList{T}(x = pylist()) where {T} = new{T}(ispy(x) ? Py(x) : pylist(x))
 end
 export PyList
 
-PyList(x=pylist()) = PyList{Py}(x)
+PyList(x = pylist()) = PyList{Py}(x)
 
 ispy(::PyList) = true
 Py(x::PyList) = x.py
 
-function pyconvert_rule_sequence(::Type{T}, x::Py, ::Type{T1}=Utils._type_ub(T)) where {T<:PyList,T1}
+function pyconvert_rule_sequence(
+    ::Type{T},
+    x::Py,
+    ::Type{T1} = Utils._type_ub(T),
+) where {T<:PyList,T1}
     pyconvert_return(T1(x))
 end
 
@@ -26,18 +30,18 @@ Base.size(x::PyList) = (length(x),)
 
 Base.@propagate_inbounds function Base.getindex(x::PyList{T}, i::Int) where {T}
     @boundscheck checkbounds(x, i)
-    return pyconvert(T, @py x[@jl(i-1)])
+    return pyconvert(T, @py x[@jl(i - 1)])
 end
 
 Base.@propagate_inbounds function Base.setindex!(x::PyList{T}, v, i::Int) where {T}
     @boundscheck checkbounds(x, i)
-    pysetitem(x, i-1, convert(T, v))
+    pysetitem(x, i - 1, convert(T, v))
     return x
 end
 
 Base.@propagate_inbounds function Base.insert!(x::PyList{T}, i::Integer, v) where {T}
-    @boundscheck (i==length(x)+1 || checkbounds(x, i))
-    pydel!(@py x.insert(@jl(i-1), @jl(convert(T, v))))
+    @boundscheck (i == length(x) + 1 || checkbounds(x, i))
+    pydel!(@py x.insert(@jl(i - 1), @jl(convert(T, v))))
     return x
 end
 
@@ -69,7 +73,7 @@ end
 
 Base.@propagate_inbounds function Base.popat!(x::PyList{T}, i::Integer) where {T}
     @boundscheck checkbounds(x, i)
-    return pyconvert(T, @py x.pop(@jl(i-1)))
+    return pyconvert(T, @py x.pop(@jl(i - 1)))
 end
 
 Base.@propagate_inbounds function Base.popfirst!(x::PyList{T}) where {T}

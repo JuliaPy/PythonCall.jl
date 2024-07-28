@@ -19,7 +19,25 @@ Provides the `@py` macro.
 module PyMacro
 
 using ..Core
-using ..Core: pyisnot, pynotin, BUILTINS, pynew, pycallargs, pydel!, pycopy!, pystr_intern!, pynulltuple, pytuple_setitem, pyset_add, pyisnull, unsafe_pynext, pydict_setitem, pylist_setitem, pynulllist, pybool_asbool, pythrow
+using ..Core:
+    pyisnot,
+    pynotin,
+    BUILTINS,
+    pynew,
+    pycallargs,
+    pydel!,
+    pycopy!,
+    pystr_intern!,
+    pynulltuple,
+    pytuple_setitem,
+    pyset_add,
+    pyisnull,
+    unsafe_pynext,
+    pydict_setitem,
+    pylist_setitem,
+    pynulllist,
+    pybool_asbool,
+    pythrow
 
 using MacroTools: MacroTools, @capture, isexpr
 
@@ -135,7 +153,7 @@ Base.@kwdef mutable struct PyMacroState
     inits::Vector{Any} = []
 end
 
-function py_macro_err(st, ex, msg=nothing)
+function py_macro_err(st, ex, msg = nothing)
     ex2 = ex isa Expr ? Expr(ex.head, [arg isa Expr ? :__ : arg for arg in ex.args]...) : ex
     message = "@py syntax error: $ex2"
     if msg !== nothing
@@ -152,12 +170,32 @@ py_macro_del(body, var, tmp) =
         push!(body, :($pydel!($var)))
     end
 
-ismacroexpr(ex, name) = isexpr(ex, :macrocall) && (ex.args[1] === Symbol(name) || ex.args[1] === GlobalRef(Base.Core, Symbol(name)))
+ismacroexpr(ex, name) =
+    isexpr(ex, :macrocall) &&
+    (ex.args[1] === Symbol(name) || ex.args[1] === GlobalRef(Base.Core, Symbol(name)))
 
-function py_macro_lower(st, body, ans, ex; flavour=:expr)
+function py_macro_lower(st, body, ans, ex; flavour = :expr)
 
     # scalar literals
-    if ex isa Union{Nothing,String,Bool,Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt,Float16,Float32,Float64}
+    if ex isa Union{
+        Nothing,
+        String,
+        Bool,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        Int128,
+        UInt8,
+        UInt16,
+        UInt32,
+        UInt64,
+        UInt128,
+        BigInt,
+        Float16,
+        Float32,
+        Float64,
+    }
         x = get!(pynew, st.consts, ex)
         py_macro_assign(body, ans, x)
         return false
@@ -224,11 +262,21 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
 
         # x + y + z + ...
     elseif @capture(ex, +(ax_, ay_, az_, args__))
-        return py_macro_lower(st, body, ans, foldl((x, y) -> :($x + $y), (ax, ay, az, args...)))
+        return py_macro_lower(
+            st,
+            body,
+            ans,
+            foldl((x, y) -> :($x + $y), (ax, ay, az, args...)),
+        )
 
         # x * y * z * ...
     elseif @capture(ex, *(ax_, ay_, az_, args__))
-        return py_macro_lower(st, body, ans, foldl((x, y) -> :($x * $y), (ax, ay, az, args...)))
+        return py_macro_lower(
+            st,
+            body,
+            ans,
+            foldl((x, y) -> :($x * $y), (ax, ay, az, args...)),
+        )
 
         # f(args...; kwargs...)
     elseif isexpr(ex, :call)
@@ -309,7 +357,12 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
             @gensym f args kwargs
             tf = py_macro_lower(st, body, f, af)
             targs = py_macro_lower(st, body, args, Expr(:tuple, aargs...))
-            tkwargs = py_macro_lower(st, body, kwargs, Expr(:braces, Expr(:parameters), akwargs...))
+            tkwargs = py_macro_lower(
+                st,
+                body,
+                kwargs,
+                Expr(:braces, Expr(:parameters), akwargs...),
+            )
             py_macro_assign(body, ans, :($pycallargs($f, $args, $kwargs)))
             py_macro_del(body, f, tf)
             py_macro_del(body, args, targs)
@@ -344,7 +397,13 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
             py_macro_assign(body, ans, :($pynulltuple($(length(ex.args)))))
             @gensym a
             for (i, aa) in enumerate(ex.args)
-                ta = py_macro_lower(st, body, a, aa, flavour=flavour == :index ? :index : :expr)
+                ta = py_macro_lower(
+                    st,
+                    body,
+                    a,
+                    aa,
+                    flavour = flavour == :index ? :index : :expr,
+                )
                 push!(body, :($pytuple_setitem($ans, $(i - 1), $a)))
                 py_macro_del(body, a, ta)
             end
@@ -379,7 +438,9 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         #
         # e.g. these are sets: {x, y}, {x...}
         # e.g. these are dicts: {}, {x, y;}, {k=x}, {k=>x}
-        if isempty(ex.args) || any(isexpr(arg, :parameters, :(=), :kw) || @capture(arg, k_:v_) for arg in ex.args)
+        if isempty(ex.args) || any(
+            isexpr(arg, :parameters, :(=), :kw) || @capture(arg, k_:v_) for arg in ex.args
+        )
             aargs = []
             for a in ex.args
                 if isexpr(a, :parameters)
@@ -395,7 +456,11 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
                     py_macro_err(st, aa, "splatting into dicts not implemented")
                 elseif isexpr(aa, :kw, :(=))
                     ak, av = aa.args
-                    ak isa Symbol || py_macro_err(st, aa, "key of `key=value` must be a symbol - did you mean `key:value`?")
+                    ak isa Symbol || py_macro_err(
+                        st,
+                        aa,
+                        "key of `key=value` must be a symbol - did you mean `key:value`?",
+                    )
                     tk = py_macro_lower(st, body, k, string(ak))
                     tv = py_macro_lower(st, body, v, av)
                     push!(body, :($pydict_setitem($ans, $k, $v)))
@@ -446,9 +511,9 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         @gensym x k
         tx = py_macro_lower(st, body, x, ax)
         if length(ak) == 1
-            tk = py_macro_lower(st, body, k, ak[1]; flavour=:index)
+            tk = py_macro_lower(st, body, k, ak[1]; flavour = :index)
         else
-            tk = py_macro_lower(st, body, k, Expr(:tuple, ak...); flavour=:index)
+            tk = py_macro_lower(st, body, k, Expr(:tuple, ak...); flavour = :index)
         end
         py_macro_assign(body, ans, :($pygetitem($x, $k)))
         py_macro_del(body, x, tx)
@@ -485,16 +550,20 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
                 @gensym x k
                 tx = py_macro_lower(st, body, x, ax)
                 if length(ak) == 1
-                    tk = py_macro_lower(st, body, k, ak[1], flavour=:index)
+                    tk = py_macro_lower(st, body, k, ak[1], flavour = :index)
                 else
-                    tk = py_macro_lower(st, body, k, Expr(:tuple, ak...), flavour=:index)
+                    tk = py_macro_lower(st, body, k, Expr(:tuple, ak...), flavour = :index)
                 end
                 push!(body, :($pydelitem($x, $k)))
                 py_macro_del(body, x, tx)
                 py_macro_del(body, k, tk)
 
             else
-                py_macro_err(st, ex, "@del argument must be an attribute or indexing expression")
+                py_macro_err(
+                    st,
+                    ex,
+                    "@del argument must be an attribute or indexing expression",
+                )
             end
         end
         py_macro_assign(body, ans, nothing)
@@ -515,7 +584,13 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
         x = pynew()
         args = [isexpr(arg, :(=)) ? Expr(:kw, arg.args...) : arg for arg in args]
         filename = "$(st.src.file):$(st.src.line)"
-        push!(st.inits, :($pycopy!($x, $pybuiltins.compile($code, filename=$filename, mode=$mode, $(args...)))))
+        push!(
+            st.inits,
+            :($pycopy!(
+                $x,
+                $pybuiltins.compile($code, filename = $filename, mode = $mode, $(args...)),
+            )),
+        )
         py_macro_assign(body, ans, x)
         return false
 
@@ -597,7 +672,10 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
             tx || push!(body3, :($ans = $pynew($Py($ans))))
             ty || push!(body2, :($ans = $pynew($Py($ans))))
         end
-        push!(body, Expr(:if, :($pytruth($ans)), Expr(:block, body2...), Expr(:block, body3...)))
+        push!(
+            body,
+            Expr(:if, :($pytruth($ans)), Expr(:block, body2...), Expr(:block, body3...)),
+        )
         return t
 
         # x || y
@@ -613,7 +691,10 @@ function py_macro_lower(st, body, ans, ex; flavour=:expr)
             tx || push!(body2, :($ans = $pynew($Py($ans))))
             ty || push!(body3, :($ans = $pynew($Py($ans))))
         end
-        push!(body, Expr(:if, :($pytruth($ans)), Expr(:block, body2...), Expr(:block, body3...)))
+        push!(
+            body,
+            Expr(:if, :($pytruth($ans)), Expr(:block, body2...), Expr(:block, body3...)),
+        )
         return t
 
         # while x; ...; end
@@ -731,9 +812,9 @@ function py_macro_lower_assign(st, body, lhs, rhs::Symbol)
         @gensym x k
         tx = py_macro_lower(st, body, x, ax)
         if length(ak) == 1
-            tk = py_macro_lower(st, body, k, ak[1], flavour=:index)
+            tk = py_macro_lower(st, body, k, ak[1], flavour = :index)
         else
-            tk = py_macro_lower(st, body, k, Expr(:tuple, ak...), flavour=:index)
+            tk = py_macro_lower(st, body, k, Expr(:tuple, ak...), flavour = :index)
         end
         push!(body, :($pysetitem($x, $k, $rhs)))
         py_macro_del(body, x, tx)
@@ -773,7 +854,7 @@ end
 function py_macro(ex, mod, src)
     body = []
     @gensym ans
-    st = PyMacroState(mod=mod, src=src)
+    st = PyMacroState(mod = mod, src = src)
     py_macro_lower(st, body, ans, ex)
     if !isempty(st.consts) || !isempty(st.inits)
         doinit = Ref(true)

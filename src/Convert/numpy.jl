@@ -104,7 +104,9 @@ function init_numpy()
         pyconvert_add_rule(name, T, saferule, PYCONVERT_PRIORITY_ARRAY)
         isuint && pyconvert_add_rule(name, UInt, sizeof(T) ≤ sizeof(UInt) ? saferule : rule)
         isuint && pyconvert_add_rule(name, Int, sizeof(T) < sizeof(Int) ? saferule : rule)
-        isint && !isuint && pyconvert_add_rule(name, Int, sizeof(T) ≤ sizeof(Int) ? saferule : rule)
+        isint &&
+            !isuint &&
+            pyconvert_add_rule(name, Int, sizeof(T) ≤ sizeof(Int) ? saferule : rule)
         isint && pyconvert_add_rule(name, Integer, rule)
         isfloat && pyconvert_add_rule(name, Float64, saferule)
         isreal && pyconvert_add_rule(name, Real, rule)

@@ -116,8 +116,8 @@ end
     t3 = pyconvert(Tuple{Int,Int}, (6, 7))
     @test t3 === (6, 7)
     # generic case (>16 fields)
-    t4 = pyconvert(Tuple{ntuple(i->Int,20)...,Vararg{Int}}, ntuple(i->i, 30))
-    @test t4 === ntuple(i->i, 30)
+    t4 = pyconvert(Tuple{ntuple(i -> Int, 20)...,Vararg{Int}}, ntuple(i -> i, 30))
+    @test t4 === ntuple(i -> i, 30)
 end
 
 @testitem "iterable → Vector" begin
@@ -157,34 +157,34 @@ end
 @testitem "named tuple → NamedTuple" begin
     NT = pyimport("collections" => "namedtuple")
     t1 = pyconvert(NamedTuple, NT("NT", "x y")(1, 2))
-    @test t1 === (x=1, y=2)
+    @test t1 === (x = 1, y = 2)
     @test_throws Exception pyconvert(NamedTuple, (2, 3))
     t2 = pyconvert(NamedTuple{(:x, :y)}, NT("NT", "x y")(3, 4))
-    @test t2 === (x=3, y=4)
+    @test t2 === (x = 3, y = 4)
     @test_throws Exception pyconvert(NamedTuple{(:y, :x)}, NT("NT", "x y")(3, 4))
     t3 = pyconvert(NamedTuple{names,Tuple{Int,Int}} where {names}, NT("NT", "x y")(4, 5))
-    @test t3 === (x=4, y=5)
+    @test t3 === (x = 4, y = 5)
     @test_throws Exception pyconvert(NamedTuple{names,Tuple{Int,Int}} where {names}, (5, 6))
     t4 = pyconvert(NamedTuple{(:x, :y),Tuple{Int,Int}}, NT("NT", "x y")(6, 7))
-    @test t4 === (x=6, y=7)
+    @test t4 === (x = 6, y = 7)
 end
 
 @testitem "mapping → PyDict" begin
-    x1 = pyconvert(PyDict, pydict([1=>11, 2=>22, 3=>33]))
+    x1 = pyconvert(PyDict, pydict([1 => 11, 2 => 22, 3 => 33]))
     @test x1 isa PyDict{Any,Any}
-    @test isequal(x1, Dict([1=>11, 2=>22, 3=>33]))
-    x2 = pyconvert(PyDict{Int,Int}, pydict([1=>11, 2=>22, 3=>33]))
+    @test isequal(x1, Dict([1 => 11, 2 => 22, 3 => 33]))
+    x2 = pyconvert(PyDict{Int,Int}, pydict([1 => 11, 2 => 22, 3 => 33]))
     @test x2 isa PyDict{Int,Int}
-    @test x2 == Dict(1=>11, 2=>22, 3=>33)
+    @test x2 == Dict(1 => 11, 2 => 22, 3 => 33)
 end
 
 @testitem "mapping → Dict" begin
-    x1 = pyconvert(Dict, pydict(["a"=>1, "b"=>2]))
-    @test x1 isa Dict{String, Int}
-    @test x1 == Dict("a"=>1, "b"=>2)
-    x2 = pyconvert(Dict{Char,Float32}, pydict(["c"=>3, "d"=>4]))
+    x1 = pyconvert(Dict, pydict(["a" => 1, "b" => 2]))
+    @test x1 isa Dict{String,Int}
+    @test x1 == Dict("a" => 1, "b" => 2)
+    x2 = pyconvert(Dict{Char,Float32}, pydict(["c" => 3, "d" => 4]))
     @test x2 isa Dict{Char,Float32}
-    @test x2 == Dict('c'=>3.0, 'd'=>4.0)
+    @test x2 == Dict('c' => 3.0, 'd' => 4.0)
 end
 
 @testitem "sequence → PyList" begin
@@ -226,57 +226,102 @@ end
 @testitem "timedelta → Nanosecond" begin
     using Dates
     td = pyimport("datetime").timedelta
-    @testset for x in [-1_000_000_000, -1_000_000, -1_000, -1, 0, 1, 1_000, 1_000_000, 1_000_000_000]
-        y = pyconvert(Nanosecond, td(microseconds=x))
+    @testset for x in [
+        -1_000_000_000,
+        -1_000_000,
+        -1_000,
+        -1,
+        0,
+        1,
+        1_000,
+        1_000_000,
+        1_000_000_000,
+    ]
+        y = pyconvert(Nanosecond, td(microseconds = x))
         @test y === Nanosecond(x * 1000)
     end
-    @test_throws Exception pyconvert(Nanosecond, td(days=200_000))
-    @test_throws Exception pyconvert(Nanosecond, td(days=-200_000))
+    @test_throws Exception pyconvert(Nanosecond, td(days = 200_000))
+    @test_throws Exception pyconvert(Nanosecond, td(days = -200_000))
 end
 
 @testitem "timedelta → Microsecond" begin
     using Dates
     td = pyimport("datetime").timedelta
-    @testset for x in [-1_000_000_000, -1_000_000, -1_000, -1, 0, 1, 1_000, 1_000_000, 1_000_000_000]
-        y = pyconvert(Microsecond, td(microseconds=x))
+    @testset for x in [
+        -1_000_000_000,
+        -1_000_000,
+        -1_000,
+        -1,
+        0,
+        1,
+        1_000,
+        1_000_000,
+        1_000_000_000,
+    ]
+        y = pyconvert(Microsecond, td(microseconds = x))
         @test y === Microsecond(x)
     end
-    @test_throws Exception pyconvert(Microsecond, td(days=200_000_000))
-    @test_throws Exception pyconvert(Microsecond, td(days=-200_000_000))
+    @test_throws Exception pyconvert(Microsecond, td(days = 200_000_000))
+    @test_throws Exception pyconvert(Microsecond, td(days = -200_000_000))
 end
 
 @testitem "timedelta → Millisecond" begin
     using Dates
     td = pyimport("datetime").timedelta
-    @testset for x in [-1_000_000_000, -1_000_000, -1_000, -1, 0, 1, 1_000, 1_000_000, 1_000_000_000]
-        y = pyconvert(Millisecond, td(microseconds=x*1000))
+    @testset for x in [
+        -1_000_000_000,
+        -1_000_000,
+        -1_000,
+        -1,
+        0,
+        1,
+        1_000,
+        1_000_000,
+        1_000_000_000,
+    ]
+        y = pyconvert(Millisecond, td(microseconds = x * 1000))
         @test y === Millisecond(x)
     end
-    @test_throws Exception pyconvert(Millisecond, td(microseconds=1))
+    @test_throws Exception pyconvert(Millisecond, td(microseconds = 1))
 end
 
 @testitem "timedelta → Second" begin
     using Dates
     td = pyimport("datetime").timedelta
-    @testset for x in [-1_000_000_000, -1_000_000, -1_000, -1, 0, 1, 1_000, 1_000_000, 1_000_000_000]
-        y = pyconvert(Second, td(seconds=x))
+    @testset for x in [
+        -1_000_000_000,
+        -1_000_000,
+        -1_000,
+        -1,
+        0,
+        1,
+        1_000,
+        1_000_000,
+        1_000_000_000,
+    ]
+        y = pyconvert(Second, td(seconds = x))
         @test y === Second(x)
     end
-    @test_throws Exception pyconvert(Second, td(microseconds=1000))
+    @test_throws Exception pyconvert(Second, td(microseconds = 1000))
 end
 
 @testitem "pyconvert_add_rule (#364)" begin
-    id = string(rand(UInt128), base=16)
-    pyexec("""
-    class Hello_364_$id:
-        pass
-    """, @__MODULE__)
+    id = string(rand(UInt128), base = 16)
+    pyexec(
+        """
+ class Hello_364_$id:
+     pass
+ """,
+        @__MODULE__
+    )
     x = pyeval("Hello_364_$id()", @__MODULE__)
     @test pyconvert(Any, x) === x # This test has a side effect of influencing the rules cache
     t = pytype(x)
-    PythonCall.pyconvert_add_rule("$(t.__module__):$(t.__qualname__)", String, (_, _) -> "Hello!!")
+    PythonCall.pyconvert_add_rule(
+        "$(t.__module__):$(t.__qualname__)",
+        String,
+        (_, _) -> "Hello!!",
+    )
     @test pyconvert(String, x) == "Hello!!"
     @test pyconvert(Any, x) == "Hello!!" # Broken before PR #365
-end
-
 end

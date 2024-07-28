@@ -9,7 +9,7 @@ function bump(file, oldpat, newpat)
     oldtext = read(file, String)
     newtext = replace(oldtext, oldpat => newpat)
     @assert newtext != oldtext
-    write(file, newtext)    
+    write(file, newtext)
 end
 
 function bumpver(file, pattern, oldver, newver)

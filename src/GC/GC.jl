@@ -55,12 +55,10 @@ function gc()
 end
 
 function unsafe_free_queue()
-    if isready(QUEUE)
-        @lock QUEUE while isready(QUEUE)
-            ptr = take!(QUEUE)
-            if ptr != C.PyNULL
-                C.Py_DecRef(ptr)
-            end
+    while isready(QUEUE)
+        ptr = take!(QUEUE)
+        if ptr != C.PyNULL
+            C.Py_DecRef(ptr)
         end
     end
     nothing

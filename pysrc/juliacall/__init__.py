@@ -178,7 +178,7 @@ def init():
             os.environ['PATH'] = libdir
 
     # Open the library
-    CONFIG['lib'] = lib = c.CDLL(libpath, mode=c.RTLD_GLOBAL)
+    CONFIG['lib'] = lib = c.PyDLL(libpath, mode=c.RTLD_GLOBAL)
 
     # parse options
     argc, argv = args_from_config()

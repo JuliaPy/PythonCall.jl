@@ -334,9 +334,7 @@ function init_c()
 end
 
 function __init__()
-    C.with_gil() do
-        init_c()
-    end
+    init_c()
 end
 
 PyJuliaValue_IsNull(o::C.PyPtr) = UnsafePtr{PyJuliaValueObject}(o).value[] == 0

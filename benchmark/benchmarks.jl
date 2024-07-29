@@ -1,4 +1,6 @@
-using PythonCall, BenchmarkTools
+using BenchmarkTools
+using PythonCall
+using PythonCall: pydel!, pyimport, pydict, pystr, pyrange
 
 const SUITE = BenchmarkGroup()
 

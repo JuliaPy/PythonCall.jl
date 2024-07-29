@@ -43,7 +43,21 @@ mutable struct Py
 end
 export Py
 
-py_finalizer(x::Py) = GC.enqueue(getptr(x))
+const NUM_DECREFS = Ref(0)
+
+function py_finalizer(x::Py)
+    if C.CTX.is_initialized
+        if C.PyGILState_Check() == 1
+            # if this thread holds the GIL then decref now
+            C.Py_DecRef(getptr(x))
+            NUM_DECREFS[] += 1
+        else
+            # otherwise re-attach the finalizer and try again next GC
+            finalizer(py_finalizer, x)
+        end
+    end
+    nothing
+end
 
 ispy(::Py) = true
 getptr(x::Py) = getfield(x, :ptr)

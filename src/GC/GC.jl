@@ -3,93 +3,97 @@
 
 Garbage collection of Python objects.
 
-See `disable` and `enable`.
+See [`enable`](@ref), [`disable`](@ref) and [`gc`](@ref).
 """
 module GC
 
 using ..C: C
 
-const ENABLED = Ref(true)
-const QUEUE = C.PyPtr[]
+const QUEUE = Channel{C.PyPtr}(Inf)
+const HOOK = WeakRef()
 
 """
     PythonCall.GC.disable()
 
-Disable the PythonCall garbage collector.
+Do nothing.
 
-This means that whenever a Python object owned by Julia is finalized, it is not immediately
-freed but is instead added to a queue of objects to free later when `enable()` is called.
+!!! note
 
-Like most PythonCall functions, you must only call this from the main thread.
+    Historically this would disable the PythonCall garbage collector. This was required
+    for safety in multi-threaded code but is no longer needed, so this is now a no-op.
 """
-function disable()
-    ENABLED[] = false
-    return
-end
+disable() = nothing
 
 """
     PythonCall.GC.enable()
 
-Re-enable the PythonCall garbage collector.
+Do nothing.
 
-This frees any Python objects which were finalized while the GC was disabled, and allows
-objects finalized in the future to be freed immediately.
+!!! note
 
-Like most PythonCall functions, you must only call this from the main thread.
+    Historically this would enable the PythonCall garbage collector. This was required
+    for safety in multi-threaded code but is no longer needed, so this is now a no-op.
 """
-function enable()
-    ENABLED[] = true
-    if !isempty(QUEUE) && C.PyGILState_Check() == 1
-        free_queue()
-    end
-    return
-end
+enable() = nothing
 
-function free_queue()
-    for ptr in QUEUE
-        if ptr != C.PyNULL
-            C.Py_DecRef(ptr)
-        end
+"""
+    PythonCall.GC.gc()
+
+Free any Python objects waiting to be freed.
+
+These are objects that were finalized from a thread that was not holding the Python
+GIL at the time.
+
+Like most PythonCall functions, this must only be called from the main thread (i.e. the
+thread currently holding the Python GIL.)
+"""
+function gc()
+    if C.CTX.is_initialized
+        unsafe_free_queue()
     end
-    empty!(QUEUE)
     nothing
 end
 
-function gc()
-    if ENABLED[] && C.PyGILState_Check() == 1
-        free_queue()
-        true
-    else
-        false
+function unsafe_free_queue()
+    if isready(QUEUE)
+        @lock QUEUE while isready(QUEUE)
+            ptr = take!(QUEUE)
+            if ptr != C.PyNULL
+                C.Py_DecRef(ptr)
+            end
+        end
     end
+    nothing
 end
 
 function enqueue(ptr::C.PyPtr)
     if ptr != C.PyNULL && C.CTX.is_initialized
-        if ENABLED[] && C.PyGILState_Check() == 1
+        if C.PyGILState_Check() == 1
             C.Py_DecRef(ptr)
-            isempty(QUEUE) || free_queue()
+            unsafe_free_queue()
         else
-            push!(QUEUE, ptr)
+            put!(QUEUE, ptr)
         end
     end
-    return
+    nothing
 end
 
 function enqueue_all(ptrs)
-    if C.CTX.is_initialized
-        if ENABLED[] && C.PyGILState_Check() == 1
+    if any(ptr -> ptr != C.PYNULL, ptrs) && C.CTX.is_initialized
+        if C.PyGILState_Check() == 1
             for ptr in ptrs
                 if ptr != C.PyNULL
                     C.Py_DecRef(ptr)
                 end
             end
-            isempty(QUEUE) || free_queue()
+            unsafe_free_queue()
         else
-            append!(QUEUE, ptrs)
+            for ptr in ptrs
+                put!(QUEUE, ptr)
+            end
         end
     end
-    return
+    nothing
 end
 
 mutable struct GCHook
@@ -99,13 +103,17 @@ mutable struct GCHook
 end
 
 function _gchook_finalizer(x)
-    gc()
-    finalizer(_gchook_finalizer, x)
+    if C.CTX.is_initialized
+        finalizer(_gchook_finalizer, x)
+        if isready(QUEUE) && C.PyGILState_Check() == 1
+            unsafe_free_queue()
+        end
+    end
     nothing
 end
 
 function __init__()
-    GCHook()
+    HOOK.value = GCHook()
     nothing
 end
 

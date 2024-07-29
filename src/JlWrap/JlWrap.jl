@@ -65,28 +65,26 @@ include("set.jl")
 include("callback.jl")
 
 function __init__()
-    Cjl.C.with_gil() do
-        init_base()
-        init_raw()
-        init_any()
-        init_iter()
-        init_type()
-        init_module()
-        init_io()
-        init_number()
-        init_array()
-        init_vector()
-        init_dict()
-        init_set()
-        init_callback()
-        # add packages to juliacall
-        jl = pyjuliacallmodule
-        jl.Core = Base.Core
-        jl.Base = Base
-        jl.Main = Main
-        jl.Pkg = Pkg
-        jl.PythonCall = PythonCall
-    end
+    init_base()
+    init_raw()
+    init_any()
+    init_iter()
+    init_type()
+    init_module()
+    init_io()
+    init_number()
+    init_array()
+    init_vector()
+    init_dict()
+    init_set()
+    init_callback()
+    # add packages to juliacall
+    jl = pyjuliacallmodule
+    jl.Core = Base.Core
+    jl.Base = Base
+    jl.Main = Main
+    jl.Pkg = Pkg
+    jl.PythonCall = PythonCall
 end
 
 end

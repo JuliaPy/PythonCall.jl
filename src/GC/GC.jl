@@ -96,6 +96,16 @@ function enqueue_all(ptrs)
     nothing
 end
 
+"""
+    GCHook()
+
+An immortal object which frees any pending Python objects when Julia's GC runs.
+
+This works by creating it but not holding any strong reference to it, so it is eligible
+to be finalized by Julia's GC. The finalizer empties the PythonCall GC queue if
+possible. The finalizer also re-attaches itself, so the object does not actually get
+collected and so the finalizer will run again at next GC.
+"""
 mutable struct GCHook
     function GCHook()
         finalizer(_gchook_finalizer, new())

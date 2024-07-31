@@ -9,7 +9,8 @@ module GC
 
 using ..C: C
 
-const QUEUE = Channel{C.PyPtr}(Inf)
+const QUEUE = C.PyPtr[]
+const QUEUE_LOCK = Threads.SpinLock()
 const HOOK = WeakRef()
 
 """
@@ -55,12 +56,14 @@ function gc()
 end
 
 function unsafe_free_queue()
-    while isready(QUEUE)
-        ptr = take!(QUEUE)
+    lock(QUEUE_LOCK)
+    for ptr in QUEUE
         if ptr != C.PyNULL
             C.Py_DecRef(ptr)
         end
     end
+    empty!(QUEUE)
+    unlock(QUEUE_LOCK)
     nothing
 end
 
@@ -68,9 +71,13 @@ function enqueue(ptr::C.PyPtr)
     if ptr != C.PyNULL && C.CTX.is_initialized
         if C.PyGILState_Check() == 1
             C.Py_DecRef(ptr)
-            unsafe_free_queue()
+            if !isempty(QUEUE)
+                unsafe_free_queue()
+            end
         else
-            put!(QUEUE, ptr)
+            lock(QUEUE_LOCK)
+            push!(QUEUE, ptr)
+            unlock(QUEUE_LOCK)
         end
     end
     nothing
@@ -84,11 +91,13 @@ function enqueue_all(ptrs)
                     C.Py_DecRef(ptr)
                 end
             end
-            unsafe_free_queue()
-        else
-            for ptr in ptrs
-                put!(QUEUE, ptr)
+            if !isempty(QUEUE)
+                unsafe_free_queue()
             end
+        else
+            lock(QUEUE_LOCK)
+            append!(QUEUE, ptrs)
+            unlock(QUEUE_LOCK)
         end
     end
     nothing
@@ -113,7 +122,7 @@ end
 function _gchook_finalizer(x)
     if C.CTX.is_initialized
         finalizer(_gchook_finalizer, x)
-        if isready(QUEUE) && C.PyGILState_Check() == 1
+        if !isempty(QUEUE) && C.PyGILState_Check() == 1
             unsafe_free_queue()
         end
     end

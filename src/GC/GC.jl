@@ -83,7 +83,7 @@ function enqueue(ptr::C.PyPtr)
 end
 
 function enqueue_all(ptrs)
-    if any(ptr -> ptr != C.PYNULL, ptrs) && C.CTX.is_initialized
+    if any(!=(C.PYNULL), ptrs) && C.CTX.is_initialized
         if C.PyGILState_Check() == 1
             for ptr in ptrs
                 if ptr != C.PyNULL

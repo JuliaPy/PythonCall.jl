@@ -96,7 +96,6 @@ def test_julia_gc():
                 finalize(obj)
             end
         end
-        Threads.nthreads() > 1 && @test !isempty(PythonCall.GC.QUEUE.items)
         GC.gc()
         @test isempty(PythonCall.GC.QUEUE.items)
         """

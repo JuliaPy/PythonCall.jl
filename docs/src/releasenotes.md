@@ -1,5 +1,13 @@
 # Release Notes
 
+## Unreleased
+* Finalizers are now thread-safe, meaning PythonCall now works in the presence of
+  multi-threaded Julia code. Previously, tricks such as disabling the garbage collector
+  were required. Python code must still be called on the main thread.
+* `GC.disable()` and `GC.enable()` are now a no-op and deprecated since they are no
+  longer required for thread-safety. These will be removed in v1.
+* Adds `GC.gc()`.
+
 ## 0.9.21 (2024-07-20)
 * `Serialization.serialize` can use `dill` instead of `pickle` by setting the env var `JULIA_PYTHONCALL_PICKLE=dill`.
 * `numpy.bool_` can now be converted to `Bool` and other number types.

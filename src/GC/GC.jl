@@ -3,7 +3,7 @@
 
 Garbage collection of Python objects.
 
-See [`enable`](@ref), [`disable`](@ref) and [`gc`](@ref).
+See [`gc`](@ref).
 """
 module GC
 

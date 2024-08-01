@@ -4,19 +4,23 @@
 
 No.
 
-Some rules if you are writing multithreaded code:
-- Only call Python functions from the first thread.
-- You probably also need to call `PythonCall.GC.disable()` on the main thread before any
-  threaded block of code. Remember to call `PythonCall.GC.enable()` again afterwards.
-  (This is because Julia finalizers can be called from any thread.)
-- Julia intentionally causes segmentation faults as part of the GC safepoint mechanism.
-  If unhandled, these segfaults will result in termination of the process. To enable signal handling,
-  set `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` before any calls to import juliacall. This is equivalent
-  to starting julia with `julia --handle-signals=yes`, the default behavior in Julia. 
-  See discussion [here](https://github.com/JuliaPy/PythonCall.jl/issues/219#issuecomment-1605087024) for more information.
-- You may still encounter problems.
+However it is safe to use PythonCall with Julia with multiple threads, provided you only
+call Python code from the first thread. (Before v0.9.22, tricks such as disabling the
+garbage collector were required.)
 
-Related issues: [#201](https://github.com/JuliaPy/PythonCall.jl/issues/201), [#202](https://github.com/JuliaPy/PythonCall.jl/issues/202)
+From Python, to use JuliaCall with multiple threads you probably need to set
+[`PYTHON_JULIACALL_HANDLE_SIGNALS=yes`](@ref julia-config) before importing JuliaCall.
+This is because Julia intentionally causes segmentation faults as part of the GC
+safepoint mechanism. If unhandled, these segfaults will result in termination of the
+process. This is equivalent to starting julia with `julia --handle-signals=yes`, the
+default behavior in Julia. See discussion
+[here](https://github.com/JuliaPy/PythonCall.jl/issues/219#issuecomment-1605087024)
+for more information.
+
+Related issues:
+[#201](https://github.com/JuliaPy/PythonCall.jl/issues/201),
+[#202](https://github.com/JuliaPy/PythonCall.jl/issues/202),
+[#529](https://github.com/JuliaPy/PythonCall.jl/pull/529)
 
 ## Issues when Numpy arrays are expected
 

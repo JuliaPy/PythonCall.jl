@@ -58,4 +58,5 @@ SUITE["gc"]["full"] = @benchmarkable(
     GC.gc(true),
     setup=(GC.gc(true); append_lots(size=159)),
     seconds=30,
+    evals=1,
 )

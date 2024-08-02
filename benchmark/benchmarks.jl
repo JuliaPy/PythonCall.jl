@@ -13,7 +13,7 @@ function test_pydict_init()
     return x
 end
 
-SUITE["julia"]["pydict"]["init"] = @benchmarkable test_pydict_init()
+SUITE["basic"]["julia"]["pydict"]["init"] = @benchmarkable test_pydict_init()
 
 function test_pydict_pydel()
     random = pyimport("random").random
@@ -31,7 +31,7 @@ function test_pydict_pydel()
     return x
 end
 
-SUITE["julia"]["pydict"]["pydel"] = @benchmarkable test_pydict_pydel()
+SUITE["basic"]["julia"]["pydict"]["pydel"] = @benchmarkable test_pydict_pydel()
 
 @generated function test_atpy(::Val{use_pydel}) where {use_pydel}
     quote
@@ -47,5 +47,5 @@ SUITE["julia"]["pydict"]["pydel"] = @benchmarkable test_pydict_pydel()
     end
 end
 
-SUITE["@py"]["pydict"]["init"] = @benchmarkable test_atpy(Val(false))
-SUITE["@py"]["pydict"]["pydel"] = @benchmarkable test_atpy(Val(true))
+SUITE["basic"]["@py"]["pydict"]["init"] = @benchmarkable test_atpy(Val(false))
+SUITE["basic"]["@py"]["pydict"]["pydel"] = @benchmarkable test_atpy(Val(true))

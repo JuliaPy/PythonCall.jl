@@ -10,7 +10,7 @@ module GC
 using ..C: C
 
 const QUEUE = (; items = C.PyPtr[], lock = Threads.SpinLock())
-const HOOK = WeakRef()
+const HOOK = Ref{WeakRef}()
 
 """
     PythonCall.GC.disable()
@@ -147,7 +147,7 @@ function _gchook_finalizer(x)
 end
 
 function __init__()
-    HOOK.value = GCHook()
+    HOOK[] = WeakRef(GCHook())
     nothing
 end
 

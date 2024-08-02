@@ -54,4 +54,8 @@ SUITE["basic"]["@py"]["pydict"]["pydel"] = @benchmarkable test_atpy(Val(true))
 include("gcbench.jl")
 using .GCBench: append_lots
 
-SUITE["gc"]["append_and_full_gc"] = @benchmarkable GC.gc(true) setup=(append_lots())
+SUITE["gc"]["append_and_full_gc"] = @benchmarkable(
+    GC.gc(true),
+    setup=(GC.gc(true); append_lots(size=159)),
+    seconds=30,
+)

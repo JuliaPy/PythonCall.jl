@@ -100,3 +100,68 @@ def test_julia_gc():
         @test isempty(PythonCall.GC.QUEUE.items)
         """
     )
+
+def test_gil_release():
+    """Tests that we can execute Julia code in parallel by releasing the GIL."""
+    from concurrent.futures import ThreadPoolExecutor, wait
+    from time import time
+    from juliacall import Main as jl
+    # julia implementation of sleep which releases the GIL
+    # this test uses Base.Libc.systemsleep which does not yield to the scheduler
+    jsleep = jl.seval("t::Real -> PythonCall.GIL.@release Libc.systemsleep(t)")
+    # precompile
+    jsleep(0.01)
+    # use two threads
+    pool = ThreadPoolExecutor(2)
+    # run sleep twice concurrently
+    t0 = time()
+    fs = [pool.submit(jsleep, 1) for _ in range(2)]
+    t1 = time() - t0
+    wait(fs)
+    t2 = time() - t0
+    # submitting tasks should be very fast
+    assert t1 < 0.1
+    # executing the tasks should take about 1 second because they happen in parallel
+    assert 0.9 < t2 < 1.5
+
+def test_gil_release_2():
+    """Same as the previous test but with a function (sleep) that yields.
+    
+    Yielding puts us back into Python, which itself doesn't ever yield back to Julia, so
+    the function can never return. Hence for the threads to finish, we need to
+    explicitly yield back to Julia.
+    """
+    from concurrent.futures import ThreadPoolExecutor, wait
+    from time import sleep, time
+    from juliacall import Main as jl
+    # julia implementation of sleep which releases the GIL
+    # in this test we use Base.sleep which yields to the scheduler
+    jsleep = jl.seval("t::Real -> PythonCall.GIL.@release sleep(t)")
+    jyield = jl.seval("yield")
+    # precompile
+    jsleep(0.01)
+    jyield()
+    # use two threads
+    pool = ThreadPoolExecutor(2)
+    # run sleep twice concurrently
+    t0 = time()
+    fs = [pool.submit(jsleep, 1) for _ in range(2)]
+    t1 = time() - t0
+    # because sleep() yields to the scheduler, which puts us back in Python, we need to
+    # explicitly yield back to give the scheduler a chance to finish the sleep calls, so
+    # we yield every 0.1 seconds
+    done = False
+    for _ in range(20):
+        if any(f.running() for f in fs):
+            sleep(0.1)
+            jyield()
+        else:
+            done = True
+            break
+    t2 = time() - t0
+    # submitting tasks should be very fast
+    assert t1 < 0.1
+    # the tasks should have finished
+    assert done
+    # executing the tasks should take about 1 second because they happen in parallel
+    assert 0.9 < t2 < 1.5

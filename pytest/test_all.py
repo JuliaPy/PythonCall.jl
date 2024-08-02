@@ -81,8 +81,6 @@ def test_julia_gc():
     # We make a bunch of python objects with no reference to them,
     # then call GC to try to finalize them.
     # We want to make sure we don't segfault.
-    # Here we can (manually) verify that the background task is running successfully,
-    # by seeing the printout "Python GC (100 items): 0.000000 seconds."
     # We also programmatically check things are working by verifying the queue is empty.
     # Debugging note: if you get segfaults, then run the tests with
     # `PYTHON_JULIACALL_HANDLE_SIGNALS=yes python3 -X faulthandler -m pytest -p no:faulthandler -s --nbval --cov=pysrc ./pytest/`

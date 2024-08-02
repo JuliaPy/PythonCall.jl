@@ -49,3 +49,7 @@ end
 
 SUITE["basic"]["@py"]["pydict"]["init"] = @benchmarkable test_atpy(Val(false))
 SUITE["basic"]["@py"]["pydict"]["pydel"] = @benchmarkable test_atpy(Val(true))
+
+
+include("gcbench.jl")
+SUITE["gc"]["append_and_full_gc"] = @benchmarkable GC.gc(true) setup=(append_lots())

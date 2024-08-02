@@ -21,10 +21,3 @@ function append_lots(iters=100 * 1024, size=1596)
     end
     return v
 end
-
-@time "Total" begin
-    @gctime append_lots()
-    @time "Next full GC" begin
-        GC.gc(true)
-    end
-end

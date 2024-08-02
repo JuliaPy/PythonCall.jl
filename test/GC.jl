@@ -1,4 +1,4 @@
-@testset "201: GC segfaults" begin
+@testitem "201: GC segfaults" begin
     # https://github.com/JuliaPy/PythonCall.jl/issues/201
     # This should not segfault!
     cmd = Base.julia_cmd()
@@ -7,7 +7,7 @@
     @test p.exitcode == 0
 end
 
-@testset "GC.gc()" begin
+@testitem "GC.gc()" begin
     let
         pyobjs = map(pylist, 1:100)
         Threads.@threads for obj in pyobjs
@@ -19,7 +19,7 @@ end
     @test isempty(PythonCall.GC.QUEUE.items)
 end
 
-@testset "GC.GCHook" begin
+@testitem "GC.GCHook" begin
     let
         pyobjs = map(pylist, 1:100)
         Threads.@threads for obj in pyobjs

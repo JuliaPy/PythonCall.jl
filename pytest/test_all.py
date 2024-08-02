@@ -75,3 +75,26 @@ def test_issue_433():
         """
     )
     assert out == 25
+
+def test_julia_gc():
+    from juliacall import Main as jl
+    # We make a bunch of python objects with no reference to them,
+    # then call GC to try to finalize them.
+    # We want to make sure we don't segfault.
+    # We also programmatically check things are working by verifying the queue is empty.
+    # Debugging note: if you get segfaults, then run the tests with
+    # `PYTHON_JULIACALL_HANDLE_SIGNALS=yes python3 -X faulthandler -m pytest -p no:faulthandler -s --nbval --cov=pysrc ./pytest/`
+    # in order to recover a bit more information from the segfault.
+    jl.seval(
+        """
+        using PythonCall, Test
+        let
+            pyobjs = map(pylist, 1:100)
+            Threads.@threads for obj in pyobjs
+                finalize(obj)
+            end
+        end
+        GC.gc()
+        @test isempty(PythonCall.GC.QUEUE.items)
+        """
+    )

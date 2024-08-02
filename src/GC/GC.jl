@@ -67,28 +67,36 @@ function gc()
 end
 
 function unsafe_free_queue()
-    lock(QUEUE.lock)
-    for ptr in QUEUE.items
-        if ptr != C.PyNULL
-            C.Py_DecRef(ptr)
+    Base.@lock QUEUE.lock begin
+        for ptr in QUEUE.items
+            if ptr != C.PyNULL
+                C.Py_DecRef(ptr)
+            end
         end
+        empty!(QUEUE.items)
     end
-    empty!(QUEUE.items)
-    unlock(QUEUE.lock)
     nothing
 end
 
 function enqueue(ptr::C.PyPtr)
+    # If the ptr is NULL there is nothing to free.
+    # If C.CTX.is_initialized is false then the Python interpreter hasn't started yet
+    # or has been finalized; either way attempting to free will cause an error.
     if ptr != C.PyNULL && C.CTX.is_initialized
         if C.PyGILState_Check() == 1
+            # If the current thread holds the GIL, then we can immediately free.
             C.Py_DecRef(ptr)
+            # We may as well also free any other enqueued objects.
             if !isempty(QUEUE.items)
                 unsafe_free_queue()
             end
         else
-            lock(QUEUE.lock)
-            push!(QUEUE.items, ptr)
-            unlock(QUEUE.lock)
+            # Otherwise we push the pointer onto the queue to be freed later, either:
+            # (a) If a future Python object is finalized on the thread holding the GIL
+            #     in the branch above.
+            # (b) If the GCHook() object below is finalized in an ordinary GC.
+            # (c) If the user calls PythonCall.GC.gc().
+            Base.@lock QUEUE.lock push!(QUEUE.items, ptr)
         end
     end
     nothing
@@ -106,9 +114,7 @@ function enqueue_all(ptrs)
                 unsafe_free_queue()
             end
         else
-            lock(QUEUE.lock)
-            append!(QUEUE.items, ptrs)
-            unlock(QUEUE.lock)
+            Base.@lock QUEUE.lock append!(QUEUE.items, ptrs)
         end
     end
     nothing

@@ -5,7 +5,9 @@
             finalize(obj)
         end
     end
-    Threads.nthreads() > 1 && @test !isempty(PythonCall.GC.QUEUE.items)
+    # The GC sometimes actually frees everything before this line.
+    # We can uncomment this line if we GIL.@release the above block once we have it.
+    # Threads.nthreads() > 1 && @test !isempty(PythonCall.GC.QUEUE.items)
     PythonCall.GC.gc()
     @test isempty(PythonCall.GC.QUEUE.items)
 end
@@ -17,7 +19,9 @@ end
             finalize(obj)
         end
     end
-    Threads.nthreads() > 1 && @test !isempty(PythonCall.GC.QUEUE.items)
+    # The GC sometimes actually frees everything before this line.
+    # We can uncomment this line if we GIL.@release the above block once we have it.
+    # Threads.nthreads() > 1 && @test !isempty(PythonCall.GC.QUEUE.items)
     GC.gc()
     @test isempty(PythonCall.GC.QUEUE.items)
 end

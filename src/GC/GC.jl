@@ -22,7 +22,13 @@ Do nothing.
     Historically this would disable the PythonCall garbage collector. This was required
     for safety in multi-threaded code but is no longer needed, so this is now a no-op.
 """
-disable() = nothing
+function disable()
+    Base.depwarn(
+        "disabling the PythonCall GC is no longer needed for thread-safety",
+        :disable,
+    )
+    nothing
+end
 
 """
     PythonCall.GC.enable()
@@ -34,7 +40,13 @@ Do nothing.
     Historically this would enable the PythonCall garbage collector. This was required
     for safety in multi-threaded code but is no longer needed, so this is now a no-op.
 """
-enable() = nothing
+function enable()
+    Base.depwarn(
+        "disabling the PythonCall GC is no longer needed for thread-safety",
+        :enable,
+    )
+    nothing
+end
 
 """
     PythonCall.GC.gc()

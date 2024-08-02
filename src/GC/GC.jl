@@ -9,7 +9,7 @@ module GC
 
 using ..C: C
 
-const QUEUE = (; items = C.PyPtr[], lock = ReentrantLock())
+const QUEUE = (; items = C.PyPtr[], lock = Threads.SpinLock())
 const HOOK = Ref{WeakRef}()
 
 """

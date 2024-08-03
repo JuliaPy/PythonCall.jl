@@ -1,5 +1,15 @@
 # FAQ & Troubleshooting
 
+## Can I use PythonCall and PyCall together?
+
+Yes, you can use both PyCall and PythonCall in the same Julia session. This is platform-dependent:
+- On most systems the Python interpreter used by PythonCall and PyCall must be the same (see below).
+- On Windows it appears to be possible for PythonCall and PyCall to use different interpreters.
+
+To force PythonCall to use the same Python interpreter as PyCall, set the environment variable [`JULIA_PYTHONCALL_EXE`](@ref pythoncall-config) to `"@PyCall"`. Note that this will opt out of automatic dependency management using CondaPkg.
+
+Alternatively, to force PyCall to use the same interpreter as PythonCall, set the environment variable `PYTHON` to [`PythonCall.python_executable_path()`](@ref) and then `Pkg.build("PyCall")`. You will need to do this each time you change project, because PythonCall by default uses a different Python for each project.
+
 ## Is PythonCall/JuliaCall thread safe?
 
 No.

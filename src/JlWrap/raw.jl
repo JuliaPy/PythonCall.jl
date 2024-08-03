@@ -148,7 +148,11 @@ class RawValue(ValueBase):
         '''Convert this to a juliacall.AnyValue.'''
         return self._jl_callmethod($(pyjl_methodnum(pyjl)))
     def _jl_call_nogil(self, *args, **kwargs):
-        '''Call this with the given arguments but with the GIL disabled.'''
+        '''Call this with the given arguments but with the GIL disabled.
+        
+        WARNING: This function must not interact with Python at all without re-acquiring
+        the GIL.
+        '''
         return self._jl_callmethod($(pyjl_methodnum(pyjlraw_call_nogil)), args, kwargs)
 """,
             @__FILE__(),

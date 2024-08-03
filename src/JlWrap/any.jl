@@ -361,7 +361,11 @@ class AnyValue(ValueBase):
         '''Show help for this Julia object.'''
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_help)), mime)
     def _jl_call_nogil(self, *args, **kwargs):
-        '''Call this with the given arguments but with the GIL disabled.'''
+        '''Call this with the given arguments but with the GIL disabled.
+        
+        WARNING: This function must not interact with Python at all without re-acquiring
+        the GIL.
+        '''
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_call_nogil)), args, kwargs)
     def _repr_mimebundle_(self, include=None, exclude=None):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)

@@ -12,20 +12,11 @@ Alternatively, to force PyCall to use the same interpreter as PythonCall, set th
 
 ## Is PythonCall/JuliaCall thread safe?
 
-No.
+Yes, as of v0.9.22, provided you handle the GIL correctly. See the guides for
+[PythonCall](@ref jl-multi-threading) and [JuliaCall](@ref py-multi-threading).
 
-However it is safe to use PythonCall with Julia with multiple threads, provided you only
-call Python code from the first thread. (Before v0.9.22, tricks such as disabling the
-garbage collector were required.)
-
-From Python, to use JuliaCall with multiple threads you probably need to set
-[`PYTHON_JULIACALL_HANDLE_SIGNALS=yes`](@ref julia-config) before importing JuliaCall.
-This is because Julia intentionally causes segmentation faults as part of the GC
-safepoint mechanism. If unhandled, these segfaults will result in termination of the
-process. This is equivalent to starting julia with `julia --handle-signals=yes`, the
-default behavior in Julia. See discussion
-[here](https://github.com/JuliaPy/PythonCall.jl/issues/219#issuecomment-1605087024)
-for more information.
+Before, tricks such as disabling the garbage collector were required. See the
+[old docs](https://juliapy.github.io/PythonCall.jl/v0.9.21/faq/#Is-PythonCall/JuliaCall-thread-safe?).
 
 Related issues:
 [#201](https://github.com/JuliaPy/PythonCall.jl/issues/201),

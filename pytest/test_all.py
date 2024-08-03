@@ -99,14 +99,14 @@ def test_julia_gc():
         """
     )
 
-def test_gil_release():
+def test_call_nogil():
     """Tests that we can execute Julia code in parallel by releasing the GIL."""
     from concurrent.futures import ThreadPoolExecutor, wait
     from time import time
     from juliacall import Main as jl
     # julia implementation of sleep which releases the GIL
     # this test uses Base.Libc.systemsleep which does not yield to the scheduler
-    jsleep = jl.seval("t::Real -> PythonCall.GIL.@release Libc.systemsleep(t)")
+    jsleep = jl.Libc.systemsleep._jl_call_nogil
     # precompile
     jsleep(0.01)
     # use two threads
@@ -122,7 +122,7 @@ def test_gil_release():
     # executing the tasks should take about 1 second because they happen in parallel
     assert 0.9 < t2 < 1.5
 
-def test_gil_release_2():
+def test_call_nogil_yielding():
     """Same as the previous test but with a function (sleep) that yields.
     
     Yielding puts us back into Python, which itself doesn't ever yield back to Julia, so
@@ -134,8 +134,8 @@ def test_gil_release_2():
     from juliacall import Main as jl
     # julia implementation of sleep which releases the GIL
     # in this test we use Base.sleep which yields to the scheduler
-    jsleep = jl.seval("t::Real -> PythonCall.GIL.@release sleep(t)")
-    jyield = jl.seval("yield")
+    jsleep = jl.sleep._jl_call_nogil
+    jyield = getattr(jl, "yield")
     # precompile
     jsleep(0.01)
     jyield()
@@ -148,18 +148,15 @@ def test_gil_release_2():
     # because sleep() yields to the scheduler, which puts us back in Python, we need to
     # explicitly yield back to give the scheduler a chance to finish the sleep calls, so
     # we yield every 0.1 seconds
-    done = False
-    for _ in range(20):
-        if any(f.running() for f in fs):
-            sleep(0.1)
-            jyield()
-        else:
-            done = True
-            break
+    status = wait(fs, timeout=0.1)
     t2 = time() - t0
+    while t2 < 2.0 and status.not_done:
+        jyield()
+        status = wait(fs, timeout=0.1)
+        t2 = time() - t0
     # submitting tasks should be very fast
     assert t1 < 0.1
     # the tasks should have finished
-    assert done
+    assert not status.not_done
     # executing the tasks should take about 1 second because they happen in parallel
     assert 0.9 < t2 < 1.5

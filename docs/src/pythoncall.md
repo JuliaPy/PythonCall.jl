@@ -398,7 +398,7 @@ You can also use [multi-threading from Python](@ref py-multi-threading).
 
 If Julia's GC collects any Python objects from a thread where the GIL is not currently
 held, then those Python objects will not immediately be deleted. Instead they will be
-queued to be released in a later GC pass.
+queued to be deleted in a later GC pass.
 
 If you find you have many Python objects not being deleted, you can call
-[`PythonCall.GC.gc()`](@ref) or `GC.gc()` (while the GIL is held) to clear the queue.
+[`PythonCall.GC.gc()`](@ref) or `GC.gc()` while the GIL is held to clear the queue.

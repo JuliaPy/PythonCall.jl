@@ -352,12 +352,16 @@ class AnyValue(ValueBase):
     def __name__(self):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_name)))
     def _jl_raw(self):
+        '''Convert this to a juliacall.RawValue.'''
         return self._jl_callmethod($(pyjl_methodnum(pyjlraw)))
     def _jl_display(self, mime=None):
+        '''Display this, optionally specifying the MIME type.'''
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_display)), mime)
     def _jl_help(self, mime=None):
+        '''Show help for this Julia object.'''
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_help)), mime)
     def _jl_call_nogil(self, *args, **kwargs):
+        '''Call this with the given arguments but with the GIL disabled.'''
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_call_nogil)), args, kwargs)
     def _repr_mimebundle_(self, include=None, exclude=None):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)

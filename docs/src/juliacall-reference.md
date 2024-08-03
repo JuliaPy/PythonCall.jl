@@ -93,8 +93,9 @@ replaced with `!!`.
 
 ###### Members
 - `_jl_raw()`: Convert to a [`RawValue`](#juliacall.RawValue). (See also [`pyjlraw`](@ref).)
-- `_jl_display()`: Display the object using Julia's display mechanism.
-- `_jl_help()`: Display help for the object.
+- `_jl_display(mime=None)`: Display the object using Julia's display mechanism.
+- `_jl_help(mime=None)`: Display help for the object.
+- `_jl_call_nogil(*args, **kwargs)`: Call this with the GIL disabled.
 `````
 
 `````@customdoc
@@ -217,4 +218,5 @@ single tuple, it will need to be wrapped in another tuple.
 ###### Members
 - `_jl_any()`: Convert to a [`AnyValue`](#juliacall.AnyValue) (or subclass). (See also
   [`pyjl`](@ref).)
+- `_jl_call_nogil(*args, **kwargs)`: Call this with the GIL disabled.
 `````

@@ -1,4 +1,4 @@
-# JuliaCall API Reference
+# [JuliaCall API Reference](@id jl-reference)
 
 ## Constants
 

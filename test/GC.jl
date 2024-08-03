@@ -1,7 +1,7 @@
 @testitem "GC.gc()" begin
     let
         pyobjs = map(pylist, 1:100)
-        PythonCall.GIL.@release Threads.@threads for obj in pyobjs
+        PythonCall.GIL.@unlock Threads.@threads for obj in pyobjs
             finalize(obj)
         end
     end
@@ -13,7 +13,7 @@ end
 @testitem "GC.GCHook" begin
     let
         pyobjs = map(pylist, 1:100)
-        PythonCall.GIL.@release Threads.@threads for obj in pyobjs
+        PythonCall.GIL.@unlock Threads.@threads for obj in pyobjs
             finalize(obj)
         end
     end

@@ -3,7 +3,7 @@
 
 Handling the Python Global Interpreter Lock.
 
-See [`lock`](@ref), [`@lock`](@ref), [`release`](@ref) and [`@release`](@ref).
+See [`lock`](@ref), [`@lock`](@ref), [`unlock`](@ref) and [`@unlock`](@ref).
 """
 module GIL
 
@@ -12,11 +12,11 @@ using ..C: C
 """
     lock(f)
 
-Acquire the GIL, compute `f()`, release the GIL, then return the result of `f()`.
+Unlock the GIL, compute `f()`, unlock the GIL, then return the result of `f()`.
 
 Use this to run Python code from threads that do not currently hold the GIL, such as new
 threads. Since the main Julia thread holds the GIL by default, you will need to
-[`release`](@ref) the GIL before using this function.
+[`unlock`](@ref) the GIL before using this function.
 
 See [`@lock`](@ref) for the macro form.
 """
@@ -32,11 +32,11 @@ end
 """
     @lock expr
 
-Acquire the GIL, compute `expr`, release the GIL, then return the result of `expr`.
+Unlock the GIL, compute `expr`, unlock the GIL, then return the result of `expr`.
 
 Use this to run Python code from threads that do not currently hold the GIL, such as new
 threads. Since the main Julia thread holds the GIL by default, you will need to
-[`@release`](@ref) the GIL before using this function.
+[`@unlock`](@ref) the GIL before using this function.
 
 The macro equivalent of [`lock`](@ref).
 """
@@ -52,17 +52,17 @@ macro lock(expr)
 end
 
 """
-    release(f)
+    unlock(f)
 
-Release the GIL, compute `f()`, re-acquire the GIL, then return the result of `f()`.
+Unlock the GIL, compute `f()`, re-lock the GIL, then return the result of `f()`.
 
-Use this to run non-Python code with the GIL released, so allowing another thread to run
-Python code. That other thread can be a Julia thread, which must acquire the GIL using
+Use this to run non-Python code with the GIL unlocked, so allowing another thread to run
+Python code. That other thread can be a Julia thread, which must lock the GIL using
 [`lock`](@ref).
 
-See [`@release`](@ref) for the macro form.
+See [`@unlock`](@ref) for the macro form.
 """
-function release(f)
+function unlock(f)
     state = C.PyEval_SaveThread()
     try
         f()
@@ -72,17 +72,17 @@ function release(f)
 end
 
 """
-    @release expr
+    @unlock expr
 
-Release the GIL, compute `expr`, re-acquire the GIL, then return the result of `expr`.
+Unlock the GIL, compute `expr`, re-lock the GIL, then return the result of `expr`.
 
-Use this to run non-Python code with the GIL released, so allowing another thread to run
-Python code. That other thread can be a Julia thread, which must acquire the GIL using
+Use this to run non-Python code with the GIL unlocked, so allowing another thread to run
+Python code. That other thread can be a Julia thread, which must lock the GIL using
 [`@lock`](@ref).
 
-The macro equivalent of [`release`](@ref).
+The macro equivalent of [`unlock`](@ref).
 """
-macro release(expr)
+macro unlock(expr)
     quote
         state = C.PyEval_SaveThread()
         try

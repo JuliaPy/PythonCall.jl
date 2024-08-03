@@ -44,12 +44,12 @@ function pyjlraw_call_nogil(self, args_::Py, kwargs_::Py)
     if pylen(kwargs_) > 0
         args = pyconvert(Vector{Any}, args_)
         kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
-        ans = pyjlraw(GIL.@release self(args...; kwargs...))
+        ans = pyjlraw(GIL.@unlock self(args...; kwargs...))
     elseif pylen(args_) > 0
         args = pyconvert(Vector{Any}, args_)
-        ans = pyjlraw(GIL.@release self(args...))
+        ans = pyjlraw(GIL.@unlock self(args...))
     else
-        ans = pyjlraw(GIL.@release self())
+        ans = pyjlraw(GIL.@unlock self())
     end
     pydel!(args_)
     pydel!(kwargs_)

@@ -132,13 +132,13 @@ caveats.
 
 Most importantly, you can only call Python code while Python's
 [Global Interpreter Lock (GIL)](https://docs.python.org/3/glossary.html#term-global-interpreter-lock)
-is held by the current thread. You can use JuliaCall from any Python thread, and the GIL
-will be held whenever any JuliaCall function is used. However, to leverage the benefits
-of multi-threading, you can release the GIL while executing any Julia code that does not
+is locked by the current thread. You can use JuliaCall from any Python thread, and the GIL
+will be locked whenever any JuliaCall function is used. However, to leverage the benefits
+of multi-threading, you can unlock the GIL while executing any Julia code that does not
 interact with Python.
 
 The simplest way to do this is using the `_jl_call_nogil` method on Julia functions to
-call the function with the GIL released.
+call the function with the GIL unlocked.
 
 ```python
 from concurrent.futures import ThreadPoolExecutor, wait
@@ -149,14 +149,14 @@ wait(fs)
 ```
 
 In the above example, we call `Libc.systemsleep(5)` on four threads. Because we
-called it with `_jl_call_nogil`, the GIL was released, allowing the threads to run in
+called it with `_jl_call_nogil`, the GIL was unlocked, allowing the threads to run in
 parallel, taking about 5 seconds in total.
 
 If we did not use `_jl_call_nogil` (i.e. if we did `pool.submit(jl.Libc.systemsleep, 5)`)
 then the above code will take 20 seconds because the sleeps run one after another.
 
 It is very important that any function called with `_jl_call_nogil` does not interact
-with Python at all unless it re-acquires the GIL first, such as by using
+with Python at all unless it re-locks the GIL first, such as by using
 [PythonCall.GIL.@lock](@ref).
 
 You can also use [multi-threading from Julia](@ref jl-multi-threading).

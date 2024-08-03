@@ -55,12 +55,12 @@ function pyjlany_call_nogil(self, args_::Py, kwargs_::Py)
     if pylen(kwargs_) > 0
         args = pyconvert(Vector{Any}, args_)
         kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
-        ans = Py(GIL.@release self(args...; kwargs...))
+        ans = Py(GIL.@unlock self(args...; kwargs...))
     elseif pylen(args_) > 0
         args = pyconvert(Vector{Any}, args_)
-        ans = Py(GIL.@release self(args...))
+        ans = Py(GIL.@unlock self(args...))
     else
-        ans = Py(GIL.@release self())
+        ans = Py(GIL.@unlock self())
     end
     pydel!(args_)
     pydel!(kwargs_)

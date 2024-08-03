@@ -125,7 +125,7 @@ def test_call_nogil(yld, raw):
     from time import time
     from juliacall import Main as jl
 
-    # julia implementation of sleep which releases the GIL
+    # julia implementation of sleep which unlocks the GIL
     if yld:
         # use sleep, which yields
         jsleep = jl.sleep

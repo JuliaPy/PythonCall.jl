@@ -370,16 +370,16 @@ caveats.
 
 Most importantly, you can only call Python code while Python's
 [Global Interpreter Lock (GIL)](https://docs.python.org/3/glossary.html#term-global-interpreter-lock)
-is held by the current thread. Ordinarily, the GIL is held by the main thread in Julia,
-so if you want to run Python code on any other thread, you must release the GIL from the
-main thread and then re-acquire it while running any Python code on other threads.
+is locked by the current thread. Ordinarily, the GIL is locked by the main thread in Julia,
+so if you want to run Python code on any other thread, you must unlock the GIL from the
+main thread and then re-lock it while running any Python code on other threads.
 
-This is made possible by the macros [`PythonCall.GIL.@release`](@ref) and
-[`PythonCall.GIL.@lock`](@ref) or the functions [`PythonCall.GIL.release`](@ref) and
+This is made possible by the macros [`PythonCall.GIL.@unlock`](@ref) and
+[`PythonCall.GIL.@lock`](@ref) or the functions [`PythonCall.GIL.unlock`](@ref) and
 [`PythonCall.GIL.lock`](@ref) with this pattern:
 
 ```julia
-PythonCall.GIL.@release Threads.@threads for i in 1:4
+PythonCall.GIL.@unlock Threads.@threads for i in 1:4
   PythonCall.GIL.@lock pyimport("time").sleep(5)
 end
 ```
@@ -388,17 +388,17 @@ In the above example, we call `time.sleep(5)` four times in parallel. If Julia w
 started with at least four threads (`julia -t4`) then the above code will take about
 5 seconds.
 
-Both `@release` and `@lock` are important. If the GIL were not released, then a deadlock
+Both `@unlock` and `@lock` are important. If the GIL were not unlocked, then a deadlock
 would occur when attempting to lock the already-locked GIL from the threads. If the GIL
-were not re-acquired, then Python would crash when interacting with it.
+were not re-locked, then Python would crash when interacting with it.
 
 You can also use [multi-threading from Python](@ref py-multi-threading).
 
 ### Caveat: Garbage collection
 
 If Julia's GC collects any Python objects from a thread where the GIL is not currently
-held, then those Python objects will not immediately be deleted. Instead they will be
+locked, then those Python objects will not immediately be deleted. Instead they will be
 queued to be deleted in a later GC pass.
 
 If you find you have many Python objects not being deleted, you can call
-[`PythonCall.GC.gc()`](@ref) or `GC.gc()` while the GIL is held to clear the queue.
+[`PythonCall.GC.gc()`](@ref) or `GC.gc()` while the GIL is locked to clear the queue.

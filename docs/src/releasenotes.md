@@ -7,11 +7,11 @@
 * `GC.disable()` and `GC.enable()` are now a no-op and deprecated since they are no
   longer required for thread-safety. These will be removed in v1.
 * Adds `GC.gc()`.
-* Adds module `GIL` with `lock()`, `release()`, `@lock` and `@release` for handling the
+* Adds module `GIL` with `lock()`, `unlock()`, `@lock` and `@unlock` for handling the
   Python Global Interpreter Lock. In combination with the above improvements, these
   allow Julia and Python to co-operate on multiple threads.
 * Adds method `_jl_call_nogil` to `juliacall.AnyValue` and `juliacall.RawValue` to call
-  Julia functions with the GIL released.
+  Julia functions with the GIL unlocked.
 
 ## 0.9.21 (2024-07-20)
 * `Serialization.serialize` can use `dill` instead of `pickle` by setting the env var `JULIA_PYTHONCALL_PICKLE=dill`.

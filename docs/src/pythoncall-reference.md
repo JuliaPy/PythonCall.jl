@@ -226,8 +226,8 @@ See also [`juliacall.AnyValue._jl_call_nogil`](@ref julia-wrappers).
 ```@docs
 PythonCall.GIL.lock
 PythonCall.GIL.@lock
-PythonCall.GIL.release
-PythonCall.GIL.@release
+PythonCall.GIL.unlock
+PythonCall.GIL.@unlock
 PythonCall.GC.gc
 ```
 

@@ -51,6 +51,24 @@ end
 pyjl_handle_error_type(::typeof(pyjlany_call), self, exc) =
     exc isa MethodError && exc.f === self ? pybuiltins.TypeError : PyNULL
 
+function pyjlany_call_nogil(self, args_::Py, kwargs_::Py)
+    if pylen(kwargs_) > 0
+        args = pyconvert(Vector{Any}, args_)
+        kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
+        ans = Py(GIL.@unlock self(args...; kwargs...))
+    elseif pylen(args_) > 0
+        args = pyconvert(Vector{Any}, args_)
+        ans = Py(GIL.@unlock self(args...))
+    else
+        ans = Py(GIL.@unlock self())
+    end
+    pydel!(args_)
+    pydel!(kwargs_)
+    ans
+end
+pyjl_handle_error_type(::typeof(pyjlany_call_nogil), self, exc) =
+    exc isa MethodError && exc.f === self ? pybuiltins.TypeError : PyNULL
+
 function pyjlany_getitem(self, k_::Py)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
@@ -334,11 +352,21 @@ class AnyValue(ValueBase):
     def __name__(self):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_name)))
     def _jl_raw(self):
+        '''Convert this to a juliacall.RawValue.'''
         return self._jl_callmethod($(pyjl_methodnum(pyjlraw)))
     def _jl_display(self, mime=None):
+        '''Display this, optionally specifying the MIME type.'''
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_display)), mime)
     def _jl_help(self, mime=None):
+        '''Show help for this Julia object.'''
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_help)), mime)
+    def _jl_call_nogil(self, *args, **kwargs):
+        '''Call this with the given arguments but with the GIL disabled.
+        
+        WARNING: This function must not interact with Python at all without re-acquiring
+        the GIL.
+        '''
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_call_nogil)), args, kwargs)
     def _repr_mimebundle_(self, include=None, exclude=None):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)
 """,

@@ -42,6 +42,7 @@ using ..Convert:
     pyconvertarg,
     pyconvert_result
 using ..GC: GC
+using ..GIL: GIL
 
 using Pkg: Pkg
 using Base: @propagate_inbounds, allocatedinline

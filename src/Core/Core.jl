@@ -5,7 +5,7 @@ Defines the `Py` type and directly related functions.
 """
 module Core
 
-const VERSION = v"0.9.21"
+const VERSION = v"0.9.22"
 const ROOT_DIR = dirname(dirname(@__DIR__))
 
 using ..PythonCall: PythonCall  # needed for docstring cross-refs

@@ -3,7 +3,7 @@
     "packages": {
         "PythonCall": {
             "uuid": "6099a3de-0909-46bc-b1f4-468b9a2dfc0d",
-            "version": "=0.9.21",
+            "version": "=0.9.22",
             "path": "../..",
             "dev": true
         }

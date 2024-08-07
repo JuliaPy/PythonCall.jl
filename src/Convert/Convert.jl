@@ -45,6 +45,7 @@ using ..Core:
     pythrow,
     pybool_asbool
 using Dates: Date, Time, DateTime, Second, Millisecond, Microsecond, Nanosecond
+using Dates: Year, Month, Day, Hour, Minute, Week, Period, CompoundPeriod, canonicalize
 
 import ..Core: pyconvert
 

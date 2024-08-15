@@ -3,7 +3,7 @@
     struct Test{T<:Number}
         x::T
     end
-    Base.show(io::IO, ::MIME"text/plain", x::Test{T}) where T = show(io, x.t)
+    Base.show(io::IO, ::MIME"text/plain", x::Test{T}) where {T} = show(io, x.t)
     Base.show(io::IO, ::MIME"text/x-test", x::Test) = show(io, x.t)
 
     @testset for x in Any[1, "foo", [], 'z', Test(5)]
@@ -16,7 +16,7 @@
 end
 
 @testitem "StaticString length and indexing" begin
-    s = PythonCall.Utils.StaticString{UInt32, 44}("ababababb")
+    s = PythonCall.Utils.StaticString{UInt32,44}("ababababb")
     @test length(s) == 9
     @test s[1] == 'a'
     @test s[1:2] == "ab"

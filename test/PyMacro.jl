@@ -87,11 +87,11 @@
         x = @py {x = 1, y = 2}
         @test x isa Py
         @test pyis(pytype(x), pybuiltins.dict)
-        @test pyeq(Bool, x, pydict(x=1, y=2))
+        @test pyeq(Bool, x, pydict(x = 1, y = 2))
         x = @py {"x":1, "y":2}
         @test x isa Py
         @test pyis(pytype(x), pybuiltins.dict)
-        @test pyeq(Bool, x, pydict(x=1, y=2))
+        @test pyeq(Bool, x, pydict(x = 1, y = 2))
         # set
         x = @py set()
         @test x isa Py
@@ -254,7 +254,7 @@
         @test pyis(x, pybuiltins.None)
     end
     @testset "for" begin
-        x = pydict(x=1, y=2)
+        x = pydict(x = 1, y = 2)
         y = pylist()
         @py for k in x
             y.append(k)

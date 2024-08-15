@@ -31,7 +31,8 @@ function init_base()
     pyconvert_add_rule("juliacall:JlBase", Any, pyconvert_rule_jlvalue, priority)
 end
 
-pyconvert_rule_jlvalue(::Type{T}, x::Py) where {T} = pyconvert_tryconvert(T, _pyjl_getvalue(x))
+pyconvert_rule_jlvalue(::Type{T}, x::Py) where {T} =
+    pyconvert_tryconvert(T, _pyjl_getvalue(x))
 
 function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssize_t)
     @nospecialize f
@@ -61,12 +62,19 @@ function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssi
             ans = f(self, arg1, arg2, arg3)::Py
             in_f = false
         else
-            errset(pybuiltins.NotImplementedError, "__jl_callmethod not implemented for this many arguments")
+            errset(
+                pybuiltins.NotImplementedError,
+                "__jl_callmethod not implemented for this many arguments",
+            )
         end
         return incref(getptr(ans))
     catch exc
         if exc isa PyException
-            Base.GC.@preserve exc C.PyErr_Restore(incref(getptr(exc._t)), incref(getptr(exc._v)), incref(getptr(exc._b)))
+            Base.GC.@preserve exc C.PyErr_Restore(
+                incref(getptr(exc._t)),
+                incref(getptr(exc._v)),
+                incref(getptr(exc._b)),
+            )
             return C.PyNULL
         else
             try

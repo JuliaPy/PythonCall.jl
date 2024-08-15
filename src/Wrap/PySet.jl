@@ -6,17 +6,21 @@ Wraps the Python set `x` (or anything satisfying the set interface) as an `Abstr
 If `x` is not a Python object, it is converted to one using `pyset`.
 """
 struct PySet{T} <: AbstractSet{T}
-    py :: Py
-    PySet{T}(x=pyset()) where {T} = new{T}(ispy(x) ? Py(x) : pyset(x))
+    py::Py
+    PySet{T}(x = pyset()) where {T} = new{T}(ispy(x) ? Py(x) : pyset(x))
 end
 export PySet
 
-PySet(x=pyset()) = PySet{Py}(x)
+PySet(x = pyset()) = PySet{Py}(x)
 
 ispy(::PySet) = true
 Py(x::PySet) = x.py
 
-function pyconvert_rule_set(::Type{T}, x::Py, ::Type{T1}=Utils._type_ub(T)) where {T<:PySet,T1}
+function pyconvert_rule_set(
+    ::Type{T},
+    x::Py,
+    ::Type{T1} = Utils._type_ub(T),
+) where {T<:PySet,T1}
     pyconvert_return(T1(x))
 end
 
@@ -24,7 +28,7 @@ Base.length(x::PySet) = Int(pylen(x))
 
 Base.isempty(x::PySet) = length(x) == 0
 
-function Base.iterate(x::PySet{T}, it::Py=pyiter(x)) where {T}
+function Base.iterate(x::PySet{T}, it::Py = pyiter(x)) where {T}
     y = unsafe_pynext(it)
     if pyisnull(y)
         pydel!(it)

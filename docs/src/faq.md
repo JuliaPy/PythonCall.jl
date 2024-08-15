@@ -1,22 +1,27 @@
 # FAQ & Troubleshooting
 
+## Can I use PythonCall and PyCall together?
+
+Yes, you can use both PyCall and PythonCall in the same Julia session. This is platform-dependent:
+- On most systems the Python interpreter used by PythonCall and PyCall must be the same (see below).
+- On Windows it appears to be possible for PythonCall and PyCall to use different interpreters.
+
+To force PythonCall to use the same Python interpreter as PyCall, set the environment variable [`JULIA_PYTHONCALL_EXE`](@ref pythoncall-config) to `"@PyCall"`. Note that this will opt out of automatic dependency management using CondaPkg.
+
+Alternatively, to force PyCall to use the same interpreter as PythonCall, set the environment variable `PYTHON` to [`PythonCall.python_executable_path()`](@ref) and then `Pkg.build("PyCall")`. You will need to do this each time you change project, because PythonCall by default uses a different Python for each project.
+
 ## Is PythonCall/JuliaCall thread safe?
 
-No.
+Yes, as of v0.9.22, provided you handle the GIL correctly. See the guides for
+[PythonCall](@ref jl-multi-threading) and [JuliaCall](@ref py-multi-threading).
 
-Some rules if you are writing multithreaded code:
-- Only call Python functions from the first thread.
-- You probably also need to call `on=PythonCall.GC.enable(false)` on the main thread before any
-  threaded block of code. Remember to call `PythonCall.GC.enable(on)` again afterwards.
-  (This is because Julia finalizers can be called from any thread.)
-- Julia intentionally causes segmentation faults as part of the GC safepoint mechanism.
-  If unhandled, these segfaults will result in termination of the process. To enable signal handling,
-  set `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` before any calls to import juliacall. This is equivalent
-  to starting julia with `julia --handle-signals=yes`, the default behavior in Julia. 
-  See discussion [here](https://github.com/JuliaPy/PythonCall.jl/issues/219#issuecomment-1605087024) for more information.
-- You may still encounter problems.
+Before, tricks such as disabling the garbage collector were required. See the
+[old docs](https://juliapy.github.io/PythonCall.jl/v0.9.21/faq/#Is-PythonCall/JuliaCall-thread-safe?).
 
-Related issues: [#201](https://github.com/JuliaPy/PythonCall.jl/issues/201), [#202](https://github.com/JuliaPy/PythonCall.jl/issues/202)
+Related issues:
+[#201](https://github.com/JuliaPy/PythonCall.jl/issues/201),
+[#202](https://github.com/JuliaPy/PythonCall.jl/issues/202),
+[#529](https://github.com/JuliaPy/PythonCall.jl/pull/529)
 
 ## Issues when Numpy arrays are expected
 

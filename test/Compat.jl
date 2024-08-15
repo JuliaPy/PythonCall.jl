@@ -45,7 +45,16 @@ end
 @testitem "Serialization.jl" begin
     using Serialization
     @testset "Py" begin
-        @testset for x in Py[Py(123), Py(1.23), Py("hello"), pylist([1, 2, 3]), pytuple([1, 2, 3]), Py(nothing), Py([1, 2, 3]), Py(:hello)]
+        @testset for x in Py[
+            Py(123),
+            Py(1.23),
+            Py("hello"),
+            pylist([1, 2, 3]),
+            pytuple([1, 2, 3]),
+            Py(nothing),
+            Py([1, 2, 3]),
+            Py(:hello),
+        ]
             io = IOBuffer()
             serialize(io, x)
             seekstart(io)
@@ -53,7 +62,7 @@ end
             @test y isa Py
             @test pyis(pytype(x), pytype(y))
             @test pyeq(Bool, x, y)
-        end            
+        end
     end
     @testset "PyException" begin
         for e in Py[pybuiltins.ValueError("hello")]
@@ -71,13 +80,13 @@ end
 
 @testitem "Tables.jl" begin
     @testset "pytable" begin
-        x = (x = [1,2,3], y = ["a", "b", "c"])
+        x = (x = [1, 2, 3], y = ["a", "b", "c"])
         # pandas
         # TODO: install pandas and test properly
         @test_throws PyException pytable(x, :pandas)
         # columns
         y = pytable(x, :columns)
-        @test pyeq(Bool, y, pydict(x=[1,2,3], y=["a","b","c"]))
+        @test pyeq(Bool, y, pydict(x = [1, 2, 3], y = ["a", "b", "c"]))
         # rows
         y = pytable(x, :rows)
         @test pyeq(Bool, y, pylist([(1, "a"), (2, "b"), (3, "c")]))
@@ -85,6 +94,14 @@ end
         @test all(pyisinstance(y.y, pybuiltins.str) for y in y)
         # rowdicts
         y = pytable(x, :rowdicts)
-        @test pyeq(Bool, y, pylist([pydict(x=1, y="a"), pydict(x=2, y="b"), pydict(x=3, y="c")]))
+        @test pyeq(
+            Bool,
+            y,
+            pylist([
+                pydict(x = 1, y = "a"),
+                pydict(x = 2, y = "b"),
+                pydict(x = 3, y = "c"),
+            ]),
+        )
     end
 end

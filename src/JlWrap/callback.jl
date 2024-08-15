@@ -13,7 +13,14 @@ The name, qualname, docstring or signature can optionally be set with `name`, `q
 Unlike `Py(f)` (or `pyjl(f)`), the arguments passed to `f` are always of type `Py`, i.e.
 they are never converted.
 """
-function pyfunc(f; name=nothing, qualname=nothing, doc=nothing, signature=nothing, wrap=pywrapcallback)
+function pyfunc(
+    f;
+    name = nothing,
+    qualname = nothing,
+    doc = nothing,
+    signature = nothing,
+    wrap = pywrapcallback,
+)
     f2 = ispy(f) ? f : pyjlcallback(f)
     if wrap isa Pair
         wrapargs, wrapfunc = wrap
@@ -21,7 +28,13 @@ function pyfunc(f; name=nothing, qualname=nothing, doc=nothing, signature=nothin
         wrapargs, wrapfunc = (), wrap
     end
     if wrapfunc === pywrapcallback && pyisnull(pywrapcallback)
-        pycopy!(pywrapcallback, pybuiltins.eval("lambda f: lambda *args, **kwargs: f(*args, **kwargs)", pydict()))
+        pycopy!(
+            pywrapcallback,
+            pybuiltins.eval(
+                "lambda f: lambda *args, **kwargs: f(*args, **kwargs)",
+                pydict(),
+            ),
+        )
     end
     if wrapfunc isa AbstractString
         f3 = pybuiltins.eval(wrapfunc, pydict())(f2, wrapargs...)
@@ -79,12 +92,13 @@ If `get`, `set` or `del` is not a Python object (e.g. if it is a `Function`) the
 converted to one with [`pyfunc`](@ref PythonCall.pyfunc). In particular this means the arguments passed to it
 are always of type `Py`.
 """
-pyproperty(; get=nothing, set=nothing, del=nothing, doc=nothing, kw...) =
+pyproperty(; get = nothing, set = nothing, del = nothing, doc = nothing, kw...) =
     pybuiltins.property(
         fget = ispy(get) || get === nothing ? get : pyfunc(get; kw...),
         fset = ispy(set) || set === nothing ? set : pyfunc(set; kw...),
         fdel = ispy(del) || del === nothing ? del : pyfunc(del; kw...),
         doc = doc,
     )
-pyproperty(get, set=nothing, del=nothing; doc=nothing, kw...) = pyproperty(; get=get, set=set, del=del, doc=doc, kw...)
+pyproperty(get, set = nothing, del = nothing; doc = nothing, kw...) =
+    pyproperty(; get = get, set = set, del = del, doc = doc, kw...)
 export pyproperty

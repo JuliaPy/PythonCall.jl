@@ -33,7 +33,15 @@ mutable struct PyIO <: IO
     obuflen::Int
     obuf::Vector{UInt8}
 
-    function PyIO(x; own::Bool = false, text::Union{Missing,Bool} = missing, buflen::Integer = 4096, ibuflen::Integer = buflen, obuflen::Integer = buflen, line_buffering::Bool=false)
+    function PyIO(
+        x;
+        own::Bool = false,
+        text::Union{Missing,Bool} = missing,
+        buflen::Integer = 4096,
+        ibuflen::Integer = buflen,
+        obuflen::Integer = buflen,
+        line_buffering::Bool = false,
+    )
         if text === missing
             text = pyhasattr(x, "encoding")
         end
@@ -151,7 +159,7 @@ function Base.unsafe_write(io::PyIO, ptr::Ptr{UInt8}, n::UInt)
                 else
                     append!(io.obuf, unsafe_wrap(Array, ptr, i))
                     putobuf(io)
-                    append!(io.obuf, unsafe_wrap(Array, ptr+i, ntodo-i))
+                    append!(io.obuf, unsafe_wrap(Array, ptr + i, ntodo - i))
                 end
             else
                 append!(io.obuf, buf)
@@ -255,7 +263,9 @@ function Base.position(io::PyIO)
         if isempty(io.ibuf)
             return pyconvert(Int, @py io.tell())
         else
-            error("`position(io)` text PyIO streams only implemented for empty input buffer (e.g. do `read(io, length(io.ibuf))` first)")
+            error(
+                "`position(io)` text PyIO streams only implemented for empty input buffer (e.g. do `read(io, length(io.ibuf))` first)",
+            )
         end
     else
         return pyconvert(Int, @py io.tell()) - length(io.ibuf)

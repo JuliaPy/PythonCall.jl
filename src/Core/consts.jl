@@ -9,7 +9,7 @@ const INIT_MODULES = Dict(
     :pycollectionsabcmodule => "collections.abc",
 )
 
-for (j,m) in INIT_MODULES
+for (j, m) in INIT_MODULES
     @eval const $j = pynew()
     push!(INIT_CONSTS_CODE, :(pycopy!($j, pyimport($m))))
 end
@@ -22,7 +22,7 @@ const INIT_ATTRS = Dict(
     :pytimedeltatype => "datetime" => "timedelta",
 )
 
-for (j,k) in INIT_ATTRS
+for (j, k) in INIT_ATTRS
     @eval const $j = pynew()
     push!(INIT_CONSTS_CODE, :(pycopy!($j, pyimport($k))))
 end
@@ -169,7 +169,7 @@ const BUILTINS = Set([
 ])
 
 @eval baremodule pybuiltins
-    $([:(const $k = $pynew()) for k in BUILTINS]...)
+$([:(const $k = $pynew()) for k in BUILTINS]...)
 end
 """
     pybuiltins
@@ -186,9 +186,18 @@ for k in BUILTINS
         # help is only available in interactive contexts (imported by the 'site' module)
         # see: https://docs.python.org/3/library/functions.html#help
         # see: https://github.com/JuliaPy/PythonCall.jl/issues/248
-        push!(INIT_CONSTS_CODE, :(pycopy!(pybuiltins.$k, pygetattr(pybuiltinsmodule, $(string(k)), pybuiltins.None))))
+        push!(
+            INIT_CONSTS_CODE,
+            :(pycopy!(
+                pybuiltins.$k,
+                pygetattr(pybuiltinsmodule, $(string(k)), pybuiltins.None),
+            )),
+        )
     else
-        push!(INIT_CONSTS_CODE, :(pycopy!(pybuiltins.$k, pygetattr(pybuiltinsmodule, $(string(k))))))
+        push!(
+            INIT_CONSTS_CODE,
+            :(pycopy!(pybuiltins.$k, pygetattr(pybuiltinsmodule, $(string(k))))),
+        )
     end
 end
 

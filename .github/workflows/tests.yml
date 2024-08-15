@@ -45,6 +45,7 @@ jobs:
         uses: julia-actions/julia-runtest@v1
         env:
           JULIA_DEBUG: PythonCall
+          JULIA_NUM_THREADS: '2'
       - name: Process coverage
         uses: julia-actions/julia-processcoverage@v1
       - name: Upload coverage to Codecov
@@ -84,6 +85,8 @@ jobs:
       - name: Run tests
         run: |
           pytest -s --nbval --cov=pysrc ./pytest/
+        env:
+          PYTHON_JULIACALL_THREADS: '2'
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
         env:

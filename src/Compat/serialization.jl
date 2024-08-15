@@ -43,7 +43,8 @@ function Serialization.serialize(s::AbstractSerializer, x::PyException)
     serialize_py(s, x.v)
 end
 
-Serialization.deserialize(s::AbstractSerializer, ::Type{PyException}) = PyException(deserialize_py(s))
+Serialization.deserialize(s::AbstractSerializer, ::Type{PyException}) =
+    PyException(deserialize_py(s))
 
 ### PyArray
 #
@@ -58,5 +59,5 @@ end
 
 function Serialization.deserialize(s::AbstractSerializer, ::Type{T}) where {T<:PyArray}
     # TODO: set buffer and array args too?
-    T(deserialize_py(s); copy=false)
+    T(deserialize_py(s); copy = false)
 end

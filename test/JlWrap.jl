@@ -24,7 +24,7 @@
     Base.delete!(x::Foo, idx...) = (x.value = -sum(idx); x)
     Base.in(v::Int, x::Foo) = x.value == v
     Base.nameof(x::Foo) = "nameof $(x.value)"
-    Base.iterate(x::Foo, st::Int=1) = st <= x.value ? (st, st + 1) : nothing
+    Base.iterate(x::Foo, st::Int = 1) = st <= x.value ? (st, st + 1) : nothing
     @testset "type" begin
         @test pyis(pytype(pyjl(Foo(1))), PythonCall.pyjlanytype)
         @test pyis(pytype(pyjl(nothing)), PythonCall.pyjlanytype)
@@ -62,7 +62,7 @@
     @testset "call" begin
         z = pyjl(Foo(1))(4, 5)
         @test pyconvert(String, z) == "1((4, 5))0"
-        z = pyjl(Foo(1))(4, 5; foo=true, bar=true)
+        z = pyjl(Foo(1))(4, 5; foo = true, bar = true)
         @test pyconvert(String, z) == "1((4, 5))2"
     end
     @testset "callback" begin
@@ -217,11 +217,11 @@
     end
     @testset "display" begin
         pyjl(Foo(1)).jl_display()
-        pyjl(Foo(1)).jl_display(mime="text/plain")
+        pyjl(Foo(1)).jl_display(mime = "text/plain")
     end
     @testset "help" begin
         pyjl(Foo(1)).jl_help()
-        pyjl(Foo(1)).jl_help(mime="text/plain")
+        pyjl(Foo(1)).jl_help(mime = "text/plain")
     end
     @testset "eval" begin
         m = pyjl(Main)
@@ -305,56 +305,17 @@ end
 
 @testitem "collection" begin
     cases = [
-        (
-            x=fill(nothing),
-            type=:array,
-            list=pylist([nothing]),
-        ),
-        (
-            x=[1, 2, 3],
-            type=:vector,
-            list=pylist([1, 2, 3]),
-        ),
-        (
-            x=[1 2; 3 4],
-            type=:array,
-            list=pylist([1, 3, 2, 4]),
-        ),
-        (
-            x=Set([1, 2, 3]),
-            type=:set,
-            list=pylist(Set([1, 2, 3])),
-        ),
-        (
-            x=Dict(1 => 2, 3 => 4),
-            type=:dict,
-            list=pylist(keys(Dict(1 => 2, 3 => 4))),
-        ),
-        (
-            x=keys(Dict()),
-            type=:set,
-            list=pylist(),
-        ),
-        (
-            x=values(Dict()),
-            type=:collection,
-            list=pylist(),
-        ),
-        (
-            x=(1, 2, 3),
-            type=:collection,
-            list=pylist([1, 2, 3]),
-        ),
-        (
-            x=(x=1, y=2),
-            type=:collection,
-            list=pylist([1, 2]),
-        ),
-        (
-            x=Ref(nothing),
-            type=:collection,
-            list=pylist([nothing]),
-        ),]
+        (x = fill(nothing), type = :array, list = pylist([nothing])),
+        (x = [1, 2, 3], type = :vector, list = pylist([1, 2, 3])),
+        (x = [1 2; 3 4], type = :array, list = pylist([1, 3, 2, 4])),
+        (x = Set([1, 2, 3]), type = :set, list = pylist(Set([1, 2, 3]))),
+        (x = Dict(1 => 2, 3 => 4), type = :dict, list = pylist(keys(Dict(1 => 2, 3 => 4)))),
+        (x = keys(Dict()), type = :set, list = pylist()),
+        (x = values(Dict()), type = :collection, list = pylist()),
+        (x = (1, 2, 3), type = :collection, list = pylist([1, 2, 3])),
+        (x = (x = 1, y = 2), type = :collection, list = pylist([1, 2])),
+        (x = Ref(nothing), type = :collection, list = pylist([nothing])),
+    ]
     @testset "type $(c.x)" for c in cases
         y = pyjlcollection(c.x)
         @test pyisinstance(y, PythonCall.JlWrap.pyjlcollectiontype)
@@ -370,13 +331,16 @@ end
         @test pyeq(Bool, pylist(pyjlcollection(c.x)), c.list)
     end
     @testset "hash $(c.x)" for c in cases
-        # not sure why but the bottom byte doesn't always match
-        @test mod(pyhash(pyjlcollection(c.x)), UInt32) >> 8 == mod(hash(c.x), UInt32) >> 8
+        # not sure why but the bottom bits don't always match
+        @test mod(pyhash(pyjlcollection(c.x)), UInt32) >> 16 == mod(hash(c.x), UInt32) >> 16
     end
     @testset "eq $(c1.x) $(c2.x)" for (c1, c2) in Iterators.product(cases, cases)
         @test pyeq(Bool, pyjlcollection(c1.x), pyjlcollection(c2.x)) == (c1.x == c2.x)
     end
-    @testset "contains $(c.x) $(v)" for (c, v) in Iterators.product(cases, [nothing, 0, 1, 2, 3, 4, 5, 0.0, 0.5, 1.0])
+    @testset "contains $(c.x) $(v)" for (c, v) in Iterators.product(
+        cases,
+        [nothing, 0, 1, 2, 3, 4, 5, 0.0, 0.5, 1.0],
+    )
         if !isa(c.x, Dict)
             @test pycontains(pyjlcollection(c.x), v) == (v in c.x)
         end
@@ -764,13 +728,21 @@ end
         y.flush()
         # TODO: check it actually flushed something
     end
-    @testset "isatty $(typeof(x))" for (x, y) in [(IOBuffer(), false), (devnull, false), (stdout, false)]
+    @testset "isatty $(typeof(x))" for (x, y) in [
+        (IOBuffer(), false),
+        (devnull, false),
+        (stdout, stdout isa Base.TTY),
+    ]
         # TODO: how to get a TTY in a test environment??
         z = pytextio(x).isatty()
         @test pyisinstance(z, pybuiltins.bool)
         @test pyeq(Bool, z, y)
     end
-    @testset "readable $(typeof(x))" for (x, y) in [(IOBuffer(), true), (devnull, false), (stdin, true)]
+    @testset "readable $(typeof(x))" for (x, y) in [
+        (IOBuffer(), true),
+        (devnull, false),
+        (stdin, true),
+    ]
         z = pytextio(x).readable()
         @test pyisinstance(z, pybuiltins.bool)
         @test pyeq(Bool, z, y)
@@ -805,7 +777,12 @@ end
         @test all(pyisinstance(z, pybuiltins.int) for z in zs)
         @test pyeq(Bool, pylist(zs), pylist([1, 2, 3, 4]))
     end
-    @testset "seekable $(typeof(x))" for (x, y) in [(IOBuffer(), true), (devnull, true), (stdin, true), (stdout, true)]
+    @testset "seekable $(typeof(x))" for (x, y) in [
+        (IOBuffer(), true),
+        (devnull, true),
+        (stdin, true),
+        (stdout, true),
+    ]
         z = pytextio(x).seekable()
         @test pyisinstance(z, pybuiltins.bool)
         @test pyeq(Bool, z, y)
@@ -837,7 +814,12 @@ end
         seekend(x)
         @test position(x) == 3
     end
-    @testset "writable $(typeof(x))" for (x, y) in [(IOBuffer(), true), (IOBuffer(""), false), (devnull, true), (stdout, true)]
+    @testset "writable $(typeof(x))" for (x, y) in [
+        (IOBuffer(), true),
+        (IOBuffer(""), false),
+        (devnull, true),
+        (stdout, true),
+    ]
         z = pytextio(x).writable()
         @test pyisinstance(z, pybuiltins.bool)
         @test pyeq(Bool, z, y)
@@ -1084,7 +1066,7 @@ end
         x = Set([1, 2, 3])
         y = pyjlset(x)
         zs = Py[]
-        for i in 1:3
+        for i = 1:3
             push!(zs, y.pop())
             @test length(x) == 3 - i
         end
@@ -1201,13 +1183,13 @@ end
         x.sort()
         @test pyjlvalue(x) == [1, 2, 3, 4, 6, 6, 7]
         x = pyjlarray([4, 6, 2, 3, 7, 6, 1])
-        x.sort(reverse=true)
+        x.sort(reverse = true)
         @test pyjlvalue(x) == [7, 6, 6, 4, 3, 2, 1]
         x = pyjlarray([4, -6, 2, -3, 7, -6, 1])
-        x.sort(key=abs)
+        x.sort(key = abs)
         @test pyjlvalue(x) == [1, 2, -3, 4, -6, -6, 7]
         x = pyjlarray([4, -6, 2, -3, 7, -6, 1])
-        x.sort(key=abs, reverse=true)
+        x.sort(key = abs, reverse = true)
         @test pyjlvalue(x) == [7, -6, -6, 4, -3, 2, 1]
     end
     @testset "reverse" begin

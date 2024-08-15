@@ -9,13 +9,13 @@ using Base: @kwdef
 using UnsafePointers: UnsafePtr
 using CondaPkg: CondaPkg
 using Requires: @require
-using Libdl: dlpath, dlopen, dlopen_e, dlclose, dlsym, dlsym_e, RTLD_LAZY, RTLD_DEEPBIND, RTLD_GLOBAL
+using Libdl:
+    dlpath, dlopen, dlopen_e, dlclose, dlsym, dlsym_e, RTLD_LAZY, RTLD_DEEPBIND, RTLD_GLOBAL
 
 include("consts.jl")
 include("pointers.jl")
 include("extras.jl")
 include("context.jl")
-include("gil.jl")
 include("api.jl")
 
 function __init__()

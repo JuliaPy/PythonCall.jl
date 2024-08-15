@@ -12,7 +12,7 @@ using ..C: C
 """
     lock(f)
 
-Unlock the GIL, compute `f()`, unlock the GIL, then return the result of `f()`.
+Lock the GIL, compute `f()`, unlock the GIL, then return the result of `f()`.
 
 Use this to run Python code from threads that do not currently hold the GIL, such as new
 threads. Since the main Julia thread holds the GIL by default, you will need to
@@ -32,7 +32,7 @@ end
 """
     @lock expr
 
-Unlock the GIL, compute `expr`, unlock the GIL, then return the result of `expr`.
+Lock the GIL, compute `expr`, unlock the GIL, then return the result of `expr`.
 
 Use this to run Python code from threads that do not currently hold the GIL, such as new
 threads. Since the main Julia thread holds the GIL by default, you will need to

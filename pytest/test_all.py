@@ -91,7 +91,7 @@ def test_julia_gc():
     # Debugging note: if you get segfaults, then run the tests with
     # `PYTHON_JULIACALL_HANDLE_SIGNALS=yes python3 -X faulthandler -m pytest -p no:faulthandler -s --nbval --cov=pysrc ./pytest/`
     # in order to recover a bit more information from the segfault.
-    jl.seval(
+    jl.jl_eval(
         """
         using PythonCall, Test
         let
@@ -106,10 +106,8 @@ def test_julia_gc():
     )
 
 
-@pytest.mark.parametrize(
-    ["yld", "raw"], [(yld, raw) for yld in [False, True] for raw in [False, True]]
-)
-def test_call_nogil(yld, raw):
+@pytest.mark.parametrize("yld", [True, False])
+def test_call_nogil(yld):
     """Tests that we can execute Julia code in parallel by releasing the GIL."""
     from concurrent.futures import ThreadPoolExecutor, wait
     from time import time
@@ -122,10 +120,7 @@ def test_call_nogil(yld, raw):
     else:
         # use Libc.systemsleep which does not yield
         jsleep = jl.Libc.systemsleep
-    if raw:
-        # test RawValue instead of AnyValue
-        jsleep = jsleep._jl_raw()
-    jsleep = jsleep._jl_call_nogil
+    jsleep = jsleep.jl_call_nogil
     jyield = getattr(jl, "yield")
     # precompile
     jsleep(0.01)

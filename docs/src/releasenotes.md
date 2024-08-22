@@ -1,5 +1,8 @@
 # Release Notes
 
+## Unreleased
+* Bug fixes.
+
 ## 0.9.22 (2024-08-07)
 * Finalizers are now thread-safe, meaning PythonCall now works in the presence of
   multi-threaded Julia code. Previously, tricks such as disabling the garbage collector

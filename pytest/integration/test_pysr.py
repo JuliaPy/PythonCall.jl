@@ -7,8 +7,7 @@ def test_integration_pysr():
     import tempfile
 
     with tempfile.TemporaryDirectory() as tempdir:
-        run_kws = dict(check=True, capture_output=True)
-        subprocess.run([sys.executable, "-m", "virtualenv", tempdir], **run_kws)
+        subprocess.run([sys.executable, "-m", "virtualenv", tempdir], check=True)
 
         virtualenv_path = os.path.join(
             tempdir, "Scripts" if platform.system() == "Windows" else "bin"
@@ -18,11 +17,11 @@ def test_integration_pysr():
         assert os.path.exists(virtualenv_executable)
 
         # Install this package
-        subprocess.run([virtualenv_executable, "-m", "pip", "install", "."], **run_kws)
+        subprocess.run([virtualenv_executable, "-m", "pip", "install", "."], check=True)
         # Install PySR with no requirement on JuliaCall
         subprocess.run(
             [virtualenv_executable, "-m", "pip", "install", "--no-deps", "pysr"],
-            **run_kws,
+            check=True,
         )
         # Install PySR test requirements
         subprocess.run(
@@ -38,9 +37,9 @@ def test_integration_pysr():
                 "setuptools",
                 "pytest",
             ],
-            **run_kws,
+            check=True,
         )
         # Run PySR main test suite
         subprocess.run(
-            [virtualenv_executable, "-m", "pysr", "test", "main"], **run_kws,
+            [virtualenv_executable, "-m", "pysr", "test", "main"], check=True
         )

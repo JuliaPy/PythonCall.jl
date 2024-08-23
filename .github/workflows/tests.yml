@@ -88,7 +88,7 @@ jobs:
       - name: Run tests
         run: |
           if [ "${{ matrix.test-type }}" == "integration" ]; then
-            pytest -s --nbval --cov=pysrc ./pytest/integration/
+            pytest -s ./pytest/integration/
           else
             pytest -s --nbval --cov=pysrc ./pytest/ -k "not integration"
           fi
@@ -96,5 +96,6 @@ jobs:
           PYTHON_JULIACALL_THREADS: '2'
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
+        if: ${{ matrix.test-type == 'unit' }}
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

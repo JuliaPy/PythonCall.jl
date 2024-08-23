@@ -55,6 +55,8 @@ jobs:
   python:
     name: python-${{ matrix.test-type }}-${{ matrix.os }}-py${{ matrix.pyversion }}
     runs-on: ${{ matrix.os }}
+    env:
+      PYTHON_JULIACALL_THREADS: '2'
     strategy:
       fail-fast: true
       matrix:
@@ -95,15 +97,12 @@ jobs:
           flake8 . --count --select=E9,F63,F7,F82 --ignore=F821 --show-source --statistics
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      - name: Run tests
-        run: |
-          if [ "${{ matrix.test-type }}" == "integration" ]; then
-            pytest -s ./pytest/integration/
-          else
-            pytest -s --nbval --cov=pysrc ./pytest/ -k "not integration"
-          fi
-        env:
-          PYTHON_JULIACALL_THREADS: '2'
+      - name: Run unit tests
+        if: ${{ matrix.test-type == 'unit' }}
+        run: pytest -s --nbval --cov=pysrc ./pytest/ -k "not integration"
+      - name: Run integration tests
+        if: ${{ matrix.test-type == 'integration' }}
+        run: pytest -s ./pytest/integration/
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
         if: ${{ matrix.test-type == 'unit' }}

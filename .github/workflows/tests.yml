@@ -78,9 +78,17 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 pytest pytest-cov nbval numpy virtualenv
+          pip install flake8 pytest pytest-cov nbval numpy
           cp pysrc/juliacall/juliapkg-dev.json pysrc/juliacall/juliapkg.json
           pip install -e .
+      - name: Install integration test dependencies
+        if: ${{ matrix.test-type == 'integration' }}
+        run: |
+          pip install sympy pandas scikit_learn click setuptools
+          # Note that the `--no-deps` flag is needed for ensuring
+          # we avoid installing a newer julicall. The initial `pip install`
+          # is for the non-juliacall dependencies
+          pip install --no-deps pysr
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names

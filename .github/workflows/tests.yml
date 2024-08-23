@@ -58,6 +58,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         pyversion: ["3.x", "3.8"]
+        test-type: ['unit']
+        include:
+          - os: ubuntu-latest
+            pyversion: '3.x'
+            test-type: 'integration'
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.pyversion }}
@@ -82,7 +87,11 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Run tests
         run: |
-          pytest -s --nbval --cov=pysrc ./pytest/
+          if [ "${{ matrix.test-type }}" == "integration" ]; then
+            pytest -s --nbval --cov=pysrc ./pytest/integration/
+          else
+            pytest -s --nbval --cov=pysrc ./pytest/ -k "not integration"
+          fi
         env:
           PYTHON_JULIACALL_THREADS: '2'
       - name: Upload coverage to Codecov

@@ -11,6 +11,8 @@ def test_integration_pysr():
         unary_operators=["cos"],
         binary_operators=["*", "+", "-"],
         early_stop_condition=1e-5,
+        temp_equation_file=True,
+        progress=False,
     )
     model.fit(X, y)
     assert model.equations_.iloc[-1]["loss"] < 1e-5

@@ -12,7 +12,7 @@ on:
 
 jobs:
   julia:
-    name: Test (${{ matrix.os }}, julia ${{ matrix.jlversion }})
+    name: test-${{ matrix.test-type }}-${{ matrix.os }}-jl${{ matrix.jlversion }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -20,6 +20,7 @@ jobs:
         arch: [x64] # x86 unsupported by MicroMamba
         os: [ubuntu-latest, windows-latest, macos-latest]
         jlversion: ['1','1.6']
+        test-type: ['unit']
     steps:
       - uses: actions/checkout@v2
       - name: Set up Julia ${{ matrix.jlversion }}
@@ -48,10 +49,11 @@ jobs:
         uses: julia-actions/julia-processcoverage@v1
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
+        if: ${{ matrix.test-type == 'unit' }}
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   python:
-    name: Test (${{ matrix.os }}, python ${{ matrix.pyversion }})
+    name: test-${{ matrix.test-type }}-${{ matrix.os }}-py${{ matrix.pyversion }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true

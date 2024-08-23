@@ -9,7 +9,7 @@ function bump(file, oldpat, newpat)
     oldtext = read(file, String)
     newtext = replace(oldtext, oldpat => newpat)
     @assert newtext != oldtext
-    write(file, newtext)    
+    write(file, newtext)
 end
 
 function bumpver(file, pattern, oldver, newver)
@@ -27,4 +27,5 @@ bumpver("pysrc/juliacall/__init__.py", "__version__ = '{}'\n", oldver, newver)
 bumpver("pysrc/juliacall/juliapkg.json", "\"version\": \"={}\"", oldver, newver)
 bumpver("pysrc/juliacall/juliapkg-dev.json", "\"version\": \"={}\"", oldver, newver)
 bumpver("src/PythonCall.jl", "VERSION = v\"{}\"", oldver, newver)
+bumpver("src/Core/Core.jl", "VERSION = v\"{}\"", oldver, newver)
 bump("docs/src/releasenotes.md", "## Unreleased", "## $newver ($(today()))")

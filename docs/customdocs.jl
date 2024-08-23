@@ -53,8 +53,8 @@ function runner(::Type{CustomDocExpander}, node, page, doc)
         Dict{Symbol,Any}(    # NOTE: Not sure about what to put here.                            
             :module => Main, # This is supposed to be tracking python code.
             :path => "",
-            :linenumber => 0
-        )
+            :linenumber => 0,
+        ),
     )::Docs.DocStr
 
     # NOTE: This was modified because the original Documenter.create_docsnode was generating unreachable links
@@ -80,12 +80,10 @@ function _parse_docs(code::AbstractString)
     m = match(r"^(.+?)\s*-\s*(.+?)\s*(\n[\s\S]*)$", strip(code))
 
     if isnothing(m)
-        error(
-            """
-            Invalid docstring:
-            $(code)
-            """
-        )
+        error("""
+              Invalid docstring:
+              $(code)
+              """)
     end
 
     name = Symbol(m[1])

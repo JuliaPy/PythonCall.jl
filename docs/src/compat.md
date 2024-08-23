@@ -9,6 +9,12 @@ functions to bridge a gap. We aim to keep these as minimal as possible.
 
 Whenever a Python exception is displayed by Julia, `sys.last_traceback` and friends are set. This allows the post-mortem debugger `pdb.pm()` to work. Disable by setting `PythonCall.CONFIG.auto_sys_last_traceback = false`.
 
+## Julia standard library
+
+Python objects can be serialised with the [`Serialization`](https://docs.julialang.org/en/v1/stdlib/Serialization/) stdlib.
+This uses [`pickle`](https://docs.python.org/3/library/pickle.html) library under the hood.
+You can opt into using [`dill`](https://pypi.org/project/dill/) instead by setting the environment variable `JULIA_PYTHONCALL_PICKLE="dill"`.
+
 ## Tabular data / Pandas
 
 The abstract type [`PyTable`](@ref) is for wrapper types around Python tables, providing the
@@ -67,8 +73,9 @@ The `juliacall` IPython extension adds these features to your IPython session:
 
 The extension is experimental and unstable - the API can change at any time.
 
-Enable the extension with `%load_ext juliacall`.
-See [the IPython docs](https://ipython.readthedocs.io/en/stable/config/extensions/).
+You can explicitly enable the extension with `%load_ext juliacall`, but
+it will automatically be loaded if `juliacall` is imported and IPython is detected.
+You can disable this behavior with an [environment variable](@ref julia-config).
 
 The `%%julia` cell magic can synchronise variables between Julia and Python by listing them
 on the first line:
@@ -87,6 +94,9 @@ In [4]: %%julia x y z
 In [5]: z
 Out[5]: '2^8 = 256'
 ```
+
+Also see [the IPython docs](https://ipython.readthedocs.io/en/stable/config/extensions/)
+for more information on extensions.
 
 ## Asynchronous Julia code (including Makie)
 

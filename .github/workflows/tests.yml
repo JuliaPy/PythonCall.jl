@@ -43,6 +43,7 @@ jobs:
         uses: julia-actions/julia-runtest@v1
         env:
           JULIA_DEBUG: PythonCall
+          JULIA_NUM_THREADS: '2'
       - name: Process coverage
         uses: julia-actions/julia-processcoverage@v1
       - name: Upload coverage to Codecov
@@ -56,17 +57,21 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        pyversion: ["3.x", "3.7"]
+        pyversion: ["3.x", "3.8"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.pyversion }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.pyversion }}
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v1
+        with:
+          version: '1'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 pytest pytest-cov virtualenv
+          pip install flake8 pytest pytest-cov nbval numpy virtualenv
           cp pysrc/juliacall/juliapkg-dev.json pysrc/juliacall/juliapkg.json
           pip install -e .
       - name: Lint with flake8
@@ -77,7 +82,9 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Run tests
         run: |
-          pytest -s --cov=pysrc
+          pytest -s --nbval --cov=pysrc ./pytest/
+        env:
+          PYTHON_JULIACALL_THREADS: '2'
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
         env:

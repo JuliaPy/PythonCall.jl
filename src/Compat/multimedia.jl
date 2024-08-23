@@ -9,16 +9,20 @@ end
 
 function pyshow(io::IO, mime::MIME, x)
     x_ = Py(x)
-    for rule in PYSHOW_RULES
-        rule(io, string(mime), x_) && return
+    if !pyisnull(x_)
+        for rule in PYSHOW_RULES
+            rule(io, string(mime), x_) && return
+        end
     end
     throw(MethodError(show, (io, mime, x_)))
 end
 
 function pyshowable(mime::MIME, x)
     x_ = Py(x)
-    for rule in PYSHOW_RULES
-        rule(devnull, string(mime), x_) && return true
+    if !pyisnull(x_)
+        for rule in PYSHOW_RULES
+            rule(devnull, string(mime), x_) && return true
+        end
     end
     return false
 end
@@ -29,7 +33,7 @@ end
 function pyshow_rule_mimebundle(io::IO, mime::String, x::Py)
     pyhasattr(x, "_repr_mimebundle_") || return false
     try
-        ans = pytype(x)._repr_mimebundle_(x, include=pylist([mime]))
+        ans = pytype(x)._repr_mimebundle_(x, include = pylist([mime]))
         if pyisinstance(ans, pybuiltins.tuple)
             data = ans[0][mime]
         else
@@ -106,7 +110,7 @@ function pyshow_rule_savefig(io::IO, mime::String, x::Py)
             fig = fig.figure
         end
         buf = pyimport("io").BytesIO()
-        x.savefig(buf, format=format, bbox_inches="tight")
+        x.savefig(buf, format = format, bbox_inches = "tight")
         data = @pyconvert(Vector{UInt8}, buf.getvalue(), return false)
         write(io, data)
         plt.close(fig)
@@ -138,10 +142,11 @@ Base.showable(mime::MIME, o::Py) = pyshowable(mime, o)
 function Base.show(io::IO, mime::MIME"text/plain", df::PyPandasDataFrame)
     nrows = pyconvert(Int, Py(df).shape[0])
     ncols = pyconvert(Int, Py(df).shape[1])
-    printstyled(io, nrows, '×', ncols, ' ', typeof(df), '\n', bold=true)
+    printstyled(io, nrows, '×', ncols, ' ', typeof(df), '\n', bold = true)
     pyshow(io, mime, df)
 end
 Base.show(io::IO, mime::MIME, df::PyPandasDataFrame) = pyshow(io, mime, df)
 Base.show(io::IO, mime::MIME"text/csv", df::PyPandasDataFrame) = pyshow(io, mime, df)
-Base.show(io::IO, mime::MIME"text/tab-separated-values", df::PyPandasDataFrame) = pyshow(io, mime, df)
+Base.show(io::IO, mime::MIME"text/tab-separated-values", df::PyPandasDataFrame) =
+    pyshow(io, mime, df)
 Base.showable(mime::MIME, df::PyPandasDataFrame) = pyshowable(mime, df)

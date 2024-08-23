@@ -17,13 +17,17 @@ const PyObjectVector = PyObjectArray{1}
 const PyObjectMatrix = PyObjectArray{2}
 export PyObjectVector, PyObjectMatrix, PyObjectArray
 
-PyObjectArray{N}(undef::UndefInitializer, dims::Vararg{Integer,N}) where {N} = PyObjectArray(undef, dims)
-PyObjectArray(undef::UndefInitializer, dims::NTuple{N,Integer}) where {N} = PyObjectArray{N}(undef, dims)
-PyObjectArray(undef::UndefInitializer, dims::Vararg{Integer,N}) where {N} = PyObjectArray{N}(undef, dims)
-PyObjectArray{N}(x::AbstractArray{T,N}) where {T,N} = copyto!(PyObjectArray{N}(undef, size(x)), x)
+PyObjectArray{N}(undef::UndefInitializer, dims::Vararg{Integer,N}) where {N} =
+    PyObjectArray(undef, dims)
+PyObjectArray(undef::UndefInitializer, dims::NTuple{N,Integer}) where {N} =
+    PyObjectArray{N}(undef, dims)
+PyObjectArray(undef::UndefInitializer, dims::Vararg{Integer,N}) where {N} =
+    PyObjectArray{N}(undef, dims)
+PyObjectArray{N}(x::AbstractArray{T,N}) where {T,N} =
+    copyto!(PyObjectArray{N}(undef, size(x)), x)
 PyObjectArray(x::AbstractArray{T,N}) where {T,N} = PyObjectArray{N}(x)
 
-pyobjectarray_finalizer(x::PyObjectArray) = _Py.GC.enqueue_all(x.ptrs)
+pyobjectarray_finalizer(x::PyObjectArray) = GC.enqueue_all(x.ptrs)
 
 Base.IndexStyle(x::PyObjectArray) = Base.IndexStyle(x.ptrs)
 

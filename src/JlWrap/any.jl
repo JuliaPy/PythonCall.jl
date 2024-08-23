@@ -2,7 +2,11 @@ const pyjlanytype = pynew()
 
 # pyjlany_repr(self) = Py("<jl $(repr(self))>")
 function pyjlany_repr(self)
-    str = repr(MIME("text/plain"), self; context=IOContext(devnull, :limit=>true, :displaysize=>(23,80)))
+    str = repr(
+        MIME("text/plain"),
+        self;
+        context = IOContext(devnull, :limit => true, :displaysize => (23, 80)),
+    )
     # type = self isa Function ? "Function" : self isa Type ? "Type" : nameof(typeof(self))
     sep = '\n' in str ? '\n' : ' '
     Py("Julia:$sep$str")
@@ -44,7 +48,26 @@ function pyjlany_call(self, args_::Py, kwargs_::Py)
     pydel!(kwargs_)
     ans
 end
-pyjl_handle_error_type(::typeof(pyjlany_call), self, exc) = exc isa MethodError && exc.f === self ? pybuiltins.TypeError : PyNULL
+pyjl_handle_error_type(::typeof(pyjlany_call), self, exc) =
+    exc isa MethodError && exc.f === self ? pybuiltins.TypeError : PyNULL
+
+function pyjlany_call_nogil(self, args_::Py, kwargs_::Py)
+    if pylen(kwargs_) > 0
+        args = pyconvert(Vector{Any}, args_)
+        kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
+        ans = Py(GIL.@unlock self(args...; kwargs...))
+    elseif pylen(args_) > 0
+        args = pyconvert(Vector{Any}, args_)
+        ans = Py(GIL.@unlock self(args...))
+    else
+        ans = Py(GIL.@unlock self())
+    end
+    pydel!(args_)
+    pydel!(kwargs_)
+    ans
+end
+pyjl_handle_error_type(::typeof(pyjlany_call_nogil), self, exc) =
+    exc isa MethodError && exc.f === self ? pybuiltins.TypeError : PyNULL
 
 function pyjlany_getitem(self, k_::Py)
     if pyistuple(k_)
@@ -56,7 +79,9 @@ function pyjlany_getitem(self, k_::Py)
         Py(self[k])
     end
 end
-pyjl_handle_error_type(::typeof(pyjlany_getitem), self, exc) = exc isa BoundsError ? pybuiltins.IndexError : exc isa KeyError ? pybuiltins.KeyError : PyNULL
+pyjl_handle_error_type(::typeof(pyjlany_getitem), self, exc) =
+    exc isa BoundsError ? pybuiltins.IndexError :
+    exc isa KeyError ? pybuiltins.KeyError : PyNULL
 
 function pyjlany_setitem(self, k_::Py, v_::Py)
     v = pyconvert(Any, v_)
@@ -70,7 +95,9 @@ function pyjlany_setitem(self, k_::Py, v_::Py)
     end
     Py(nothing)
 end
-pyjl_handle_error_type(::typeof(pyjlany_setitem), self, exc) = exc isa BoundsError ? pybuiltins.IndexError : exc isa KeyError ? pybuiltins.KeyError : PyNULL
+pyjl_handle_error_type(::typeof(pyjlany_setitem), self, exc) =
+    exc isa BoundsError ? pybuiltins.IndexError :
+    exc isa KeyError ? pybuiltins.KeyError : PyNULL
 
 function pyjlany_delitem(self, k_::Py)
     if pyistuple(k_)
@@ -83,13 +110,16 @@ function pyjlany_delitem(self, k_::Py)
     end
     Py(nothing)
 end
-pyjl_handle_error_type(::typeof(pyjlany_delitem), self, exc) = exc isa BoundsError ? pybuiltins.IndexError : exc isa KeyError ? pybuiltins.KeyError : PyNULL
+pyjl_handle_error_type(::typeof(pyjlany_delitem), self, exc) =
+    exc isa BoundsError ? pybuiltins.IndexError :
+    exc isa KeyError ? pybuiltins.KeyError : PyNULL
 
 pyjlany_contains(self, v::Py) = Py(@pyconvert(eltype(self), v, return Py(false)) in self)
-pyjl_handle_error_type(::typeof(pyjlany_contains), self, exc) = exc isa MethodError && exc.f === in ? pybuiltins.TypeError : PyNULL
+pyjl_handle_error_type(::typeof(pyjlany_contains), self, exc) =
+    exc isa MethodError && exc.f === in ? pybuiltins.TypeError : PyNULL
 
 struct pyjlany_op{OP}
-    op :: OP
+    op::OP
 end
 (op::pyjlany_op)(self) = Py(op.op(self))
 function (op::pyjlany_op)(self, other_::Py)
@@ -112,10 +142,11 @@ function (op::pyjlany_op)(self, other_::Py, other2_::Py)
         pybuiltins.NotImplemented
     end
 end
-pyjl_handle_error_type(op::pyjlany_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
+pyjl_handle_error_type(op::pyjlany_op, self, exc) =
+    exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
 
 struct pyjlany_rev_op{OP}
-    op :: OP
+    op::OP
 end
 function (op::pyjlany_rev_op)(self, other_::Py)
     if pyisjl(other_)
@@ -137,10 +168,12 @@ function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
         pybuiltins.NotImplemented
     end
 end
-pyjl_handle_error_type(op::pyjlany_rev_op, self, exc) = exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
+pyjl_handle_error_type(op::pyjlany_rev_op, self, exc) =
+    exc isa MethodError && exc.f === op.op ? pybuiltins.TypeError : PyNULL
 
 pyjlany_name(self) = Py(string(nameof(self)))
-pyjl_handle_error_type(::typeof(pyjlany_name), self, exc) = exc isa MethodError && exc.f === nameof ? pybuiltins.AttributeError : PyNULL
+pyjl_handle_error_type(::typeof(pyjlany_name), self, exc) =
+    exc isa MethodError && exc.f === nameof ? pybuiltins.AttributeError : PyNULL
 
 function pyjlany_display(self, mime_::Py)
     mime = pyconvertarg(Union{Nothing,String}, mime_, "mime")
@@ -176,7 +209,7 @@ function pyjlany_mimebundle(self, include::Py, exclude::Py)
     for m in mimes
         try
             io = IOBuffer()
-            show(IOContext(io, :limit=>true), MIME(m), self)
+            show(IOContext(io, :limit => true), MIME(m), self)
             v = take!(io)
             ans[m] = vo = istextmime(m) ? pystr(String(v)) : pybytes(v)
             pydel!(vo)
@@ -189,142 +222,159 @@ end
 
 function init_any()
     jl = pyjuliacallmodule
-    pybuiltins.exec(pybuiltins.compile("""
-    $("\n"^(@__LINE__()-1))
-    class AnyValue(ValueBase):
-        __slots__ = ()
-        def __repr__(self):
-            if self._jl_isnull():
-                return "<jl NULL>"
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlany_repr)))
-        def __str__(self):
-            if self._jl_isnull():
-                return "NULL"
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlany_str)))
-        def __getattr__(self, k):
+    pybuiltins.exec(
+        pybuiltins.compile(
+            """
+$("\n"^(@__LINE__()-1))
+class AnyValue(ValueBase):
+    __slots__ = ()
+    def __repr__(self):
+        if self._jl_isnull():
+            return "<jl NULL>"
+        else:
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_repr)))
+    def __str__(self):
+        if self._jl_isnull():
+            return "NULL"
+        else:
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_str)))
+    def __getattr__(self, k):
+        if k.startswith("__") and k.endswith("__"):
+            raise AttributeError(k)
+        else:
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_getattr)), k)
+    def __setattr__(self, k, v):
+        try:
+            ValueBase.__setattr__(self, k, v)
+        except AttributeError:
             if k.startswith("__") and k.endswith("__"):
-                raise AttributeError(k)
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlany_getattr)), k)
-        def __setattr__(self, k, v):
-            try:
-                ValueBase.__setattr__(self, k, v)
-            except AttributeError:
-                if k.startswith("__") and k.endswith("__"):
-                    raise
-            else:
-                return
-            self._jl_callmethod($(pyjl_methodnum(pyjlany_setattr)), k, v)
-        def __dir__(self):
-            return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlany_dir)))
-        def __call__(self, *args, **kwargs):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_call)), args, kwargs)
-        def __bool__(self):
-            return True
-        def __len__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(length))))
-        def __getitem__(self, k):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_getitem)), k)
-        def __setitem__(self, k, v):
-            self._jl_callmethod($(pyjl_methodnum(pyjlany_setitem)), k, v)
-        def __delitem__(self, k):
-            self._jl_callmethod($(pyjl_methodnum(pyjlany_delitem)), k)
-        def __iter__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(Iterator))))
-        def __reversed__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(reverse))))
-        def __contains__(self, v):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_contains)), v)
-        def __pos__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(+))))
-        def __neg__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(-))))
-        def __abs__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(abs))))
-        def __invert__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(~))))
-        def __add__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(+))), other)
-        def __sub__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(-))), other)
-        def __mul__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(*))), other)
-        def __truediv__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(/))), other)
-        def __floordiv__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(÷))), other)
-        def __mod__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(%))), other)
-        def __pow__(self, other, modulo=None):
-            if modulo is None:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(^))), other)
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(powermod))), other, modulo)
-        def __lshift__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(<<))), other)
-        def __rshift__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(>>))), other)
-        def __and__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(&))), other)
-        def __xor__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(⊻))), other)
-        def __or__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(|))), other)
-        def __radd__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(+))), other)
-        def __rsub__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(-))), other)
-        def __rmul__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(*))), other)
-        def __rtruediv__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(/))), other)
-        def __rfloordiv__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(÷))), other)
-        def __rmod__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(%))), other)
-        def __rpow__(self, other, modulo=None):
-            if modulo is None:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(^))), other)
-            else:
-                return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(powermod))), other, modulo)
-        def __rlshift__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(<<))), other)
-        def __rrshift__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(>>))), other)
-        def __rand__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(&))), other)
-        def __rxor__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(⊻))), other)
-        def __ror__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(|))), other)
-        def __eq__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(==))), other)
-        def __ne__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(!=))), other)
-        def __le__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(≤))), other)
-        def __lt__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(<))), other)
-        def __ge__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(≥))), other)
-        def __gt__(self, other):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(>))), other)
-        def __hash__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(hash))))
-        @property
-        def __name__(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_name)))
-        def _jl_raw(self):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlraw)))
-        def _jl_display(self, mime=None):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_display)), mime)
-        def _jl_help(self, mime=None):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_help)), mime)
-        def _repr_mimebundle_(self, include=None, exclude=None):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)
-    """, @__FILE__(), "exec"), jl.__dict__)
+                raise
+        else:
+            return
+        self._jl_callmethod($(pyjl_methodnum(pyjlany_setattr)), k, v)
+    def __dir__(self):
+        return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlany_dir)))
+    def __call__(self, *args, **kwargs):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_call)), args, kwargs)
+    def __bool__(self):
+        return True
+    def __len__(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(length))))
+    def __getitem__(self, k):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_getitem)), k)
+    def __setitem__(self, k, v):
+        self._jl_callmethod($(pyjl_methodnum(pyjlany_setitem)), k, v)
+    def __delitem__(self, k):
+        self._jl_callmethod($(pyjl_methodnum(pyjlany_delitem)), k)
+    def __iter__(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(Iterator))))
+    def __reversed__(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(reverse))))
+    def __contains__(self, v):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_contains)), v)
+    def __pos__(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(+))))
+    def __neg__(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(-))))
+    def __abs__(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(abs))))
+    def __invert__(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(~))))
+    def __add__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(+))), other)
+    def __sub__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(-))), other)
+    def __mul__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(*))), other)
+    def __truediv__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(/))), other)
+    def __floordiv__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(÷))), other)
+    def __mod__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(%))), other)
+    def __pow__(self, other, modulo=None):
+        if modulo is None:
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(^))), other)
+        else:
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(powermod))), other, modulo)
+    def __lshift__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(<<))), other)
+    def __rshift__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(>>))), other)
+    def __and__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(&))), other)
+    def __xor__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(⊻))), other)
+    def __or__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(|))), other)
+    def __radd__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(+))), other)
+    def __rsub__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(-))), other)
+    def __rmul__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(*))), other)
+    def __rtruediv__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(/))), other)
+    def __rfloordiv__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(÷))), other)
+    def __rmod__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(%))), other)
+    def __rpow__(self, other, modulo=None):
+        if modulo is None:
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(^))), other)
+        else:
+            return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(powermod))), other, modulo)
+    def __rlshift__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(<<))), other)
+    def __rrshift__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(>>))), other)
+    def __rand__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(&))), other)
+    def __rxor__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(⊻))), other)
+    def __ror__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_rev_op(|))), other)
+    def __eq__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(==))), other)
+    def __ne__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(!=))), other)
+    def __le__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(≤))), other)
+    def __lt__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(<))), other)
+    def __ge__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(≥))), other)
+    def __gt__(self, other):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(>))), other)
+    def __hash__(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_op(hash))))
+    @property
+    def __name__(self):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_name)))
+    def _jl_raw(self):
+        '''Convert this to a juliacall.RawValue.'''
+        return self._jl_callmethod($(pyjl_methodnum(pyjlraw)))
+    def _jl_display(self, mime=None):
+        '''Display this, optionally specifying the MIME type.'''
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_display)), mime)
+    def _jl_help(self, mime=None):
+        '''Show help for this Julia object.'''
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_help)), mime)
+    def _jl_call_nogil(self, *args, **kwargs):
+        '''Call this with the given arguments but with the GIL disabled.
+        
+        WARNING: This function must not interact with Python at all without re-acquiring
+        the GIL.
+        '''
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_call_nogil)), args, kwargs)
+    def _repr_mimebundle_(self, include=None, exclude=None):
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)
+""",
+            @__FILE__(),
+            "exec",
+        ),
+        jl.__dict__,
+    )
     pycopy!(pyjlanytype, jl.AnyValue)
 end
 

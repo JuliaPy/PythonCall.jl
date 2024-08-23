@@ -218,6 +218,19 @@ Py(x::MyType) = x.py
 @pyconst
 ```
 
+## Multi-threading
+
+These functions are not exported. They support multi-threading of Python and/or Julia.
+See also [`juliacall.AnyValue._jl_call_nogil`](@ref julia-wrappers).
+
+```@docs
+PythonCall.GIL.lock
+PythonCall.GIL.@lock
+PythonCall.GIL.unlock
+PythonCall.GIL.@unlock
+PythonCall.GC.gc
+```
+
 ## The Python interpreter
 
 These functions are not exported. They give information about which Python interpreter is

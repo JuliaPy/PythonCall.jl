@@ -10,6 +10,7 @@ function (::pyconvert_rule_numpysimplevalue{R,SAFE})(::Type{T}, x::Py) where {R,
 end
 
 const NUMPY_SIMPLE_TYPES = [
+    ("bool_", Bool),
     ("int8", Int8),
     ("int16", Int16),
     ("int32", Int32),
@@ -27,22 +28,25 @@ const NUMPY_SIMPLE_TYPES = [
 ]
 
 function init_numpy()
-    for (t,T) in NUMPY_SIMPLE_TYPES
-        isint = occursin("int", t)
-        isuint = occursin("uint", t)
+    for (t, T) in NUMPY_SIMPLE_TYPES
+        isbool = occursin("bool", t)
+        isint = occursin("int", t) || isbool
+        isuint = occursin("uint", t) || isbool
         isfloat = occursin("float", t)
         iscomplex = occursin("complex", t)
         isreal = isint || isfloat
         isnumber = isreal || iscomplex
 
         name = "numpy:$t"
-        rule = pyconvert_rule_numpysimplevalue{T, false}()
-        saferule = pyconvert_rule_numpysimplevalue{T, true}()
+        rule = pyconvert_rule_numpysimplevalue{T,false}()
+        saferule = pyconvert_rule_numpysimplevalue{T,true}()
 
         pyconvert_add_rule(name, T, saferule, PYCONVERT_PRIORITY_ARRAY)
         isuint && pyconvert_add_rule(name, UInt, sizeof(T) ≤ sizeof(UInt) ? saferule : rule)
         isuint && pyconvert_add_rule(name, Int, sizeof(T) < sizeof(Int) ? saferule : rule)
-        isint && !isuint && pyconvert_add_rule(name, Int, sizeof(T) ≤ sizeof(Int) ? saferule : rule)
+        isint &&
+            !isuint &&
+            pyconvert_add_rule(name, Int, sizeof(T) ≤ sizeof(Int) ? saferule : rule)
         isint && pyconvert_add_rule(name, Integer, rule)
         isfloat && pyconvert_add_rule(name, Float64, saferule)
         isreal && pyconvert_add_rule(name, Real, rule)

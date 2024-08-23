@@ -2,11 +2,13 @@
 #
 # We use pickle to serialise Python objects to bytes.
 
+_pickle_module() = pyimport(get(ENV, "JULIA_PYTHONCALL_PICKLE", "pickle"))
+
 function serialize_py(s, x::Py)
     if pyisnull(x)
         serialize(s, nothing)
     else
-        b = pyimport("pickle").dumps(x)
+        b = _pickle_module().dumps(x)
         serialize(s, pybytes_asvector(b))
     end
 end
@@ -16,7 +18,7 @@ function deserialize_py(s)
     if v === nothing
         pynew()
     else
-        pyimport("pickle").loads(pybytes(v))
+        _pickle_module().loads(pybytes(v))
     end
 end
 
@@ -41,4 +43,21 @@ function Serialization.serialize(s::AbstractSerializer, x::PyException)
     serialize_py(s, x.v)
 end
 
-Serialization.deserialize(s::AbstractSerializer, ::Type{PyException}) = PyException(deserialize_py(s))
+Serialization.deserialize(s::AbstractSerializer, ::Type{PyException}) =
+    PyException(deserialize_py(s))
+
+### PyArray
+#
+# This type holds a pointer and a handle (usually a python memoryview or capsule) which are
+# not serializable by default, and even if they were would not be consistent after
+# serializing each field independently. So we just serialize the wrapped Python object.
+
+function Serialization.serialize(s::AbstractSerializer, x::PyArray)
+    Serialization.serialize_type(s, typeof(x), false)
+    serialize_py(s, x.py)
+end
+
+function Serialization.deserialize(s::AbstractSerializer, ::Type{T}) where {T<:PyArray}
+    # TODO: set buffer and array args too?
+    T(deserialize_py(s); copy = false)
+end

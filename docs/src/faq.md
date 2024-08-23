@@ -1,33 +1,27 @@
 # FAQ & Troubleshooting
 
+## Can I use PythonCall and PyCall together?
+
+Yes, you can use both PyCall and PythonCall in the same Julia session. This is platform-dependent:
+- On most systems the Python interpreter used by PythonCall and PyCall must be the same (see below).
+- On Windows it appears to be possible for PythonCall and PyCall to use different interpreters.
+
+To force PythonCall to use the same Python interpreter as PyCall, set the environment variable [`JULIA_PYTHONCALL_EXE`](@ref pythoncall-config) to `"@PyCall"`. Note that this will opt out of automatic dependency management using CondaPkg.
+
+Alternatively, to force PyCall to use the same interpreter as PythonCall, set the environment variable `PYTHON` to [`PythonCall.python_executable_path()`](@ref) and then `Pkg.build("PyCall")`. You will need to do this each time you change project, because PythonCall by default uses a different Python for each project.
+
 ## Is PythonCall/JuliaCall thread safe?
 
-No.
+Yes, as of v0.9.22, provided you handle the GIL correctly. See the guides for
+[PythonCall](@ref jl-multi-threading) and [JuliaCall](@ref py-multi-threading).
 
-Some rules if you are writing multithreaded code:
-- Only call Python functions from the first thread.
-- You probably also need to call `PythonCall.GC.disable()` on the main thread before any
-  threaded block of code. Remember to call `PythonCall.GC.enable()` again afterwards.
-  (This is because Julia finalizers can be called from any thread.)
-- Julia intentionally causes segmentation faults as part of the GC safepoint mechanism.
-  If unhandled, these segfaults will result in termination of the process. To enable signal handling,
-  set `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` before any calls to import juliacall. This is equivalent
-  to starting julia with `julia --handle-signals=yes`, the default behavior in Julia. 
-  See discussion [here](https://github.com/JuliaPy/PythonCall.jl/issues/219#issuecomment-1605087024) for more information.
-- You may still encounter problems.
+Before, tricks such as disabling the garbage collector were required. See the
+[old docs](https://juliapy.github.io/PythonCall.jl/v0.9.21/faq/#Is-PythonCall/JuliaCall-thread-safe?).
 
-Related issues: [#201](https://github.com/JuliaPy/PythonCall.jl/issues/201), [#202](https://github.com/JuliaPy/PythonCall.jl/issues/202)
-
-## Does it work on Apple silicon (ARM, M1, M2, ...)?
-
-Maybe. Your mileage may vary.
-
-In general, PythonCall and JuliaCall are only supported on platforms with
-[Tier 1](https://julialang.org/downloads/#supported_platforms) level of support by Julia.
-Currently, Apple silicon is Tier 2, so is not supported.
-
-Due to time constraints, issues affecting only unsupported platforms will not be
-investigated. It is much more likely to be an issue with Julia itself than PythonCall.
+Related issues:
+[#201](https://github.com/JuliaPy/PythonCall.jl/issues/201),
+[#202](https://github.com/JuliaPy/PythonCall.jl/issues/202),
+[#529](https://github.com/JuliaPy/PythonCall.jl/pull/529)
 
 ## Issues when Numpy arrays are expected
 
@@ -92,4 +86,6 @@ Related issues: [#255](https://github.com/JuliaPy/PythonCall.jl/issues/255)
 
 ## Can I use JuliaCall to run Julia inside applications with embedded Python?
 
-Yes, it may be possible. See an example of how to have Julia running inside the Python that is running inside Blender here https://discourse.julialang.org/t/running-julia-inside-blender-through-vscode-using-pythoncall-juliacall/96838.
+Yes, it may be possible. A good example of that is having Julia running inside the Python that is running inside Blender, as presented in [this Discourse post](https://discourse.julialang.org/t/running-julia-inside-blender-through-vscode-using-pythoncall-juliacall/96838/6).
+From the point that one has JuliaCall running inside Python, if it has access to the terminal, one can even launch a Julia REPL there, and if needed connect with VSCode Julia extension to it.
+The full Python script to install, launch JuliaCall, and launch a Julia REPL in Blender is [here](https://gist.github.com/cdsousa/d820d27174238c0d48e5252355584172).

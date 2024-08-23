@@ -49,12 +49,12 @@ end
 Wraps the Python exception `x` as a Julia `Exception`.
 """
 mutable struct PyException <: Exception
-    _t :: Py
-    _v :: Py
-    _b :: Py
-    _isnormalized :: Bool
+    _t::Py
+    _v::Py
+    _b::Py
+    _isnormalized::Bool
 end
-function PyException(v::Py=pybuiltins.None)
+function PyException(v::Py = pybuiltins.None)
     if pyisnone(v)
         t = b = v
     elseif pyisinstance(v, pybuiltins.BaseException)
@@ -104,11 +104,12 @@ file_to_pymodule(fname::String) = begin
     end
 end
 
-Base.showerror(io::IO, e::PyException) = _showerror(io, e, nothing, backtrace=false)
+Base.showerror(io::IO, e::PyException) = _showerror(io, e, nothing, backtrace = false)
 
-Base.showerror(io::IO, e::PyException, bt; backtrace=true) = _showerror(io, e, bt; backtrace=backtrace)
+Base.showerror(io::IO, e::PyException, bt; backtrace = true) =
+    _showerror(io, e, bt; backtrace = backtrace)
 
-function _showerror(io::IO, e::PyException, bt; backtrace=true)
+function _showerror(io::IO, e::PyException, bt; backtrace = true)
     print(io, "Python: ")
 
     if pyisnone(e.t)
@@ -136,7 +137,7 @@ function _showerror(io::IO, e::PyException, bt; backtrace=true)
             je, jb = pyconvert(Tuple{Any,Any}, e.v.args)
             print(io, "Julia: ")
             if je isa Exception
-                showerror(io, je, jb, backtrace=backtrace && jb !== nothing)
+                showerror(io, je, jb, backtrace = backtrace && jb !== nothing)
             else
                 print(io, je)
                 backtrace && jb !== nothing && Base.show_backtrace(io, jb)
@@ -171,7 +172,13 @@ function _showerror(io::IO, e::PyException, bt; backtrace=true)
             printstyled(io, " none")
         else
             try
-                fs = [(pystr(String, x.name), pystr(String, x.filename), pystr(String, x.lineno)) for x in pyimport("traceback").extract_tb(e.b)]
+                fs = [
+                    (
+                        pystr(String, x.name),
+                        pystr(String, x.filename),
+                        pystr(String, x.lineno),
+                    ) for x in pyimport("traceback").extract_tb(e.b)
+                ]
                 if Base.VERSION < v"1.6.0-rc1"
                     for (i, (name, fname, lineno)) in enumerate(reverse(fs))
                         println(io)
@@ -181,8 +188,9 @@ function _showerror(io::IO, e::PyException, bt; backtrace=true)
                         printstyled(io, fname, ":", lineno, bold = true)
                     end
                 else
-                    mcdict = Dict{String, Symbol}()
-                    mccyclyer = Iterators.Stateful(Iterators.cycle(Base.STACKTRACE_MODULECOLORS))
+                    mcdict = Dict{String,Symbol}()
+                    mccyclyer =
+                        Iterators.Stateful(Iterators.cycle(Base.STACKTRACE_MODULECOLORS))
                     # skip a couple as a basic attempt to make the colours different from the Julia stacktrace
                     popfirst!(mccyclyer)
                     popfirst!(mccyclyer)
@@ -195,16 +203,18 @@ function _showerror(io::IO, e::PyException, bt; backtrace=true)
                         mod = file_to_pymodule(fname)
                         if mod !== nothing
                             # print the module, with colour determined by the top level name
-                            tmod = first(split(mod, ".", limit=2))
+                            tmod = first(split(mod, ".", limit = 2))
                             color = get!(mcdict, tmod) do
                                 popfirst!(mccyclyer)
                             end
                             printstyled(io, mod, " ", color = color)
                         end
-                        if isfile(fname) && :stacktrace_contract_userdir in names(Base, all=true) && Base.stacktrace_contract_userdir()
-                            if :replaceuserpath in names(Base, all=true)
+                        if isfile(fname) &&
+                           :stacktrace_contract_userdir in names(Base, all = true) &&
+                           Base.stacktrace_contract_userdir()
+                            if :replaceuserpath in names(Base, all = true)
                                 fname = Base.replaceuserpath(fname)
-                            elseif :contractuser in names(Base.Filesystem, all=true)
+                            elseif :contractuser in names(Base.Filesystem, all = true)
                                 fname = Base.Filesystem.contractuser(fname)
                             end
                         end

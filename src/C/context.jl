@@ -4,20 +4,20 @@
 A handle to a loaded instance of libpython, its interpreter, function pointers, etc.
 """
 @kwdef mutable struct Context
-    is_embedded :: Bool = false
-    is_initialized :: Bool = false
-    is_preinitialized :: Bool = false
-    lib_ptr :: Ptr{Cvoid} = C_NULL
-    exe_path :: Union{String, Missing} = missing
-    lib_path :: Union{String, Missing} = missing
-    dlopen_flags :: UInt32 = RTLD_LAZY | RTLD_DEEPBIND | RTLD_GLOBAL
-    pyprogname :: Union{String, Missing} = missing
-    pyprogname_w :: Any = missing
-    pyhome :: Union{String, Missing} = missing
-    pyhome_w :: Any = missing
-    which :: Symbol = :unknown # :CondaPkg, :PyCall, :embedded or :unknown
-    version :: Union{VersionNumber, Missing} = missing
-    matches_pycall :: Union{Bool, Missing} = missing
+    is_embedded::Bool = false
+    is_initialized::Bool = false
+    is_preinitialized::Bool = false
+    lib_ptr::Ptr{Cvoid} = C_NULL
+    exe_path::Union{String,Missing} = missing
+    lib_path::Union{String,Missing} = missing
+    dlopen_flags::UInt32 = RTLD_LAZY | RTLD_DEEPBIND | RTLD_GLOBAL
+    pyprogname::Union{String,Missing} = missing
+    pyprogname_w::Any = missing
+    pyhome::Union{String,Missing} = missing
+    pyhome_w::Any = missing
+    which::Symbol = :unknown # :CondaPkg, :PyCall, :embedded or :unknown
+    version::Union{VersionNumber,Missing} = missing
+    matches_pycall::Union{Bool,Missing} = missing
 end
 
 const CTX = Context()
@@ -60,7 +60,9 @@ function init_context()
                 exe_path::String
             else
                 # By default, we use Python installed by CondaPkg.
-                exe_path = Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") : joinpath(CondaPkg.envdir(), "bin", "python")
+                exe_path =
+                    Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") :
+                    joinpath(CondaPkg.envdir(), "bin", "python")
                 # It's not sufficient to only activate the env while Python is initialising,
                 # it must also be active when loading extension modules (e.g. numpy). So we
                 # activate the environment globally.
@@ -83,7 +85,7 @@ function init_context()
 
         # Ensure Python is runnable
         try
-            run(pipeline(`$exe_path --version`, stdout=devnull, stderr=devnull))
+            run(pipeline(`$exe_path --version`, stdout = devnull, stderr = devnull))
         catch
             error("Python executable $(repr(exe_path)) is not executable.")
         end
@@ -99,9 +101,9 @@ function init_context()
 
         # Find and open Python library
         lib_path = something(
-            CTX.lib_path===missing ? nothing : CTX.lib_path,
+            CTX.lib_path === missing ? nothing : CTX.lib_path,
             get(ENV, "JULIA_PYTHONCALL_LIB", nothing),
-            Some(nothing)
+            Some(nothing),
         )
         if lib_path !== nothing
             lib_ptr = dlopen_e(lib_path, CTX.dlopen_flags)
@@ -112,7 +114,9 @@ function init_context()
                 CTX.lib_ptr = lib_ptr
             end
         else
-            for lib_path in readlines(python_cmd([joinpath(@__DIR__, "find_libpython.py"), "--list-all"]))
+            for lib_path in readlines(
+                python_cmd([joinpath(@__DIR__, "find_libpython.py"), "--list-all"]),
+            )
                 lib_ptr = dlopen_e(lib_path, CTX.dlopen_flags)
                 if lib_ptr == C_NULL
                     @warn "Python library $(repr(lib_path)) could not be opened."
@@ -122,7 +126,7 @@ function init_context()
                     break
                 end
             end
-            CTX.lib_path === nothing && error("""
+            CTX.lib_path === missing && error("""
                 Could not find Python library for Python executable $(repr(CTX.exe_path)).
 
                 If you know where the library is, set environment variable 'JULIA_PYTHONCALL_LIB' to its path.
@@ -138,66 +142,64 @@ function init_context()
         init_pointers()
 
         # Compare libpath with PyCall
-        @require PyCall="438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
+        @require PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
 
         # Initialize the interpreter
-        with_gil() do
-            CTX.is_preinitialized = Py_IsInitialized() != 0
-            if CTX.is_preinitialized
-                @assert CTX.which == :PyCall || CTX.matches_pycall isa Bool
+        CTX.is_preinitialized = Py_IsInitialized() != 0
+        if CTX.is_preinitialized
+            @assert CTX.which == :PyCall || CTX.matches_pycall isa Bool
+        else
+            @assert CTX.which != :PyCall
+            # Find ProgramName and PythonHome
+            script = if Sys.iswindows()
+                """
+                import sys
+                print(sys.executable)
+                if hasattr(sys, "base_exec_prefix"):
+                    sys.stdout.write(sys.base_exec_prefix)
+                else:
+                    sys.stdout.write(sys.exec_prefix)
+                """
             else
-                @assert CTX.which != :PyCall
-                # Find ProgramName and PythonHome
-                script = if Sys.iswindows()
-                    """
-                    import sys
-                    print(sys.executable)
-                    if hasattr(sys, "base_exec_prefix"):
-                        sys.stdout.write(sys.base_exec_prefix)
-                    else:
-                        sys.stdout.write(sys.exec_prefix)
-                    """
+                """
+                import sys
+                print(sys.executable)
+                if hasattr(sys, "base_exec_prefix"):
+                    sys.stdout.write(sys.base_prefix)
+                    sys.stdout.write(":")
+                    sys.stdout.write(sys.base_exec_prefix)
+                else:
+                    sys.stdout.write(sys.prefix)
+                    sys.stdout.write(":")
+                    sys.stdout.write(sys.exec_prefix)
+                """
+            end
+            CTX.pyprogname, CTX.pyhome = readlines(python_cmd(["-c", script]))
+
+            # Set PythonHome
+            CTX.pyhome_w = Base.cconvert(Cwstring, CTX.pyhome)
+            Py_SetPythonHome(pointer(CTX.pyhome_w))
+
+            # Set ProgramName
+            CTX.pyprogname_w = Base.cconvert(Cwstring, CTX.pyprogname)
+            Py_SetProgramName(pointer(CTX.pyprogname_w))
+
+            # Start the interpreter and register exit hooks
+            Py_InitializeEx(0)
+            atexit() do
+                CTX.is_initialized = false
+                if CTX.version === missing || CTX.version < v"3.6"
+                    Py_Finalize()
                 else
-                    """
-                    import sys
-                    print(sys.executable)
-                    if hasattr(sys, "base_exec_prefix"):
-                        sys.stdout.write(sys.base_prefix)
-                        sys.stdout.write(":")
-                        sys.stdout.write(sys.base_exec_prefix)
-                    else:
-                        sys.stdout.write(sys.prefix)
-                        sys.stdout.write(":")
-                        sys.stdout.write(sys.exec_prefix)
-                    """
-                end
-                CTX.pyprogname, CTX.pyhome = readlines(python_cmd(["-c", script]))
-
-                # Set PythonHome
-                CTX.pyhome_w = Base.cconvert(Cwstring, CTX.pyhome)
-                Py_SetPythonHome(pointer(CTX.pyhome_w))
-
-                # Set ProgramName
-                CTX.pyprogname_w = Base.cconvert(Cwstring, CTX.pyprogname)
-                Py_SetProgramName(pointer(CTX.pyprogname_w))
-
-                # Start the interpreter and register exit hooks
-                Py_InitializeEx(0)
-                atexit() do
-                    CTX.is_initialized = false
-                    if CTX.version === missing || CTX.version < v"3.6"
-                        Py_Finalize()
-                    else
-                        if Py_FinalizeEx() == -1
-                            @warn "Py_FinalizeEx() error"
-                        end
+                    if Py_FinalizeEx() == -1
+                        @warn "Py_FinalizeEx() error"
                     end
                 end
             end
-            CTX.is_initialized = true
-            if Py_AtExit(@cfunction(_atpyexit, Cvoid, ())) == -1
-                @warn "Py_AtExit() error"
-            end
+        end
+        CTX.is_initialized = true
+        if Py_AtExit(@cfunction(_atpyexit, Cvoid, ())) == -1
+            @warn "Py_AtExit() error"
         end
     end
 
@@ -214,20 +216,16 @@ function init_context()
         ENV["JULIA_PYTHONCALL_EXE"] = CTX.exe_path::String
     end
 
-    with_gil() do
-
-        # Get the python version
-        verstr = Base.unsafe_string(Py_GetVersion())
-        vermatch = match(r"^[0-9.]+", verstr)
-        if vermatch === nothing
-            error("Cannot parse version from version string: $(repr(verstr))")
-        end
-        CTX.version = VersionNumber(vermatch.match)
-        v"3.5" ≤ CTX.version < v"4" || error(
-            "Only Python 3.5+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
-        )
-
+    # Get the python version
+    verstr = Base.unsafe_string(Py_GetVersion())
+    vermatch = match(r"^[0-9.]+", verstr)
+    if vermatch === nothing
+        error("Cannot parse version from version string: $(repr(verstr))")
     end
+    CTX.version = VersionNumber(vermatch.match)
+    v"3.5" ≤ CTX.version < v"4" || error(
+        "Only Python 3.5+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
+    )
 
     @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version
 

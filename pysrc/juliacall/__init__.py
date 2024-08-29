@@ -109,9 +109,9 @@ def init():
         except ValueError:
             raise ValueError(f'{s}: expecting an int'+(' or auto' if accept_auto else ""))
 
-    def args_from_config():
-        argv = [CONFIG['exepath']]
-        for opt, val in CONFIG.items():
+    def args_from_config(config):
+        argv = [config['exepath']]
+        for opt, val in config.items():
             if opt.startswith('opt_'):
                 if val is None:
                     if opt == 'opt_handle_signals':
@@ -181,7 +181,7 @@ def init():
     CONFIG['lib'] = lib = c.PyDLL(libpath, mode=c.RTLD_GLOBAL)
 
     # parse options
-    argc, argv = args_from_config()
+    argc, argv = args_from_config(CONFIG)
     jl_parse_opts = lib.jl_parse_opts
     jl_parse_opts.argtypes = [c.c_void_p, c.c_void_p]
     jl_parse_opts.restype = None

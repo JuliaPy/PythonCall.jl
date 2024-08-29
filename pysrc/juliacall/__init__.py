@@ -146,6 +146,7 @@ def init():
     CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])[0]
     CONFIG['opt_handle_signals'] = choice('handle_signals', ['yes', 'no'])[0]
     CONFIG['opt_startup_file'] = choice('startup_file', ['yes', 'no'])[0]
+    CONFIG['opt_heap_size_hint'] = option('heap_size_hint')[0]
 
     # Stop if we already initialised
     if CONFIG['inited']:

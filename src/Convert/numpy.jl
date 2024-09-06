@@ -28,9 +28,9 @@ const NUMPY_SIMPLE_TYPES = [
 ]
 
 function pydatetime64(
-    _year::Int=0, _month::Int=1, _day::Int=1, _hour::Int=0, _minute::Int=0,_second::Int=0, _millisecond::Int=0, _microsecond::Int=0, _nanosecond::Int=0;
-    year::Int=_year, month::Int=_month, day::Int=_day, hour::Int=_hour, minute::Int=_minute, second::Int=_second,
-    millisecond::Int=_millisecond, microsecond::Int=_microsecond, nanosecond::Int=_nanosecond
+    _year::Integer=0, _month::Integer=1, _day::Integer=1, _hour::Integer=0, _minute::Integer=0,_second::Integer=0, _millisecond::Integer=0, _microsecond::Integer=0, _nanosecond::Integer=0;
+    year::Integer=_year, month::Integer=_month, day::Integer=_day, hour::Integer=_hour, minute::Integer=_minute, second::Integer=_second,
+    millisecond::Integer=_millisecond, microsecond::Integer=_microsecond, nanosecond::Integer=_nanosecond
 )
     pyimport("numpy").datetime64("$(DateTime(year, month, day, hour, minute, second))") + pytimedelta64(;millisecond, microsecond, nanosecond)
 end
@@ -47,10 +47,12 @@ end
 export pydatetime64
 
 function pytimedelta64(
-    _year::Int=0, _month::Int=0, _day::Int=0, _hour::Int=0, _minute::Int=0, _second::Int=0, _millisecond::Int=0, _microsecond::Int=0, _nanosecond::Int=0, _week::Int=0;
-    year::Int=_year, month::Int=_month, day::Int=_day, hour::Int=_hour, minute::Int=_minute, second::Int=_second, microsecond::Int=_microsecond, millisecond::Int=_millisecond, nanosecond::Int=_nanosecond, week::Int=_week)
+    _year::Integer=0, _month::Integer=0, _day::Integer=0, _hour::Integer=0, _minute::Integer=0, _second::Integer=0, _millisecond::Integer=0, _microsecond::Integer=0, _nanosecond::Integer=0, _week::Integer=0;
+    year::Integer=_year, month::Integer=_month, day::Integer=_day, hour::Integer=_hour, minute::Integer=_minute, second::Integer=_second, microsecond::Integer=_microsecond, millisecond::Integer=_millisecond, nanosecond::Integer=_nanosecond, week::Integer=_week)
     pytimedelta64(sum((
-        Year(year), Month(month), # you cannot mix year or month with any of the below units in python, the error will be thrown by `pytimedelta64(::CompoundPeriod)`
+        Year(year), Month(month),
+        # you cannot mix year or month with any of the below units in python
+        # in case of wrong usage a descriptive error message will by thrown by the underlying python function
         Day(day), Hour(hour), Minute(minute), Second(second), Millisecond(millisecond), Microsecond(microsecond), Nanosecond(nanosecond), Week(week))
     ))
 end
@@ -117,8 +119,8 @@ function init_numpy()
 
     priority = PYCONVERT_PRIORITY_ARRAY
     pyconvert_add_rule("numpy:datetime64", DateTime, pyconvert_rule_datetime64, priority)
-    for T in (CompoundPeriod, Year, Month, Day, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond, Week)
-        pyconvert_add_rule("numpy:timedelta64", T, pyconvert_rule_timedelta64, priority)
+    let TT = (CompoundPeriod, Year, Month, Day, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond, Week)
+        Base.Cartesian.@nexprs 11 i -> pyconvert_add_rule("numpy:timedelta64", TT[i], pyconvert_rule_timedelta64, priority)
     end
 
     priority = PYCONVERT_PRIORITY_CANONICAL

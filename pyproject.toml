@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "juliacall"
@@ -10,17 +10,13 @@ readme = { file = "README.md", content-type = "text/markdown" }
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent"
+    "Operating System :: OS Independent",
 ]
-requires-python = ">=3.8"
+requires-python = "~=3.8"
 dependencies = ["juliapkg ~=0.1.8"]
 
-[tool.setuptools]
-zip-safe = false
+[tool.hatch.build.targets.wheel]
+packages = ["pysrc/juliacall"]
 
-[tool.setuptools.packages.find]
-where = ["pysrc"]
-include = ["juliacall"]
-
-[tool.setuptools.package-data]
-"juliacall" = ["*.json", "*.jl"]
+[tool.uv]
+dev-dependencies = ["flake8", "pytest", "pytest-cov", "nbval"]

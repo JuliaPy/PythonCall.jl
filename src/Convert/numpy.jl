@@ -36,13 +36,13 @@ function pydatetime64(
 end
 function pydatetime64(@nospecialize(x::T)) where T <: Period
     T <: Union{Week, Day, Hour, Minute, Second, Millisecond, Microsecond} || 
-        error("Unsupported Period type: ", "Year, Month and Nanosecond are not supported, consider using pytimedelta64 instead.")
-    args = T .== (Day, Second, Millisecond, Microsecond,  Minute, Hour, Week)
+        error("Unsupported Period type: `$x::$T`. Consider using pytimedelta64 instead.")
+    args = map(Base.Fix1(isa, x), (Day, Second, Millisecond, Microsecond,  Minute, Hour, Week))
     pydatetime64(x.value .* args...)
 end
 function pydatetime64(x::CompoundPeriod)
     x =  canonicalize(x)
-    isempty(x.periods) ? pydatetime64(Second(0)) : sum(pydatetime64.(x.periods))
+    isempty(x.periods) ? pydatetime64(Second(0)) : sum(pydatetime64, x.periods)
 end
 export pydatetime64
 
@@ -55,7 +55,7 @@ function pytimedelta64(
     ))
 end
 function pytimedelta64(@nospecialize(x::T)) where T <: Period
-    index = findfirst(==(T), (Year, Month, Week, Day, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond, T))
+    index = findfirst(==(T), (Year, Month, Week, Day, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond, T))::Int
     unit = ("Y", "M", "W", "D", "h", "m", "s", "ms", "us", "ns", "")[index]
     pyimport("numpy").timedelta64(x.value, unit)
 end
@@ -70,7 +70,7 @@ function pyconvert_rule_datetime64(::Type{DateTime}, x::Py)
     value = reinterpret(Int64, pyconvert(Vector, x))[1]
     units = ("Y", "M", "W", "D", "h", "m", "s", "ms", "us", "ns")
     types = (Year, Month, Week, Day, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond)
-    T = types[findfirst(==(unit), units)]
+    T = types[findfirst(==(unit), units)::Int]
     pyconvert_return(DateTime(_base_datetime) + T(value * count))
 end
 
@@ -79,7 +79,7 @@ function pyconvert_rule_timedelta64(::Type{CompoundPeriod}, x::Py)
     value = reinterpret(Int64, pyconvert(Vector, x))[1]
     units = ("Y", "M", "W", "D", "h", "m", "s", "ms", "us", "ns")
     types = (Year, Month, Week, Day, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond)
-    T = types[findfirst(==(unit), units)]
+    T = types[findfirst(==(unit), units)::Int]
     pyconvert_return(CompoundPeriod(T(value * count)) |> canonicalize)
 end
 

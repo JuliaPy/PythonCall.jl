@@ -38,7 +38,7 @@ function pydatetime64(@nospecialize(x::T)) where T <: Period
     T <: Union{Week, Day, Hour, Minute, Second, Millisecond, Microsecond} || 
         error("Unsupported Period type: `$x::$T`. Consider using pytimedelta64 instead.")
     args = map(Base.Fix1(isa, x), (Day, Second, Millisecond, Microsecond,  Minute, Hour, Week))
-    pydatetime64(x.value .* args...)
+    pydatetime64(map(Base.Fix1(*, x.value), args)...)
 end
 function pydatetime64(x::CompoundPeriod)
     x =  canonicalize(x)

@@ -12,9 +12,11 @@ Features:
 - Calling Julia's 'display(x)' function will display 'x' in IPython.
 """
 
-from IPython.core.magic import Magics, magics_class, line_cell_magic
-from . import Main, PythonCall
+from IPython.core.magic import Magics, line_cell_magic, magics_class
+
 import __main__
+
+from . import Main, PythonCall
 
 _set_var = Main.seval("(k, v) -> @eval $(Symbol(k)) = $v")
 _get_var = Main.seval("k -> hasproperty(Main, Symbol(k)) ? PythonCall.pyjlraw(getproperty(Main, Symbol(k))) : nothing")
@@ -22,7 +24,7 @@ _egal = Main.seval("===")
 
 @magics_class
 class JuliaMagics(Magics):
-    
+
     @line_cell_magic
     def julia(self, line, cell=None):
         # parse the line and cell into code and variables

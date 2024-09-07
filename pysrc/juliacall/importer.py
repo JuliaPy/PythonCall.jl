@@ -21,9 +21,10 @@ in the release.
 import io
 import os
 import sys
-
-from . import newmodule, Base
 from importlib.machinery import ModuleSpec, SourceFileLoader
+
+from . import Base, newmodule
+
 
 class Finder:
     def __init__(self, jlext='.jl', pyext='.py'):

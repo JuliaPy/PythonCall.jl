@@ -50,10 +50,10 @@ CONFIG = {'inited': False}
 
 def init():
     import atexit
-    import os
     import ctypes as c
-    import sys
+    import os
     import subprocess
+    import sys
     import warnings
 
     # importing pytorch before juliacall sometimes causes segfaults. TODO: remove

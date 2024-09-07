@@ -20,10 +20,13 @@ packages = ["pysrc/juliacall"]
 
 [tool.uv]
 dev-dependencies = [
-    "flake8",
+    "ruff",
     "pytest",
     "pytest-cov",
     "nbval",
     "numpy",
     "numpy ~=2.0; python_version >= '3.10'",
 ]
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I"]

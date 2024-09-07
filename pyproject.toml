@@ -30,3 +30,4 @@ dev-dependencies = [
 
 [tool.ruff.lint]
 select = ["F", "E", "W", "I"]
+ignore = ["E501", "E731"]

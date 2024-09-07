@@ -9,7 +9,7 @@ def newmodule(name):
     "A new module with the given name."
     global _newmodule
     if _newmodule is None:
-        _newmodule = Main.seval("name -> (n1=Symbol(name); n2=gensym(n1); Main.@eval(module $n2; module $n1; end; end); Main.@eval $n2.$n1)")
+        _newmodule = Main.seval("name -> (n1=Symbol(name); n2=gensym(n1); Main.@eval(module $n2; module $n1; end; end); Main.@eval $n2.$n1)")  # noqa: F821
     return _newmodule(name)
 
 _convert = None
@@ -18,15 +18,15 @@ def convert(T, x):
     "Convert x to a Julia T."
     global _convert
     if _convert is None:
-        _convert = PythonCall.JlWrap.seval("pyjlcallback((T,x)->pyjl(pyconvert(pyjlvalue(T)::Type,x)))")
+        _convert = PythonCall.JlWrap.seval("pyjlcallback((T,x)->pyjl(pyconvert(pyjlvalue(T)::Type,x)))")  # noqa: F821
     return _convert(T, x)
 
 def interactive(enable=True):
     "Allow the Julia event loop to run in the background of the Python REPL."
     if enable:
-        PythonCall.Compat._set_python_input_hook()
+        PythonCall.Compat._set_python_input_hook()  # noqa: F821
     else:
-        PythonCall.Compat._unset_python_input_hook()
+        PythonCall.Compat._unset_python_input_hook()  # noqa: F821
 
 class JuliaError(Exception):
     "An error arising in Julia code."
@@ -36,9 +36,9 @@ class JuliaError(Exception):
         e = self.exception
         b = self.backtrace
         if b is None:
-            return Base.sprint(Base.showerror, e)
+            return Base.sprint(Base.showerror, e)  # noqa: F821
         else:
-            return Base.sprint(Base.showerror, e, b)
+            return Base.sprint(Base.showerror, e, b)  # noqa: F821
     @property
     def exception(self):
         return self.args[0]
@@ -241,7 +241,7 @@ def init():
     CONFIG['inited'] = True
 
     if CONFIG['opt_handle_signals'] is None:
-        if Base.Threads.nthreads() > 1:
+        if Base.Threads.nthreads() > 1:  # noqa: F821
             # a warning to help multithreaded users
             # TODO: should we set PYTHON_JULIACALL_HANDLE_SIGNALS=yes whenever PYTHON_JULIACALL_THREADS != 1?
             warnings.warn(

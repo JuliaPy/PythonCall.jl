@@ -90,7 +90,7 @@ jobs:
         run: uv sync
 
       - name: Lint with ruff
-        run: uv run ruff check --statistics
+        run: uv run ruff check
 
       - name: Run tests
         run: |

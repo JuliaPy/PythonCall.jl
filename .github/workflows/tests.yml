@@ -82,13 +82,12 @@ jobs:
 
       - name: Set up UV
         uses: astral-sh/setup-uv@v2
+      
+      - name: Use dev Julia dependencies
+        run: cp pysrc/juliacall/juliapkg-dev.json pysrc/juliacall/juliapkg.json
 
       - name: Install dependencies
-        run: |
-          cp pysrc/juliacall/juliapkg-dev.json pysrc/juliacall/juliapkg.json
-          uv sync
-          uv pip install numpy  # todo: move into dev-dependencies
-          pip install -e .
+        run: uv sync
 
       - name: Lint with flake8
         run: |

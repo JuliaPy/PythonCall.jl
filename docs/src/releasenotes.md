@@ -1,5 +1,8 @@
 # Release Notes
 
+## 0.9.24
+* Added `PYTHON_JULIACALL_HEAP_SIZE_HINT` option to configure initial Julia heap size.
+
 ## 0.9.23 (2024-08-22)
 * Bug fixes.
 

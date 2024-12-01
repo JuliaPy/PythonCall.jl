@@ -124,6 +124,7 @@ be configured in two ways:
 | `-X juliacall-threads=<N\|auto>` | `PYTHON_JULIACALL_THREADS=<N\|auto>` | Launch N threads. |
 | `-X juliacall-warn-overwrite=<yes\|no>` | `PYTHON_JULIACALL_WARN_OVERWRITE=<yes\|no>` | Enable or disable method overwrite warnings. |
 | `-X juliacall-autoload-ipython-extension=<yes\|no>` | `PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=<yes\|no>` | Enable or disable IPython extension autoloading. |
+| `-X juliacall-heap-size-hint=<N>` | `PYTHON_JULIACALL_HEAP_SIZE_HINT=<N>` | Hint for initial heap size in bytes. |
 
 ## [Multi-threading](@id py-multi-threading)
 

@@ -698,6 +698,9 @@ end
     x7 = pydatetime(DateTime(2001, 2, 3, 4, 5, 6, 7))
     @test pyisinstance(x7, dt.datetime)
     @test pyeq(Bool, x7, dt.datetime(2001, 2, 3, 4, 5, 6, 7000))
+    x8 = pydatetime(2001, 2, 3, 4, 5, 6, 7)
+    dx = pytimedelta(366, 3661, 1)
+    pyeq(Bool, x8 - x6, dx)
 end
 
 @testitem "code" begin

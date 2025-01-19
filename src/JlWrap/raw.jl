@@ -40,6 +40,22 @@ function pyjlraw_call(self, args_::Py, kwargs_::Py)
     ans
 end
 
+function pyjlraw_call_nogil(self, args_::Py, kwargs_::Py)
+    if pylen(kwargs_) > 0
+        args = pyconvert(Vector{Any}, args_)
+        kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
+        ans = pyjlraw(GIL.@unlock self(args...; kwargs...))
+    elseif pylen(args_) > 0
+        args = pyconvert(Vector{Any}, args_)
+        ans = pyjlraw(GIL.@unlock self(args...))
+    else
+        ans = pyjlraw(GIL.@unlock self())
+    end
+    pydel!(args_)
+    pydel!(kwargs_)
+    ans
+end
+
 pyjlraw_len(self) = Py(length(self))
 
 function pyjlraw_getitem(self, k_::Py)
@@ -129,7 +145,15 @@ class RawValue(ValueBase):
     def __bool__(self):
         return self._jl_callmethod($(pyjl_methodnum(pyjlraw_bool)))
     def _jl_any(self):
+        '''Convert this to a juliacall.AnyValue.'''
         return self._jl_callmethod($(pyjl_methodnum(pyjl)))
+    def _jl_call_nogil(self, *args, **kwargs):
+        '''Call this with the given arguments but with the GIL disabled.
+        
+        WARNING: This function must not interact with Python at all without re-acquiring
+        the GIL.
+        '''
+        return self._jl_callmethod($(pyjl_methodnum(pyjlraw_call_nogil)), args, kwargs)
 """,
             @__FILE__(),
             "exec",

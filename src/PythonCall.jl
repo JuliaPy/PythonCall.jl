@@ -1,6 +1,6 @@
 module PythonCall
 
-const VERSION = v"0.9.23"
+include("api.jl")
 
 module Internals
 

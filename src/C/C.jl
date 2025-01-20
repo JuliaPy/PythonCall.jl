@@ -5,11 +5,10 @@ This module provides a direct interface to the Python C API.
 """
 module C
 
-using ...PythonCall: PythonCall
+using ...PythonCall
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
 using CondaPkg: CondaPkg
-using Pkg: Pkg
 using Requires: @require
 using Libdl:
     dlpath, dlopen, dlopen_e, dlclose, dlsym, dlsym_e, RTLD_LAZY, RTLD_DEEPBIND, RTLD_GLOBAL

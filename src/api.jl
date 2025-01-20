@@ -17,6 +17,11 @@ for name in
     end
 end
 
+# other exported bindings
+for name in [:Py]
+    @eval export $name
+end
+
 # other public bindings
 for name in [:VERSION, :GIL, :GC]
     if Base.VERSION ≥ v"1.11"

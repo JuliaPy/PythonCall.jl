@@ -32,7 +32,8 @@ function pydatetime64(
     year::Integer=_year, month::Integer=_month, day::Integer=_day, hour::Integer=_hour, minute::Integer=_minute, second::Integer=_second,
     millisecond::Integer=_millisecond, microsecond::Integer=_microsecond, nanosecond::Integer=_nanosecond
 )
-    pyimport("numpy").datetime64("$(DateTime(year, month, day, hour, minute, second))") + pytimedelta64(;millisecond, microsecond, nanosecond)
+    pyimport("numpy").datetime64("$(DateTime(year, month, day, hour, minute, second))") + 
+        pytimedelta64(; milliseconds = millisecond, microseconds = microsecond, nanoseconds = nanosecond)
 end
 function pydatetime64(@nospecialize(x::T)) where T <: Period
     T <: Union{Week, Day, Hour, Minute, Second, Millisecond, Microsecond} || 
@@ -47,13 +48,13 @@ end
 export pydatetime64
 
 function pytimedelta64(
-    _year::Integer=0, _month::Integer=0, _day::Integer=0, _hour::Integer=0, _minute::Integer=0, _second::Integer=0, _millisecond::Integer=0, _microsecond::Integer=0, _nanosecond::Integer=0, _week::Integer=0;
-    year::Integer=_year, month::Integer=_month, day::Integer=_day, hour::Integer=_hour, minute::Integer=_minute, second::Integer=_second, microsecond::Integer=_microsecond, millisecond::Integer=_millisecond, nanosecond::Integer=_nanosecond, week::Integer=_week)
+    _years::Integer=0, _months::Integer=0, _days::Integer=0, _hours::Integer=0, _minutes::Integer=0, _seconds::Integer=0, _milliseconds::Integer=0, _microseconds::Integer=0, _nanoseconds::Integer=0, _weeks::Integer=0;
+    years::Integer=_years, months::Integer=_months, days::Integer=_days, hours::Integer=_hours, minutes::Integer=_minutes, seconds::Integer=_seconds, microseconds::Integer=_microseconds, milliseconds::Integer=_milliseconds, nanoseconds::Integer=_nanoseconds, weeks::Integer=_weeks)
     pytimedelta64(sum((
-        Year(year), Month(month),
+        Year(years), Month(months),
         # you cannot mix year or month with any of the below units in python
         # in case of wrong usage a descriptive error message will by thrown by the underlying python function
-        Day(day), Hour(hour), Minute(minute), Second(second), Millisecond(millisecond), Microsecond(microsecond), Nanosecond(nanosecond), Week(week))
+        Day(days), Hour(hours), Minute(minutes), Second(seconds), Millisecond(milliseconds), Microsecond(microseconds), Nanosecond(nanoseconds), Week(weeks))
     ))
 end
 function pytimedelta64(@nospecialize(x::T)) where T <: Period

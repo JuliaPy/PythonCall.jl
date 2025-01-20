@@ -346,7 +346,7 @@ for N = 0:16
     end
     # Tuple with N elements plus Vararg
     @eval function pyconvert_rule_iterable(
-        ::Type{Tuple{$(Ts...),Vararg{V}}},
+        ::Type{Tuple{$(Ts...),V,Vararg{V}}},
         xs::Py,
     ) where {$(Ts...),V}
         xs = pytuple(xs)

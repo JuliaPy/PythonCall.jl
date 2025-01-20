@@ -26,7 +26,7 @@ function pyjlany_setattr(self, k_::Py, v_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))
     pydel!(k_)
     v = pyconvert(Any, v_)
-    if VERSION >= v"1.11.0-" && self isa Module && !isdefined(self, k)
+    if self isa Module && !isdefined(self, k)
         # Fix for https://github.com/JuliaLang/julia/pull/54678
         Base.Core.eval(self, Expr(:global, k))
     end

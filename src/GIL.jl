@@ -1,12 +1,6 @@
-"""
-    module PythonCall.GIL
-
-Handling the Python Global Interpreter Lock.
-
-See [`lock`](@ref), [`@lock`](@ref), [`unlock`](@ref) and [`@unlock`](@ref).
-"""
 module GIL
 
+using ...PythonCall
 using ..C: C
 
 """
@@ -20,7 +14,7 @@ threads. Since the main Julia thread holds the GIL by default, you will need to
 
 See [`@lock`](@ref) for the macro form.
 """
-function lock(f)
+function PythonCall.lock(f)
     state = C.PyGILState_Ensure()
     try
         f()
@@ -40,7 +34,7 @@ threads. Since the main Julia thread holds the GIL by default, you will need to
 
 The macro equivalent of [`lock`](@ref).
 """
-macro lock(expr)
+macro PythonCall.lock(expr)
     quote
         state = C.PyGILState_Ensure()
         try
@@ -62,7 +56,7 @@ Python code. That other thread can be a Julia thread, which must lock the GIL us
 
 See [`@unlock`](@ref) for the macro form.
 """
-function unlock(f)
+function PythonCall.unlock(f)
     state = C.PyEval_SaveThread()
     try
         f()
@@ -82,7 +76,7 @@ Python code. That other thread can be a Julia thread, which must lock the GIL us
 
 The macro equivalent of [`unlock`](@ref).
 """
-macro unlock(expr)
+macro PythonCall.unlock(expr)
     quote
         state = C.PyEval_SaveThread()
         try

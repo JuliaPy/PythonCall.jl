@@ -382,6 +382,13 @@ end
         @test_throws Exception append!(t, [nothing, missing])
         @test t == [1, 2, 3, 4, 5, 6]
     end
+    @testset "prepend!" begin
+        t = copy(z)
+        @test prepend!(t, [-3, -2, -1]) === t
+        @test t == [-3, -2, -1, 1, 2, 3]
+        @test_throws Exception append!(t, [nothing, missing])
+        @test t == [-3, -2, -1, 1, 2, 3]
+    end
     @testset "pop!" begin
         t = copy(z)
         @test pop!(t) == 3

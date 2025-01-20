@@ -94,9 +94,6 @@ def test_issue_433():
 def test_julia_gc():
     from juliacall import Main as jl
 
-    if jl.seval("VERSION >= v\"1.11.0-\""):
-        pytest.skip("Test not yet supported on Julia 1.11+")
-
     # We make a bunch of python objects with no reference to them,
     # then call GC to try to finalize them.
     # We want to make sure we don't segfault.

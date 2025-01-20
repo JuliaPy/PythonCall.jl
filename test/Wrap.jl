@@ -371,7 +371,7 @@ end
         @test t == [-1, 1, 2, 3]
         @test pushfirst!(t, -3, -2) === t
         @test t == [-3, -2, -1, 1, 2, 3]
-        @test @test_throws Exception pushfirst!(t, 4.5)
+        @test_throws Exception pushfirst!(t, 4.5)
         @test t == [-3, -2, -1, 1, 2, 3]
     end
     @testset "append!" begin

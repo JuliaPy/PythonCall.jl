@@ -5,7 +5,7 @@ This module provides a direct interface to the Python C API.
 """
 module C
 
-using ...PythonCall
+using ..PythonCall
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
 using CondaPkg: CondaPkg

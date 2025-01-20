@@ -210,9 +210,8 @@
         pyjl(Foo(1))._jl_display(mime = "text/plain")
     end
     @testset "help" begin
-        # TODO: Fix these
-        @test_skip pyjl(Foo(1))._jl_help()
-        @test_skip pyjl(Foo(1))._jl_help(mime = "text/plain")
+        @test pyis(pyjl(Foo(1))._jl_help(), nothing)
+        @test pyis(pyjl(Foo(1))._jl_help(mime = "text/plain"), nothing)
     end
 end
 

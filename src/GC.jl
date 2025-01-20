@@ -5,8 +5,9 @@ Garbage collection of Python objects.
 
 See [`gc`](@ref).
 """
-module GC
+module _GC
 
+import ...PythonCall.GC: disable, enable, gc
 using ..C: C
 
 const QUEUE = (; items = C.PyPtr[], lock = Threads.SpinLock())

@@ -1,7 +1,9 @@
 "The version of PythonCall."
 const VERSION = v"0.9.23"
 
+# public submodules
 include("GIL-api.jl")
+include("GC-api.jl")
 
 # public functions
 for name in
@@ -13,7 +15,7 @@ for name in
 end
 
 # other public bindings
-for name in [:VERSION, :GIL]
+for name in [:VERSION, :GIL, :GC]
     if Base.VERSION ≥ v"1.11"
         eval(Expr(:public, name))
     end

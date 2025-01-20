@@ -7,7 +7,7 @@ module Internals
 const ROOT_DIR = dirname(@__DIR__)
 
 # include("Utils/Utils.jl")
-# include("C/C.jl")
+include("C/C.jl")
 # include("GIL/GIL.jl")
 # include("GC/GC.jl")
 # include("Core/Core.jl")

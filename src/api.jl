@@ -17,9 +17,31 @@ end
 
 const CONFIG = Config()
 
+# exported functions
+for name in [:ispy]
+    @eval function $name end
+    @eval export $name
+end
+
 # public functions
-for name in
-    [:python_executable_path, :python_library_handle, :python_library_path, :python_version]
+for name in [
+    :python_executable_path,
+    :python_library_handle,
+    :python_library_path,
+    :python_version,
+    :pynew,
+    :pyisnull,
+    :pycopy!,
+    :getptr,
+    :pydel!,
+    :unsafe_pynext,
+    :pyconvert_add_rule,
+    :pyconvert_return,
+    :pyconvert_unconverted,
+    :event_loop_on,
+    :event_loop_off,
+    :fix_qt_plugin_path,
+]
     @eval function $name end
     if Base.VERSION ≥ v"1.11"
         eval(Expr(:public, name))
@@ -32,7 +54,18 @@ for name in [:Py, :PyException]
 end
 
 # other public bindings
-for name in [:VERSION, :GIL, :GC, :CONFIG]
+for name in [
+    :VERSION,
+    :GIL,
+    :GC,
+    :CONFIG,
+    # :PyNULL,
+    # :PYCONVERT_PRIORITY_WRAP,
+    # :PYCONVERT_PRIORITY_ARRAY,
+    # :PYCONVERT_PRIORITY_CANONICAL,
+    # :PYCONVERT_PRIORITY_NORMAL,
+    # :PYCONVERT_PRIORITY_FALLBACK,
+]
     if Base.VERSION ≥ v"1.11"
         eval(Expr(:public, name))
     end

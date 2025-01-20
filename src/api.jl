@@ -18,7 +18,7 @@ for name in
 end
 
 # other exported bindings
-for name in [:Py]
+for name in [:Py, :PyException]
     @eval export $name
 end
 

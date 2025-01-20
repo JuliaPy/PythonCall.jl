@@ -43,17 +43,6 @@ function errnormalize!(t::Py, v::Py, b::Py)
     (t, v, b)
 end
 
-"""
-    PyException(x)
-
-Wraps the Python exception `x` as a Julia `Exception`.
-"""
-mutable struct PyException <: Exception
-    _t::Py
-    _v::Py
-    _b::Py
-    _isnormalized::Bool
-end
 function PyException(v::Py = pybuiltins.None)
     if pyisnone(v)
         t = b = v
@@ -65,7 +54,6 @@ function PyException(v::Py = pybuiltins.None)
     end
     PyException(t, v, b, true)
 end
-export PyException
 
 ispy(x::PyException) = true
 Py(x::PyException) = x.v

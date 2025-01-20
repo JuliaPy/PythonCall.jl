@@ -61,6 +61,13 @@ function Base.append!(x::PyList, vs)
     return x
 end
 
+function Base.prepend!(x::PyList, vs)
+    for v in reverse(vs)
+        pushfirst!(x, v)
+    end
+    return x
+end
+
 function Base.push!(x::PyList, v1, v2, vs...)
     push!(x, v1)
     push!(x, v2, vs...)

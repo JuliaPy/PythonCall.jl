@@ -676,6 +676,9 @@ end
 
 @testitem "datetime" begin
     using Dates
+    using CondaPkg
+    CondaPkg.add("numpy")
+
     dt = pyimport("datetime")
     x1 = pydate(2001, 2, 3)
     @test pyisinstance(x1, dt.date)
@@ -701,6 +704,34 @@ end
     x8 = pydatetime(2001, 2, 3, 4, 5, 6, 7)
     dx = pytimedelta(366, 3661, 1)
     pyeq(Bool, x8 - x6, dx)
+
+    td = pyimport("datetime").timedelta
+    @testset for x in [
+        -1_000_000_000,
+        -1_000_000,
+        -1_000,
+        -1,
+        0,
+        1,
+        1_000,
+        1_000_000,
+        1_000_000_000,
+    ], (Unit, unit, pyunit, factor) in [
+        (Microsecond, :microseconds, :microseconds, 1),
+        (Millisecond, :milliseconds, :milliseconds, 1),
+        (Second, :seconds, :seconds, 1),
+        (Minute, :minutes, :seconds, 60),
+        (Hour, :hours, :hours, 1),
+        (Day, :days, :days, 1),
+        (Week, :weeks, :days, 7)
+    ]
+        # for day and week units, skip large values due to overflow
+        unit in [:days, :weeks] && abs(x) > 1_000_000 && continue
+        y = pytimedelta(; [unit => x]...)
+        y2 = pytimedelta(Unit(x))
+        @test pyeq(Bool, y, y2)
+        @test pyeq(Bool, y, td(; [pyunit => x * factor]...))
+    end
 end
 
 @testitem "code" begin

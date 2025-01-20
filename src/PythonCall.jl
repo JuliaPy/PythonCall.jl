@@ -1,10 +1,16 @@
 module PythonCall
 
-include("api.jl")
+include("API/API.jl")
 
 module Internals
 
 using ..PythonCall
+
+@kwdef mutable struct Config
+    meta::String = ""
+    auto_sys_last_traceback::Bool = true
+    auto_fix_qt_plugin_path::Bool = true
+end
 
 include("Utils.jl")
 include("C/C.jl")
@@ -18,6 +24,10 @@ include("GC.jl")
 # include("Compat/Compat.jl")
 
 end
+
+# config
+"Configuration for PythonCall."
+const CONFIG = Internals.Config()
 
 # # not API but used in tests
 # for k in [

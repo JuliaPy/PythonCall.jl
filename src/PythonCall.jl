@@ -4,7 +4,9 @@ include("api.jl")
 
 module Internals
 
-# include("Utils/Utils.jl")
+using ..PythonCall
+
+include("Utils.jl")
 include("C/C.jl")
 include("GIL.jl")
 include("GC.jl")

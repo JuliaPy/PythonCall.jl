@@ -7,7 +7,7 @@ See [`gc`](@ref).
 """
 module GC
 
-import ...PythonCall.GC: disable, enable, gc
+import ..PythonCall.GC: disable, enable, gc
 using ..C: C
 
 const QUEUE = (; items = C.PyPtr[], lock = Threads.SpinLock())

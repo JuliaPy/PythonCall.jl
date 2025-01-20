@@ -8,6 +8,15 @@ include("types-api.jl")
 include("GIL-api.jl")
 include("GC-api.jl")
 
+# config
+@kwdef mutable struct Config
+    meta::String = ""
+    auto_sys_last_traceback::Bool = true
+    auto_fix_qt_plugin_path::Bool = true
+end
+
+const CONFIG = Config()
+
 # public functions
 for name in
     [:python_executable_path, :python_library_handle, :python_library_path, :python_version]
@@ -23,7 +32,7 @@ for name in [:Py, :PyException]
 end
 
 # other public bindings
-for name in [:VERSION, :GIL, :GC]
+for name in [:VERSION, :GIL, :GC, :CONFIG]
     if Base.VERSION ≥ v"1.11"
         eval(Expr(:public, name))
     end

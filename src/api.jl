@@ -1,6 +1,9 @@
 "The version of PythonCall."
 const VERSION = v"0.9.23"
 
+# public types
+include("types-api.jl")
+
 # public submodules
 include("GIL-api.jl")
 include("GC-api.jl")

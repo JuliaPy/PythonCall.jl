@@ -1,4 +1,4 @@
-module _GIL
+module GIL
 
 import ...PythonCall.GIL: lock, @lock, unlock, @unlock
 using ..C: C

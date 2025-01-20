@@ -5,7 +5,7 @@ Garbage collection of Python objects.
 
 See [`gc`](@ref).
 """
-module _GC
+module GC
 
 import ...PythonCall.GC: disable, enable, gc
 using ..C: C

@@ -9,7 +9,6 @@ True if `x` is a Python object.
 This includes `Py` and Python wrapper types such as `PyList`.
 """
 ispy(x) = false
-export ispy
 
 """
     pyisnull(x)
@@ -28,10 +27,10 @@ getptr(x) = ispy(x) ? getptr(Py(x)::Py) : throw(MethodError(getptr, (x,)))
 py_finalizer(x::Py) = GC.enqueue(getptr(x))
 
 ispy(::Py) = true
-getptr(x::Py) = getfield(x, :ptr)
+getptr(x::Py) = C.PyPtr(getfield(x, :ptr))
 pyconvert(::Type{Py}, x::Py) = x
 
-setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, ptr); x)
+setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, Ptr{Cvoid}(ptr)); x)
 
 const PYNULL_CACHE = Py[]
 

@@ -1,14 +1,6 @@
-"""
-    module PythonCall.Core
-
-Defines the `Py` type and directly related functions.
-"""
 module Core
 
-const VERSION = v"0.9.23"
-const ROOT_DIR = dirname(dirname(@__DIR__))
-
-using ..PythonCall: PythonCall  # needed for docstring cross-refs
+using ..PythonCall
 using ..C: C
 using ..GC: GC
 using ..Utils: Utils
@@ -26,12 +18,120 @@ using Dates:
     millisecond,
     microsecond,
     nanosecond
-using MacroTools: MacroTools, @capture
+using MacroTools: @capture
 using Markdown: Markdown
+
+import PythonCall:
+    VERSION,
+    Py,
+    PyException,
+    ispy,
+    pyis,
+    pyrepr,
+    pyascii,
+    pyhasattr,
+    pygetattr,
+    pysetattr,
+    pydelattr,
+    pyissubclass,
+    pyisinstance,
+    pyhash,
+    pytruth,
+    pynot,
+    pylen,
+    pyhasitem,
+    pygetitem,
+    pysetitem,
+    pydelitem,
+    pydir,
+    pycall,
+    pyeq,
+    pyne,
+    pyle,
+    pylt,
+    pyge,
+    pygt,
+    pycontains,
+    pyin,
+    pyneg,
+    pypos,
+    pyabs,
+    pyinv,
+    pyindex,
+    pyadd,
+    pysub,
+    pymul,
+    pymatmul,
+    pyfloordiv,
+    pytruediv,
+    pymod,
+    pydivmod,
+    pylshift,
+    pyrshift,
+    pyand,
+    pyxor,
+    pyor,
+    pyiadd,
+    pyisub,
+    pyimul,
+    pyimatmul,
+    pyifloordiv,
+    pyitruediv,
+    pyimod,
+    pyilshift,
+    pyirshift,
+    pyiand,
+    pyixor,
+    pyior,
+    pypow,
+    pyipow,
+    pyiter,
+    pynext,
+    pybool,
+    pystr,
+    pybytes,
+    pyint,
+    pyfloat,
+    pycomplex,
+    pytype,
+    pyslice,
+    pyrange,
+    pytuple,
+    pylist,
+    pycollist,
+    pyrowlist,
+    pyset,
+    pyfrozenset,
+    pydict,
+    pydate,
+    pytime,
+    pydatetime,
+    pyfraction,
+    pyeval,
+    pyexec,
+    @pyeval,
+    @pyexec,
+    pywith,
+    pyimport,
+    pyprint,
+    pyhelp,
+    pyall,
+    pyany,
+    pycallable,
+    pycompile,
+    @pyconst,
+    pyconvert,
+    pynew,
+    pyisnull,
+    pycopy!,
+    getptr,
+    pydel!,
+    unsafe_pynext
+
+const ROOT_DIR = dirname(dirname(@__DIR__))
 
 include("Py.jl")
 include("err.jl")
-include("config.jl")
 include("consts.jl")
 include("builtins.jl")
 include("stdlib.jl")

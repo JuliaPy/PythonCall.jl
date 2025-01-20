@@ -21,4 +21,3 @@ macro pyconst(ex)
     end
     :(pyisnull($x) ? pycopy!($x, $val) : $x)
 end
-export @pyconst

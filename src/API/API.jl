@@ -20,6 +20,7 @@ function pycopy! end
 function getptr end
 function pydel! end
 function unsafe_pynext end
+function pyconvert end
 function pyconvert_add_rule end
 function pyconvert_return end
 function pyconvert_unconverted end
@@ -222,6 +223,7 @@ export pycallable
 export pycompile
 export pybuiltins
 export @pyconst
+export pyconvert
 
 # public bindings
 if Base.VERSION ≥ v"1.11"

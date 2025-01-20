@@ -2,8 +2,9 @@
 Minimal matplotlib backend which shows plots using Julia's display mechanism.
 """
 
-from matplotlib.backend_bases import Gcf, FigureManagerBase
+from matplotlib.backend_bases import FigureManagerBase, Gcf
 from matplotlib.backends.backend_agg import FigureCanvasAgg
+
 from juliacall import Base as jl
 
 FigureCanvas = FigureCanvasAgg

@@ -4,6 +4,8 @@ import pytest
 def test_import():
     import juliacall
 
+    juliacall
+
 
 def test_newmodule():
     import juliacall
@@ -123,6 +125,7 @@ def test_call_nogil(yld, raw):
     """Tests that we can execute Julia code in parallel by releasing the GIL."""
     from concurrent.futures import ThreadPoolExecutor, wait
     from time import time
+
     from juliacall import Main as jl
 
     # julia implementation of sleep which unlocks the GIL

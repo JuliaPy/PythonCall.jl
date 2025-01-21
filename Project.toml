@@ -16,9 +16,7 @@ Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 UnsafePointers = "e17b2a0c-0bdf-430a-bd0c-3a23cae4ff39"
 
 [compat]
-Aqua = "0 - 999"
 CondaPkg = "0.2.23"
-DataFrames = "1.7.0"
 Dates = "1"
 Libdl = "1"
 MacroTools = "0.5"
@@ -27,17 +25,5 @@ Pkg = "1"
 Requires = "1"
 Serialization = "1"
 Tables = "1"
-Test = "1"
-TestItemRunner = "0 - 999"
 UnsafePointers = "1"
 julia = "1.6.1"
-
-[extras]
-Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
-CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
-DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"
-
-[targets]
-test = ["Aqua", "CondaPkg", "DataFrames", "Test", "TestItemRunner"]

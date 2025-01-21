@@ -1,0 +1,6 @@
+[deps]
+CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
+TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"

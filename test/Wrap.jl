@@ -441,7 +441,7 @@ end
     using Tables
     using DataFrames
     using CondaPkg
-    CondaPkg.add("pandas")
+    # CondaPkg.add("pandas")
     @test PyPandasDataFrame isa Type
     x = (x = [1, 2, 3], y = ["a", "b", "c"])
     py_df = pytable(x, :pandas)

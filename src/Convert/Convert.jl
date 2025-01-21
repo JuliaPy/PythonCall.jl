@@ -51,8 +51,9 @@ import ..Core: pyconvert
 
 # patch conversion to Period types for julia <= 1.7
 @static if VERSION < v"1.8.0-"
-    Base.convert(::Type{T}, x::CompoundPeriod) where T<:Period =
-        isconcretetype(T) ? sum(T, x.periods; init = zero(T)) : throw(MethodError(convert,(T,x)))
+    for T in (:Year, :Month, :Week, :Day, :Hour, :Minute, :Second, :Millisecond, :Microsecond, :Nanosecond)
+        @eval Base.convert(::Type{$T}, x::CompoundPeriod) = sum($T, x.periods; init = zero($T))
+    end
 end
 
 include("pyconvert.jl")

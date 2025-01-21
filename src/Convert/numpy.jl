@@ -1,3 +1,5 @@
+const CANONICALIZE_TIMEDELTA64 = Ref(false)
+
 struct pyconvert_rule_numpysimplevalue{R,S} <: Function end
 
 function (::pyconvert_rule_numpysimplevalue{R,SAFE})(::Type{T}, x::Py) where {R,SAFE,T}
@@ -47,32 +49,53 @@ end
 export pydatetime64
 
 function pytimedelta64(
-    _years::Union{Nothing,Integer}=nothing, _months::Union{Nothing,Integer}=nothing, _days::Integer=0, _hours::Integer=0, _minutes::Integer=0, _seconds::Integer=0, _milliseconds::Integer=0, _microseconds::Integer=0, _nanoseconds::Integer=0, _weeks::Integer=0;
-    years::Union{Nothing,Integer}=_years, months::Union{Nothing,Integer}=_years, days::Integer=_days, hours::Integer=_hours, minutes::Integer=_minutes, seconds::Integer=_seconds, microseconds::Integer=_microseconds, milliseconds::Integer=_milliseconds, nanoseconds::Integer=_nanoseconds, weeks::Integer=_weeks)
-    year_or_month_given = (years !== nothing || months !== nothing)
+    _years::Union{Nothing,Integer}=nothing, _months::Union{Nothing,Integer}=nothing,
+    _days::Union{Nothing,Integer}=nothing, _hours::Union{Nothing,Integer}=nothing,
+    _minutes::Union{Nothing,Integer}=nothing, _seconds::Union{Nothing,Integer}=nothing,
+    _milliseconds::Union{Nothing,Integer}=nothing, _microseconds::Union{Nothing,Integer}=nothing,
+    _nanoseconds::Union{Nothing,Integer}=nothing, _weeks::Union{Nothing,Integer}=nothing;
+    years::Union{Nothing,Integer}=_years, months::Union{Nothing,Integer}=_months,
+    days::Union{Nothing,Integer}=_days, hours::Union{Nothing,Integer}=_hours,
+    minutes::Union{Nothing,Integer}=_minutes, seconds::Union{Nothing,Integer}=_seconds,
+    milliseconds::Union{Nothing,Integer}=_milliseconds, microseconds::Union{Nothing,Integer}=_microseconds,
+    nanoseconds::Union{Nothing,Integer}=_nanoseconds, weeks::Union{Nothing,Integer}=_weeks,
+    canonicalize::Bool = false)
+
     y::Integer = something(years, 0)
     m::Integer = something(months, 0)
+    d::Integer = something(days, 0)
+    h::Integer = something(hours, 0)
+    min::Integer = something(minutes, 0)
+    s::Integer = something(seconds, 0)
+    ms::Integer = something(milliseconds, 0)
+    µs::Integer = something(microseconds, 0)
+    ns::Integer = something(nanoseconds, 0)
+    w::Integer = something(weeks, 0)
     cp = sum((
-        Year(y), Month(m),
-        # you cannot mix year or month with any of the below units in python
-        # in case of wrong usage a descriptive error message will by thrown by the underlying python function
-        Day(days), Hour(hours), Minute(minutes), Second(seconds), Millisecond(milliseconds), Microsecond(microseconds), Nanosecond(nanoseconds), Week(weeks))
+        Year(y), Month(m), Week(w), Day(d), Hour(h), Minute(min), Second(s), Millisecond(ms), Microsecond(µs), Nanosecond(ns))
     )
     # make sure the correct unit is used when value is 0
-    if isempty(cp.periods) && year_or_month_given
-        pytimedelta64(Month(0))
+    if isempty(cp.periods)
+        Units = (Second, Year, Month, Week, Day, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond)
+        index::Integer = findlast(!isnothing, (0, years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds));
+        pytimedelta64(Units[index](0))
     else
-        pytimedelta64(cp)
+        pytimedelta64(cp; canonicalize)
     end
 end
-function pytimedelta64(@nospecialize(x::T)) where T <: Period
-    index = findfirst(==(T), (Year, Month, Week, Day, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond, T))::Int
+function pytimedelta64(@nospecialize(x::T); canonicalize::Bool = false) where T <: Period
+    canonicalize && return pytimedelta64(@__MODULE__().canonicalize(x))
+
+    index = findfirst(T .== (Year, Month, Week, Day, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond, T))::Int
     unit = ("Y", "M", "W", "D", "h", "m", "s", "ms", "us", "ns", "")[index]
     pyimport("numpy").timedelta64(x.value, unit)
 end
-function pytimedelta64(x::CompoundPeriod)
-    x =  canonicalize(x)
+function pytimedelta64(x::CompoundPeriod; canonicalize::Bool = false)
+    canonicalize && (x = @__MODULE__().canonicalize(x))
     isempty(x.periods) ? pytimedelta64(Second(0)) : sum(pytimedelta64.(x.periods))
+end
+function pytimedelta64(x::Integer)
+    pyimport("numpy").timedelta64(x)
 end
 export pytimedelta64
 
@@ -91,7 +114,9 @@ function pyconvert_rule_timedelta64(::Type{CompoundPeriod}, x::Py)
     units = ("Y", "M", "W", "D", "h", "m", "s", "ms", "us", "ns")
     types = (Year, Month, Week, Day, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond)
     T = types[findfirst(==(unit), units)::Int]
-    pyconvert_return(CompoundPeriod(T(value * count)) |> canonicalize)
+    cp = CompoundPeriod(T(value * count))
+    CANONICALIZE_TIMEDELTA64[] && (cp = @__MODULE__().canonicalize(cp))
+    pyconvert_return(cp)
 end
 
 function pyconvert_rule_timedelta64(::Type{T}, x::Py) where T<:Period

@@ -41,21 +41,29 @@ function pydatetime64(@nospecialize(x::T)) where T <: Period
     args = map(Base.Fix1(isa, x), (Day, Second, Millisecond, Microsecond,  Minute, Hour, Week))
     pydatetime64(map(Base.Fix1(*, x.value), args)...)
 end
-function pydatetime64(x::CompoundPeriod)
-    x =  canonicalize(x)
-    isempty(x.periods) ? pydatetime64(Second(0)) : sum(pydatetime64, x.periods)
+function pydatetime64(x::Union{Date, DateTime})
+    pyimport("numpy").datetime64("$x")
 end
 export pydatetime64
 
 function pytimedelta64(
-    _years::Integer=0, _months::Integer=0, _days::Integer=0, _hours::Integer=0, _minutes::Integer=0, _seconds::Integer=0, _milliseconds::Integer=0, _microseconds::Integer=0, _nanoseconds::Integer=0, _weeks::Integer=0;
-    years::Integer=_years, months::Integer=_months, days::Integer=_days, hours::Integer=_hours, minutes::Integer=_minutes, seconds::Integer=_seconds, microseconds::Integer=_microseconds, milliseconds::Integer=_milliseconds, nanoseconds::Integer=_nanoseconds, weeks::Integer=_weeks)
-    pytimedelta64(sum((
-        Year(years), Month(months),
+    _years::Union{Nothing,Integer}=nothing, _months::Union{Nothing,Integer}=nothing, _days::Integer=0, _hours::Integer=0, _minutes::Integer=0, _seconds::Integer=0, _milliseconds::Integer=0, _microseconds::Integer=0, _nanoseconds::Integer=0, _weeks::Integer=0;
+    years::Union{Nothing,Integer}=_years, months::Union{Nothing,Integer}=_years, days::Integer=_days, hours::Integer=_hours, minutes::Integer=_minutes, seconds::Integer=_seconds, microseconds::Integer=_microseconds, milliseconds::Integer=_milliseconds, nanoseconds::Integer=_nanoseconds, weeks::Integer=_weeks)
+    year_or_month_given = (years !== nothing || months !== nothing)
+    y::Integer = something(years, 0)
+    m::Integer = something(months, 0)
+    cp = sum((
+        Year(y), Month(m),
         # you cannot mix year or month with any of the below units in python
         # in case of wrong usage a descriptive error message will by thrown by the underlying python function
         Day(days), Hour(hours), Minute(minutes), Second(seconds), Millisecond(milliseconds), Microsecond(microseconds), Nanosecond(nanoseconds), Week(weeks))
-    ))
+    )
+    # make sure the correct unit is used when value is 0
+    if isempty(cp.periods) && year_or_month_given
+        pytimedelta64(Month(0))
+    else
+        pytimedelta64(cp)
+    end
 end
 function pytimedelta64(@nospecialize(x::T)) where T <: Period
     index = findfirst(==(T), (Year, Month, Week, Day, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond, T))::Int

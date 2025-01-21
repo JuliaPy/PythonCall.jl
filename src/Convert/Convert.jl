@@ -49,6 +49,12 @@ using Dates: Year, Month, Day, Hour, Minute, Week, Period, CompoundPeriod, canon
 
 import ..Core: pyconvert
 
+# patch conversion to Period types for julia <= 1.7
+@static if VERSION < v"1.8.0-"
+    Base.convert(::Type{T}, x::CompoundPeriod) where T<:Period =
+        isconcretetype(T) ? sum(T, x.periods; init = zero(T)) : throw(MethodError(convert,(T,x)))
+end
+
 include("pyconvert.jl")
 include("rules.jl")
 include("ctypes.jl")

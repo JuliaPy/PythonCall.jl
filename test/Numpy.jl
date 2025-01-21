@@ -4,6 +4,7 @@
     CondaPkg.add("numpy")
     
     td = pyimport("numpy").timedelta64
+    get_unit(x) = pyconvert(String, pyimport("numpy").datetime_data(x)[0])
     @testset for x in [
         -1_000_000_000,
         -1_000_000,
@@ -30,7 +31,18 @@
         y2 = pytimedelta64(Unit(x))
         @test pyeq(Bool, y, y2)
         @test pyeq(Bool, y, td(x, "$pyunit"))
+        @test get_unit(y) == "$pyunit"
+        @test get_unit(y2) == "$pyunit"
     end
+    x = pytimedelta64(Second(60))
+    @test get_unit(x) == "s"
+    x = pytimedelta64(Second(60); canonicalize = true)
+    @test get_unit(x) == "m"
+    
+    PythonCall.Convert.CANONICALIZE_TIMEDELTA64[] = true
+    @test pyconvert(Dates.CompoundPeriod, pytimedelta64(Second(60)),).periods[1] isa Minute
+    PythonCall.Convert.CANONICALIZE_TIMEDELTA64[] = false
+    @test pyconvert(Dates.CompoundPeriod, pytimedelta64(Second(60)),).periods[1] isa Second
 end
 
 @testitem "datetime64" begin

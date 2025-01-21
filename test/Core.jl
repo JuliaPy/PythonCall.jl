@@ -676,9 +676,6 @@ end
 
 @testitem "datetime" begin
     using Dates
-    using CondaPkg
-    CondaPkg.add("numpy")
-
     dt = pyimport("datetime")
     x1 = pydate(2001, 2, 3)
     @test pyisinstance(x1, dt.date)

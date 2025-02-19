@@ -1167,16 +1167,24 @@ end
 pydatetime(x::Date) = pydatetime(year(x), month(x), day(x))
 export pydatetime
 
+"""
+    pytimedelta([days, hours, minutes, seconds, milliseconds, microseconds, weeks])
+
+Construct a Python `timedelta` object. Arguments can be supplied either as keyword arguments or positional arguments in the above order.
+
+Note that we chose a decreasing order of the positional arguments (except `week`, which goes last) other than the Python function `datetime.timedelta()`.
+This way the functions `pytimedelta()` and `pytimedelta64()` have a similar signature.
+"""
 function pytimedelta(
-    _days::Int=0, _seconds::Int=0, _microseconds::Int=0, _milliseconds::Int=0, _minutes::Int=0, _hours::Int=0, _weeks::Int=0;
-    days::Int=_days, seconds::Int=_seconds, microseconds::Int=_microseconds, milliseconds::Int=_milliseconds, minutes::Int=_minutes, hours::Int=_hours, weeks::Int=_weeks
+    _days::Int=0, _hours::Int=0, _minutes::Int=0, _seconds::Int=0, _milliseconds::Int=0, _microseconds::Int=0,  _weeks::Int=0;
+    days::Int=_days, hours::Int=_hours, minutes::Int=_minutes, seconds::Int=_seconds, milliseconds::Int=_milliseconds, microseconds::Int=_microseconds, weeks::Int=_weeks
 )
     pyimport("datetime").timedelta(days, seconds, microseconds, milliseconds, minutes, hours, weeks)
 end
 function pytimedelta(@nospecialize(x::T)) where T <: Period
     T <: Union{Week, Day, Hour, Minute, Second, Millisecond, Microsecond} || 
         error("Unsupported Period type: ", "Year, Month and Nanosecond are not supported, consider using pytimedelta64 instead.")
-    args = T .== (Day, Second, Microsecond, Millisecond, Minute, Hour, Week)
+    args = T .== (Day, Hour, Minute, Second, Millisecond, Microsecond, Week)
     pytimedelta(x.value .* args...)
 end
 function pytimedelta(x::CompoundPeriod)

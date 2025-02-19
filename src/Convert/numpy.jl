@@ -29,6 +29,22 @@ const NUMPY_SIMPLE_TYPES = [
     ("complex128", ComplexF64),
 ]
 
+"""
+    pydatetime64([year, month, day, hour, minute, second, millisecond, microsecond, nanosecond, weeks])
+    pydatetime64(; [year, month, day, hour, minute, second, millisecond, microsecond, nanosecond, weeks])
+
+Create a `numpy.pydatetime64` object from the given time arguments.
+Arguments can be supplied either as keyword arguments or positional arguments in the above order.
+
+Examples:
+```julia
+pydatetime64(2025, 1, 2, 3, 4, 5, 6, 7, 8)
+# Python: np.datetime64('2025-01-02T03:04:05.006007008')
+
+pydatetime64(year = 2025, month = 5, day = 20, nanosecond = 1)
+# Python: np.datetime64('2025-05-20T00:00:00.000000001')
+```
+"""
 function pydatetime64(
     _year::Integer=0, _month::Integer=1, _day::Integer=1, _hour::Integer=0, _minute::Integer=0,_second::Integer=0, _millisecond::Integer=0, _microsecond::Integer=0, _nanosecond::Integer=0;
     year::Integer=_year, month::Integer=_month, day::Integer=_day, hour::Integer=_hour, minute::Integer=_minute, second::Integer=_second,
@@ -48,6 +64,30 @@ function pydatetime64(x::Union{Date, DateTime})
 end
 export pydatetime64
 
+"""
+    pytimedelta64([years, months, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds, weeks]; canonicalize=false)
+    pytimedelta64(; [years, months, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds, weeks], canonicalize=false)
+
+Create a `numpy.timedelta64` object from the given time arguments.
+Arguments can be supplied either as keyword arguments or positional arguments in the above order.
+`years` and `months` cannot be mixed with other units.
+
+Parameters:
+- `canonicalize=false`: If `false`, the unit of the result will be the unit of the least unit that was specified, 
+    if `true`, the result will be converted to least possible unit, e.g. 60s will be converted to 1m.
+
+Examples:
+```julia
+pytimedelta64(1, 2)
+# Python: np.timedelta64(14,'M')
+
+pytimedelta64(years = 1, months = 12; canonicalize = true)
+# Python: np.timedelta64(2,'Y')
+
+pytimedelta64(hours = 3, minutes = 60)
+# Python: np.timedelta64(240,'m')
+```
+"""
 function pytimedelta64(
     _years::Union{Nothing,Integer}=nothing, _months::Union{Nothing,Integer}=nothing,
     _days::Union{Nothing,Integer}=nothing, _hours::Union{Nothing,Integer}=nothing,
@@ -83,6 +123,11 @@ function pytimedelta64(
         pytimedelta64(cp; canonicalize)
     end
 end
+"""
+    pytimedelta64(x::Union{Period, CompoundPeriod}; canonicalize=false)
+
+Convert a Julia `Period` or `CompoundPeriod` to a `numpy.timedelta64` object.
+"""
 function pytimedelta64(@nospecialize(x::T); canonicalize::Bool = false) where T <: Period
     canonicalize && return pytimedelta64(@__MODULE__().canonicalize(x))
 
@@ -94,6 +139,23 @@ function pytimedelta64(x::CompoundPeriod; canonicalize::Bool = false)
     canonicalize && (x = @__MODULE__().canonicalize(x))
     isempty(x.periods) ? pytimedelta64(Second(0)) : sum(pytimedelta64.(x.periods))
 end
+"""
+    pytimedelta64(x::Integer)
+
+Create a dimensionless `numpy.timedelta64` object. If added to another `numpy.timedelta64` object, it will be interpreted as being of the same unit.
+
+Examples:
+```julia
+pytimedelta64(2)
+# Python: np.timedelta64(2)
+
+pytimedelta64(Hour(1)) + pytimedelta64(2)
+# Python: np.timedelta64(3,'h')
+
+pytimedelta64(2) + pytimedelta64(Hour(1)) + pytimedelta64(Minute(1))
+# Python: np.timedelta64(181,'m')
+```
+"""
 function pytimedelta64(x::Integer)
     pyimport("numpy").timedelta64(x)
 end

@@ -899,18 +899,6 @@ macro py(ex)
     esc(py_macro(ex, __module__, __source__))
 end
 
-macro py(keyword, modulename, ex)
-    keyword == :from || return :( nothing )
-
-    d = Dict(isa(a.args[1], Symbol) ? a.args[1] => a.args[1] : a.args[1].args[1] => a.args[2]  for a in ex.args)
-    vars = Expr(:tuple, values(d)...)
-    imports = Tuple(keys(d))
-
-    esc(quote
-        $vars = pyimport($(string(modulename)) => $(string.(imports)))
-    end)
-end
-
 export @py
 
 end

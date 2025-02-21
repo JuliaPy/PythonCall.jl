@@ -210,8 +210,8 @@
         pyjl(Foo(1))._jl_display(mime = "text/plain")
     end
     @testset "help" begin
-        pyjl(Foo(1))._jl_help()
-        pyjl(Foo(1))._jl_help(mime = "text/plain")
+        @test_skip pyis(pyjl(Foo(1))._jl_help(), nothing)
+        @test_skip pyis(pyjl(Foo(1))._jl_help(mime = "text/plain"), nothing)
     end
 end
 

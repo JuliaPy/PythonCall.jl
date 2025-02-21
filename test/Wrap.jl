@@ -26,6 +26,13 @@
         @test strides(y) === (1,)
         @test strides(z) === (1,)
     end
+    @testset "elsize" begin
+        @test Base.elsize(y) === sizeof(Cint)
+        @test Base.elsize(z) === sizeof(Cint)
+        @test Base.elsize(PyArray{Cint,1,true,true,Cint}) === sizeof(Cint)
+        @test Base.elsize(PyArray{Cint,1,false,false,Cint}) === sizeof(Cint)
+        @test_throws Exception elsize(PyArray{Cint,1,true,false,Cchar})
+    end
     @testset "getindex" begin
         @test_throws BoundsError y[0]
         @test y[1] == 1

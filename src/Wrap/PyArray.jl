@@ -637,6 +637,8 @@ Base.IndexStyle(::Type{PyArray{T,N,M,L,R}}) where {T,N,M,L,R} =
 
 Base.unsafe_convert(::Type{Ptr{T}}, x::PyArray{T,N,M,L,T}) where {T,N,M,L} = x.ptr
 
+Base.elsize(::Type{PyArray{T,N,M,L,T}}) where {T,N,M,L} = sizeof(T)
+
 Base.strides(x::PyArray{T,N,M,L,R}) where {T,N,M,L,R} =
     if all(mod.(x.strides, sizeof(R)) .== 0)
         div.(x.strides, sizeof(R))

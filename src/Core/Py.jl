@@ -192,9 +192,24 @@ function Base.show(io::IO, ::MIME"text/plain", o::Py)
     hasprefix = (get(io, :typeinfo, Any) != Py)::Bool
     compact = get(io, :compact, false)::Bool
     multiline = '\n' in str
+    multilinePrefix = "Python:"
+    if multiline
+        if pyhasattr(o, "shape")
+            multilinePrefix *= " " * pyrepr(String, o.shape)
+        end
+        if pyhasattr(o, "dtype")
+            multilinePrefix *= " " * pyrepr(String, o.dtype)
+        end
+        if pyhasattr(o, "flags")
+            if pytruth(o.flags["F_CONTIGUOUS"])
+                multilinePrefix *= " (F order)"
+            end
+        end
+    end
     prefix =
         hasprefix ?
-        compact ? "Py:$(multiline ? '\n' : ' ')" : "Python:$(multiline ? '\n' : ' ')" : ""
+        compact ? "Py:$(multiline ? '\n' : ' ')" :
+        "$(multilinePrefix)$(multiline ? '\n' : ' ')" : ""
     print(io, prefix)
     h, w = displaysize(io)
     if get(io, :limit, true)

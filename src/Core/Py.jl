@@ -201,8 +201,10 @@ function Base.show(io::IO, ::MIME"text/plain", o::Py)
             multilinePrefix *= " " * pyrepr(String, o.dtype)
         end
         if pyhasattr(o, "flags")
-            if pytruth(o.flags["F_CONTIGUOUS"])
-                multilinePrefix *= " (F order)"
+            if haskey(o.flags, "F_CONTIGUOUS")
+                if pytruth(o.flags["F_CONTIGUOUS"])
+                    multilinePrefix *= " (F order)"
+                end
             end
         end
     end

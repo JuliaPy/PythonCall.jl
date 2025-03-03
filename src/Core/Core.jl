@@ -25,7 +25,17 @@ using Dates:
     second,
     millisecond,
     microsecond,
-    nanosecond
+    nanosecond,
+    Day,
+    Hour,
+    Week,
+    Minute,
+    Second,
+    Millisecond,
+    Microsecond,
+    Period,
+    CompoundPeriod,
+    canonicalize
 using MacroTools: MacroTools, @capture
 using Markdown: Markdown
 

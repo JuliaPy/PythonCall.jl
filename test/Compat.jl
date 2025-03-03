@@ -79,11 +79,14 @@ end
 end
 
 @testitem "Tables.jl" begin
+    using CondaPkg
+    CondaPkg.add("pandas")
+    
     @testset "pytable" begin
         x = (x = [1, 2, 3], y = ["a", "b", "c"])
         # pandas
-        # TODO: install pandas and test properly
-        @test_throws PyException pytable(x, :pandas)
+        t = pytable(x, :pandas)
+        @test pyconvert.(Int, Tuple(t.shape)) == (3, 2)
         # columns
         y = pytable(x, :columns)
         @test pyeq(Bool, y, pydict(x = [1, 2, 3], y = ["a", "b", "c"]))

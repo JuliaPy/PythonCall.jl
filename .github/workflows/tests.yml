@@ -12,7 +12,7 @@ on:
 
 jobs:
   julia:
-    name: Test (${{ matrix.os }}, julia ${{ matrix.jlversion }})
+    name: julia-${{ matrix.test-type }}-${{ matrix.os }}-jl${{ matrix.jlversion }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -20,6 +20,7 @@ jobs:
         arch: [x64] # x86 unsupported by MicroMamba
         os: [ubuntu-latest, windows-latest, macos-latest]
         jlversion: ['1','1.6']
+        test-type: ['unit']
     steps:
       - uses: actions/checkout@v2
       - name: Set up Julia ${{ matrix.jlversion }}
@@ -48,16 +49,24 @@ jobs:
         uses: julia-actions/julia-processcoverage@v1
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
+        if: ${{ matrix.test-type == 'unit' }}
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   python:
-    name: Test (${{ matrix.os }}, python ${{ matrix.pyversion }})
+    name: python-${{ matrix.test-type }}-${{ matrix.os }}-py${{ matrix.pyversion }}
     runs-on: ${{ matrix.os }}
+    env:
+      PYTHON_JULIACALL_THREADS: '2'
     strategy:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         pyversion: ["3.x", "3.8"]
+        test-type: ['unit']
+        include:
+          - os: ubuntu-latest
+            pyversion: '3.x'
+            test-type: 'integration'
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.pyversion }}
@@ -74,18 +83,28 @@ jobs:
           pip install flake8 pytest pytest-cov nbval numpy
           cp pysrc/juliacall/juliapkg-dev.json pysrc/juliacall/juliapkg.json
           pip install -e .
+      - name: Install integration test dependencies
+        if: ${{ matrix.test-type == 'integration' }}
+        run: |
+          pip install sympy pandas scikit_learn click setuptools
+          # Note that the `--no-deps` flag is needed for ensuring
+          # we avoid installing a newer julicall. The initial `pip install`
+          # is for the non-juliacall dependencies.
+          pip install --no-deps pysr
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --ignore=F821 --show-source --statistics
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      - name: Run tests
-        run: |
-          pytest -s --nbval --cov=pysrc ./pytest/
-        env:
-          PYTHON_JULIACALL_THREADS: '2'
+      - name: Run unit tests
+        if: ${{ matrix.test-type == 'unit' }}
+        run: pytest -s --nbval --cov=pysrc ./pytest/ -k "not integration"
+      - name: Run integration tests
+        if: ${{ matrix.test-type == 'integration' }}
+        run: pytest -s ./pytest/integration/
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
+        if: ${{ matrix.test-type == 'unit' }}
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

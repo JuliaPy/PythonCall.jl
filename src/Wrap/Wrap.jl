@@ -5,8 +5,9 @@ Defines Julia wrappers around Python objects, including `PyList`, `PyDict`, `PyA
 """
 module Wrap
 
-using ..Core
+using ..PythonCall
 using ..Core:
+    Core,
     C,
     Utils,
     @autopy,
@@ -43,6 +44,9 @@ import ..Convert:
     PYCONVERT_PRIORITY_ARRAY,
     PYCONVERT_PRIORITY_CANONICAL,
     PYCONVERT_PRIORITY_NORMAL
+
+import ..PythonCall:
+    PyArray, PyDict, PyIO, PyIterable, PyList, PySet, PyTable, PyPandasDataFrame
 
 include("PyIterable.jl")
 include("PyDict.jl")

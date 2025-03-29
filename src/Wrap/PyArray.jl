@@ -2,75 +2,8 @@ struct UnsafePyObject
     ptr::C.PyPtr
 end
 
-"""
-    PyArray{T,N,M,L,R}(x; copy=true, array=true, buffer=true)
-
-Wrap the Python array `x` as a Julia `AbstractArray{T,N}`.
-
-The input `x` can be `bytes`, `bytearray`, `array.array`, `numpy.ndarray` or anything satisfying the buffer protocol (if `buffer=true`) or the numpy array interface (if `array=true`).
-
-If `copy=false` then the resulting array is guaranteed to directly wrap the data in `x`. If `copy=true` then a copy is taken if necessary to produce an array.
-
-The type parameters are all optional, and are:
-- `T`: The element type.
-- `N`: The number of dimensions.
-- `M`: True if the array is mutable.
-- `L`: True if the array supports fast linear indexing.
-- `R`: The element type of the underlying buffer. Often equal to `T`.
-"""
-struct PyArray{T,N,M,L,R} <: AbstractArray{T,N}
-    ptr::Ptr{R}             # pointer to the data
-    length::Int             # length of the array
-    size::NTuple{N,Int}     # size of the array
-    strides::NTuple{N,Int}  # strides (in bytes) between elements
-    py::Py                  # underlying python object
-    handle::Py              # the data in this array is valid as long as this handle is alive
-    function PyArray{T,N,M,L,R}(
-        ::Val{:new},
-        ptr::Ptr{R},
-        size::NTuple{N,Int},
-        strides::NTuple{N,Int},
-        py::Py,
-        handle::Py,
-    ) where {T,N,M,L,R}
-        T isa Type || error("T must be a Type")
-        N isa Int || error("N must be an Int")
-        M isa Bool || error("M must be a Bool")
-        L isa Bool || error("L must be a Bool")
-        R isa DataType || error("R must be a DataType")
-        new{T,N,M,L,R}(ptr, prod(size), size, strides, py, handle)
-    end
-end
-export PyArray
-
 ispy(::PyArray) = true
 Py(x::PyArray) = x.py
-
-for N in (missing, 1, 2)
-    for M in (missing, true, false)
-        for L in (missing, true, false)
-            for R in (true, false)
-                name = Symbol(
-                    "Py",
-                    M === missing ? "" : M ? "Mutable" : "Immutable",
-                    L === missing ? "" : L ? "Linear" : "Cartesian",
-                    R ? "Raw" : "",
-                    N === missing ? "Array" : N == 1 ? "Vector" : "Matrix",
-                )
-                name == :PyArray && continue
-                vars = Any[
-                    :T,
-                    N === missing ? :N : N,
-                    M === missing ? :M : M,
-                    L === missing ? :L : L,
-                    R ? :T : :R,
-                ]
-                @eval const $name{$(unique([v for v in vars if v isa Symbol])...)} = PyArray{$(vars...)}
-                @eval export $name
-            end
-        end
-    end
-end
 
 (::Type{A})(
     x;

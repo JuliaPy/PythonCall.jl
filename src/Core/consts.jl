@@ -168,17 +168,9 @@ const BUILTINS = Set([
     :ResourceWarning,
 ])
 
-@eval baremodule pybuiltins
-$([:(const $k = $pynew()) for k in BUILTINS]...)
+for k in BUILTINS
+    @eval pybuiltins (const $k = $pynew())
 end
-"""
-    pybuiltins
-
-An object whose fields are the Python builtins, of type [`Py`](@ref).
-
-For example `pybuiltins.None`, `pybuiltins.int`, `pybuiltins.ValueError`.
-"""
-pybuiltins
 
 for k in BUILTINS
     if k == :help

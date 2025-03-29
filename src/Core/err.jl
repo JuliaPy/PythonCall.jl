@@ -108,7 +108,7 @@ function _showerror(io::IO, e::PyException, bt; backtrace = true)
         return
     end
 
-    if CONFIG.auto_sys_last_traceback
+    if PythonCall.CONFIG.auto_sys_last_traceback
         try
             sys = pyimport("sys")
             sys.last_type = e.t

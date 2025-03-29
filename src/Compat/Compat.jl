@@ -4,7 +4,7 @@
 Misc bits and bobs for compatibility.
 """
 module Compat
-using ..PythonCall: PythonCall  # needed for docstring cross-refs
+using ..PythonCall
 using ..Core
 using ..Core:
     Core,
@@ -25,6 +25,7 @@ using ..Wrap: PyArray, PyPandasDataFrame
 using Serialization: Serialization, AbstractSerializer, serialize, deserialize
 using Tables: Tables
 using Requires: @require
+import ..PythonCall: pytable
 
 include("gui.jl")
 include("ipython.jl")

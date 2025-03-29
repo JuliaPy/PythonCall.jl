@@ -387,7 +387,6 @@ macro pyconvert(T, x, onfail = :(return $pyconvert_unconverted()))
         end
     end
 end
-export @pyconvert
 
 """
     pyconvert(T, x, [d])
@@ -400,7 +399,6 @@ pyconvert(::Type{T}, x) where {T} = @autopy x @pyconvert T x_ error(
     "cannot convert this Python '$(pytype(x_).__name__)' to a Julia '$T'",
 )
 pyconvert(::Type{T}, x, d) where {T} = @autopy x @pyconvert T x_ d
-export pyconvert
 
 """
     pyconvertarg(T, x, name)

@@ -5,7 +5,7 @@ Defines the Python object wrappers around Julia objects (`juliacall.AnyValue` et
 """
 module JlWrap
 
-using ..PythonCall: PythonCall
+using ..PythonCall
 using ..Core
 using ..Core:
     C,
@@ -47,7 +47,22 @@ using ..GIL: GIL
 using Pkg: Pkg
 using Base: @propagate_inbounds, allocatedinline
 
-import ..Core: Py
+import ..PythonCall:
+    Py,
+    pyjl,
+    pyjltype,
+    pyisjl,
+    pyjlvalue,
+    pyfunc,
+    pyclassmethod,
+    pystaticmethod,
+    pyproperty,
+    pybinaryio,
+    pytextio,
+    pyjlraw,
+    PyObjectVector,
+    PyObjectMatrix,
+    PyObjectArray
 
 include("C.jl")
 include("base.jl")

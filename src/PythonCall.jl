@@ -18,16 +18,24 @@ include("GIL.jl")
 include("GC.jl")
 include("Core/Core.jl")
 include("Convert/Convert.jl")
-# include("PyMacro/PyMacro.jl")
-# include("Wrap/Wrap.jl")
-# include("JlWrap/JlWrap.jl")
-# include("Compat/Compat.jl")
+include("PyMacro.jl")
+include("Wrap/Wrap.jl")
+include("JlWrap/JlWrap.jl")
+include("Compat/Compat.jl")
 
 end
 
 # config
 "Configuration for PythonCall."
 const CONFIG = Internals.Config()
+
+# other consts
+const PyNULL = Internals.C.PyNULL
+const PYCONVERT_PRIORITY_WRAP = Internals.Convert.PYCONVERT_PRIORITY_WRAP
+const PYCONVERT_PRIORITY_ARRAY = Internals.Convert.PYCONVERT_PRIORITY_ARRAY
+const PYCONVERT_PRIORITY_CANONICAL = Internals.Convert.PYCONVERT_PRIORITY_CANONICAL
+const PYCONVERT_PRIORITY_NORMAL = Internals.Convert.PYCONVERT_PRIORITY_NORMAL
+const PYCONVERT_PRIORITY_FALLBACK = Internals.Convert.PYCONVERT_PRIORITY_FALLBACK
 
 # # not API but used in tests
 # for k in [

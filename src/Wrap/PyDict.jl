@@ -1,16 +1,3 @@
-"""
-    PyDict{K=Py,V=Py}([x])
-
-Wraps the Python dict `x` (or anything satisfying the mapping interface) as an `AbstractDict{K,V}`.
-
-If `x` is not a Python object, it is converted to one using `pydict`.
-"""
-struct PyDict{K,V} <: AbstractDict{K,V}
-    py::Py
-    PyDict{K,V}(x = pydict()) where {K,V} = new{K,V}(ispy(x) ? Py(x) : pydict(x))
-end
-export PyDict
-
 PyDict{K}(x = pydict()) where {K} = PyDict{K,Py}(x)
 PyDict(x = pydict()) = PyDict{Py,Py}(x)
 

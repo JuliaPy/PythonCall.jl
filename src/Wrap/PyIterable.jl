@@ -1,14 +1,3 @@
-"""
-    PyIterable{T=Py}(x)
-
-This object iterates over iterable Python object `x`, yielding values of type `T`.
-"""
-struct PyIterable{T}
-    py::Py
-    PyIterable{T}(x) where {T} = new{T}(Py(x))
-end
-export PyIterable
-
 PyIterable(x) = PyIterable{Py}(x)
 
 ispy(x::PyIterable) = true

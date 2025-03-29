@@ -1,31 +1,3 @@
-"""
-    PyPandasDataFrame(x; [indexname::Union{Nothing,Symbol}], [columnnames::Function], [columntypes::Function])
-
-Wraps the pandas DataFrame `x` as a Tables.jl-compatible table.
-
-- `indexname`: The name of the column including the index. The default is `nothing`, meaning
-  to exclude the index.
-- `columnnames`: A function mapping the Python column name (a `Py`) to the Julia one (a
-  `Symbol`). The default is `x -> Symbol(x)`.
-- `columntypes`: A function taking the column name (a `Symbol`) and returning either the
-  desired element type of the column, or `nothing` to indicate automatic inference.
-"""
-struct PyPandasDataFrame <: PyTable
-    py::Py
-    indexname::Union{Symbol,Nothing}
-    columnnames::Function # Py -> Symbol
-    columntypes::Function # Symbol -> Union{Type,Nothing}
-    function PyPandasDataFrame(
-        x;
-        indexname::Union{Symbol,Nothing} = nothing,
-        columnnames::Function = x -> Symbol(x),
-        columntypes::Function = x -> nothing,
-    )
-        new(Py(x), indexname, columnnames, columntypes)
-    end
-end
-export PyPandasDataFrame
-
 ispy(x::PyPandasDataFrame) = true
 Py(x::PyPandasDataFrame) = x.py
 

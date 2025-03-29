@@ -1,22 +1,3 @@
-"""
-    PyObjectArray(undef, dims...)
-    PyObjectArray(array)
-
-An array of `Py`s which supports the Python buffer protocol.
-
-Internally, the objects are stored as an array of pointers.
-"""
-mutable struct PyObjectArray{N} <: AbstractArray{Py,N}
-    ptrs::Array{C.PyPtr,N}
-    function PyObjectArray{N}(::UndefInitializer, dims::NTuple{N,Integer}) where {N}
-        x = new{N}(fill(C.PyNULL, dims))
-        finalizer(pyobjectarray_finalizer, x)
-    end
-end
-const PyObjectVector = PyObjectArray{1}
-const PyObjectMatrix = PyObjectArray{2}
-export PyObjectVector, PyObjectMatrix, PyObjectArray
-
 PyObjectArray{N}(undef::UndefInitializer, dims::Vararg{Integer,N}) where {N} =
     PyObjectArray(undef, dims)
 PyObjectArray(undef::UndefInitializer, dims::NTuple{N,Integer}) where {N} =
@@ -27,7 +8,7 @@ PyObjectArray{N}(x::AbstractArray{T,N}) where {T,N} =
     copyto!(PyObjectArray{N}(undef, size(x)), x)
 PyObjectArray(x::AbstractArray{T,N}) where {T,N} = PyObjectArray{N}(x)
 
-pyobjectarray_finalizer(x::PyObjectArray) = GC.enqueue_all(x.ptrs)
+pyobjectarray_finalizer(x::PyObjectArray) = GC.enqueue_all(C.PyPtr, x.ptrs)
 
 Base.IndexStyle(x::PyObjectArray) = Base.IndexStyle(x.ptrs)
 

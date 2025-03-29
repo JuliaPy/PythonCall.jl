@@ -1,16 +1,3 @@
-"""
-    PySet{T=Py}([x])
-
-Wraps the Python set `x` (or anything satisfying the set interface) as an `AbstractSet{T}`.
-
-If `x` is not a Python object, it is converted to one using `pyset`.
-"""
-struct PySet{T} <: AbstractSet{T}
-    py::Py
-    PySet{T}(x = pyset()) where {T} = new{T}(ispy(x) ? Py(x) : pyset(x))
-end
-export PySet
-
 PySet(x = pyset()) = PySet{Py}(x)
 
 ispy(::PySet) = true

@@ -8,6 +8,15 @@ include("types.jl")
 include("GIL.jl")
 include("GC.jl")
 
+"""
+    pybuiltins
+
+An object whose fields are the Python builtins, of type [`Py`](@ref).
+
+For example `pybuiltins.None`, `pybuiltins.int`, `pybuiltins.ValueError`.
+"""
+baremodule pybuiltins end
+
 # functions
 function python_executable_path end
 function python_library_handle end
@@ -118,12 +127,25 @@ function pyall end
 function pyany end
 function pycallable end
 function pycompile end
+function pyjl end
+function pyjltype end
+function pyisjl end
+function pyjlvalue end
+function pyfunc end
+function pyclassmethod end
+function pystaticmethod end
+function pyproperty end
+function pybinaryio end
+function pytextio end
+function pyjlraw end
+function pytable end
 
 # macros
 macro pyeval end
 macro pyexec end
 macro pyconst end
 macro pyconvert end
+macro py end
 
 # exports
 export Py
@@ -225,7 +247,31 @@ export pycompile
 export pybuiltins
 export @pyconst
 export pyconvert
-
+export @pyconvert
+export @py
+export PyArray
+export PyDict
+export PyIO
+export PyIterable
+export PyList
+export PySet
+export PyTable
+export PyPandasDataFrame
+export pyjl
+export pyjltype
+export pyisjl
+export pyjlvalue
+export pyfunc
+export pyclassmethod
+export pystaticmethod
+export pyproperty
+export pybinaryio
+export pytextio
+export pyjlraw
+export PyObjectVector
+export PyObjectMatrix
+export PyObjectArray
+export pytable
 # public bindings
 if Base.VERSION ≥ v"1.11"
     eval(
@@ -235,12 +281,12 @@ if Base.VERSION ≥ v"1.11"
             :GIL,
             :GC,
             :CONFIG,
-            # :PyNULL,
-            # :PYCONVERT_PRIORITY_WRAP,
-            # :PYCONVERT_PRIORITY_ARRAY,
-            # :PYCONVERT_PRIORITY_CANONICAL,
-            # :PYCONVERT_PRIORITY_NORMAL,
-            # :PYCONVERT_PRIORITY_FALLBACK,
+            :PyNULL,
+            :PYCONVERT_PRIORITY_WRAP,
+            :PYCONVERT_PRIORITY_ARRAY,
+            :PYCONVERT_PRIORITY_CANONICAL,
+            :PYCONVERT_PRIORITY_NORMAL,
+            :PYCONVERT_PRIORITY_FALLBACK,
             :python_executable_path,
             :python_library_handle,
             :python_library_path,
@@ -259,4 +305,31 @@ if Base.VERSION ≥ v"1.11"
             :fix_qt_plugin_path,
         ),
     )
+end
+
+# aliases for special PyArray types
+for N in (missing, 1, 2)
+    for M in (missing, true, false)
+        for L in (missing, true, false)
+            for R in (true, false)
+                name = Symbol(
+                    "Py",
+                    M === missing ? "" : M ? "Mutable" : "Immutable",
+                    L === missing ? "" : L ? "Linear" : "Cartesian",
+                    R ? "Raw" : "",
+                    N === missing ? "Array" : N == 1 ? "Vector" : "Matrix",
+                )
+                name == :PyArray && continue
+                vars = Any[
+                    :T,
+                    N === missing ? :N : N,
+                    M === missing ? :M : M,
+                    L === missing ? :L : L,
+                    R ? :T : :R,
+                ]
+                @eval const $name{$(unique([v for v in vars if v isa Symbol])...)} = PyArray{$(vars...)}
+                @eval export $name
+            end
+        end
+    end
 end

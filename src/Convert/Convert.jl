@@ -5,8 +5,9 @@ Implements `pyconvert`.
 """
 module Convert
 
-using ..Core
+using ..PythonCall
 using ..Core:
+    Core,
     C,
     Utils,
     @autopy,
@@ -46,7 +47,7 @@ using ..Core:
     pybool_asbool
 using Dates: Date, Time, DateTime, Second, Millisecond, Microsecond, Nanosecond
 
-import ..Core: pyconvert
+import PythonCall: pyconvert, @pyconvert
 
 include("pyconvert.jl")
 include("rules.jl")

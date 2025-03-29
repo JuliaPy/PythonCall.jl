@@ -1,5 +1,5 @@
 "The version of PythonCall."
-const VERSION = v"0.9.23"
+const VERSION = v"0.9.24"
 
 # types
 include("types.jl")
@@ -123,6 +123,7 @@ function pycompile end
 macro pyeval end
 macro pyexec end
 macro pyconst end
+macro pyconvert end
 
 # exports
 export Py

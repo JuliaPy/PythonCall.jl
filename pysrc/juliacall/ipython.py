@@ -17,12 +17,14 @@ from . import Main, PythonCall
 import __main__
 
 _set_var = Main.seval("(k, v) -> @eval $(Symbol(k)) = $v")
-_get_var = Main.seval("k -> hasproperty(Main, Symbol(k)) ? PythonCall.pyjlraw(getproperty(Main, Symbol(k))) : nothing")
+_get_var = Main.seval(
+    "k -> hasproperty(Main, Symbol(k)) ? PythonCall.pyjlraw(getproperty(Main, Symbol(k))) : nothing"
+)
 _egal = Main.seval("===")
+
 
 @magics_class
 class JuliaMagics(Magics):
-    
     @line_cell_magic
     def julia(self, line, cell=None):
         # parse the line and cell into code and variables
@@ -34,9 +36,9 @@ class JuliaMagics(Magics):
         else:
             code = cell
             for k in line.split():
-                if k.startswith('<'):
+                if k.startswith("<"):
                     invars.append(k[1:])
-                elif k.startswith('>'):
+                elif k.startswith(">"):
                     outvars.append(k[1:])
                 else:
                     syncvars.append(k)
@@ -49,7 +51,7 @@ class JuliaMagics(Magics):
                 if k in syncvars:
                     cachevars[k] = _get_var(k)
         # run the code
-        ans = Main.seval('begin\n' + code + '\nend')
+        ans = Main.seval("begin\n" + code + "\nend")
         # flush stderr/stdout
         PythonCall._ipython._flush_stdio()
         # copy variables back to Python
@@ -60,14 +62,15 @@ class JuliaMagics(Magics):
             if v1 is not None and (v0 is None or not _egal(v0, v1)):
                 __main__.__dict__[k] = v1._jl_any()
         # return the value unless suppressed with trailing ";"
-        if not code.strip().endswith(';'):
+        if not code.strip().endswith(";"):
             return ans
+
 
 def load_ipython_extension(ip):
     # register magics
     ip.register_magics(JuliaMagics(ip))
     # redirect stdout/stderr
-    if ip.__class__.__name__ == 'TerminalInteractiveShell':
+    if ip.__class__.__name__ == "TerminalInteractiveShell":
         # no redirection in the terminal
         PythonCall.seval("""module _ipython
             function _flush_stdio()
@@ -96,10 +99,10 @@ def load_ipython_extension(ip):
             end
             nothing
         end""")
-    ip.events.register('post_execute', PythonCall._ipython._flush_stdio)
+    ip.events.register("post_execute", PythonCall._ipython._flush_stdio)
     # push displays
     PythonCall.seval("""begin
-        pushdisplay(Compat.PythonDisplay())
-        pushdisplay(Compat.IPythonDisplay())
+        pushdisplay(Internals.Compat.PythonDisplay())
+        pushdisplay(Internals.Compat.IPythonDisplay())
         nothing
     end""")

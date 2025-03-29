@@ -47,7 +47,8 @@ using ..Core:
     pybool_asbool
 using Dates: Date, Time, DateTime, Second, Millisecond, Microsecond, Nanosecond
 
-import PythonCall: pyconvert, @pyconvert
+import PythonCall:
+    pyconvert, @pyconvert, pyconvert_add_rule, pyconvert_return, pyconvert_unconverted
 
 include("pyconvert.jl")
 include("rules.jl")

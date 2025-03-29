@@ -25,9 +25,9 @@
     Base.in(v::Int, x::Foo) = x.value == v
     Base.nameof(x::Foo) = "nameof $(x.value)"
     @testset "type" begin
-        @test pyis(pytype(pyjl(Foo(1))), PythonCall.pyjlanytype)
-        @test pyis(pytype(pyjl(nothing)), PythonCall.pyjlanytype)
-        @test pyis(pytype(pyjl(missing)), PythonCall.pyjlanytype)
+        @test pyis(pytype(pyjl(Foo(1))), PythonCall.Internals.JlWrap.pyjlanytype)
+        @test pyis(pytype(pyjl(nothing)), PythonCall.Internals.JlWrap.pyjlanytype)
+        @test pyis(pytype(pyjl(missing)), PythonCall.Internals.JlWrap.pyjlanytype)
     end
     @testset "bool" begin
         @test pytruth(pyjl(Foo(0)))
@@ -217,8 +217,8 @@ end
 
 @testitem "array" begin
     @testset "type" begin
-        @test pyis(pytype(pyjl(fill(nothing))), PythonCall.pyjlarraytype)
-        @test pyis(pytype(pyjl([1 2; 3 4])), PythonCall.pyjlarraytype)
+        @test pyis(pytype(pyjl(fill(nothing))), PythonCall.Internals.JlWrap.pyjlarraytype)
+        @test pyis(pytype(pyjl([1 2; 3 4])), PythonCall.Internals.JlWrap.pyjlarraytype)
     end
     @testset "bool" begin
         @test !pytruth(pyjl(fill(nothing, 0, 1)))
@@ -305,7 +305,7 @@ end
     @testset "copy" begin
         x = pyjl([1 2; 3 4])
         y = x.copy()
-        @test pyis(pytype(y), PythonCall.pyjlarraytype)
+        @test pyis(pytype(y), PythonCall.Internals.JlWrap.pyjlarraytype)
         @test pyjlvalue(x) == pyjlvalue(y)
         @test typeof(pyjlvalue(x)) == typeof(pyjlvalue(y))
         @test pyjlvalue(x) !== pyjlvalue(y)
@@ -354,7 +354,7 @@ end
 
 @testitem "dict" begin
     @testset "type" begin
-        @test pyis(pytype(pyjl(Dict())), PythonCall.pyjldicttype)
+        @test pyis(pytype(pyjl(Dict())), PythonCall.Internals.JlWrap.pyjldicttype)
     end
     @testset "bool" begin
         @test !pytruth(pyjl(Dict()))
@@ -364,9 +364,12 @@ end
 
 @testitem "io" begin
     @testset "type" begin
-        @test pyis(pytype(pyjl(devnull)), PythonCall.pyjlbinaryiotype)
-        @test pyis(pytype(pybinaryio(devnull)), PythonCall.pyjlbinaryiotype)
-        @test pyis(pytype(pytextio(devnull)), PythonCall.pyjltextiotype)
+        @test pyis(pytype(pyjl(devnull)), PythonCall.Internals.JlWrap.pyjlbinaryiotype)
+        @test pyis(
+            pytype(pybinaryio(devnull)),
+            PythonCall.Internals.JlWrap.pyjlbinaryiotype,
+        )
+        @test pyis(pytype(pytextio(devnull)), PythonCall.Internals.JlWrap.pyjltextiotype)
     end
     @testset "bool" begin
         @test pytruth(pybinaryio(devnull))
@@ -384,7 +387,7 @@ end
 
 @testitem "module" begin
     @testset "type" begin
-        @test pyis(pytype(pyjl(PythonCall)), PythonCall.pyjlmoduletype)
+        @test pyis(pytype(pyjl(PythonCall)), PythonCall.Internals.JlWrap.pyjlmoduletype)
     end
     @testset "bool" begin
         @test pytruth(pyjl(PythonCall))
@@ -398,11 +401,11 @@ end
 
 @testitem "number" begin
     @testset "type" begin
-        @test pyis(pytype(pyjl(false)), PythonCall.pyjlintegertype)
-        @test pyis(pytype(pyjl(0)), PythonCall.pyjlintegertype)
-        @test pyis(pytype(pyjl(0 // 1)), PythonCall.pyjlrationaltype)
-        @test pyis(pytype(pyjl(0.0)), PythonCall.pyjlrealtype)
-        @test pyis(pytype(pyjl(Complex(0.0))), PythonCall.pyjlcomplextype)
+        @test pyis(pytype(pyjl(false)), PythonCall.Internals.JlWrap.pyjlintegertype)
+        @test pyis(pytype(pyjl(0)), PythonCall.Internals.JlWrap.pyjlintegertype)
+        @test pyis(pytype(pyjl(0 // 1)), PythonCall.Internals.JlWrap.pyjlrationaltype)
+        @test pyis(pytype(pyjl(0.0)), PythonCall.Internals.JlWrap.pyjlrealtype)
+        @test pyis(pytype(pyjl(Complex(0.0))), PythonCall.Internals.JlWrap.pyjlcomplextype)
     end
     @testset "bool" begin
         @test !pytruth(pyjl(false))
@@ -428,7 +431,7 @@ end
 
 @testitem "set" begin
     @testset "type" begin
-        @test pyis(pytype(pyjl(Set())), PythonCall.pyjlsettype)
+        @test pyis(pytype(pyjl(Set())), PythonCall.Internals.JlWrap.pyjlsettype)
     end
     @testset "bool" begin
         @test !pytruth(pyjl(Set()))
@@ -438,7 +441,7 @@ end
 
 @testitem "type" begin
     @testset "type" begin
-        @test pyis(pytype(pyjl(Int)), PythonCall.pyjltypetype)
+        @test pyis(pytype(pyjl(Int)), PythonCall.Internals.JlWrap.pyjltypetype)
     end
     @testset "bool" begin
         @test pytruth(pyjl(Int))
@@ -447,7 +450,7 @@ end
 
 @testitem "vector" begin
     @testset "type" begin
-        @test pyis(pytype(pyjl([1, 2, 3, 4])), PythonCall.pyjlvectortype)
+        @test pyis(pytype(pyjl([1, 2, 3, 4])), PythonCall.Internals.JlWrap.pyjlvectortype)
     end
     @testset "bool" begin
         @test !pytruth(pyjl([]))

@@ -31,14 +31,14 @@ end
 @propagate_inbounds function Base.setindex!(x::PyObjectArray, v, i::Integer...)
     @boundscheck checkbounds(x, i...)
     v_ = Py(v)
-    @inbounds decref(x.ptrs[i...])
+    @inbounds decref(C.PyPtr(x.ptrs[i...]))
     @inbounds x.ptrs[i...] = incref(getptr(v_))
     return x
 end
 
 @propagate_inbounds function Base.deleteat!(x::PyObjectVector, i::Integer)
     @boundscheck checkbounds(x, i)
-    @inbounds decref(x.ptrs[i])
+    @inbounds decref(C.PyPtr(x.ptrs[i]))
     deleteat!(x.ptrs, i)
     return x
 end

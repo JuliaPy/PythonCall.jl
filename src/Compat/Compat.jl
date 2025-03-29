@@ -25,7 +25,7 @@ using ..Wrap: PyArray, PyPandasDataFrame
 using Serialization: Serialization, AbstractSerializer, serialize, deserialize
 using Tables: Tables
 using Requires: @require
-import ..PythonCall: pytable
+import ..PythonCall: pytable, event_loop_on, event_loop_off, fix_qt_plugin_path
 
 include("gui.jl")
 include("ipython.jl")

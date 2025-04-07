@@ -12,7 +12,7 @@ Base.@kwdef mutable struct Config
     auto_fix_qt_plugin_path::Bool = true
 end
 
-include("Utils.jl")
+include("Utils/Utils.jl")
 include("C/C.jl")
 include("GIL.jl")
 include("GC.jl")

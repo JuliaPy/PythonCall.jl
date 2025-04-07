@@ -1,4 +1,8 @@
-### Extensible system for multimedia display of Python objects
+"""Extensible system for multimedia display of Python objects"""
+module Multimedia
+
+using ...PythonCall
+using ...Core: pyisnull, pysysmodule
 
 const PYSHOW_RULES = Function[]
 
@@ -124,7 +128,7 @@ function pyshow_rule_savefig(io::IO, mime::String, x::Py)
     end
 end
 
-function init_pyshow()
+function __init__()
     pyshow_add_rule(pyshow_rule_mimebundle)
     pyshow_add_rule(pyshow_rule_repr)
     pyshow_add_rule(pyshow_rule_savefig)
@@ -150,3 +154,5 @@ Base.show(io::IO, mime::MIME"text/csv", df::PyPandasDataFrame) = pyshow(io, mime
 Base.show(io::IO, mime::MIME"text/tab-separated-values", df::PyPandasDataFrame) =
     pyshow(io, mime, df)
 Base.showable(mime::MIME, df::PyPandasDataFrame) = pyshowable(mime, df)
+
+end

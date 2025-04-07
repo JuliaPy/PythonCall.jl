@@ -1,3 +1,9 @@
+"""Integration with IPython"""
+module IPython
+
+using ...PythonCall
+using ...Core: pystr_fromUTF8
+
 """
     PythonDisplay()
 
@@ -67,4 +73,6 @@ function Base.display(d::IPythonDisplay, @nospecialize(x))
     length(dict) == 0 && throw(MethodError(display, (d, x)))
     ipy.display.display(dict, raw = true)
     return
+end
+
 end

@@ -1,3 +1,13 @@
+module Tables
+
+using ...PythonCall
+using Tables: Tables as T
+
+using Requires: @require
+
+import ...PythonCall: pytable
+
+
 asvector(x::AbstractVector) = x
 asvector(x) = collect(x)
 
@@ -27,44 +37,40 @@ function pytable(src, format = :pandas; opts...)
     end
 end
 
-function _pytable_columns(src, cols = Tables.columns(src))
-    pydict(
-        pystr(String(n)) => asvector(Tables.getcolumn(cols, n)) for
-        n in Tables.columnnames(cols)
-    )
+function _pytable_columns(src, cols = T.columns(src))
+    pydict(pystr(String(n)) => asvector(T.getcolumn(cols, n)) for n in T.columnnames(cols))
 end
 
-function _pytable_rows(src, rows = Tables.rows(src))
-    names = Tables.columnnames(rows)
+function _pytable_rows(src, rows = T.rows(src))
+    names = T.columnnames(rows)
     t = pyimport("collections" => "namedtuple")(
         "Row",
         pylist(pystr(string(n)) for n in names),
     )
-    pylist(t(map(n -> Tables.getcolumn(row, n), names)...) for row in rows)
+    pylist(t(map(n -> T.getcolumn(row, n), names)...) for row in rows)
 end
 
-function _pytable_rowdicts(src, rows = Tables.rows(src))
-    names = Tables.columnnames(rows)
+function _pytable_rowdicts(src, rows = T.rows(src))
+    names = T.columnnames(rows)
     pynames = [pystr(string(n)) for n in names]
     pylist(
-        pydict(p => Tables.getcolumn(row, n) for (n, p) in zip(names, pynames)) for
-        row in rows
+        pydict(p => T.getcolumn(row, n) for (n, p) in zip(names, pynames)) for row in rows
     )
 end
 
 aspandasvector(x) = asvector(x)
 
-function _pytable_pandas(src, cols = Tables.columns(src); opts...)
+function _pytable_pandas(src, cols = T.columns(src); opts...)
     pyimport("pandas").DataFrame(
         pydict(
-            pystr(string(n)) => aspandasvector(Tables.getcolumn(cols, n)) for
-            n in Tables.columnnames(cols)
+            pystr(string(n)) => aspandasvector(T.getcolumn(cols, n)) for
+            n in T.columnnames(cols)
         );
         opts...,
     )
 end
 
-function init_tables()
+function __init__()
     @require CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597" @eval begin
         aspandasvector(x::CategoricalArrays.CategoricalArray) = begin
             codes = map(x -> x === missing ? -1 : Int(CategoricalArrays.levelcode(x)) - 1, x)
@@ -73,4 +79,6 @@ function init_tables()
             pyimport("pandas").Categorical.from_codes(codes, cats, ordered = ordered)
         end
     end
+end
+
 end

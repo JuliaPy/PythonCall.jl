@@ -8,7 +8,7 @@ PyObjectArray{N}(x::AbstractArray{T,N}) where {T,N} =
     copyto!(PyObjectArray{N}(undef, size(x)), x)
 PyObjectArray(x::AbstractArray{T,N}) where {T,N} = PyObjectArray{N}(x)
 
-pyobjectarray_finalizer(x::PyObjectArray) = GC.enqueue_all(C.PyPtr, x.ptrs)
+pyobjectarray_finalizer(x::PyObjectArray) = GC.enqueue_all(x.ptrs)
 
 Base.IndexStyle(x::PyObjectArray) = Base.IndexStyle(x.ptrs)
 

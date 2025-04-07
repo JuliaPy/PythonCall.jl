@@ -6,7 +6,7 @@ Py(x::PyList) = x.py
 function pyconvert_rule_sequence(
     ::Type{T},
     x::Py,
-    ::Type{T1} = Utils._type_ub(T),
+    ::Type{T1} = Utils.type_ub(T),
 ) where {T<:PyList,T1}
     pyconvert_return(T1(x))
 end

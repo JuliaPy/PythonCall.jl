@@ -147,30 +147,30 @@ end
 function pyconvert_rule_range(
     ::Type{R},
     x::Py,
-    ::Type{StepRange{T0,S0}} = Utils._type_lb(R),
-    ::Type{StepRange{T1,S1}} = Utils._type_ub(R),
+    ::Type{StepRange{T0,S0}} = Utils.type_lb(R),
+    ::Type{StepRange{T1,S1}} = Utils.type_ub(R),
 ) where {R<:StepRange,T0,S0,T1,S1}
-    a = @pyconvert(Utils._typeintersect(Integer, T1), x.start)
-    b = @pyconvert(Utils._typeintersect(Integer, S1), x.step)
-    c = @pyconvert(Utils._typeintersect(Integer, T1), x.stop)
+    a = @pyconvert(Utils.typeintersect(Integer, T1), x.start)
+    b = @pyconvert(Utils.typeintersect(Integer, S1), x.step)
+    c = @pyconvert(Utils.typeintersect(Integer, T1), x.stop)
     a′, c′ = promote(a, c - oftype(c, sign(b)))
-    T2 = Utils._promote_type_bounded(T0, typeof(a′), typeof(c′), T1)
-    S2 = Utils._promote_type_bounded(S0, typeof(c′), S1)
+    T2 = Utils.promote_type_bounded(T0, typeof(a′), typeof(c′), T1)
+    S2 = Utils.promote_type_bounded(S0, typeof(c′), S1)
     pyconvert_return(StepRange{T2,S2}(a′, b, c′))
 end
 
 function pyconvert_rule_range(
     ::Type{R},
     x::Py,
-    ::Type{UnitRange{T0}} = Utils._type_lb(R),
-    ::Type{UnitRange{T1}} = Utils._type_ub(R),
+    ::Type{UnitRange{T0}} = Utils.type_lb(R),
+    ::Type{UnitRange{T1}} = Utils.type_ub(R),
 ) where {R<:UnitRange,T0,T1}
     b = @pyconvert(Int, x.step)
     b == 1 || return pyconvert_unconverted()
-    a = @pyconvert(Utils._typeintersect(Integer, T1), x.start)
-    c = @pyconvert(Utils._typeintersect(Integer, T1), x.stop)
+    a = @pyconvert(Utils.typeintersect(Integer, T1), x.start)
+    c = @pyconvert(Utils.typeintersect(Integer, T1), x.stop)
     a′, c′ = promote(a, c - oftype(c, 1))
-    T2 = Utils._promote_type_bounded(T0, typeof(a′), typeof(c′), T1)
+    T2 = Utils.promote_type_bounded(T0, typeof(a′), typeof(c′), T1)
     pyconvert_return(UnitRange{T2}(a′, c′))
 end
 
@@ -180,13 +180,13 @@ end
 function pyconvert_rule_fraction(
     ::Type{R},
     x::Py,
-    ::Type{Rational{T0}} = Utils._type_lb(R),
-    ::Type{Rational{T1}} = Utils._type_ub(R),
+    ::Type{Rational{T0}} = Utils.type_lb(R),
+    ::Type{Rational{T1}} = Utils.type_ub(R),
 ) where {R<:Rational,T0,T1}
-    a = @pyconvert(Utils._typeintersect(Integer, T1), x.numerator)
-    b = @pyconvert(Utils._typeintersect(Integer, T1), x.denominator)
+    a = @pyconvert(Utils.typeintersect(Integer, T1), x.numerator)
+    b = @pyconvert(Utils.typeintersect(Integer, T1), x.denominator)
     a, b = promote(a, b)
-    T2 = Utils._promote_type_bounded(T0, typeof(a), typeof(b), T1)
+    T2 = Utils.promote_type_bounded(T0, typeof(a), typeof(b), T1)
     pyconvert_return(Rational{T2}(a, b))
 end
 
@@ -211,7 +211,7 @@ function _pyconvert_rule_iterable(ans::Vector{T0}, it::Py, ::Type{T1}) where {T0
         push!(ans, x)
         @goto again
     end
-    T2 = Utils._promote_type_bounded(T0, typeof(x), T1)
+    T2 = Utils.promote_type_bounded(T0, typeof(x), T1)
     ans2 = Vector{T2}(ans)
     push!(ans2, x)
     return _pyconvert_rule_iterable(ans2, it, T1)
@@ -220,8 +220,8 @@ end
 function pyconvert_rule_iterable(
     ::Type{R},
     x::Py,
-    ::Type{Vector{T0}} = Utils._type_lb(R),
-    ::Type{Vector{T1}} = Utils._type_ub(R),
+    ::Type{Vector{T0}} = Utils.type_lb(R),
+    ::Type{Vector{T1}} = Utils.type_ub(R),
 ) where {R<:Vector,T0,T1}
     it = pyiter(x)
     ans = Vector{T0}()
@@ -242,7 +242,7 @@ function _pyconvert_rule_iterable(ans::Set{T0}, it::Py, ::Type{T1}) where {T0,T1
         push!(ans, x)
         @goto again
     end
-    T2 = Utils._promote_type_bounded(T0, typeof(x), T1)
+    T2 = Utils.promote_type_bounded(T0, typeof(x), T1)
     ans2 = Set{T2}(ans)
     push!(ans2, x)
     return _pyconvert_rule_iterable(ans2, it, T1)
@@ -251,8 +251,8 @@ end
 function pyconvert_rule_iterable(
     ::Type{R},
     x::Py,
-    ::Type{Set{T0}} = Utils._type_lb(R),
-    ::Type{Set{T1}} = Utils._type_ub(R),
+    ::Type{Set{T0}} = Utils.type_lb(R),
+    ::Type{Set{T1}} = Utils.type_ub(R),
 ) where {R<:Set,T0,T1}
     it = pyiter(x)
     ans = Set{T0}()
@@ -281,8 +281,8 @@ function _pyconvert_rule_mapping(
         push!(ans, k => v)
         @goto again
     end
-    K2 = Utils._promote_type_bounded(K0, typeof(k), K1)
-    V2 = Utils._promote_type_bounded(V0, typeof(v), V1)
+    K2 = Utils.promote_type_bounded(K0, typeof(k), K1)
+    V2 = Utils.promote_type_bounded(V0, typeof(v), V1)
     ans2 = Dict{K2,V2}(ans)
     push!(ans2, k => v)
     return _pyconvert_rule_mapping(ans2, x, it, K1, V1)
@@ -291,8 +291,8 @@ end
 function pyconvert_rule_mapping(
     ::Type{R},
     x::Py,
-    ::Type{Dict{K0,V0}} = Utils._type_lb(R),
-    ::Type{Dict{K1,V1}} = Utils._type_ub(R),
+    ::Type{Dict{K0,V0}} = Utils.type_lb(R),
+    ::Type{Dict{K1,V1}} = Utils.type_ub(R),
 ) where {R<:Dict,K0,V0,K1,V1}
     it = pyiter(x)
     ans = Dict{K0,V0}()
@@ -372,8 +372,8 @@ end
 function pyconvert_rule_iterable(
     ::Type{R},
     x::Py,
-    ::Type{Pair{K0,V0}} = Utils._type_lb(R),
-    ::Type{Pair{K1,V1}} = Utils._type_ub(R),
+    ::Type{Pair{K0,V0}} = Utils.type_lb(R),
+    ::Type{Pair{K1,V1}} = Utils.type_ub(R),
 ) where {R<:Pair,K0,V0,K1,V1}
     it = pyiter(x)
     k_ = unsafe_pynext(it)
@@ -398,8 +398,8 @@ function pyconvert_rule_iterable(
         pydel!(z_)
         return pyconvert_unconverted()
     end
-    K2 = Utils._promote_type_bounded(K0, typeof(k), K1)
-    V2 = Utils._promote_type_bounded(V0, typeof(v), V1)
+    K2 = Utils.promote_type_bounded(K0, typeof(k), K1)
+    V2 = Utils.promote_type_bounded(V0, typeof(v), V1)
     return pyconvert_return(Pair{K2,V2}(k, v))
 end
 

@@ -89,8 +89,8 @@ function pyarray_make(
     ::Type{A},
     x::Py,
     info::PyArraySource,
-    ::Type{PyArray{T0,N0,M0,L0,R0}} = Utils._type_lb(A),
-    ::Type{PyArray{T1,N1,M1,L1,R1}} = Utils._type_ub(A),
+    ::Type{PyArray{T0,N0,M0,L0,R0}} = Utils.type_lb(A),
+    ::Type{PyArray{T1,N1,M1,L1,R1}} = Utils.type_ub(A),
 ) where {A<:PyArray,T0,N0,M0,L0,R0,T1,N1,M1,L1,R1}
     # R (buffer eltype)
     R′ = pyarray_get_R(info)::DataType

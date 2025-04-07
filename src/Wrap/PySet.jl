@@ -6,7 +6,7 @@ Py(x::PySet) = x.py
 function pyconvert_rule_set(
     ::Type{T},
     x::Py,
-    ::Type{T1} = Utils._type_ub(T),
+    ::Type{T1} = Utils.type_ub(T),
 ) where {T<:PySet,T1}
     pyconvert_return(T1(x))
 end

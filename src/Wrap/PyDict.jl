@@ -7,7 +7,7 @@ Py(x::PyDict) = x.py
 function pyconvert_rule_mapping(
     ::Type{T},
     x::Py,
-    ::Type{T1} = Utils._type_ub(T),
+    ::Type{T1} = Utils.type_ub(T),
 ) where {T<:PyDict,T1}
     pyconvert_return(T1(x))
 end

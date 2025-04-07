@@ -19,7 +19,7 @@ end
 function pyconvert_rule_iterable(
     ::Type{T},
     x::Py,
-    ::Type{T1} = Utils._type_ub(T),
+    ::Type{T1} = Utils.type_ub(T),
 ) where {T<:PyIterable,T1}
     pyconvert_return(T1(x))
 end

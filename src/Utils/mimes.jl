@@ -35,7 +35,7 @@ function mimes_for(x)
     mimes = copy(ALL_MIMES)
     # look for mimes on show methods for this type
     for meth in methods(show, Tuple{IO,MIME,typeof(x)}).ms
-        mimetype = _unwrap_unionall(meth.sig).parameters[3]
+        mimetype = unwrap_unionall(meth.sig).parameters[3]
         mimetype isa DataType || continue
         mimetype <: MIME || continue
         mime = string(mimetype.parameters[1])

@@ -102,7 +102,7 @@ def load_ipython_extension(ip):
     ip.events.register("post_execute", PythonCall._ipython._flush_stdio)
     # push displays
     PythonCall.seval("""begin
-        pushdisplay(Internals.Compat.PythonDisplay())
-        pushdisplay(Internals.Compat.IPythonDisplay())
+        pushdisplay(Internals.Compat.IPython.PythonDisplay())
+        pushdisplay(Internals.Compat.IPython.IPythonDisplay())
         nothing
     end""")

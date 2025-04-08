@@ -1,3 +1,12 @@
+module PyIterables
+
+using ...PythonCall
+using ...Utils
+using ...Core
+using ...Convert
+
+import ...PythonCall: PyIterable, ispy, Py
+
 PyIterable(x) = PyIterable{Py}(x)
 
 ispy(x::PyIterable) = true
@@ -22,4 +31,15 @@ function pyconvert_rule_iterable(
     ::Type{T1} = Utils.type_ub(T),
 ) where {T<:PyIterable,T1}
     pyconvert_return(T1(x))
+end
+
+function __init__()
+    pyconvert_add_rule(
+        "collections.abc:Iterable",
+        PyIterable,
+        pyconvert_rule_iterable,
+        PYCONVERT_PRIORITY_CANONICAL,
+    )
+end
+
 end

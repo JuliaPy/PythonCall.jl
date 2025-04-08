@@ -1,3 +1,12 @@
+module PyIOs
+
+using ...PythonCall
+using ...Utils
+using ...Core
+using ...Convert
+
+import ...PythonCall: PyIO, ispy, Py
+
 pyio_finalize!(io::PyIO) = begin
     C.CTX.is_initialized || return
     io.own ? close(io) : flush(io)
@@ -212,4 +221,11 @@ function Base.position(io::PyIO)
     else
         return pyconvert(Int, @py io.tell()) - length(io.ibuf)
     end
+end
+
+function __init__()
+    pyconvert_add_rule("io:IOBase", PyIO, pyconvert_rule_io, PYCONVERT_PRIORITY_CANONICAL)
+    pyconvert_add_rule("_io:_IOBase", PyIO, pyconvert_rule_io, PYCONVERT_PRIORITY_CANONICAL)
+end
+
 end

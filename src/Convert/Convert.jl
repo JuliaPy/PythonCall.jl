@@ -50,6 +50,16 @@ using Dates: Date, Time, DateTime, Second, Millisecond, Microsecond, Nanosecond
 import PythonCall:
     pyconvert, @pyconvert, pyconvert_add_rule, pyconvert_return, pyconvert_unconverted
 
+# internal API
+export pyconvert_add_rule,
+    pyconvert_return,
+    pyconvert_isunconverted,
+    pyconvert_result,
+    pyconvert_tryconvert,
+    PYCONVERT_PRIORITY_ARRAY,
+    PYCONVERT_PRIORITY_CANONICAL,
+    PYCONVERT_PRIORITY_NORMAL
+
 include("pyconvert.jl")
 include("rules.jl")
 include("ctypes.jl")

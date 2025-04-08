@@ -128,6 +128,19 @@ import PythonCall:
     pydel!,
     unsafe_pynext
 
+# internal API
+export pynew,
+    pyisnull,
+    pycopy!,
+    getptr,
+    pydel!,
+    unsafe_pynext,
+    PyNULL,
+    @autopy,
+    pystr_fromUTF8,
+    pystr_asUTF8vector,
+    pybytes_asvector
+
 const ROOT_DIR = dirname(dirname(@__DIR__))
 
 include("Py.jl")

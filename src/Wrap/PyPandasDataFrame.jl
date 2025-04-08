@@ -1,3 +1,13 @@
+module PyPandasDataFrames
+
+using ...PythonCall
+using ...Utils
+using ...Convert
+
+using Tables: Tables
+
+import ...PythonCall: PyPandasDataFrame, ispy, Py
+
 ispy(x::PyPandasDataFrame) = true
 Py(x::PyPandasDataFrame) = x.py
 
@@ -65,4 +75,15 @@ function _columns(df, columnnames, columntypes)
     coldict = Tables.OrderedDict(k => v for (k, v) in zip(colnames, columns))
     table = Tables.DictColumnTable(schema, coldict)
     Tables.columns(table)
+end
+
+function __init__()
+    pyconvert_add_rule(
+        "pandas.core.frame:DataFrame",
+        PyPandasDataFrame,
+        pyconvert_rule_pandasdataframe,
+        PYCONVERT_PRIORITY_CANONICAL,
+    )
+end
+
 end

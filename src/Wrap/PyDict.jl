@@ -1,3 +1,12 @@
+module PyDicts
+
+using ...PythonCall
+using ...Utils
+using ...Core
+using ...Convert
+
+import ...PythonCall: PyDict, ispy, Py
+
 PyDict{K}(x = pydict()) where {K} = PyDict{K,Py}(x)
 PyDict(x = pydict()) = PyDict{Py,Py}(x)
 
@@ -98,4 +107,15 @@ function Base.get!(f::Union{Function,Type}, x::PyDict{K,V}, k) where {K,V}
     else
         return x[k] = convert(V, f())
     end
+end
+
+function __init__()
+    pyconvert_add_rule(
+        "collections.abc:Mapping",
+        PyDict,
+        pyconvert_rule_mapping,
+        PYCONVERT_PRIORITY_CANONICAL,
+    )
+end
+
 end

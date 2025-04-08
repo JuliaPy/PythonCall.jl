@@ -1,3 +1,12 @@
+module PySets
+
+using ...PythonCall
+using ...Utils
+using ...Core
+using ...Convert
+
+import ...PythonCall: PySet, ispy, Py
+
 PySet(x = pyset()) = PySet{Py}(x)
 
 ispy(::PySet) = true
@@ -85,4 +94,15 @@ end
 
 function Base.copy(x::PySet{T}) where {T}
     return PySet{T}(@py x.copy())
+end
+
+function __init__()
+    pyconvert_add_rule(
+        "collections.abc:Set",
+        PySet,
+        pyconvert_rule_set,
+        PYCONVERT_PRIORITY_CANONICAL,
+    )
+end
+
 end

@@ -1,3 +1,12 @@
+module PyLists
+
+using ...PythonCall
+using ...Utils
+using ...Core
+using ...Convert
+
+import ...PythonCall: PyList, ispy, Py
+
 PyList(x = pylist()) = PyList{Py}(x)
 
 ispy(::PyList) = true
@@ -87,4 +96,21 @@ end
 
 function Base.copy(x::PyList{T}) where {T}
     return PyList{T}(@py x.copy())
+end
+
+function __init__()
+    pyconvert_add_rule(
+        "collections.abc:Sequence",
+        PyList,
+        pyconvert_rule_sequence,
+        PYCONVERT_PRIORITY_CANONICAL,
+    )
+    pyconvert_add_rule(
+        "pandas.core.arrays.base:ExtensionArray",
+        PyList,
+        pyconvert_rule_sequence,
+        PYCONVERT_PRIORITY_CANONICAL,
+    )
+end
+
 end

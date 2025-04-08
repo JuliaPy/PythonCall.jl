@@ -2,7 +2,7 @@
 module Multimedia
 
 using ...PythonCall
-using ...Core: pyisnull, pysysmodule
+using ...Core
 
 const PYSHOW_RULES = Function[]
 

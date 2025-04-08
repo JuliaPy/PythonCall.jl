@@ -139,7 +139,10 @@ export pynew,
     @autopy,
     pystr_fromUTF8,
     pystr_asUTF8vector,
-    pybytes_asvector
+    pybytes_asvector,
+    pyosmodule,
+    pysysmodule,
+    pymodulehooks
 
 const ROOT_DIR = dirname(dirname(@__DIR__))
 

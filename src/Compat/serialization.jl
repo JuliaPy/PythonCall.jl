@@ -1,7 +1,7 @@
 module Serialization
 
 using ...PythonCall
-using ...Core: pyisnull, pybytes_asvector, pynew
+using ...Core
 
 using Serialization: Serialization as S
 

@@ -2,7 +2,7 @@
 module IPython
 
 using ...PythonCall
-using ...Core: pystr_fromUTF8
+using ...Core
 
 """
     PythonDisplay()

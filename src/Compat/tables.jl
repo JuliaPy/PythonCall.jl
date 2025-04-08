@@ -1,8 +1,8 @@
 module Tables
 
 using ...PythonCall
-using Tables: Tables as T
 
+using Tables: Tables as T
 using Requires: @require
 
 import ...PythonCall: pytable

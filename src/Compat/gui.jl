@@ -2,8 +2,8 @@
 module GUI
 
 using ...PythonCall
-using ...C: C
-using ...Core: pynew, pyosmodule, pycopy!, pymodulehooks
+using ...C
+using ...Core
 
 import ...PythonCall: event_loop_on, event_loop_off, fix_qt_plugin_path
 

@@ -2,8 +2,8 @@
 module PyCall
 
 using ...PythonCall
-using ...C: C
-using ...Core: pynew
+using ...C
+using ...Core
 
 using Requires: @require
 

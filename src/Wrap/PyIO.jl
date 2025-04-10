@@ -1,60 +1,11 @@
-"""
-    PyIO(x; own=false, text=missing, line_buffering=false, buflen=4096)
+module PyIOs
 
-Wrap the Python IO stream `x` as a Julia IO stream.
+using ...PythonCall
+using ...Utils
+using ...Core
+using ...Convert
 
-When this goes out of scope and is finalized, it is automatically flushed. If `own=true` then it is also closed.
-
-If `text=false` then `x` must be a binary stream and arbitrary binary I/O is possible.
-If `text=true` then `x` must be a text stream and only UTF-8 must be written (i.e. use `print` not `write`).
-If `text` is not specified then it is chosen automatically.
-If `x` is a text stream and you really need a binary stream, then often `PyIO(x.buffer)` will work.
-
-If `line_buffering=true` then output is flushed at each line.
-
-For efficiency, reads and writes are buffered before being sent to `x`.
-The size of the buffers is `buflen`.
-The buffers are cleared using `flush`.
-"""
-mutable struct PyIO <: IO
-    py::Py
-    # true to close the file automatically
-    own::Bool
-    # true if `o` is text, false if binary
-    text::Bool
-    # true to flush whenever '\n' or '\r' is encountered
-    line_buffering::Bool
-    # true if we are definitely at the end of the file; false if we are not or don't know
-    eof::Bool
-    # input buffer
-    ibuflen::Int
-    ibuf::Vector{UInt8}
-    # output buffer
-    obuflen::Int
-    obuf::Vector{UInt8}
-
-    function PyIO(
-        x;
-        own::Bool = false,
-        text::Union{Missing,Bool} = missing,
-        buflen::Integer = 4096,
-        ibuflen::Integer = buflen,
-        obuflen::Integer = buflen,
-        line_buffering::Bool = false,
-    )
-        if text === missing
-            text = pyhasattr(x, "encoding")
-        end
-        buflen = convert(Int, buflen)
-        buflen > 0 || error("buflen must be positive")
-        ibuflen = convert(Int, ibuflen)
-        ibuflen > 0 || error("ibuflen must be positive")
-        obuflen = convert(Int, obuflen)
-        obuflen > 0 || error("obuflen must be positive")
-        new(Py(x), own, text, line_buffering, false, ibuflen, UInt8[], obuflen, UInt8[])
-    end
-end
-export PyIO
+import ...PythonCall: PyIO, ispy, Py
 
 pyio_finalize!(io::PyIO) = begin
     C.CTX.is_initialized || return
@@ -270,4 +221,11 @@ function Base.position(io::PyIO)
     else
         return pyconvert(Int, @py io.tell()) - length(io.ibuf)
     end
+end
+
+function __init__()
+    pyconvert_add_rule("io:IOBase", PyIO, pyconvert_rule_io, PYCONVERT_PRIORITY_CANONICAL)
+    pyconvert_add_rule("_io:_IOBase", PyIO, pyconvert_rule_io, PYCONVERT_PRIORITY_CANONICAL)
+end
+
 end

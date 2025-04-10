@@ -7,6 +7,7 @@ See [`gc`](@ref).
 """
 module GC
 
+import ..PythonCall.GC: disable, enable, gc
 using ..C: C
 
 const QUEUE = (; items = C.PyPtr[], lock = Threads.SpinLock())
@@ -103,10 +104,10 @@ function enqueue(ptr::C.PyPtr)
 end
 
 function enqueue_all(ptrs)
-    if any(!=(C.PyNULL), ptrs) && C.CTX.is_initialized
+    if any(!=(C_NULL), ptrs) && C.CTX.is_initialized
         if C.PyGILState_Check() == 1
             for ptr in ptrs
-                if ptr != C.PyNULL
+                if ptr != C_NULL
                     C.Py_DecRef(ptr)
                 end
             end

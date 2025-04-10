@@ -1,13 +1,11 @@
-"""
-    PyIterable{T=Py}(x)
+module PyIterables
 
-This object iterates over iterable Python object `x`, yielding values of type `T`.
-"""
-struct PyIterable{T}
-    py::Py
-    PyIterable{T}(x) where {T} = new{T}(Py(x))
-end
-export PyIterable
+using ...PythonCall
+using ...Utils
+using ...Core
+using ...Convert
+
+import ...PythonCall: PyIterable, ispy, Py
 
 PyIterable(x) = PyIterable{Py}(x)
 
@@ -30,7 +28,18 @@ end
 function pyconvert_rule_iterable(
     ::Type{T},
     x::Py,
-    ::Type{T1} = Utils._type_ub(T),
+    ::Type{T1} = Utils.type_ub(T),
 ) where {T<:PyIterable,T1}
     pyconvert_return(T1(x))
+end
+
+function __init__()
+    pyconvert_add_rule(
+        "collections.abc:Iterable",
+        PyIterable,
+        pyconvert_rule_iterable,
+        PYCONVERT_PRIORITY_CANONICAL,
+    )
+end
+
 end

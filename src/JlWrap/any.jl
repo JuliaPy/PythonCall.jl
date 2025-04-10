@@ -397,7 +397,6 @@ This object will satisfy the Python sequence interface, so for example uses 0-up
 To define a custom conversion for your type `T`, overload `pyjltype(::T)`.
 """
 pyjl(v) = pyjl(pyjltype(v), v)
-export pyjl
 
 """
     pyjltype(x)
@@ -407,4 +406,3 @@ The subtype of `juliacall.AnyValue` which the Julia object `x` is wrapped as by 
 Overload `pyjltype(::T)` to define a custom conversion for your type `T`.
 """
 pyjltype(::Any) = pyjlanytype
-export pyjltype

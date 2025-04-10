@@ -7,9 +7,9 @@
     end
     Threads.nthreads() > 1 &&
         VERSION >= v"1.10.0-" &&
-        @test !isempty(PythonCall.GC.QUEUE.items)
-    PythonCall.GC.gc()
-    @test isempty(PythonCall.GC.QUEUE.items)
+        @test !isempty(PythonCall.Internals.GC.QUEUE.items)
+    PythonCall.Internals.GC.gc()
+    @test isempty(PythonCall.Internals.GC.QUEUE.items)
 end
 
 @testitem "GC.GCHook" begin
@@ -21,7 +21,7 @@ end
     end
     Threads.nthreads() > 1 &&
         VERSION >= v"1.10.0-" &&
-        @test !isempty(PythonCall.GC.QUEUE.items)
+        @test !isempty(PythonCall.Internals.GC.QUEUE.items)
     GC.gc()
-    @test isempty(PythonCall.GC.QUEUE.items)
+    @test isempty(PythonCall.Internals.GC.QUEUE.items)
 end

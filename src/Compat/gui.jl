@@ -1,3 +1,12 @@
+"""Integration with various GUI libraries"""
+module GUI
+
+using ...PythonCall
+using ...C
+using ...Core
+
+import ...PythonCall: event_loop_on, event_loop_off, fix_qt_plugin_path
+
 """
     fix_qt_plugin_path()
 
@@ -58,7 +67,7 @@ const EVENT_LOOPS = Dict{Symbol,Base.Timer}()
 
 const new_event_loop_callback = pynew()
 
-function init_gui()
+function __init__()
     if !C.CTX.is_embedded
         # define callbacks
         g = pydict()
@@ -133,8 +142,11 @@ function init_gui()
         pycopy!(new_event_loop_callback, g["new_event_loop_callback"])
 
         # add a hook to automatically call fix_qt_plugin_path()
-        fixqthook =
-            Py(() -> (Core.CONFIG.auto_fix_qt_plugin_path && fix_qt_plugin_path(); nothing))
+        fixqthook = Py(
+            () -> (
+                PythonCall.CONFIG.auto_fix_qt_plugin_path && fix_qt_plugin_path(); nothing
+            ),
+        )
         pymodulehooks.add_hook("PyQt4", fixqthook)
         pymodulehooks.add_hook("PyQt5", fixqthook)
         pymodulehooks.add_hook("PySide", fixqthook)
@@ -201,4 +213,6 @@ end
 function _unset_python_input_hook()
     C.PyOS_SetInputHook(C_NULL)
     return
+end
+
 end

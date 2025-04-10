@@ -1,76 +1,22 @@
+module PyArrays
+
+using ...PythonCall
+using ...Utils
+using ...C
+using ...Core
+using ...Convert
+
+using Base: @propagate_inbounds
+
+import ...PythonCall: PyArray, ispy, Py
+
+
 struct UnsafePyObject
     ptr::C.PyPtr
 end
 
-"""
-    PyArray{T,N,M,L,R}(x; copy=true, array=true, buffer=true)
-
-Wrap the Python array `x` as a Julia `AbstractArray{T,N}`.
-
-The input `x` can be `bytes`, `bytearray`, `array.array`, `numpy.ndarray` or anything satisfying the buffer protocol (if `buffer=true`) or the numpy array interface (if `array=true`).
-
-If `copy=false` then the resulting array is guaranteed to directly wrap the data in `x`. If `copy=true` then a copy is taken if necessary to produce an array.
-
-The type parameters are all optional, and are:
-- `T`: The element type.
-- `N`: The number of dimensions.
-- `M`: True if the array is mutable.
-- `L`: True if the array supports fast linear indexing.
-- `R`: The element type of the underlying buffer. Often equal to `T`.
-"""
-struct PyArray{T,N,M,L,R} <: AbstractArray{T,N}
-    ptr::Ptr{R}             # pointer to the data
-    length::Int             # length of the array
-    size::NTuple{N,Int}     # size of the array
-    strides::NTuple{N,Int}  # strides (in bytes) between elements
-    py::Py                  # underlying python object
-    handle::Py              # the data in this array is valid as long as this handle is alive
-    function PyArray{T,N,M,L,R}(
-        ::Val{:new},
-        ptr::Ptr{R},
-        size::NTuple{N,Int},
-        strides::NTuple{N,Int},
-        py::Py,
-        handle::Py,
-    ) where {T,N,M,L,R}
-        T isa Type || error("T must be a Type")
-        N isa Int || error("N must be an Int")
-        M isa Bool || error("M must be a Bool")
-        L isa Bool || error("L must be a Bool")
-        R isa DataType || error("R must be a DataType")
-        new{T,N,M,L,R}(ptr, prod(size), size, strides, py, handle)
-    end
-end
-export PyArray
-
 ispy(::PyArray) = true
 Py(x::PyArray) = x.py
-
-for N in (missing, 1, 2)
-    for M in (missing, true, false)
-        for L in (missing, true, false)
-            for R in (true, false)
-                name = Symbol(
-                    "Py",
-                    M === missing ? "" : M ? "Mutable" : "Immutable",
-                    L === missing ? "" : L ? "Linear" : "Cartesian",
-                    R ? "Raw" : "",
-                    N === missing ? "Array" : N == 1 ? "Vector" : "Matrix",
-                )
-                name == :PyArray && continue
-                vars = Any[
-                    :T,
-                    N === missing ? :N : N,
-                    M === missing ? :M : M,
-                    L === missing ? :L : L,
-                    R ? :T : :R,
-                ]
-                @eval const $name{$(unique([v for v in vars if v isa Symbol])...)} = PyArray{$(vars...)}
-                @eval export $name
-            end
-        end
-    end
-end
 
 (::Type{A})(
     x;
@@ -156,8 +102,8 @@ function pyarray_make(
     ::Type{A},
     x::Py,
     info::PyArraySource,
-    ::Type{PyArray{T0,N0,M0,L0,R0}} = Utils._type_lb(A),
-    ::Type{PyArray{T1,N1,M1,L1,R1}} = Utils._type_ub(A),
+    ::Type{PyArray{T0,N0,M0,L0,R0}} = Utils.type_lb(A),
+    ::Type{PyArray{T1,N1,M1,L1,R1}} = Utils.type_ub(A),
 ) where {A<:PyArray,T0,N0,M0,L0,R0,T1,N1,M1,L1,R1}
     # R (buffer eltype)
     R′ = pyarray_get_R(info)::DataType
@@ -736,4 +682,24 @@ function pyarray_check_T(::Type{T}, ::Type{R}) where {T,R}
     else
         error("invalid eltype T=$T for raw eltype R=$R")
     end
+end
+
+function __init__()
+    priority = PYCONVERT_PRIORITY_ARRAY
+    pyconvert_add_rule("<arraystruct>", PyArray, pyconvert_rule_array_nocopy, priority)
+    pyconvert_add_rule("<arrayinterface>", PyArray, pyconvert_rule_array_nocopy, priority)
+    pyconvert_add_rule("<array>", PyArray, pyconvert_rule_array_nocopy, priority)
+    pyconvert_add_rule("<buffer>", PyArray, pyconvert_rule_array_nocopy, priority)
+
+    priority = PYCONVERT_PRIORITY_NORMAL
+    pyconvert_add_rule("<arraystruct>", Array, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<arrayinterface>", Array, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<array>", Array, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<buffer>", Array, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<arraystruct>", AbstractArray, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<arrayinterface>", AbstractArray, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<array>", AbstractArray, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<buffer>", AbstractArray, pyconvert_rule_array, priority)
+end
+
 end

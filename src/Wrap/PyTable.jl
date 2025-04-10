@@ -1,12 +1,8 @@
-"""
-    PyTable(x)
+module PyTables
 
-Wrap `x` as a Tables.jl-compatible table.
+using ...PythonCall
 
-`PyTable` is an abstract type. See [`PyPandasDataFrame`](@ref) for a concrete example.
-"""
-abstract type PyTable end
-export PyTable
+import ...PythonCall: PyTable
 
 PyTable(x) = pyconvert(PyTable, x)
 
@@ -16,3 +12,5 @@ PyTable(x) = pyconvert(PyTable, x)
 # Tables.columnaccess(x::Py) = Tables.columnaccess(@pyconvert(PyTable, x, return false))
 # Tables.columns(x::Py) = Tables.columns(pyconvert(PyTable, x))
 # Tables.materializer(x::Py) = Tables.materializer(pyconvert(PyTable, x))
+
+end

@@ -1,12 +1,6 @@
-"""
-    module PythonCall.GIL
-
-Handling the Python Global Interpreter Lock.
-
-See [`lock`](@ref), [`@lock`](@ref), [`unlock`](@ref) and [`@unlock`](@ref).
-"""
 module GIL
 
+import ..PythonCall.GIL: lock, @lock, unlock, @unlock
 using ..C: C
 
 """

@@ -1,30 +1,12 @@
-"""
-    PyPandasDataFrame(x; [indexname::Union{Nothing,Symbol}], [columnnames::Function], [columntypes::Function])
+module PyPandasDataFrames
 
-Wraps the pandas DataFrame `x` as a Tables.jl-compatible table.
+using ...PythonCall
+using ...Utils
+using ...Convert
 
-- `indexname`: The name of the column including the index. The default is `nothing`, meaning
-  to exclude the index.
-- `columnnames`: A function mapping the Python column name (a `Py`) to the Julia one (a
-  `Symbol`). The default is `x -> Symbol(x)`.
-- `columntypes`: A function taking the column name (a `Symbol`) and returning either the
-  desired element type of the column, or `nothing` to indicate automatic inference.
-"""
-struct PyPandasDataFrame <: PyTable
-    py::Py
-    indexname::Union{Symbol,Nothing}
-    columnnames::Function # Py -> Symbol
-    columntypes::Function # Symbol -> Union{Type,Nothing}
-    function PyPandasDataFrame(
-        x;
-        indexname::Union{Symbol,Nothing} = nothing,
-        columnnames::Function = x -> Symbol(x),
-        columntypes::Function = x -> nothing,
-    )
-        new(Py(x), indexname, columnnames, columntypes)
-    end
-end
-export PyPandasDataFrame
+using Tables: Tables
+
+import ...PythonCall: PyPandasDataFrame, ispy, Py
 
 ispy(x::PyPandasDataFrame) = true
 Py(x::PyPandasDataFrame) = x.py
@@ -93,4 +75,15 @@ function _columns(df, columnnames, columntypes)
     coldict = Tables.OrderedDict(k => v for (k, v) in zip(colnames, columns))
     table = Tables.DictColumnTable(schema, coldict)
     Tables.columns(table)
+end
+
+function __init__()
+    pyconvert_add_rule(
+        "pandas.core.frame:DataFrame",
+        PyPandasDataFrame,
+        pyconvert_rule_pandasdataframe,
+        PYCONVERT_PRIORITY_CANONICAL,
+    )
+end
+
 end

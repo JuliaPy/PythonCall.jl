@@ -7,7 +7,7 @@
     Base.show(io::IO, ::MIME"text/x-test", x::Test) = show(io, x.t)
 
     @testset for x in Any[1, "foo", [], 'z', Test(5)]
-        mimes = PythonCall.Utils.mimes_for(x)
+        mimes = PythonCall.Internals.Utils.mimes_for(x)
         @test mimes isa Vector{String}
         @test "text/plain" in mimes
         @test "text/html" in mimes
@@ -16,7 +16,7 @@
 end
 
 @testitem "StaticString length and indexing" begin
-    s = PythonCall.Utils.StaticString{UInt32,44}("ababababb")
+    s = PythonCall.Internals.Utils.StaticString{UInt32,44}("ababababb")
     @test length(s) == 9
     @test s[1] == 'a'
     @test s[1:2] == "ab"

@@ -18,8 +18,9 @@ Provides the `@py` macro.
 """
 module PyMacro
 
-using ..Core
+using ..PythonCall
 using ..Core:
+    Core,
     pyisnot,
     pynotin,
     BUILTINS,
@@ -40,6 +41,8 @@ using ..Core:
     pythrow
 
 using MacroTools: MacroTools, @capture, isexpr
+
+import PythonCall: @py
 
 const PY_MACRO_NILOPS = Dict(
     :help => (pyhelp, false),
@@ -895,6 +898,5 @@ See the online documentation for more details.
 macro py(ex)
     esc(py_macro(ex, __module__, __source__))
 end
-export @py
 
 end

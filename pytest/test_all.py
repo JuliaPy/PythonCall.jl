@@ -115,7 +115,7 @@ def test_julia_gc():
             end
         end
         GC.gc()
-        @test isempty(PythonCall.GC.QUEUE.items)
+        @test isempty(PythonCall.Internals.GC.QUEUE.items)
         """
     )
 

@@ -1,15 +1,11 @@
-"""
-    PySet{T=Py}([x])
+module PySets
 
-Wraps the Python set `x` (or anything satisfying the set interface) as an `AbstractSet{T}`.
+using ...PythonCall
+using ...Utils
+using ...Core
+using ...Convert
 
-If `x` is not a Python object, it is converted to one using `pyset`.
-"""
-struct PySet{T} <: AbstractSet{T}
-    py::Py
-    PySet{T}(x = pyset()) where {T} = new{T}(ispy(x) ? Py(x) : pyset(x))
-end
-export PySet
+import ...PythonCall: PySet, ispy, Py
 
 PySet(x = pyset()) = PySet{Py}(x)
 
@@ -19,7 +15,7 @@ Py(x::PySet) = x.py
 function pyconvert_rule_set(
     ::Type{T},
     x::Py,
-    ::Type{T1} = Utils._type_ub(T),
+    ::Type{T1} = Utils.type_ub(T),
 ) where {T<:PySet,T1}
     pyconvert_return(T1(x))
 end
@@ -98,4 +94,15 @@ end
 
 function Base.copy(x::PySet{T}) where {T}
     return PySet{T}(@py x.copy())
+end
+
+function __init__()
+    pyconvert_add_rule(
+        "collections.abc:Set",
+        PySet,
+        pyconvert_rule_set,
+        PYCONVERT_PRIORITY_CANONICAL,
+    )
+end
+
 end

@@ -172,4 +172,3 @@ It has type `juliacall.RawValue`. This has a much more rigid "Julian" interface 
 For example, accessing attributes or calling this object will always return a `RawValue`.
 """
 pyjlraw(v) = pyjl(pyjlrawtype, v)
-export pyjlraw

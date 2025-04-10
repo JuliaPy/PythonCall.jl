@@ -1,15 +1,11 @@
-"""
-    PyDict{K=Py,V=Py}([x])
+module PyDicts
 
-Wraps the Python dict `x` (or anything satisfying the mapping interface) as an `AbstractDict{K,V}`.
+using ...PythonCall
+using ...Utils
+using ...Core
+using ...Convert
 
-If `x` is not a Python object, it is converted to one using `pydict`.
-"""
-struct PyDict{K,V} <: AbstractDict{K,V}
-    py::Py
-    PyDict{K,V}(x = pydict()) where {K,V} = new{K,V}(ispy(x) ? Py(x) : pydict(x))
-end
-export PyDict
+import ...PythonCall: PyDict, ispy, Py
 
 PyDict{K}(x = pydict()) where {K} = PyDict{K,Py}(x)
 PyDict(x = pydict()) = PyDict{Py,Py}(x)
@@ -20,7 +16,7 @@ Py(x::PyDict) = x.py
 function pyconvert_rule_mapping(
     ::Type{T},
     x::Py,
-    ::Type{T1} = Utils._type_ub(T),
+    ::Type{T1} = Utils.type_ub(T),
 ) where {T<:PyDict,T1}
     pyconvert_return(T1(x))
 end
@@ -111,4 +107,15 @@ function Base.get!(f::Union{Function,Type}, x::PyDict{K,V}, k) where {K,V}
     else
         return x[k] = convert(V, f())
     end
+end
+
+function __init__()
+    pyconvert_add_rule(
+        "collections.abc:Mapping",
+        PyDict,
+        pyconvert_rule_mapping,
+        PYCONVERT_PRIORITY_CANONICAL,
+    )
+end
+
 end

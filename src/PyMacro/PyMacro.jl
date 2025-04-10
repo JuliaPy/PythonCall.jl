@@ -886,6 +886,9 @@ For example:
 - `import x: f as g` is translated to `g = pyimport("x" => "f")` (`from x import f as g` in Python)
 
 Compound statements such as `begin`, `if`, `while` and `for` are supported.
+Import statements are supported, e.g.
+- `import foo, bar`
+- `from os.path import join as py_joinpath, exists`
 
 See the online documentation for more details.
 
@@ -895,6 +898,7 @@ See the online documentation for more details.
 macro py(ex)
     esc(py_macro(ex, __module__, __source__))
 end
+
 export @py
 
 end

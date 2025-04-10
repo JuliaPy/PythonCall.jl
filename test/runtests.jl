@@ -1,3 +1,4 @@
 using TestItemRunner
-
-@run_package_tests
+using CondaPkg
+CondaPkg.add("pandas")
+@run_package_tests verbose=true

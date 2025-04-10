@@ -24,7 +24,7 @@ jobs:
         with:
           version: ${{ inputs.jl_version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v1
+      - uses: actions/cache@v4
         env:
           cache-name: cache-artifacts
         with:

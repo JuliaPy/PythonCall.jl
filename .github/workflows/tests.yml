@@ -21,7 +21,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         jlversion: ['1','1.6']
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Julia ${{ matrix.jlversion }}
         uses: julia-actions/setup-julia@v2
         with:
@@ -50,7 +50,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         pyversion: ["3.x", "3.8"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.pyversion }}
         uses: actions/setup-python@v5
         with:

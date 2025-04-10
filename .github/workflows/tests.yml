@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Julia ${{ matrix.jlversion }}
-        uses: julia-actions/setup-julia@v1
+        uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.jlversion }}
           arch: ${{ matrix.arch }}
@@ -65,7 +65,7 @@ jobs:
         with:
           python-version: ${{ matrix.pyversion }}
       - name: Set up Julia
-        uses: julia-actions/setup-julia@v1
+        uses: julia-actions/setup-julia@v2
         with:
           version: '1'
       - name: Install dependencies

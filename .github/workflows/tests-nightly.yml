@@ -20,7 +20,7 @@ jobs:
         jlversion: ['~1.9.0-0', 'nightly']
     steps:
       - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ inputs.jl_version }}
           arch: ${{ matrix.arch }}

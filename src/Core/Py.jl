@@ -137,6 +137,7 @@ Py(x::Py) = x
 Py(x::Nothing) = pybuiltins.None
 Py(x::Bool) = x ? pybuiltins.True : pybuiltins.False
 Py(x::Union{String,SubString{String},Char}) = pystr(x)
+Py(x::AbstractString) = Py(String(x))
 Py(x::Base.CodeUnits{UInt8,String}) = pybytes(x)
 Py(x::Base.CodeUnits{UInt8,SubString{String}}) = pybytes(x)
 Py(x::Tuple) = pytuple_fromiter(x)

@@ -428,6 +428,12 @@ function init_pyconvert()
         pyimport("collections.abc" => ("Iterable", "Sequence", "Set", "Mapping"))...,
     )
 
+    priority = PYCONVERT_PRIORITY_ARRAY
+    pyconvert_add_rule("datetime:datetime", DateTime, pyconvert_rule_datetime, priority)
+    for T in (Millisecond, Second, Nanosecond, Day, Hour, Minute, Second, Millisecond, Week, CompoundPeriod)
+        pyconvert_add_rule("datetime:timedelta", T, pyconvert_rule_timedelta, priority)
+    end
+    
     priority = PYCONVERT_PRIORITY_CANONICAL
     pyconvert_add_rule("builtins:NoneType", Nothing, pyconvert_rule_none, priority)
     pyconvert_add_rule("builtins:bool", Bool, pyconvert_rule_bool, priority)

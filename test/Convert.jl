@@ -305,6 +305,59 @@ end
     @test_throws Exception pyconvert(Second, td(microseconds = 1000))
 end
 
+@testitem "timedelta64" begin
+    using Dates
+    using CondaPkg
+    CondaPkg.add("pandas")
+    using DataFrames
+
+    dt1 = pytimedelta(seconds = 1)
+    dt2 = pytimedelta64(seconds = 1)
+    @test pyeq(Bool, dt1, dt2)
+
+    @test pyeq(Bool, pytimedelta64(seconds = 10), pyimport("numpy").timedelta64(10, "s"))
+    @test pyeq(Bool, pytimedelta64(years = 10), pyimport("numpy").timedelta64(10, "Y"))
+    @test_throws Exception pytimedelta64(years = 10, seconds = 1)
+
+    @testset for x in [
+        -1_000_000_000,
+        -1_000_000,
+        -1_000,
+        -1,
+        0,
+        1,
+        1_000,
+        1_000_000,
+        1_000_000_000,
+    ], (Unit, unit) in [
+        (Nanosecond, :nanoseconds),
+        (Microsecond, :microseconds),
+        (Millisecond, :milliseconds),
+        (Second, :seconds),
+        (Minute, :minutes),
+        (Hour, :hours),
+        (Day, :days),
+        (Week, :weeks),
+        (Month, :months),
+        (Year, :years),
+    ]
+        y = pyconvert(Unit, pytimedelta64(; [unit => x]...))
+        @test y === Unit(x)
+    end
+    @test_throws Exception pyconvert(Second, td(microseconds = 1000))
+
+    jdf = DataFrame(x = [now() + Second(rand(1:1000)) for _ in 1:100], y = [Second(n) for n in 1:100])
+    pdf = pytable(jdf)
+    @test ispy(pdf.y)
+    @test pyeq(Bool, pdf.y[0], pytimedelta64(seconds = 1))
+    # automatic conversion from pytimedelta64 converts to Dates.CompoundPeriod
+    jdf2 = DataFrame(PyPandasDataFrame(pdf))
+    @test eltype(jdf2.y) == Dates.CompoundPeriod
+    # convert y column back to Seconds
+    jdf2.y = convert.(Second, jdf2.y)
+    @test pyeq(Bool, jdf, jdf2)
+end
+
 @testitem "pyconvert_add_rule (#364)" begin
     id = string(rand(UInt128), base = 16)
     pyexec(

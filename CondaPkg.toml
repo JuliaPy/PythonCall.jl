@@ -1,9 +1,0 @@
-[deps.libstdcxx-ng]
-version = "<=julia"
-
-[deps.openssl]
-version = "<=julia"
-
-[deps.python]
-build = "**cpython**"
-version = ">=3.8,<4"

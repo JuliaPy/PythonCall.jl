@@ -446,24 +446,26 @@ end
 
 @testitem "PyPandasDataFrame" begin
     using Tables
+    using DataFrames
+    using CondaPkg
+    # CondaPkg.add("pandas")
     @test PyPandasDataFrame isa Type
-    # TODO: figure out how to get pandas into the test environment
-    # for now use some dummy type and take advantage of the fact that the code doesn't actually check it's a real dataframe
-    @pyexec """
-    class DataFrame:
-        def __init__(self, **kw):
-            self.__dict__.update(kw)
-    """ => DataFrame
-    df = DataFrame(shape = (4, 3), columns = pylist(["foo", "bar", "baz"]))
-    x = PyPandasDataFrame(df)
+    x = (x = [1, 2, 3], y = ["a", "b", "c"])
+    py_df = pytable(x, :pandas)
+    @test Tables.istable(PyTable(py_df))
+    df = DataFrame(PyTable(py_df))
+    @test df == DataFrame(x = [1, 2, 3], y = ["a", "b", "c"])
+
+    x = PyPandasDataFrame(py_df)
+    df = DataFrame(x)
+    @test df == DataFrame(x = [1, 2, 3], y = ["a", "b", "c"])
     @test ispy(x)
-    @test Py(x) === df
     @test Tables.istable(x)
     @test Tables.columnaccess(x)
-    @test_throws Exception Tables.columns(x)
+    @test Tables.columns(x)[:x] == [1, 2, 3]
     @test_throws Exception pyconvert(PyPandasDataFrame, 1)
     str = sprint(show, MIME("text/plain"), x)
-    @test occursin(r"4×3 .*PyPandasDataFrame", str)
+    @test occursin(r"3×2 .*PyPandasDataFrame", str)
 end
 
 @testitem "PySet" begin

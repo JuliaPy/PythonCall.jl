@@ -158,6 +158,7 @@ Py(
 Py(x::Date) = pydate(x)
 Py(x::Time) = pytime(x)
 Py(x::DateTime) = pydatetime(x)
+Py(x::Union{Period, CompoundPeriod}) = pytimedelta(x)
 
 Base.string(x::Py) = pyisnull(x) ? "<py NULL>" : pystr(String, x)
 Base.print(io::IO, x::Py) = print(io, string(x))

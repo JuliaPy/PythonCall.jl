@@ -45,8 +45,16 @@ using ..Core:
     pythrow,
     pybool_asbool
 using Dates: Date, Time, DateTime, Second, Millisecond, Microsecond, Nanosecond
+using Dates: Year, Month, Day, Hour, Minute, Week, Period, CompoundPeriod, canonicalize
 
 import ..Core: pyconvert
+
+# patch conversion to Period types for julia <= 1.7
+@static if VERSION < v"1.8.0-"
+    for T in (:Year, :Month, :Week, :Day, :Hour, :Minute, :Second, :Millisecond, :Microsecond, :Nanosecond)
+        @eval Base.convert(::Type{$T}, x::CompoundPeriod) = sum($T, x.periods; init = zero($T))
+    end
+end
 
 include("pyconvert.jl")
 include("rules.jl")

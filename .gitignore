@@ -6,3 +6,4 @@ build/
 dist/
 .CondaPkg/
 /jltest.*
+uv.lock

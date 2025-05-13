@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased
+## 0.9.25 (2025-05-13)
 * Added `PYTHON_JULIACALL_HEAP_SIZE_HINT` option to configure initial Julia heap size.
 * `Base.elsize` now defined for `PyArray`.
 * JuliaCall now ensures a version of OpenSSL_jll compatible with Python is installed.

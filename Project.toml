@@ -29,7 +29,7 @@ Tables = "1"
 Test = "1"
 TestItemRunner = "0 - 999"
 UnsafePointers = "1"
-julia = "1.6.1"
+julia = "1.9"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"

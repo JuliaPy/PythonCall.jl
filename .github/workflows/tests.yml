@@ -19,7 +19,7 @@ jobs:
       matrix:
         arch: [x64] # x86 unsupported by MicroMamba
         os: [ubuntu-latest, windows-latest, macos-latest]
-        jlversion: ['1','1.6']
+        jlversion: ['1','1.9']
     steps:
       - uses: actions/checkout@v4
       - name: Set up Julia ${{ matrix.jlversion }}

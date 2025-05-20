@@ -1098,6 +1098,7 @@ pydict(; kwargs...) =
     isempty(kwargs) ? pynew(errcheck(C.PyDict_New())) : pystrdict_fromiter(kwargs)
 pydict(x) = ispy(x) ? pybuiltins.dict(x) : pydict_fromiter(x)
 pydict(x::NamedTuple) = pydict(; x...)
+pydict(pairs::Pair...) = pydict(pairs)
 export pydict
 
 ### datetime

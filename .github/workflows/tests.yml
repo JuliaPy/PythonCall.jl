@@ -56,7 +56,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        pyversion: ["3.x", "3.8"]
+        pyversion: [">=3.8", "3.8"]
 
     steps:
       - uses: actions/checkout@v4

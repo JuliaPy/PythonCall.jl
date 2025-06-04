@@ -12,70 +12,88 @@ on:
 
 jobs:
   julia:
-    name: Test (${{ matrix.os }}, julia ${{ matrix.jlversion }})
+    name: Test Julia (${{ matrix.jlversion }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         arch: [x64] # x86 unsupported by MicroMamba
         os: [ubuntu-latest, windows-latest, macos-latest]
         jlversion: ['1','1.9']
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Julia ${{ matrix.jlversion }}
         uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.jlversion }}
           arch: ${{ matrix.arch }}
+
       - uses: julia-actions/cache@v2
+
       - name: Build package
         uses: julia-actions/julia-buildpkg@v1
+
       - name: Run tests
         uses: julia-actions/julia-runtest@v1
         env:
           JULIA_DEBUG: PythonCall
           JULIA_NUM_THREADS: '2'
+
       - name: Process coverage
         uses: julia-actions/julia-processcoverage@v1
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
   python:
-    name: Test (${{ matrix.os }}, python ${{ matrix.pyversion }})
+    name: Test Python (${{ matrix.pyversion }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        pyversion: ["3.x", "3.8"]
+        pyversion: ["3", "3.8"]
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python ${{ matrix.pyversion }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.pyversion }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.pyversion }}
+  
       - name: Set up Julia
         uses: julia-actions/setup-julia@v2
         with:
           version: '1'
+
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install flake8 pytest pytest-cov nbval numpy
           cp pysrc/juliacall/juliapkg-dev.json pysrc/juliacall/juliapkg.json
-          pip install -e .
+          uv sync --dev
+
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --ignore=F821 --show-source --statistics
+          uv run flake8 ./pysrc ./pytest --count --select=E9,F63,F7,F82 --ignore=F821 --show-source --statistics
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          uv run flake8 ./pysrc ./pytest --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
       - name: Run tests
         run: |
-          pytest -s --nbval --cov=pysrc ./pytest/
+          uv run pytest -s --nbval --cov=pysrc ./pytest/
         env:
           PYTHON_JULIACALL_THREADS: '2'
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         env:

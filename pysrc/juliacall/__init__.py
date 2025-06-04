@@ -1,7 +1,7 @@
 # This module gets modified by PythonCall when it is loaded, e.g. to include Core, Base
 # and Main modules.
 
-__version__ = '0.9.21'
+__version__ = '0.9.25'
 
 _newmodule = None
 
@@ -109,9 +109,9 @@ def init():
         except ValueError:
             raise ValueError(f'{s}: expecting an int'+(' or auto' if accept_auto else ""))
 
-    def args_from_config():
-        argv = [CONFIG['exepath']]
-        for opt, val in CONFIG.items():
+    def args_from_config(config):
+        argv = [config['exepath']]
+        for opt, val in config.items():
             if opt.startswith('opt_'):
                 if val is None:
                     if opt == 'opt_handle_signals':
@@ -146,6 +146,7 @@ def init():
     CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])[0]
     CONFIG['opt_handle_signals'] = choice('handle_signals', ['yes', 'no'])[0]
     CONFIG['opt_startup_file'] = choice('startup_file', ['yes', 'no'])[0]
+    CONFIG['opt_heap_size_hint'] = option('heap_size_hint')[0]
 
     # Stop if we already initialised
     if CONFIG['inited']:
@@ -181,7 +182,7 @@ def init():
     CONFIG['lib'] = lib = c.PyDLL(libpath, mode=c.RTLD_GLOBAL)
 
     # parse options
-    argc, argv = args_from_config()
+    argc, argv = args_from_config(CONFIG)
     jl_parse_opts = lib.jl_parse_opts
     jl_parse_opts.argtypes = [c.c_void_p, c.c_void_p]
     jl_parse_opts.restype = None

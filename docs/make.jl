@@ -19,7 +19,6 @@ makedocs(
         ],
         "compat.md",
         "faq.md",
-        "pycall.md",
         "releasenotes.md",
     ],
 )

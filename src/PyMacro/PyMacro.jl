@@ -18,26 +18,8 @@ Provides the `@py` macro.
 """
 module PyMacro
 
+using ..PythonCall
 using ..Core
-using ..Core:
-    pyisnot,
-    pynotin,
-    BUILTINS,
-    pynew,
-    pycallargs,
-    pydel!,
-    pycopy!,
-    pystr_intern!,
-    pynulltuple,
-    pytuple_setitem,
-    pyset_add,
-    pyisnull,
-    unsafe_pynext,
-    pydict_setitem,
-    pylist_setitem,
-    pynulllist,
-    pybool_asbool,
-    pythrow
 
 using MacroTools: MacroTools, @capture, isexpr
 

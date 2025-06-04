@@ -9,6 +9,17 @@ module GC
 
 using ..C: C
 
+if Base.VERSION ≥ v"1.11"
+    eval(
+        Expr(
+            :public,
+            :disable,
+            :enable,
+            :gc,
+        ),
+    )
+end
+
 const QUEUE = (; items = C.PyPtr[], lock = Threads.SpinLock())
 const HOOK = Ref{WeakRef}()
 

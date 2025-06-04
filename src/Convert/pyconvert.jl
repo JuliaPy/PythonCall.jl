@@ -1,11 +1,3 @@
-@enum PyConvertPriority begin
-    PYCONVERT_PRIORITY_WRAP = 400
-    PYCONVERT_PRIORITY_ARRAY = 300
-    PYCONVERT_PRIORITY_CANONICAL = 200
-    PYCONVERT_PRIORITY_NORMAL = 0
-    PYCONVERT_PRIORITY_FALLBACK = -100
-end
-
 struct PyConvertRule
     type::Type
     func::Function

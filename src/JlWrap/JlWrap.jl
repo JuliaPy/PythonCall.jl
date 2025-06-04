@@ -5,44 +5,13 @@ Defines the Python object wrappers around Julia objects (`juliacall.AnyValue` et
 """
 module JlWrap
 
-using ..PythonCall: PythonCall
+using ..PythonCall
+using ..Utils
+using ..C
 using ..Core
-using ..Core:
-    C,
-    Utils,
-    pynew,
-    @autopy,
-    incref,
-    decref,
-    setptr!,
-    getptr,
-    pyjuliacallmodule,
-    pycopy!,
-    errcheck,
-    errset,
-    PyNULL,
-    pyistuple,
-    pyisnull,
-    pyJuliaError,
-    pydel!,
-    pyistype,
-    pytypecheck,
-    pythrow,
-    pytuple_getitem,
-    pyisslice,
-    pystr_asstring,
-    pyosmodule,
-    pyisstr
-using ..Convert:
-    pyconvert,
-    @pyconvert,
-    PYCONVERT_PRIORITY_WRAP,
-    pyconvert_add_rule,
-    pyconvert_tryconvert,
-    pyconvertarg,
-    pyconvert_result
+using ..Convert
 using ..GC: GC
-using ..GIL: GIL
+using ..GIL
 
 using Pkg: Pkg
 using Base: @propagate_inbounds, allocatedinline

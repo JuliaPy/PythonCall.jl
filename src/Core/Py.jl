@@ -51,8 +51,8 @@ pyconvert(::Type{Py}, x::Py) = x
 
 setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, ptr); x)
 
-incref(x::Py) = Base.GC.@preserve x (incref(getptr(x)); x)
-decref(x::Py) = Base.GC.@preserve x (decref(getptr(x)); x)
+incref(x::Py) = (incref(getptr(x)); x)
+decref(x::Py) = (decref(getptr(x)); x)
 
 Base.unsafe_convert(::Type{C.PyPtr}, x::Py) = getptr(x)
 

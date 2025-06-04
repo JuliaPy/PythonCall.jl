@@ -898,7 +898,7 @@ function pytuple_setitem(xs::Py, i, x)
 end
 
 function pytuple_getitem(xs::Py, i)
-    Base.GC.@preserve xs pynew(incref(errcheck(C.PyTuple_GetItem(xs, i))))
+    pynew(incref(errcheck(C.PyTuple_GetItem(xs, i))))
 end
 
 function pytuple_fromiter(xs)

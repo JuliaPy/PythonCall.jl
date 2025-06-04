@@ -26,6 +26,13 @@
         @test strides(y) === (1,)
         @test strides(z) === (1,)
     end
+    @testset "elsize" begin
+        @test Base.elsize(y) === sizeof(Cint)
+        @test Base.elsize(z) === sizeof(Cint)
+        @test Base.elsize(PyArray{Cint,1,true,true,Cint}) === sizeof(Cint)
+        @test Base.elsize(PyArray{Cint,1,false,false,Cint}) === sizeof(Cint)
+        @test_throws Exception elsize(PyArray{Cint,1,true,false,Cchar})
+    end
     @testset "getindex" begin
         @test_throws BoundsError y[0]
         @test y[1] == 1
@@ -380,6 +387,13 @@ end
         @test t == [1, 2, 3, 4, 5, 6]
         @test_throws Exception append!(t, [nothing, missing])
         @test t == [1, 2, 3, 4, 5, 6]
+    end
+    @testset "prepend!" begin
+        t = copy(z)
+        @test prepend!(t, [-3, -2, -1]) === t
+        @test t == [-3, -2, -1, 1, 2, 3]
+        @test_throws Exception append!(t, [nothing, missing])
+        @test t == [-3, -2, -1, 1, 2, 3]
     end
     @testset "pop!" begin
         t = copy(z)

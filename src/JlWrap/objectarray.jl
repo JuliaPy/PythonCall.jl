@@ -42,16 +42,18 @@ end
 
 @propagate_inbounds function Base.getindex(x::PyObjectArray, i::Integer...)
     @boundscheck checkbounds(x, i...)
-    @inbounds ptr = x.ptrs[i...]
-    ptr == C_NULL && throw(UndefRefError())
-    return pynew(incref(ptr))
+    Base.GC.@preserve x begin
+        @inbounds ptr = x.ptrs[i...]
+        ptr == C_NULL && throw(UndefRefError())
+        return pynew(incref(ptr))
+    end
 end
 
 @propagate_inbounds function Base.setindex!(x::PyObjectArray, v, i::Integer...)
     @boundscheck checkbounds(x, i...)
     v_ = Py(v)
     @inbounds decref(x.ptrs[i...])
-    @inbounds x.ptrs[i...] = incref(getptr(v_))
+    @inbounds x.ptrs[i...] = getptr(incref(v_))
     return x
 end
 

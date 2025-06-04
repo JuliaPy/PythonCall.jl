@@ -124,3 +124,80 @@ be configured in two ways:
 | `-X juliacall-threads=<N\|auto>` | `PYTHON_JULIACALL_THREADS=<N\|auto>` | Launch N threads. |
 | `-X juliacall-warn-overwrite=<yes\|no>` | `PYTHON_JULIACALL_WARN_OVERWRITE=<yes\|no>` | Enable or disable method overwrite warnings. |
 | `-X juliacall-autoload-ipython-extension=<yes\|no>` | `PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=<yes\|no>` | Enable or disable IPython extension autoloading. |
+| `-X juliacall-heap-size-hint=<N>` | `PYTHON_JULIACALL_HEAP_SIZE_HINT=<N>` | Hint for initial heap size in bytes. |
+
+## [Multi-threading](@id py-multi-threading)
+
+From v0.9.22, JuliaCall supports multi-threading in Julia and/or Python, with some
+caveats.
+
+Most importantly, you can only call Python code while Python's
+[Global Interpreter Lock (GIL)](https://docs.python.org/3/glossary.html#term-global-interpreter-lock)
+is locked by the current thread. You can use JuliaCall from any Python thread, and the GIL
+will be locked whenever any JuliaCall function is used. However, to leverage the benefits
+of multi-threading, you can unlock the GIL while executing any Julia code that does not
+interact with Python.
+
+The simplest way to do this is using the `_jl_call_nogil` method on Julia functions to
+call the function with the GIL unlocked.
+
+```python
+from concurrent.futures import ThreadPoolExecutor, wait
+from juliacall import Main as jl
+pool = ThreadPoolExecutor(4)
+fs = [pool.submit(jl.Libc.systemsleep._jl_call_nogil, 5) for _ in range(4)]
+wait(fs)
+```
+
+In the above example, we call `Libc.systemsleep(5)` on four threads. Because we
+called it with `_jl_call_nogil`, the GIL was unlocked, allowing the threads to run in
+parallel, taking about 5 seconds in total.
+
+If we did not use `_jl_call_nogil` (i.e. if we did `pool.submit(jl.Libc.systemsleep, 5)`)
+then the above code will take 20 seconds because the sleeps run one after another.
+
+It is very important that any function called with `_jl_call_nogil` does not interact
+with Python at all unless it re-locks the GIL first, such as by using
+[PythonCall.GIL.@lock](@ref).
+
+You can also use [multi-threading from Julia](@ref jl-multi-threading).
+
+### Caveat: Julia's task scheduler
+
+If you try the above example with a Julia function that yields to the task scheduler,
+such as `sleep` instead of `Libc.systemsleep`, then you will likely experience a hang.
+
+In this case, you need to yield back to Julia's scheduler periodically to allow the task
+to continue. You can use the following pattern instead of `wait(fs)`:
+```python
+jl_yield = getattr(jl, "yield")
+while True:
+  # yield to Julia's task scheduler
+  jl_yield()
+  # wait for up to 0.1 seconds for the threads to finish
+  state = wait(fs, timeout=0.1)
+  # if they finished then stop otherwise try again
+  if not state.not_done:
+    break
+```
+
+Set the `timeout` parameter smaller to let Julia's scheduler cycle more frequently.
+
+Future versions of JuliaCall may provide tooling to make this simpler.
+
+### [Caveat: Signal handling](@id py-multi-threading-signal-handling)
+
+We recommend setting [`PYTHON_JULIACALL_HANDLE_SIGNALS=yes`](@ref julia-config)
+before importing JuliaCall with multiple threads.
+
+This is because Julia intentionally causes segmentation faults as part of the GC
+safepoint mechanism. If unhandled, these segfaults will result in termination of the
+process. See discussion
+[here](https://github.com/JuliaPy/PythonCall.jl/issues/219#issuecomment-1605087024)
+for more information.
+
+Note however that this interferes with Python's own signal handling, so for example
+Ctrl-C will not raise `KeyboardInterrupt`.
+
+Future versions of JuliaCall may make this the default behaviour when using multiple
+threads.

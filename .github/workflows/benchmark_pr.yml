@@ -9,6 +9,7 @@ jobs:
       - uses: MilesCranmer/AirspeedVelocity.jl@action-v1
         with:
           julia-version: "1"
+          tune: "true"
           # Post to "summary" tab of workflow run:
           job-summary: "true"
           # Run benchmark using PR's version of the script:

@@ -1,7 +1,6 @@
 name: Benchmark PR
 on:
   pull_request:
-    branches: [ main ]
 
 jobs:
   bench:

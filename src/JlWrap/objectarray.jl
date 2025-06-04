@@ -51,7 +51,7 @@ end
     @boundscheck checkbounds(x, i...)
     v_ = Py(v)
     @inbounds decref(x.ptrs[i...])
-    @inbounds x.ptrs[i...] = incref(getptr(v_))
+    @inbounds x.ptrs[i...] = getptr(incref(v_))
     return x
 end
 

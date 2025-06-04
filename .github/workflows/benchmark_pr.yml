@@ -1,11 +1,7 @@
 name: Benchmark PR
-
 on:
-  pull_request_target:
+  pull_request:
     branches: [ main ]
-
-permissions:
-  pull-requests: write    # needed to post comments
 
 jobs:
   bench:
@@ -13,4 +9,5 @@ jobs:
     steps:
       - uses: MilesCranmer/AirspeedVelocity.jl@action-v1
         with:
-          julia-version: '1'
+          julia-version: "1"
+          job-summary: "true"  # Post to "summary" tab of workflow run

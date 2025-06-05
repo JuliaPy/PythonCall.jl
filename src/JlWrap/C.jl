@@ -337,12 +337,11 @@ function __init__()
     init_c()
 end
 
-PyJuliaValue_IsNull(o) = Base.GC.@preserve o UnsafePtr{PyJuliaValueObject}(C.asptr(o)).value[] == 0
+PyJuliaValue_IsNull(o::C.PyPtr) = UnsafePtr{PyJuliaValueObject}(o).value[] == 0
 
-PyJuliaValue_GetValue(o) = Base.GC.@preserve o PYJLVALUES[UnsafePtr{PyJuliaValueObject}(C.asptr(o)).value[]]
+PyJuliaValue_GetValue(o::C.PyPtr) = PYJLVALUES[UnsafePtr{PyJuliaValueObject}(o).value[]]
 
-PyJuliaValue_SetValue(_o, @nospecialize(v)) = Base.GC.@preserve _o begin
-    o = C.asptr(_o)
+PyJuliaValue_SetValue(o::C.PyPtr, @nospecialize(v)) = begin
     idx = UnsafePtr{PyJuliaValueObject}(o).value[]
     if idx == 0
         if isempty(PYJLFREEVALUES)
@@ -359,8 +358,7 @@ PyJuliaValue_SetValue(_o, @nospecialize(v)) = Base.GC.@preserve _o begin
     nothing
 end
 
-PyJuliaValue_New(_t, @nospecialize(v)) = Base.GC.@preserve _t begin
-    t = C.asptr(_t)
+PyJuliaValue_New(t::C.PyPtr, @nospecialize(v)) = begin
     if C.PyType_IsSubtype(t, PyJuliaBase_Type[]) != 1
         C.PyErr_SetString(
             C.POINTERS.PyExc_TypeError,

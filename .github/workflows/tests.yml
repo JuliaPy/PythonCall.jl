@@ -98,3 +98,9 @@ jobs:
         uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Setup tmate session on failure
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ failure() }}
+        with:
+          limit-access-to-actor: true

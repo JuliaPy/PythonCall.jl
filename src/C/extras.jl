@@ -1,26 +1,23 @@
-asptr(x) = Base.unsafe_convert(PyPtr, x)
+Py_Type(x::PyPtr) = PyPtr(UnsafePtr(x).type[!])
 
-Py_Type(x) = Base.GC.@preserve x PyPtr(UnsafePtr(asptr(x)).type[!])
+PyObject_Type(x::PyPtr) = (t = Py_Type(x); Py_IncRef(t); t)
 
-PyObject_Type(x) = Base.GC.@preserve x (t = Py_Type(asptr(x)); Py_IncRef(t); t)
+Py_TypeCheck(o::PyPtr, t::PyPtr) = PyType_IsSubtype(Py_Type(o), t)
+Py_TypeCheckFast(o::PyPtr, f::Integer) = PyType_IsSubtypeFast(Py_Type(o), f)
 
-Py_TypeCheck(o, t) = Base.GC.@preserve o t PyType_IsSubtype(Py_Type(asptr(o)), asptr(t))
-Py_TypeCheckFast(o, f::Integer) = Base.GC.@preserve o PyType_IsSubtypeFast(Py_Type(asptr(o)), f)
+PyType_IsSubtypeFast(t::PyPtr, f::Integer) =
+    Cint(!iszero(UnsafePtr{PyTypeObject}(t).flags[] & f))
 
-PyType_IsSubtypeFast(t, f::Integer) =
-    Base.GC.@preserve t Cint(!iszero(UnsafePtr{PyTypeObject}(asptr(t)).flags[] & f))
+PyMemoryView_GET_BUFFER(m::PyPtr) = Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(m).view)
 
-PyMemoryView_GET_BUFFER(m) = Base.GC.@preserve m Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(asptr(m)).view)
-
-PyType_CheckBuffer(t) = Base.GC.@preserve t begin
-    p = UnsafePtr{PyTypeObject}(asptr(t)).as_buffer[]
+PyType_CheckBuffer(t::PyPtr) = begin
+    p = UnsafePtr{PyTypeObject}(t).as_buffer[]
     return p != C_NULL && p.get[!] != C_NULL
 end
 
-PyObject_CheckBuffer(o) = Base.GC.@preserve o PyType_CheckBuffer(Py_Type(asptr(o)))
+PyObject_CheckBuffer(o::PyPtr) = PyType_CheckBuffer(Py_Type(o))
 
-PyObject_GetBuffer(_o, b, flags) = Base.GC.@preserve _o begin
-    o = asptr(_o)
+PyObject_GetBuffer(o::PyPtr, b, flags) = begin
     p = UnsafePtr{PyTypeObject}(Py_Type(o)).as_buffer[]
     if p == C_NULL || p.get[!] == C_NULL
         PyErr_SetString(
@@ -64,8 +61,8 @@ function PyOS_RunInputHook()
     end
 end
 
-function PySimpleObject_GetValue(::Type{T}, o) where {T}
-    Base.GC.@preserve o UnsafePtr{PySimpleObject{T}}(asptr(o)).value[!]
+function PySimpleObject_GetValue(::Type{T}, o::PyPtr) where {T}
+    UnsafePtr{PySimpleObject{T}}(o).value[!]
 end
 
 # FAST REFCOUNTING

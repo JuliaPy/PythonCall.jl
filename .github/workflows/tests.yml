@@ -93,6 +93,7 @@ jobs:
           uv run pytest -s --nbval --cov=pysrc ./pytest/
         env:
           PYTHON_JULIACALL_THREADS: '2'
+          PYTHON_JULIACALL_HANDLE_SIGNALS: 'yes'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

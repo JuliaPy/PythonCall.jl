@@ -64,6 +64,7 @@ function _pyjl_callmethod(o::C.PyPtr, args::C.PyPtr)
 end
 
 const PYJLBUFCACHE = Dict{Ptr{Cvoid},Any}()
+const PYJLBUFCACHE_DEBUG = []
 
 @kwdef struct PyBufferInfo{N}
     # data
@@ -177,7 +178,9 @@ function _pyjl_get_buffer_impl(
 
     # internal
     cptr = Base.pointer_from_objref(c)
+    @assert !haskey(PYJLBUFCACHE, cptr)
     PYJLBUFCACHE[cptr] = c
+    push!(PYJLBUFCACHE_DEBUG, c)
     b.internal[] = cptr
 
     # obj

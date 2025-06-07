@@ -193,7 +193,10 @@ def init():
     try:
         jl_init = lib.jl_init_with_image__threading
     except AttributeError:
-        jl_init = lib.jl_init_with_image
+        try:
+            jl_init = lib.jl_init_with_image
+        except AttributeError:
+            jl_init = lib.jl_init_with_image_file
     jl_init.argtypes = [c.c_char_p, c.c_char_p]
     jl_init.restype = None
     jl_init(

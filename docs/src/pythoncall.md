@@ -308,19 +308,6 @@ To add dependencies to a Julia package, just ensure the package project is activ
 
 See the [CondaPkg.jl](https://github.com/JuliaPy/CondaPkg.jl) documentation.
 
-!!! note
-    If running from a script, make sure that [CondaPkg.jl](https://github.com/JuliaPy/CondaPkg.jl) is used before [PythonCall.jl](https://github.com/JuliaPy/PythonCall.jl) to ensure proper loading of Python packages in your path. E.g.,
-
-    ```julia
-    using CondaPkg
-
-    CondaPkg.add("numpy")
-
-    using PythonCall
-
-    np = pyimport("numpy")
-    ```
-
 ## Writing packages which depend on PythonCall
 
 ### Example

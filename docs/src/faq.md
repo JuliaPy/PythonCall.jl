@@ -89,3 +89,17 @@ Related issues: [#255](https://github.com/JuliaPy/PythonCall.jl/issues/255)
 Yes, it may be possible. A good example of that is having Julia running inside the Python that is running inside Blender, as presented in [this Discourse post](https://discourse.julialang.org/t/running-julia-inside-blender-through-vscode-using-pythoncall-juliacall/96838/6).
 From the point that one has JuliaCall running inside Python, if it has access to the terminal, one can even launch a Julia REPL there, and if needed connect with VSCode Julia extension to it.
 The full Python script to install, launch JuliaCall, and launch a Julia REPL in Blender is [here](https://gist.github.com/cdsousa/d820d27174238c0d48e5252355584172).
+
+## Using PythonCall.jl and CondaPkg.jl in a script
+
+If running from a script, make sure that [CondaPkg.jl](https://github.com/JuliaPy/CondaPkg.jl) is used before [PythonCall.jl](https://github.com/JuliaPy/PythonCall.jl) to ensure proper loading of Python packages in your path. E.g.,
+
+```julia
+using CondaPkg
+
+CondaPkg.add("numpy")
+
+using PythonCall
+
+np = pyimport("numpy")
+```

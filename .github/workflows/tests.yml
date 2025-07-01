@@ -12,7 +12,7 @@ on:
 
 jobs:
   julia:
-    name: Test (${{ matrix.os }}, julia ${{ matrix.jlversion }})
+    name: Test Julia (${{ matrix.jlversion }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -50,13 +50,13 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   python:
-    name: Test (${{ matrix.os }}, python ${{ matrix.pyversion }})
+    name: Test Python (${{ matrix.pyversion }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        pyversion: [">=3.8", "3.8"]
+        pyversion: ["3", "3.8"]
 
     steps:
       - uses: actions/checkout@v4

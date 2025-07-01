@@ -16,6 +16,6 @@ function init_pycall(PyCall::Module)
     end
     @eval function PyCall.PyObject(x::Py)
         C.CTX.matches_pycall::Bool || error($errmsg)
-        return $PyCall.PyObject($PyCall.PyPtr(incref(getptr(x))))
+        return $PyCall.PyObject($PyCall.PyPtr(getptr(incref(x))))
     end
 end

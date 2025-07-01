@@ -1,12 +1,14 @@
 struct pyconvert_rule_ctypessimplevalue{R,S} <: Function end
 
 function (::pyconvert_rule_ctypessimplevalue{R,SAFE})(::Type{T}, x::Py) where {R,SAFE,T}
-    ptr = Base.GC.@preserve x C.PySimpleObject_GetValue(Ptr{R}, getptr(x))
-    ans = unsafe_load(ptr)
-    if SAFE
-        pyconvert_return(convert(T, ans))
-    else
-        pyconvert_tryconvert(T, ans)
+    Base.GC.@preserve x begin
+        ptr = C.PySimpleObject_GetValue(Ptr{R}, x)
+        ans = unsafe_load(ptr)
+        if SAFE
+            pyconvert_return(convert(T, ans))
+        else
+            pyconvert_tryconvert(T, ans)
+        end
     end
 end
 

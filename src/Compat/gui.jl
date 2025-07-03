@@ -7,26 +7,49 @@ This fixes the problem that Qt does not know where to find its `qt.conf` file, b
 always looks relative to `sys.executable`, which can be the Julia executable not the Python
 one when using this package.
 
-If `CONFIG.auto_fix_qt_plugin_path` is true, then this is run automatically before `PyQt4`, `PyQt5`, `PySide` or `PySide2` are imported.
+If `CONFIG.auto_fix_qt_plugin_path` is true, then this is run automatically before `PyQt4`, `PyQt5`, `PySide`, `PySide2` or `PySide6` are imported.
 """
 function fix_qt_plugin_path()
     C.CTX.exe_path === nothing && return false
     e = pyosmodule.environ
     "QT_PLUGIN_PATH" in e && return false
-    qtconf = joinpath(dirname(C.CTX.exe_path::AbstractString), "qt.conf")
-    isfile(qtconf) || return false
-    for line in eachline(qtconf)
-        m = match(r"^\s*prefix\s*=(.*)$"i, line)
-        if m !== nothing
-            path = strip(m.captures[1]::AbstractString)
-            path[1] == path[end] == '"' && (path = path[2:end-1])
-            path = joinpath(path, "plugins")
-            if isdir(path)
-                e["QT_PLUGIN_PATH"] = realpath(path)
-                return true
+    
+    exe_dir = dirname(C.CTX.exe_path::AbstractString)
+    
+    # Check for Qt6 configuration first (PySide6)
+    qt6conf = joinpath(exe_dir, "qt6.conf")
+    if isfile(qt6conf)
+        for line in eachline(qt6conf)
+            m = match(r"^\s*Libraries\s*=(.*)$"i, line)
+            if m !== nothing
+                path = strip(m.captures[1]::AbstractString)
+                path[1] == path[end] == '"' && (path = path[2:end-1])
+                path = joinpath(path, "qt6", "plugins")
+                if isdir(path)
+                    e["QT_PLUGIN_PATH"] = realpath(path)
+                    return true
+                end
             end
         end
     end
+    
+    # Check for Qt5 configuration (PyQt4, PyQt5, PySide, PySide2)
+    qtconf = joinpath(exe_dir, "qt.conf")
+    if isfile(qtconf)
+        for line in eachline(qtconf)
+            m = match(r"^\s*prefix\s*=(.*)$"i, line)
+            if m !== nothing
+                path = strip(m.captures[1]::AbstractString)
+                path[1] == path[end] == '"' && (path = path[2:end-1])
+                path = joinpath(path, "plugins")
+                if isdir(path)
+                    e["QT_PLUGIN_PATH"] = realpath(path)
+                    return true
+                end
+            end
+        end
+    end
+    
     return false
 end
 
@@ -65,7 +88,7 @@ function init_gui()
         pyexec(
             """
      def new_event_loop_callback(g, interval=0.04):
-         if g in ("pyqt4","pyqt5","pyside","pyside2"):
+         if g in ("pyqt4","pyqt5","pyside","pyside2","pyside6"):
              if g == "pyqt4":
                  import PyQt4.QtCore as QtCore
              elif g == "pyqt5":
@@ -74,6 +97,8 @@ function init_gui()
                  import PySide.QtCore as QtCore
              elif g == "pyside2":
                  import PySide2.QtCore as QtCore
+             elif g == "pyside6":
+                 import PySide6.QtCore as QtCore
              instance = QtCore.QCoreApplication.instance
              AllEvents = QtCore.QEventLoop.AllEvents
              processEvents = QtCore.QCoreApplication.processEvents
@@ -139,6 +164,7 @@ function init_gui()
         pymodulehooks.add_hook("PyQt5", fixqthook)
         pymodulehooks.add_hook("PySide", fixqthook)
         pymodulehooks.add_hook("PySide2", fixqthook)
+        pymodulehooks.add_hook("PySide6", fixqthook)
     end
 end
 
@@ -161,11 +187,11 @@ Activate an event loop for the GUI framework `g`, so that the framework can run 
 
 The event loop runs every `interval` seconds. If `fix` is true and `g` is a Qt framework, then [`fix_qt_plugin_path`](@ref PythonCall.fix_qt_plugin_path) is called.
 
-Supported values of `g` (and the Python module they relate to) are: `:pyqt4` (PyQt4), `:pyqt5` (PyQt5), `:pyside` (PySide), `:pyside2` (PySide2), `:gtk` (gtk), `:gtk3` (gi), `:wx` (wx), `:tkinter` (tkinter).
+Supported values of `g` (and the Python module they relate to) are: `:pyqt4` (PyQt4), `:pyqt5` (PyQt5), `:pyside` (PySide), `:pyside2` (PySide2), `:pyside6` (PySide6), `:gtk` (gtk), `:gtk3` (gi), `:wx` (wx), `:tkinter` (tkinter).
 """
 function event_loop_on(g::Symbol; interval::Real = 0.04, fix::Bool = false)
     haskey(EVENT_LOOPS, g) && return EVENT_LOOPS[g]
-    fix && g in (:pyqt4, :pyqt5, :pyside, :pyside2) && fix_qt_plugin_path()
+    fix && g in (:pyqt4, :pyqt5, :pyside, :pyside2, :pyside6) && fix_qt_plugin_path()
     callback = new_event_loop_callback(string(g), Float64(interval))
     EVENT_LOOPS[g] = Timer(t -> callback(), 0; interval = interval)
 end

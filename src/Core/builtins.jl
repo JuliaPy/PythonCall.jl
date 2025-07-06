@@ -1206,7 +1206,7 @@ export pyfraction
 
 ### eval/exec
 
-const MODULE_GLOBALS = Dict{Module,Py}()
+const MODULE_GLOBALS = Lockable(Dict{Module,Py}())
 
 function _pyeval_args(code, globals, locals)
     if code isa AbstractString
@@ -1217,7 +1217,7 @@ function _pyeval_args(code, globals, locals)
         throw(ArgumentError("code must be a string or Python code"))
     end
     if globals isa Module
-        globals_ = get!(pydict, MODULE_GLOBALS, globals)
+        globals_ = Base.@lock MODULE_GLOBALS get!(pydict, MODULE_GLOBALS[], globals)
     elseif ispy(globals)
         globals_ = globals
     else

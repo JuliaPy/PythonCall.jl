@@ -307,13 +307,14 @@ end
 
 pyconvert_fix(::Type{T}, func) where {T} = x -> func(T, x)
 
-const PYCONVERT_RULES_CACHE = Lockable(Dict{Type,Dict{C.PyPtr,Vector{Function}}}())
+const PYCONVERT_RULES_CACHE = Lockable(IdDict{Any,Dict{C.PyPtr,Vector{Function}}}())
 
 function pyconvert_rules_cache(::Type{T}) where {T}
-    Base.@lock PYCONVERT_RULES_CACHE _pyconvert_rules_cache!(T)
-end
-@generated function _pyconvert_rules_cache!(::Type{T}) where {T}
-    get!(Dict{C.PyPtr,Vector{Function}}, PYCONVERT_RULES_CACHE[], T)
+    Base.@lock PYCONVERT_RULES_CACHE get!(
+        Dict{C.PyPtr,Vector{Function}},
+        PYCONVERT_RULES_CACHE[],
+        T,
+    )
 end
 
 function pyconvert_rule_fast(::Type{T}, x::Py) where {T}

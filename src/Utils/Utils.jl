@@ -312,11 +312,11 @@ end
     """
     Compat for `Base.Lockable` (introduced in Julia 1.11)
     """
-    struct Lockable{T, L<:AbstractLock}
+    struct Lockable{T,L}
         value::T
         lock::L
     end
-    
+
     Lockable(value) = Lockable(value, ReentrantLock())
 
     function Base.lock(f, l::Lockable)

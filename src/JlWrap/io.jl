@@ -102,7 +102,7 @@ function pyjlbinaryio_readinto(io::IO, b::Py)
         return PyNULL
     end
     pydel!(c)
-    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(m_))
+    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(m))
     if buf.readonly != 0
         pydel!(m)
         errset(pybuiltins.ValueError, "output buffer is read-only")

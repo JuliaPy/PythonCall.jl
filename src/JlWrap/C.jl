@@ -16,11 +16,13 @@ const PyJuliaBase_Type = Ref(C.PyNULL)
 
 # we store the actual julia values here
 # the `value` field of `PyJuliaValueObject` indexes into here
-const PYJLVALUES = []
+const PYJLVALUES = IdDict{Int,Any}()
 # unused indices in PYJLVALUES
 const PYJLFREEVALUES = Int[]
 # Thread safety for PYJLVALUES and PYJLFREEVALUES
 const PYJLVALUES_LOCK = Threads.SpinLock()
+# Track next available index
+const PYJLVALUES_NEXT_IDX = Ref(1)
 
 function _pyjl_new(t::C.PyPtr, ::C.PyPtr, ::C.PyPtr)
     o = ccall(UnsafePtr{C.PyTypeObject}(t).alloc[!], C.PyPtr, (C.PyPtr, C.Py_ssize_t), t, 0)
@@ -34,7 +36,7 @@ function _pyjl_dealloc(o::C.PyPtr)
     idx = UnsafePtr{PyJuliaValueObject}(o).value[]
     if idx != 0
         Base.@lock PYJLVALUES_LOCK begin
-            PYJLVALUES[idx] = nothing
+            delete!(PYJLVALUES, idx)
             push!(PYJLFREEVALUES, idx)
         end
     end
@@ -364,12 +366,12 @@ PyJuliaValue_SetValue(_o, @nospecialize(v)) = Base.GC.@preserve _o begin
     if idx == 0
         Base.@lock PYJLVALUES_LOCK begin
             if isempty(PYJLFREEVALUES)
-                push!(PYJLVALUES, v)
-                idx = length(PYJLVALUES)
+                idx = PYJLVALUES_NEXT_IDX[]
+                PYJLVALUES_NEXT_IDX[] += 1
             else
                 idx = pop!(PYJLFREEVALUES)
-                PYJLVALUES[idx] = v
             end
+            PYJLVALUES[idx] = v
         end
         UnsafePtr{PyJuliaValueObject}(o).value[] = idx
     else

@@ -19,6 +19,8 @@ const PyJuliaBase_Type = Ref(C.PyNULL)
 const PYJLVALUES = []
 # unused indices in PYJLVALUES
 const PYJLFREEVALUES = Int[]
+# Thread safety for PYJLVALUES and PYJLFREEVALUES
+const PYJLVALUES_LOCK = Threads.SpinLock()
 
 function _pyjl_new(t::C.PyPtr, ::C.PyPtr, ::C.PyPtr)
     o = ccall(UnsafePtr{C.PyTypeObject}(t).alloc[!], C.PyPtr, (C.PyPtr, C.Py_ssize_t), t, 0)
@@ -31,8 +33,10 @@ end
 function _pyjl_dealloc(o::C.PyPtr)
     idx = UnsafePtr{PyJuliaValueObject}(o).value[]
     if idx != 0
-        PYJLVALUES[idx] = nothing
-        push!(PYJLFREEVALUES, idx)
+        Base.@lock PYJLVALUES_LOCK begin
+            PYJLVALUES[idx] = nothing
+            push!(PYJLFREEVALUES, idx)
+        end
     end
     UnsafePtr{PyJuliaValueObject}(o).weaklist[!] == C.PyNULL || C.PyObject_ClearWeakRefs(o)
     ccall(UnsafePtr{C.PyTypeObject}(C.Py_Type(o)).free[!], Cvoid, (C.PyPtr,), o)
@@ -40,11 +44,14 @@ function _pyjl_dealloc(o::C.PyPtr)
 end
 
 const PYJLMETHODS = Vector{Any}()
+const PYJLMETHODS_LOCK = Threads.SpinLock()
 
 function PyJulia_MethodNum(f)
     @nospecialize f
-    push!(PYJLMETHODS, f)
-    return length(PYJLMETHODS)
+    Base.@lock PYJLMETHODS_LOCK begin
+        push!(PYJLMETHODS, f)
+        return length(PYJLMETHODS)
+    end
 end
 
 function _pyjl_isnull(o::C.PyPtr, ::C.PyPtr)
@@ -58,12 +65,13 @@ function _pyjl_callmethod(o::C.PyPtr, args::C.PyPtr)
     @assert nargs > 0
     num = C.PyLong_AsLongLong(C.PyTuple_GetItem(args, 0))
     num == -1 && return C.PyNULL
-    f = PYJLMETHODS[num]
+    f = Base.@lock PYJLMETHODS_LOCK PYJLMETHODS[num]
     # this form gets defined in jlwrap/base.jl
     return _pyjl_callmethod(f, o, args, nargs)::C.PyPtr
 end
 
 const PYJLBUFCACHE = Dict{Ptr{Cvoid},Any}()
+const PYJLBUFCACHE_LOCK = Threads.SpinLock()
 
 @kwdef struct PyBufferInfo{N}
     # data
@@ -177,7 +185,9 @@ function _pyjl_get_buffer_impl(
 
     # internal
     cptr = Base.pointer_from_objref(c)
-    PYJLBUFCACHE[cptr] = c
+    Base.@lock PYJLBUFCACHE_LOCK begin
+        PYJLBUFCACHE[cptr] = c
+    end
     b.internal[] = cptr
 
     # obj
@@ -195,7 +205,7 @@ function _pyjl_get_buffer(o::C.PyPtr, buf::Ptr{C.Py_buffer}, flags::Cint)
     C.Py_DecRef(num_)
     num == -1 && return Cint(-1)
     try
-        f = PYJLMETHODS[num]
+        f = Base.@lock PYJLMETHODS_LOCK PYJLMETHODS[num]
         x = PyJuliaValue_GetValue(o)
         return _pyjl_get_buffer_impl(o, buf, flags, x, f)::Cint
     catch exc
@@ -209,7 +219,9 @@ function _pyjl_get_buffer(o::C.PyPtr, buf::Ptr{C.Py_buffer}, flags::Cint)
 end
 
 function _pyjl_release_buffer(xo::C.PyPtr, buf::Ptr{C.Py_buffer})
-    delete!(PYJLBUFCACHE, UnsafePtr(buf).internal[!])
+    Base.@lock PYJLBUFCACHE_LOCK begin
+        delete!(PYJLBUFCACHE, UnsafePtr(buf).internal[!])
+    end
     nothing
 end
 
@@ -339,22 +351,31 @@ end
 
 PyJuliaValue_IsNull(o) = Base.GC.@preserve o UnsafePtr{PyJuliaValueObject}(C.asptr(o)).value[] == 0
 
-PyJuliaValue_GetValue(o) = Base.GC.@preserve o PYJLVALUES[UnsafePtr{PyJuliaValueObject}(C.asptr(o)).value[]]
+PyJuliaValue_GetValue(o) = Base.GC.@preserve o begin
+    idx = UnsafePtr{PyJuliaValueObject}(C.asptr(o)).value[]
+    Base.@lock PYJLVALUES_LOCK begin
+        PYJLVALUES[idx]
+    end
+end
 
 PyJuliaValue_SetValue(_o, @nospecialize(v)) = Base.GC.@preserve _o begin
     o = C.asptr(_o)
     idx = UnsafePtr{PyJuliaValueObject}(o).value[]
     if idx == 0
-        if isempty(PYJLFREEVALUES)
-            push!(PYJLVALUES, v)
-            idx = length(PYJLVALUES)
-        else
-            idx = pop!(PYJLFREEVALUES)
-            PYJLVALUES[idx] = v
+        Base.@lock PYJLVALUES_LOCK begin
+            if isempty(PYJLFREEVALUES)
+                push!(PYJLVALUES, v)
+                idx = length(PYJLVALUES)
+            else
+                idx = pop!(PYJLFREEVALUES)
+                PYJLVALUES[idx] = v
+            end
         end
         UnsafePtr{PyJuliaValueObject}(o).value[] = idx
     else
-        PYJLVALUES[idx] = v
+        Base.@lock PYJLVALUES_LOCK begin
+            PYJLVALUES[idx] = v
+        end
     end
     nothing
 end

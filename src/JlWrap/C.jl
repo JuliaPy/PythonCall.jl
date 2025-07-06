@@ -16,7 +16,7 @@ const PyJuliaBase_Type = Ref(C.PyNULL)
 
 # we store the actual julia values here
 # the `value` field of `PyJuliaValueObject` indexes into here
-const PYJLVALUES = Lockable((; values=IdDict{Int,Any}(), free=Int[], next=Ref(1)))
+const PYJLVALUES = Lockable((; values=IdDict{Int,Any}(), free_slots=Int[], next_slot=Ref(1)))
 
 function _pyjl_new(t::C.PyPtr, ::C.PyPtr, ::C.PyPtr)
     o = ccall(UnsafePtr{C.PyTypeObject}(t).alloc[!], C.PyPtr, (C.PyPtr, C.Py_ssize_t), t, 0)
@@ -31,7 +31,7 @@ function _pyjl_dealloc(o::C.PyPtr)
     if idx != 0
         Base.@lock PYJLVALUES begin
             delete!(PYJLVALUES[].values, idx)
-            push!(PYJLVALUES[].free, idx)
+            push!(PYJLVALUES[].free_slots, idx)
         end
     end
     UnsafePtr{PyJuliaValueObject}(o).weaklist[!] == C.PyNULL || C.PyObject_ClearWeakRefs(o)
@@ -351,11 +351,11 @@ PyJuliaValue_SetValue(_o, @nospecialize(v)) = Base.GC.@preserve _o begin
     idx = UnsafePtr{PyJuliaValueObject}(o).value[]
     if idx == 0
         Base.@lock PYJLVALUES begin
-            if isempty(PYJLVALUES[].free)
-                idx = PYJLVALUES[].next[]
-                PYJLVALUES[].next[] += 1
+            if isempty(PYJLVALUES[].free_slots)
+                idx = PYJLVALUES[].next_slot[]
+                PYJLVALUES[].next_slot[] += 1
             else
-                idx = pop!(PYJLVALUES[].free)
+                idx = pop!(PYJLVALUES[].free_slots)
             end
             PYJLVALUES[].values[idx] = v
         end

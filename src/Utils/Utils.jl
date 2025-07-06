@@ -319,14 +319,14 @@ end
 
     Lockable(value) = Lockable(value, ReentrantLock())
 
-    function Base.lock(f, l::Lockable)
-        lock(l.lock) do
-            f(l.value)
-        end
-    end
+    # function Base.lock(f, l::Lockable)
+    #     lock(l.lock) do
+    #         f(l.value)
+    #     end
+    # end
 
     Base.lock(l::Lockable) = lock(l.lock)
-    Base.trylock(l::Lockable) = trylock(l.lock)
+    # Base.trylock(l::Lockable) = trylock(l.lock)
     Base.unlock(l::Lockable) = unlock(l.lock)
     Base.islocked(l::Lockable) = islocked(l.lock)
     Base.getindex(l::Lockable) = (@assert islocked(l); l.value)

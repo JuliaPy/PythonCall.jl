@@ -4,7 +4,7 @@
     function threaded_sleep()
         PythonCall.GIL.unlock() do
             Threads.@threads for i = 1:2
-                PythonCall.GIL.lock() do
+                PythonCall.GIL.lock(exclusive=false) do
                     pyimport("time").sleep(1)
                 end
             end
@@ -33,7 +33,7 @@ end
     # GIL, these can happen in parallel if Julia has at least 2 threads.
     function threaded_sleep()
         PythonCall.GIL.@unlock Threads.@threads for i = 1:2
-            PythonCall.GIL.@lock pyimport("time").sleep(1)
+            PythonCall.GIL.@lock exclusive=false pyimport("time").sleep(1)
         end
     end
     # one run to ensure it's compiled

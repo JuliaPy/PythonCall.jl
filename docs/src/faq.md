@@ -10,13 +10,18 @@ To force PythonCall to use the same Python interpreter as PyCall, set the enviro
 
 Alternatively, to force PyCall to use the same interpreter as PythonCall, set the environment variable `PYTHON` to [`PythonCall.python_executable_path()`](@ref) and then `Pkg.build("PyCall")`. You will need to do this each time you change project, because PythonCall by default uses a different Python for each project.
 
-## Is PythonCall/JuliaCall thread safe?
+## [Is PythonCall/JuliaCall thread safe?](@id faq-multi-threading)
 
 Yes, as of v0.9.22, provided you handle the GIL correctly. See the guides for
 [PythonCall](@ref jl-multi-threading) and [JuliaCall](@ref py-multi-threading).
 
 Before, tricks such as disabling the garbage collector were required. See the
 [old docs](https://juliapy.github.io/PythonCall.jl/v0.9.21/faq/#Is-PythonCall/JuliaCall-thread-safe?).
+
+When starting a Julia REPL with multiple threads, there must be exactly one interactive thread,
+to avoid triggering a segmentation fault on tab completion.
+Check this with `Threads.nthreads(:interactive)` or `versioninfo()`, set it with `JULIA_NUM_THREADS=X,1`,
+where `X` is the number of default threads, or use the Julia `--threads` CLI flag, see `julia --help`.
 
 Related issues:
 [#201](https://github.com/JuliaPy/PythonCall.jl/issues/201),

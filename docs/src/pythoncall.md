@@ -392,6 +392,8 @@ Both `@unlock` and `@lock` are important. If the GIL were not unlocked, then a d
 would occur when attempting to lock the already-locked GIL from the threads. If the GIL
 were not re-locked, then Python would crash when interacting with it.
 
+With multiple Julia threads you need exactly one interactive thread, see the [FAQ](@ref faq-multi-threading).
+
 You can also use [multi-threading from Python](@ref py-multi-threading).
 
 ### Caveat: Garbage collection

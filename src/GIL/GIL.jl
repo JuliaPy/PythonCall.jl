@@ -9,8 +9,10 @@ module GIL
 
 using ..C: C
 
-# Ensure that only one Julia thread tries to acquire the Python GIL
-# PyGILState_Ensure and PyGILState_Release may not be thread safe.
+# Ensure that only one Julia task tries to acquire the Python GIL.
+# Avoid the potential issue that a task could miscompute whether
+# it actually has the GIL simply because a different task that ran
+# on the same thread that once had the GIL.
 # https://github.com/JuliaPy/PythonCall.jl/issues/627
 const _jl_gil_lock = ReentrantLock()
 

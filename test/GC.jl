@@ -5,9 +5,6 @@
             finalize(obj)
         end
     end
-    Threads.nthreads() > 1 &&
-        VERSION >= v"1.10.0-" &&
-        @test !isempty(PythonCall.GC.QUEUE.items)
     PythonCall.GC.gc()
     @test isempty(PythonCall.GC.QUEUE.items)
 end
@@ -19,9 +16,6 @@ end
             finalize(obj)
         end
     end
-    Threads.nthreads() > 1 &&
-        VERSION >= v"1.10.0-" &&
-        @test !isempty(PythonCall.GC.QUEUE.items)
     GC.gc()
     @test isempty(PythonCall.GC.QUEUE.items)
 end

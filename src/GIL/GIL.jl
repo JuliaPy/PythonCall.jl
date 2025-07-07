@@ -160,11 +160,14 @@ macro unlock(expr)
     end
 end
 
+#=
+# Disable this for now since holding this lock will disable finalizers
 # If the main thread already has the GIL, we should lock _jl_gil_lock.
 function __init__()
     if hasgil()
         Base.lock(_jl_gil_lock)
     end
 end
+=#
 
 end

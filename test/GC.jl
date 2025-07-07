@@ -29,8 +29,9 @@ end
     GC.gc()
 
     # Unlock and relocking the ReentrantLock allows this test to pass
-    Base.unlock(PythonCall.GIL._jl_gil_lock)
-    Base.lock(PythonCall.GIL._jl_gil_lock)
+    # if _jl_gil_lock is locked on init
+    # Base.unlock(PythonCall.GIL._jl_gil_lock)
+    # Base.lock(PythonCall.GIL._jl_gil_lock)
 
     @test isempty(PythonCall.GC.QUEUE.items)
 end

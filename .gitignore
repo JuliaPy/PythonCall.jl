@@ -7,3 +7,7 @@ dist/
 .CondaPkg/
 /jltest.*
 uv.lock
+
+# pixi environments
+.pixi
+*.egg-info

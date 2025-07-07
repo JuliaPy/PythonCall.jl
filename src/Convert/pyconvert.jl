@@ -12,8 +12,8 @@ struct PyConvertRule
     priority::PyConvertPriority
 end
 
-const PYCONVERT_RULES = Lockable(Dict{String,Vector{PyConvertRule}}())
-const PYCONVERT_EXTRATYPES = Lockable(Py[])
+const PYCONVERT_RULES = Lockable(Dict{String,Vector{PyConvertRule}}(), GLOBAL_LOCK)
+const PYCONVERT_EXTRATYPES = Lockable(Py[], GLOBAL_LOCK)
 
 """
     pyconvert_add_rule(tname::String, T::Type, func::Function, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL)
@@ -261,7 +261,7 @@ function _pyconvert_get_rules(pytype::Py)
     return rules
 end
 
-const PYCONVERT_PREFERRED_TYPE = Lockable(Dict{Py,Type}())
+const PYCONVERT_PREFERRED_TYPE = Lockable(Dict{Py,Type}(), GLOBAL_LOCK)
 
 pyconvert_preferred_type(pytype::Py) =
     Base.@lock PYCONVERT_PREFERRED_TYPE get!(PYCONVERT_PREFERRED_TYPE[], pytype) do
@@ -307,7 +307,7 @@ end
 
 pyconvert_fix(::Type{T}, func) where {T} = x -> func(T, x)
 
-const PYCONVERT_RULES_CACHE = Lockable(IdDict{Any,Dict{C.PyPtr,Vector{Function}}}())
+const PYCONVERT_RULES_CACHE = Lockable(IdDict{Any,Dict{C.PyPtr,Vector{Function}}}(), GLOBAL_LOCK)
 
 function pyconvert_rules_cache(::Type{T}) where {T}
     Base.@lock PYCONVERT_RULES_CACHE get!(

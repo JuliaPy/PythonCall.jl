@@ -1,7 +1,7 @@
 module Cjl
 
 using ...C: C
-using ...Utils: Utils, Lockable
+using ...Utils: Utils, Lockable, GLOBAL_LOCK
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
 using Serialization: serialize, deserialize
@@ -16,7 +16,7 @@ const PyJuliaBase_Type = Ref(C.PyNULL)
 
 # we store the actual julia values here
 # the `value` field of `PyJuliaValueObject` indexes into here
-const PYJLVALUES = Lockable((; values=IdDict{Int,Any}(), free_slots=Int[], next_slot=Ref(1)))
+const PYJLVALUES = Lockable((; values=IdDict{Int,Any}(), free_slots=Int[], next_slot=Ref(1)), GLOBAL_LOCK)
 
 function _pyjl_new(t::C.PyPtr, ::C.PyPtr, ::C.PyPtr)
     o = ccall(UnsafePtr{C.PyTypeObject}(t).alloc[!], C.PyPtr, (C.PyPtr, C.Py_ssize_t), t, 0)
@@ -39,7 +39,7 @@ function _pyjl_dealloc(o::C.PyPtr)
     nothing
 end
 
-const PYJLMETHODS = Lockable([])
+const PYJLMETHODS = Lockable([], GLOBAL_LOCK)
 
 function PyJulia_MethodNum(f)
     @nospecialize f
@@ -65,7 +65,7 @@ function _pyjl_callmethod(o::C.PyPtr, args::C.PyPtr)
     return _pyjl_callmethod(f, o, args, nargs)::C.PyPtr
 end
 
-const PYJLBUFCACHE = Lockable(Dict{Ptr{Cvoid},Any}())
+const PYJLBUFCACHE = Lockable(Dict{Ptr{Cvoid},Any}(), GLOBAL_LOCK)
 
 @kwdef struct PyBufferInfo{N}
     # data

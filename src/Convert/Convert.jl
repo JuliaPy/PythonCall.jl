@@ -10,7 +10,6 @@ using ..Core:
     C,
     Utils,
     Lockable,
-    GLOBAL_LOCK,
     @autopy,
     getptr,
     incref,

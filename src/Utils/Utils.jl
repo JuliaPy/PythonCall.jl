@@ -334,6 +334,4 @@ else
     const Lockable = Base.Lockable
 end
 
-const GLOBAL_LOCK = ReentrantLock()
-
 end

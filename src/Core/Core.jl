@@ -11,7 +11,7 @@ const ROOT_DIR = dirname(dirname(@__DIR__))
 using ..PythonCall: PythonCall  # needed for docstring cross-refs
 using ..C: C
 using ..GC: GC
-using ..Utils: Utils, Lockable, GLOBAL_LOCK
+using ..Utils: Utils, Lockable
 using Base: @propagate_inbounds, @kwdef
 using Dates:
     Date,

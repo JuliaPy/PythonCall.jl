@@ -18,6 +18,14 @@
     if Threads.nthreads() ≥ 2
         @test 0.9 < t.time < 1.2
     end
+
+    @test PythonCall.GIL.hasgil()
+    PythonCall.GIL.unlock() do
+        @test !Base.islocked(PythonCall.GIL._jl_gil_lock)
+        PythonCall.GIL.lock() do
+            @test Base.islocked(PythonCall.GIL._jl_gil_lock)
+        end
+    end
 end
 
 @testitem "@unlock and @lock" begin
@@ -36,4 +44,13 @@ end
     if Threads.nthreads() ≥ 2
         @test 0.9 < t.time < 1.2
     end
+
+    @test PythonCall.GIL.hasgil()
+    PythonCall.GIL.@unlock begin
+        @test !Base.islocked(PythonCall.GIL._jl_gil_lock)
+        PythonCall.GIL.@lock begin
+            @test Base.islocked(PythonCall.GIL._jl_gil_lock)
+        end
+    end
+
 end

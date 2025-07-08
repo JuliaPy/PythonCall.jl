@@ -170,4 +170,6 @@ function __init__()
 end
 =#
 
+include("GlobalInterpreterLock.jl")
+
 end

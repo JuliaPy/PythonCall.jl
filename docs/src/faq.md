@@ -19,7 +19,7 @@ Before, tricks such as disabling the garbage collector were required. See the
 [old docs](https://juliapy.github.io/PythonCall.jl/v0.9.21/faq/#Is-PythonCall/JuliaCall-thread-safe?).
 
 When starting a Julia REPL with multiple threads, there must be exactly one interactive thread,
-to avoid triggering a segmentation fault on tab completion.
+to avoid triggering a segmentation fault on tab completion (issue [#586](https://github.com/JuliaPy/PythonCall.jl/issues/586)).
 Check this with `Threads.nthreads(:interactive)` or `versioninfo()`, set it with `JULIA_NUM_THREADS=X,1`,
 where `X` is the number of default threads, or use the Julia `--threads` CLI flag, see `julia --help`.
 

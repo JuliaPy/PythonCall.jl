@@ -56,7 +56,7 @@ decref(x::Py) = Base.GC.@preserve x (decref(getptr(x)); x)
 
 Base.unsafe_convert(::Type{C.PyPtr}, x::Py) = getptr(x)
 
-const PYNULL_CACHE = Py[]
+const PYNULL_CACHE = ErrorLockable(Py[])
 
 """
     pynew([ptr])
@@ -69,12 +69,13 @@ points at, i.e. the new `Py` object owns a reference.
 Note that NULL Python objects are not safe in the sense that most API functions will probably
 crash your Julia session if you pass a NULL argument.
 """
-pynew() =
-    if isempty(PYNULL_CACHE)
+pynew() = Base.@lock PYNULL_CACHE begin
+    if isempty(PYNULL_CACHE[])
         Py(Val(:new), C.PyNULL)
     else
-        pop!(PYNULL_CACHE)
+        pop!(PYNULL_CACHE[])
     end
+end
 
 const PyNULL = pynew()
 
@@ -119,7 +120,7 @@ function pydel!(x::Py)
         C.Py_DecRef(ptr)
         setptr!(x, C.PyNULL)
     end
-    push!(PYNULL_CACHE, x)
+    Base.@lock PYNULL_CACHE push!(PYNULL_CACHE[], x)
     return
 end
 

@@ -84,6 +84,7 @@ function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssi
                 pybuiltins.NotImplementedError,
                 "__jl_callmethod not implemented for this many arguments",
             )
+            return C.PyNULL
         end
         return getptr(incref(ans))
     catch exc

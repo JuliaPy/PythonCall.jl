@@ -12,8 +12,8 @@ struct PyConvertRule
     priority::PyConvertPriority
 end
 
-const PYCONVERT_RULES = Dict{String,Vector{PyConvertRule}}()
-const PYCONVERT_EXTRATYPES = Py[]
+const PYCONVERT_RULES = ErrorLockable(Dict{String,Vector{PyConvertRule}}())
+const PYCONVERT_EXTRATYPES = ErrorLockable(Py[])
 
 """
     pyconvert_add_rule(tname::String, T::Type, func::Function, priority::PyConvertPriority=PYCONVERT_PRIORITY_NORMAL)
@@ -69,11 +69,11 @@ function pyconvert_add_rule(
     priority::PyConvertPriority = PYCONVERT_PRIORITY_NORMAL,
 )
     @nospecialize type func
-    push!(
-        get!(Vector{PyConvertRule}, PYCONVERT_RULES, pytypename),
+    Base.@lock PYCONVERT_RULES push!(
+        get!(Vector{PyConvertRule}, PYCONVERT_RULES[], pytypename),
         PyConvertRule(type, func, priority),
     )
-    empty!.(values(PYCONVERT_RULES_CACHE))
+    Base.@lock PYCONVERT_RULES_CACHE empty!.(values(PYCONVERT_RULES_CACHE[]))
     return
 end
 
@@ -163,7 +163,7 @@ function _pyconvert_get_rules(pytype::Py)
     omro = collect(pytype.__mro__)
     basetypes = Py[pytype]
     basemros = Vector{Py}[omro]
-    for xtype in PYCONVERT_EXTRATYPES
+    Base.@lock PYCONVERT_EXTRATYPES for xtype in PYCONVERT_EXTRATYPES[]
         # find the topmost supertype of
         xbase = PyNULL
         for base in omro
@@ -248,9 +248,9 @@ function _pyconvert_get_rules(pytype::Py)
     mro = String[x for xs in xmro for x in xs]
 
     # get corresponding rules
-    rules = PyConvertRule[
+    rules = Base.@lock PYCONVERT_RULES PyConvertRule[
         rule for tname in mro for
-        rule in get!(Vector{PyConvertRule}, PYCONVERT_RULES, tname)
+        rule in get!(Vector{PyConvertRule}, PYCONVERT_RULES[], tname)
     ]
 
     # order the rules by priority, then by original order
@@ -261,10 +261,10 @@ function _pyconvert_get_rules(pytype::Py)
     return rules
 end
 
-const PYCONVERT_PREFERRED_TYPE = Dict{Py,Type}()
+const PYCONVERT_PREFERRED_TYPE = ErrorLockable(Dict{Py,Type}())
 
 pyconvert_preferred_type(pytype::Py) =
-    get!(PYCONVERT_PREFERRED_TYPE, pytype) do
+    Base.@lock PYCONVERT_PREFERRED_TYPE get!(PYCONVERT_PREFERRED_TYPE[], pytype) do
         if pyissubclass(pytype, pybuiltins.int)
             Union{Int,BigInt}
         else
@@ -307,10 +307,15 @@ end
 
 pyconvert_fix(::Type{T}, func) where {T} = x -> func(T, x)
 
-const PYCONVERT_RULES_CACHE = Dict{Type,Dict{C.PyPtr,Vector{Function}}}()
+const PYCONVERT_RULES_CACHE = ErrorLockable(IdDict{Any,Dict{C.PyPtr,Vector{Function}}}())
 
-@generated pyconvert_rules_cache(::Type{T}) where {T} =
-    get!(Dict{C.PyPtr,Vector{Function}}, PYCONVERT_RULES_CACHE, T)
+function pyconvert_rules_cache(::Type{T}) where {T}
+    Base.@lock PYCONVERT_RULES_CACHE get!(
+        Dict{C.PyPtr,Vector{Function}},
+        PYCONVERT_RULES_CACHE[],
+        T,
+    )
+end
 
 function pyconvert_rule_fast(::Type{T}, x::Py) where {T}
     if T isa Union
@@ -351,12 +356,13 @@ function pytryconvert(::Type{T}, x_) where {T}
     # get rules from the cache
     # TODO: we should hold weak references and clear the cache if types get deleted
     tptr = C.Py_Type(x)
-    trules = pyconvert_rules_cache(T)
-    rules = get!(trules, tptr) do
-        t = pynew(incref(tptr))
-        ans = pyconvert_get_rules(T, t)::Vector{Function}
-        pydel!(t)
-        ans
+    rules = Base.@lock PYCONVERT_RULES_CACHE let trules = pyconvert_rules_cache(T)
+        get!(trules, tptr) do
+            t = pynew(incref(tptr))
+            ans = pyconvert_get_rules(T, t)::Vector{Function}
+            pydel!(t)
+            ans
+        end
     end
 
     # apply the rules
@@ -418,15 +424,17 @@ pyconvertarg(::Type{T}, x, name) where {T} = @autopy x @pyconvert T x_ begin
 end
 
 function init_pyconvert()
-    push!(PYCONVERT_EXTRATYPES, pyimport("io" => "IOBase"))
-    push!(
-        PYCONVERT_EXTRATYPES,
-        pyimport("numbers" => ("Number", "Complex", "Real", "Rational", "Integral"))...,
-    )
-    push!(
-        PYCONVERT_EXTRATYPES,
-        pyimport("collections.abc" => ("Iterable", "Sequence", "Set", "Mapping"))...,
-    )
+    Base.@lock PYCONVERT_EXTRATYPES begin
+        push!(PYCONVERT_EXTRATYPES[], pyimport("io" => "IOBase"))
+        push!(
+            PYCONVERT_EXTRATYPES[],
+            pyimport("numbers" => ("Number", "Complex", "Real", "Rational", "Integral"))...,
+        )
+        push!(
+            PYCONVERT_EXTRATYPES[],
+            pyimport("collections.abc" => ("Iterable", "Sequence", "Set", "Mapping"))...,
+        )
+    end
 
     priority = PYCONVERT_PRIORITY_CANONICAL
     pyconvert_add_rule("builtins:NoneType", Nothing, pyconvert_rule_none, priority)

@@ -308,30 +308,38 @@ function Base.iterate(x::StaticString{UInt32,N}, i::Int = 1) where {N}
     end
 end
 
-@static if !isdefined(Base, :Lockable)
-    """
-    Compat for `Base.Lockable` (introduced in Julia 1.11)
-    """
-    struct Lockable{T,L}
-        value::T
-        lock::L
-    end
-
-    Lockable(value) = Lockable(value, ReentrantLock())
-
-    # function Base.lock(f, l::Lockable)
-    #     lock(l.lock) do
-    #         f(l.value)
-    #     end
-    # end
-
-    Base.lock(l::Lockable) = lock(l.lock)
-    # Base.trylock(l::Lockable) = trylock(l.lock)
-    Base.unlock(l::Lockable) = unlock(l.lock)
-    Base.islocked(l::Lockable) = islocked(l.lock)
-    Base.getindex(l::Lockable) = (@assert islocked(l); l.value)
-else
-    const Lockable = Base.Lockable
+struct RaceConditionError <: Exception
+    msg::String
 end
+Base.showerror(io::IO, e::RaceConditionError) = print(io, e.msg)
+
+
+struct ErrorLock
+    x::ReentrantLock
+    ErrorLock() = new(ReentrantLock())
+end
+Base.trylock(l::ErrorLock) = trylock(l.x)
+Base.unlock(l::ErrorLock) = unlock(l.x)
+Base.islocked(l::ErrorLock) = islocked(l.x)
+
+function Base.lock(l::ErrorLock)
+    did_lock = trylock(l.x)
+    if !did_lock
+        throw(RaceConditionError("unsafe concurrent access to global mutable"))
+    end
+    return l
+end
+
+struct ErrorLockable{T,L}
+    value::T
+    lock::L
+end
+
+ErrorLockable(value) = ErrorLockable(value, ErrorLock())
+
+Base.lock(l::ErrorLockable) = lock(l.lock)
+Base.unlock(l::ErrorLockable) = unlock(l.lock)
+Base.islocked(l::ErrorLockable) = islocked(l.lock)
+Base.getindex(l::ErrorLockable) = (@assert islocked(l); l.value)
 
 end

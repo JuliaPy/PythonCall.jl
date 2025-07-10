@@ -56,7 +56,7 @@ decref(x::Py) = Base.GC.@preserve x (decref(getptr(x)); x)
 
 Base.unsafe_convert(::Type{C.PyPtr}, x::Py) = getptr(x)
 
-const PYNULL_CACHE = Lockable(Py[])
+const PYNULL_CACHE = ErrorLockable(Py[])
 
 """
     pynew([ptr])

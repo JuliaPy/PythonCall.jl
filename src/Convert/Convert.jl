@@ -9,7 +9,7 @@ using ..Core
 using ..Core:
     C,
     Utils,
-    Lockable,
+    ErrorLockable,
     @autopy,
     getptr,
     incref,

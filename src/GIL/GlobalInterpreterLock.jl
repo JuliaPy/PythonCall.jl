@@ -1,9 +1,23 @@
+"""
+    TaskState
+
+When a `Task` acquires the GIL, save the GIL state and the stickiness of the
+`Task` since we will force the `Task` to be sticky. We need to restore the GIL
+state on release of the GIL via `C.PyGILState_Release`.
+"""
 struct TaskState
     task::Task
     sticky::Bool # original stickiness of the task
     state::C.PyGILState_STATE
 end
 
+"""
+    TaskStack
+
+For each thread the `TaskStack` maintains a first-in-last-out list of tasks
+as well as the GIL state and their stickiness upon entering the stack. This
+forces tasks to unlock the GIL in the reverse order of which they locked it.
+"""
 struct TaskStack
     stack::Vector{TaskState}
     count::IdDict{Task,Int}
@@ -43,7 +57,7 @@ function Base.pop!(task_stack::TaskStack)::Task
         # If 0, remove it from the key set
         pop!(task_stack.count, task)
     else
-        task_stack[task] = count
+        task_stack.count[task] = count
     end
 
     C.PyGILState_Release(gil_state)
@@ -57,42 +71,56 @@ function Base.pop!(task_stack::TaskStack)::Task
 
     return task
 end
+Base.in(task::Task, task_stack::TaskStack) = haskey(task_stack.count)
 Base.isempty(task_stack::TaskStack) = isempty(task_stack.stack)
 
 if !isdefined(Base, :OncePerThread)
 
+    const PerThreadLock = Base.ThreadSynchronizer()
+
     # OncePerThread is implemented in full in Julia 1.12
-    # This implementation is meant for compatibility with Julia 1.10 and 1.11
-    # and only supports a static number of threads. Use Julia 1.12 for dynamic
-    # thread usage.
+    # This implementation is meant for compatibility with Julia 1.10 and 1.11.
+    # Using Julia 1.12 is recommended.
     mutable struct OncePerThread{T,F} <: Function
-        @atomic xs::Vector{T} # values
-        @atomic ss::Vector{UInt8} # states: 0=initial, 1=hasrun, 2=error, 3==concurrent
+        @atomic xs::Dict{Int, T} # values
+        @atomic ss::Dict{Int, UInt8} # states: 0=initial, 1=hasrun, 2=error, 3==concurrent
         const initializer::F
         function OncePerThread{T,F}(initializer::F) where {T,F}
             nt = Threads.maxthreadid()
-            return new{T,F}(Vector{T}(undef, nt), zeros(UInt8, nt), initializer)
+            return new{T,F}(Dict{Int,T}(), Dict{Int,UInt8}(), initializer)
         end
     end
     OncePerThread{T}(initializer::Type{U}) where {T, U} = OncePerThread{T,Type{U}}(initializer)
     (once::OncePerThread{T,F})() where {T,F} = once[Threads.threadid()]
     function Base.getindex(once::OncePerThread, tid::Integer)
-        tid = Threads.threadid()
+        tid = Int(tid)
         ss = @atomic :acquire once.ss
         xs = @atomic :monotonic once.xs
-        if checkbounds(Bool, xs, tid)
-            if ss[tid] == 0
+
+        if haskey(ss, tid) && ss[tid] == 1
+            return xs[tid]
+        end
+
+        Base.lock(PerThreadLock)
+        try
+            state = get(ss, tid, 0)
+            if state == 0
                 xs[tid] = once.initializer()
                 ss[tid] = 1
             end
-            return xs[tid]
-        else
-            throw(ErrorException("Thread id $tid is out of bounds as initially allocated. Use Julia 1.12 for dynamic thread usage."))
+        finally
+            Base.unlock(PerThreadLock)
         end
+        return xs[tid]
     end
-
 end
 
+"""
+    GlobalInterpreterLock
+
+Provides a thread aware reentrant lock around Python's interpreter lock that
+ensures that `Task`s acquiring the lock stay on the same thread.
+"""
 struct GlobalInterpreterLock <: Base.AbstractLock
     lock_owners::OncePerThread{TaskStack}
     function GlobalInterpreterLock()
@@ -105,16 +133,44 @@ function Base.lock(gil::GlobalInterpreterLock)
 end
 function Base.unlock(gil::GlobalInterpreterLock)
     lock_owner::TaskStack = gil.lock_owners()
-    while last(lock_owner) != current_task()
-        wait(lock_owner.condvar)
+    last_owner::Task = if isempty(lock_owner)
+        current_task()
+    else
+        last(lock_owner)
     end
-    task = pop!(lock_owner)
+    while last_owner != current_task()
+        if istaskdone(last_owner) && !isempty(lock_owner)
+            # Last owner is done and unable to unlock the GIL
+            pop!(lock_owner)
+            error("Unlock from the wrong task. The Task that owned the GIL is done and did not unlock the GIL: $(last_owner)")
+        else
+            # This task does not own the GIL. Wait to unlock the GIL until
+            # another task successfully unlocks the GIL.
+            wait(lock_owner.condvar)
+        end
+        last_owner = if isempty(lock_owner)
+            current_task()
+        else
+            last(lock_owner)
+        end
+    end
+    if isempty(lock_owner)
+        error("Unlock from wrong task: $(current_task). No tasks on this thread own the lock.")
+    else
+        task = pop!(lock_owner)
+    end
     @assert task == current_task()
     return nothing
 end
 function Base.islocked(gil::GlobalInterpreterLock)
-    # TODO: handle Julia 1.10 and 1.11 case when have not allocated up to maxthreadid
     return any(!isempty(gil.lock_owners[thread_index]) for thread_index in 1:Threads.maxthreadid())
+end
+function haslock(gil::GlobalInterpreterLock, task::Task)
+    lock_owner::TaskStack = gil.lock_owners()
+    if isempty(lock_owner)
+        return false
+    end
+    return last(lock_owner)::Task == task
 end
 
 const _GIL = GlobalInterpreterLock()

@@ -4,7 +4,7 @@
     function threaded_sleep()
         PythonCall.GIL.unlock() do
             Threads.@threads for i = 1:2
-                PythonCall.GIL.lock() do
+                PythonCall.GIL.lock(exclusive=false) do
                     pyimport("time").sleep(1)
                 end
             end
@@ -18,6 +18,14 @@
     if Threads.nthreads() ≥ 2
         @test 0.9 < t.time < 1.2
     end
+
+    @test PythonCall.GIL.hasgil()
+    PythonCall.GIL.unlock() do
+        @test !Base.islocked(PythonCall.GIL._jl_gil_lock)
+        PythonCall.GIL.lock() do
+            @test Base.islocked(PythonCall.GIL._jl_gil_lock)
+        end
+    end
 end
 
 @testitem "@unlock and @lock" begin
@@ -25,7 +33,7 @@ end
     # GIL, these can happen in parallel if Julia has at least 2 threads.
     function threaded_sleep()
         PythonCall.GIL.@unlock Threads.@threads for i = 1:2
-            PythonCall.GIL.@lock pyimport("time").sleep(1)
+            PythonCall.GIL.@lock exclusive=false pyimport("time").sleep(1)
         end
     end
     # one run to ensure it's compiled
@@ -36,4 +44,13 @@ end
     if Threads.nthreads() ≥ 2
         @test 0.9 < t.time < 1.2
     end
+
+    @test PythonCall.GIL.hasgil()
+    PythonCall.GIL.@unlock begin
+        @test !Base.islocked(PythonCall.GIL._jl_gil_lock)
+        PythonCall.GIL.@lock begin
+            @test Base.islocked(PythonCall.GIL._jl_gil_lock)
+        end
+    end
+
 end

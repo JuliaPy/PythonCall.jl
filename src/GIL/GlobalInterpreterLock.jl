@@ -62,12 +62,12 @@ function Base.pop!(task_stack::TaskStack)::Task
 
     C.PyGILState_Release(gil_state)
 
-    # Restore sticky state after releasing the GIL
-    task.sticky = sticky
-
     Base.lock(task_stack.condvar) do
         notify(task_stack.condvar)
     end
+
+    # Restore sticky state after releasing the GIL
+    task.sticky = sticky
 
     return task
 end
@@ -146,7 +146,9 @@ function Base.unlock(gil::GlobalInterpreterLock)
         else
             # This task does not own the GIL. Wait to unlock the GIL until
             # another task successfully unlocks the GIL.
-            wait(lock_owner.condvar)
+            Base.lock(lock_owner.condvar) do
+                wait(lock_owner.condvar)
+            end
         end
         last_owner = if isempty(lock_owner)
             current_task()

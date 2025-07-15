@@ -315,6 +315,11 @@ end
     finalize::Ptr{Cvoid} = C_NULL
     vectorcall::Ptr{Cvoid} = C_NULL
 
+    # Python 3.12+ fields
+    tp_watched::Cchar = 0
+    
+    # Python 3.13+ fields  
+    tp_versions_used::Cuint = 0
 end
 
 const PyTypePtr = Ptr{PyTypeObject}

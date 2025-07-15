@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased
+## 0.9.26 (2025-07-15)
 * Added PySide6 support to the GUI compatibility layer.
 * Added FAQ on interactive threads.
 * Added CI benchmarking suite.

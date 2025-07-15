@@ -319,7 +319,7 @@ end
     tp_watched::Cchar = 0
     
     # Python 3.13+ fields  
-    tp_versions_used::Cuint16 = 0
+    tp_versions_used::Cushort = 0
 end
 
 const PyTypePtr = Ptr{PyTypeObject}

@@ -322,8 +322,6 @@ end
     tp_versions_used::Cushort = 0
 end
 
-const PyTypePtr = Ptr{PyTypeObject}
-
 @kwdef struct PySimpleObject{T}
     ob_base::PyObject = PyObject()
     value::T

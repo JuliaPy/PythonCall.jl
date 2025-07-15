@@ -316,13 +316,11 @@ end
     vectorcall::Ptr{Cvoid} = C_NULL
 
     # Python 3.12+ fields
-    tp_watched::Cchar = 0
+    watched::Cuchar = 0
     
     # Python 3.13+ fields  
-    tp_versions_used::Cushort = 0
+    versions_used::UInt16 = 0
 end
-
-const PyTypePtr = Ptr{PyTypeObject}
 
 @kwdef struct PySimpleObject{T}
     ob_base::PyObject = PyObject()

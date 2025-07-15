@@ -4,6 +4,7 @@
 * Added PySide6 support to the GUI compatibility layer.
 * Added FAQ on interactive threads.
 * Added CI benchmarking suite.
+* Bug fixes.
 
 ## 0.9.25 (2025-05-13)
 * Added `PYTHON_JULIACALL_HEAP_SIZE_HINT` option to configure initial Julia heap size.

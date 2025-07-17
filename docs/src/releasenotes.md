@@ -1,5 +1,8 @@
 # Release Notes
 
+## Unreleased
+* Internal: Use heap-allocated types (PyType_FromSpec) to improve ABI compatibility.
+
 ## 0.9.26 (2025-07-15)
 * Added PySide6 support to the GUI compatibility layer.
 * Added FAQ on interactive threads.

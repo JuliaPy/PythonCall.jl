@@ -13,32 +13,32 @@ PyType_IsSubtypeFast(t, f::Integer) =
 PyMemoryView_GET_BUFFER(m) = Base.GC.@preserve m Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(asptr(m)).view)
 
 PyType_CheckBuffer(t) = Base.GC.@preserve t begin
-    p = UnsafePtr{PyTypeObject}(asptr(t)).as_buffer[]
-    return p != C_NULL && p.get[!] != C_NULL
+    p = PyType_GetSlot(asptr(t), Py_bf_getbuffer)
+    return p != C_NULL
 end
 
 PyObject_CheckBuffer(o) = Base.GC.@preserve o PyType_CheckBuffer(Py_Type(asptr(o)))
 
 PyObject_GetBuffer(_o, b, flags) = Base.GC.@preserve _o begin
     o = asptr(_o)
-    p = UnsafePtr{PyTypeObject}(Py_Type(o)).as_buffer[]
-    if p == C_NULL || p.get[!] == C_NULL
+    getbuf = PyType_GetSlot(Py_Type(o), Py_bf_getbuffer)
+    if getbuf == C_NULL
         PyErr_SetString(
             POINTERS.PyExc_TypeError,
             "a bytes-like object is required, not '$(String(UnsafePtr{PyTypeObject}(Py_Type(o)).name[]))'",
         )
         return Cint(-1)
     end
-    return ccall(p.get[!], Cint, (PyPtr, Ptr{Py_buffer}, Cint), o, b, flags)
+    return ccall(getbuf, Cint, (PyPtr, Ptr{Py_buffer}, Cint), o, b, flags)
 end
 
 PyBuffer_Release(_b) = begin
     b = UnsafePtr(Base.unsafe_convert(Ptr{Py_buffer}, _b))
     o = b.obj[]
     o == C_NULL && return
-    p = UnsafePtr{PyTypeObject}(Py_Type(o)).as_buffer[]
-    if (p != C_NULL && p.release[!] != C_NULL)
-        ccall(p.release[!], Cvoid, (PyPtr, Ptr{Py_buffer}), o, b)
+    releasebuf = PyType_GetSlot(Py_Type(o), Py_bf_releasebuffer)
+    if releasebuf != C_NULL
+        ccall(releasebuf, Cvoid, (PyPtr, Ptr{Py_buffer}), o, b)
     end
     b.obj[] = C_NULL
     Py_DecRef(o)

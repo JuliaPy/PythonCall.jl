@@ -324,6 +324,32 @@ end
 
 const PyTypePtr = Ptr{PyTypeObject}
 
+@kwdef struct PyType_Slot
+    slot::Cint = 0
+    pfunc::Ptr{Cvoid} = C_NULL
+end
+
+@kwdef struct PyType_Spec
+    name::Cstring = C_NULL
+    basicsize::Cint = 0
+    itemsize::Cint = 0
+    flags::Cuint = 0
+    slots::Ptr{PyType_Slot} = C_NULL
+end
+
+# These numbers are part of the CPython stable ABI and
+# are guaranteed to be the same.
+# https://raw.githubusercontent.com/python/cpython/main/Include/typeslots.h
+const Py_bf_getbuffer = 1
+const Py_bf_releasebuffer = 2
+const Py_tp_alloc = 47
+const Py_tp_dealloc = 52
+const Py_tp_methods = 64
+const Py_tp_new = 65
+const Py_tp_members = 72
+const Py_tp_getset = 73
+const Py_tp_free = 74
+
 @kwdef struct PySimpleObject{T}
     ob_base::PyObject = PyObject()
     value::T

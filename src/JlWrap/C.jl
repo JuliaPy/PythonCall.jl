@@ -9,7 +9,6 @@ using Serialization: serialize, deserialize
 @kwdef struct PyJuliaValueObject
     ob_base::C.PyObject = C.PyObject()
     value::Int = 0
-    weaklist::C.PyPtr = C_NULL
 end
 
 const PyJuliaBase_Type = Ref(C.PyNULL)
@@ -21,9 +20,9 @@ const PYJLVALUES = []
 const PYJLFREEVALUES = Int[]
 
 function _pyjl_new(t::C.PyPtr, ::C.PyPtr, ::C.PyPtr)
-    o = ccall(UnsafePtr{C.PyTypeObject}(t).alloc[!], C.PyPtr, (C.PyPtr, C.Py_ssize_t), t, 0)
+    allocptr = C.PyType_GetSlot(t, C.Py_tp_alloc)
+    o = ccall(allocptr, C.PyPtr, (C.PyPtr, C.Py_ssize_t), t, 0)
     o == C.PyNULL && return C.PyNULL
-    UnsafePtr{PyJuliaValueObject}(o).weaklist[] = C.PyNULL
     UnsafePtr{PyJuliaValueObject}(o).value[] = 0
     return o
 end
@@ -34,8 +33,8 @@ function _pyjl_dealloc(o::C.PyPtr)
         PYJLVALUES[idx] = nothing
         push!(PYJLFREEVALUES, idx)
     end
-    UnsafePtr{PyJuliaValueObject}(o).weaklist[!] == C.PyNULL || C.PyObject_ClearWeakRefs(o)
-    ccall(UnsafePtr{C.PyTypeObject}(C.Py_Type(o)).free[!], Cvoid, (C.PyPtr,), o)
+    freeptr = C.PyType_GetSlot(C.Py_Type(o), C.Py_tp_free)
+    ccall(freeptr, Cvoid, (C.PyPtr,), o)
     nothing
 end
 
@@ -269,14 +268,12 @@ function _pyjl_deserialize(t::C.PyPtr, v::C.PyPtr)
 end
 
 const _pyjlbase_name = "juliacall.ValueBase"
-const _pyjlbase_type = fill(C.PyTypeObject())
 const _pyjlbase_isnull_name = "_jl_isnull"
 const _pyjlbase_callmethod_name = "_jl_callmethod"
 const _pyjlbase_reduce_name = "__reduce__"
 const _pyjlbase_serialize_name = "_jl_serialize"
 const _pyjlbase_deserialize_name = "_jl_deserialize"
 const _pyjlbase_methods = Vector{C.PyMethodDef}()
-const _pyjlbase_as_buffer = fill(C.PyBufferProcs())
 
 function init_c()
     empty!(_pyjlbase_methods)
@@ -309,28 +306,37 @@ function init_c()
         ),
         C.PyMethodDef(),
     )
-    _pyjlbase_as_buffer[] = C.PyBufferProcs(
-        get = @cfunction(_pyjl_get_buffer, Cint, (C.PyPtr, Ptr{C.Py_buffer}, Cint)),
-        release = @cfunction(_pyjl_release_buffer, Cvoid, (C.PyPtr, Ptr{C.Py_buffer})),
-    )
-    _pyjlbase_type[] = C.PyTypeObject(
+    slots = C.PyType_Slot[
+        C.PyType_Slot(slot = C.Py_tp_dealloc,
+                      pfunc = @cfunction(_pyjl_dealloc, Cvoid, (C.PyPtr,))),
+        C.PyType_Slot(slot = C.Py_tp_new,
+                      pfunc = @cfunction(_pyjl_new, C.PyPtr,
+                                         (C.PyPtr, C.PyPtr, C.PyPtr))),
+        C.PyType_Slot(slot = C.Py_tp_methods, pfunc = pointer(_pyjlbase_methods)),
+        C.PyType_Slot(slot = C.Py_bf_getbuffer,
+                      pfunc = @cfunction(_pyjl_get_buffer, Cint,
+                                         (C.PyPtr, Ptr{C.Py_buffer}, Cint))),
+        C.PyType_Slot(slot = C.Py_bf_releasebuffer,
+                      pfunc = @cfunction(_pyjl_release_buffer, Cvoid,
+                                         (C.PyPtr, Ptr{C.Py_buffer}))),
+        C.PyType_Slot(),
+    ]
+    spec = C.PyType_Spec(
         name = pointer(_pyjlbase_name),
         basicsize = sizeof(PyJuliaValueObject),
-        # new = C.POINTERS.PyType_GenericNew,
-        new = @cfunction(_pyjl_new, C.PyPtr, (C.PyPtr, C.PyPtr, C.PyPtr)),
-        dealloc = @cfunction(_pyjl_dealloc, Cvoid, (C.PyPtr,)),
+        itemsize = 0,
         flags = C.Py_TPFLAGS_BASETYPE | C.Py_TPFLAGS_HAVE_VERSION_TAG,
-        weaklistoffset = fieldoffset(PyJuliaValueObject, 3),
-        # getattro = C.POINTERS.PyObject_GenericGetAttr,
-        # setattro = C.POINTERS.PyObject_GenericSetAttr,
-        methods = pointer(_pyjlbase_methods),
-        as_buffer = pointer(_pyjlbase_as_buffer),
+        slots = pointer(slots),
     )
-    o = PyJuliaBase_Type[] = C.PyPtr(pointer(_pyjlbase_type))
-    if C.PyType_Ready(o) == -1
+    spec_ref = Ref(spec)
+    o = GC.@preserve spec slots _pyjlbase_methods spec_ref begin
+        C.PyType_FromSpec(Base.unsafe_convert(Ptr{C.PyType_Spec}, spec_ref))
+    end
+    if o == C.PyNULL
         C.PyErr_Print()
         error("Error initializing 'juliacall.ValueBase'")
     end
+    PyJuliaBase_Type[] = o
 end
 
 function __init__()

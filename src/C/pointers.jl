@@ -80,6 +80,8 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     :PyType_FromSpec => (Ptr{PyType_Spec},) => PyPtr,
     :PyType_FromSpecWithBases => (Ptr{PyType_Spec}, PyPtr) => PyPtr,
     :PyType_GetSlot => (PyPtr, Cint) => Ptr{Cvoid},
+    :PyType_GetFlags => (PyPtr,) => Culong,
+    # TODO: PyType_GetName, once we are Python 3.11+ exclusively
     # MAPPING
     :PyMapping_HasKeyString => (PyPtr, Ptr{Cchar}) => Cint,
     :PyMapping_SetItemString => (PyPtr, Ptr{Cchar}, PyPtr) => Cint,

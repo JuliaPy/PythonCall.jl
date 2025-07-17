@@ -2,6 +2,7 @@
 
 ## Unreleased
 * Internal: Use heap-allocated types (PyType_FromSpec) to improve ABI compatibility.
+* Minimum supported Python version is now 3.9.
 
 ## 0.9.26 (2025-07-15)
 * Added PySide6 support to the GUI compatibility layer.
@@ -43,7 +44,7 @@
 ## 0.9.20 (2024-05-01)
 * The IPython extension is now automatically loaded upon import if IPython is detected.
 * JuliaCall now compatible with Julia 1.10.3.
-* Minimum supported Python version is now 3.9.
+* Minimum supported Python version is now 3.8.
 
 ## 0.9.19 (2024-03-19)
 * Bug fixes.

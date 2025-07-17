@@ -5,7 +5,7 @@
         @test PythonCall.fix_qt_plugin_path() === false
     end
     @testset "event_loop_on/off" begin
-        for g in [:pyqt4, :pyqt5, :pyside, :pyside2, :gtk, :gtk3, :wx]
+        for g in [:pyqt4, :pyqt5, :pyside, :pyside2, :pyside6, :gtk, :gtk3, :wx]
             # TODO: actually test the various GUIs somehow?
             @show g
             @test_throws PyException PythonCall.event_loop_on(g)

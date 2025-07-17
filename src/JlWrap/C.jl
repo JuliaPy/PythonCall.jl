@@ -269,14 +269,17 @@ function _pyjl_deserialize(t::C.PyPtr, v::C.PyPtr)
 end
 
 const _pyjlbase_name = "juliacall.ValueBase"
-const _pyjlbase_type = fill(C.PyTypeObject())
 const _pyjlbase_isnull_name = "_jl_isnull"
 const _pyjlbase_callmethod_name = "_jl_callmethod"
 const _pyjlbase_reduce_name = "__reduce__"
 const _pyjlbase_serialize_name = "_jl_serialize"
 const _pyjlbase_deserialize_name = "_jl_deserialize"
+const _pyjlbase_weaklistoffset_name = "__weaklistoffset__"
 const _pyjlbase_methods = Vector{C.PyMethodDef}()
+const _pyjlbase_members = Vector{C.PyMemberDef}()
 const _pyjlbase_as_buffer = fill(C.PyBufferProcs())
+const _pyjlbase_slots = Vector{C.PyType_Slot}()
+const _pyjlbase_spec = fill(C.PyType_Spec())
 
 function init_c()
     empty!(_pyjlbase_methods)
@@ -313,21 +316,45 @@ function init_c()
         get = @cfunction(_pyjl_get_buffer, Cint, (C.PyPtr, Ptr{C.Py_buffer}, Cint)),
         release = @cfunction(_pyjl_release_buffer, Cvoid, (C.PyPtr, Ptr{C.Py_buffer})),
     )
-    _pyjlbase_type[] = C.PyTypeObject(
-        name = pointer(_pyjlbase_name),
-        basicsize = sizeof(PyJuliaValueObject),
-        # new = C.POINTERS.PyType_GenericNew,
-        new = @cfunction(_pyjl_new, C.PyPtr, (C.PyPtr, C.PyPtr, C.PyPtr)),
-        dealloc = @cfunction(_pyjl_dealloc, Cvoid, (C.PyPtr,)),
-        flags = C.Py_TPFLAGS_BASETYPE | C.Py_TPFLAGS_HAVE_VERSION_TAG,
-        weaklistoffset = fieldoffset(PyJuliaValueObject, 3),
-        # getattro = C.POINTERS.PyObject_GenericGetAttr,
-        # setattro = C.POINTERS.PyObject_GenericSetAttr,
-        methods = pointer(_pyjlbase_methods),
-        as_buffer = pointer(_pyjlbase_as_buffer),
+    
+    # Create members for weakref support
+    empty!(_pyjlbase_members)
+    push!(
+        _pyjlbase_members,
+        C.PyMemberDef(
+            name = pointer(_pyjlbase_weaklistoffset_name),
+            typ = C.Py_T_PYSSIZET,
+            offset = fieldoffset(PyJuliaValueObject, 3),
+            flags = C.Py_READONLY,
+        ),
+        C.PyMemberDef(), # NULL terminator
     )
-    o = PyJuliaBase_Type[] = C.PyPtr(pointer(_pyjlbase_type))
-    if C.PyType_Ready(o) == -1
+    
+    # Create slots for PyType_Spec
+    empty!(_pyjlbase_slots)
+    push!(
+        _pyjlbase_slots,
+        C.PyType_Slot(slot = C.Py_tp_new, pfunc = @cfunction(_pyjl_new, C.PyPtr, (C.PyPtr, C.PyPtr, C.PyPtr))),
+        C.PyType_Slot(slot = C.Py_tp_dealloc, pfunc = @cfunction(_pyjl_dealloc, Cvoid, (C.PyPtr,))),
+        C.PyType_Slot(slot = C.Py_tp_methods, pfunc = pointer(_pyjlbase_methods)),
+        C.PyType_Slot(slot = C.Py_tp_members, pfunc = pointer(_pyjlbase_members)),
+        C.PyType_Slot(slot = C.Py_bf_getbuffer, pfunc = @cfunction(_pyjl_get_buffer, Cint, (C.PyPtr, Ptr{C.Py_buffer}, Cint))),
+        C.PyType_Slot(slot = C.Py_bf_releasebuffer, pfunc = @cfunction(_pyjl_release_buffer, Cvoid, (C.PyPtr, Ptr{C.Py_buffer}))),
+        C.PyType_Slot(), # NULL terminator
+    )
+    
+    # Create PyType_Spec
+    _pyjlbase_spec[] = C.PyType_Spec(
+        name = pointer(_pyjlbase_name),
+        basicsize = Cint(sizeof(PyJuliaValueObject)),
+        itemsize = Cint(0),
+        flags = C.Py_TPFLAGS_BASETYPE | C.Py_TPFLAGS_HAVE_VERSION_TAG,
+        slots = pointer(_pyjlbase_slots),
+    )
+    
+    # Create type using PyType_FromSpec
+    o = PyJuliaBase_Type[] = C.PyType_FromSpec(pointer(_pyjlbase_spec))
+    if o == C.PyNULL
         C.PyErr_Print()
         error("Error initializing 'juliacall.ValueBase'")
     end

@@ -345,3 +345,104 @@ const NPY_ARRAY_ALIGNED = 0x0100
 const NPY_ARRAY_NOTSWAPPED = 0x0200
 const NPY_ARRAY_WRITEABLE = 0x0400
 const NPY_ARR_HAS_DESCR = 0x0800
+
+# Python type slot constants
+# From https://github.com/python/cpython/blob/main/Include/typeslots.h
+const Py_bf_getbuffer = Cint(1)
+const Py_bf_releasebuffer = Cint(2)
+const Py_mp_ass_subscript = Cint(3)
+const Py_mp_length = Cint(4)
+const Py_mp_subscript = Cint(5)
+const Py_nb_absolute = Cint(6)
+const Py_nb_add = Cint(7)
+const Py_nb_and = Cint(8)
+const Py_nb_bool = Cint(9)
+const Py_nb_divmod = Cint(10)
+const Py_nb_float = Cint(11)
+const Py_nb_floor_divide = Cint(12)
+const Py_nb_index = Cint(13)
+const Py_nb_inplace_add = Cint(14)
+const Py_nb_inplace_and = Cint(15)
+const Py_nb_inplace_floor_divide = Cint(16)
+const Py_nb_inplace_lshift = Cint(17)
+const Py_nb_inplace_multiply = Cint(18)
+const Py_nb_inplace_or = Cint(19)
+const Py_nb_inplace_power = Cint(20)
+const Py_nb_inplace_remainder = Cint(21)
+const Py_nb_inplace_rshift = Cint(22)
+const Py_nb_inplace_subtract = Cint(23)
+const Py_nb_inplace_true_divide = Cint(24)
+const Py_nb_inplace_xor = Cint(25)
+const Py_nb_int = Cint(26)
+const Py_nb_invert = Cint(27)
+const Py_nb_lshift = Cint(28)
+const Py_nb_multiply = Cint(29)
+const Py_nb_negative = Cint(30)
+const Py_nb_or = Cint(31)
+const Py_nb_positive = Cint(32)
+const Py_nb_power = Cint(33)
+const Py_nb_remainder = Cint(34)
+const Py_nb_rshift = Cint(35)
+const Py_nb_subtract = Cint(36)
+const Py_nb_true_divide = Cint(37)
+const Py_nb_xor = Cint(38)
+const Py_sq_ass_item = Cint(39)
+const Py_sq_concat = Cint(40)
+const Py_sq_contains = Cint(41)
+const Py_sq_inplace_concat = Cint(42)
+const Py_sq_inplace_repeat = Cint(43)
+const Py_sq_item = Cint(44)
+const Py_sq_length = Cint(45)
+const Py_sq_repeat = Cint(46)
+const Py_tp_alloc = Cint(47)
+const Py_tp_base = Cint(48)
+const Py_tp_bases = Cint(49)
+const Py_tp_call = Cint(50)
+const Py_tp_clear = Cint(51)
+const Py_tp_dealloc = Cint(52)
+const Py_tp_del = Cint(53)
+const Py_tp_descr_get = Cint(54)
+const Py_tp_descr_set = Cint(55)
+const Py_tp_doc = Cint(56)
+const Py_tp_getattr = Cint(57)
+const Py_tp_getattro = Cint(58)
+const Py_tp_hash = Cint(59)
+const Py_tp_init = Cint(60)
+const Py_tp_is_gc = Cint(61)
+const Py_tp_iter = Cint(62)
+const Py_tp_iternext = Cint(63)
+const Py_tp_methods = Cint(64)
+const Py_tp_new = Cint(65)
+const Py_tp_repr = Cint(66)
+const Py_tp_richcompare = Cint(67)
+const Py_tp_setattr = Cint(68)
+const Py_tp_setattro = Cint(69)
+const Py_tp_str = Cint(70)
+const Py_tp_traverse = Cint(71)
+const Py_tp_members = Cint(72)
+const Py_tp_getset = Cint(73)
+const Py_tp_free = Cint(74)
+const Py_nb_matrix_multiply = Cint(75)
+const Py_nb_inplace_matrix_multiply = Cint(76)
+const Py_am_await = Cint(77)
+const Py_am_aiter = Cint(78)
+const Py_am_anext = Cint(79)
+const Py_tp_finalize = Cint(80)
+const Py_am_send = Cint(81)
+const Py_tp_vectorcall = Cint(82)
+const Py_tp_token = Cint(83)
+
+# PyType_Spec and PyType_Slot structs
+# From https://docs.python.org/3/c-api/type.html#c.PyType_Spec
+@kwdef struct PyType_Slot
+    slot::Cint = 0
+    pfunc::Ptr{Cvoid} = C_NULL
+end
+
+@kwdef struct PyType_Spec
+    name::Cstring = C_NULL
+    basicsize::Cint = 0
+    itemsize::Cint = 0
+    flags::Cuint = 0
+    slots::Ptr{PyType_Slot} = C_NULL
+end

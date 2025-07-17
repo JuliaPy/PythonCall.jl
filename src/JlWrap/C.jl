@@ -277,7 +277,6 @@ const _pyjlbase_deserialize_name = "_jl_deserialize"
 const _pyjlbase_weaklistoffset_name = "__weaklistoffset__"
 const _pyjlbase_methods = Vector{C.PyMethodDef}()
 const _pyjlbase_members = Vector{C.PyMemberDef}()
-const _pyjlbase_as_buffer = fill(C.PyBufferProcs())
 const _pyjlbase_slots = Vector{C.PyType_Slot}()
 const _pyjlbase_spec = fill(C.PyType_Spec())
 
@@ -311,10 +310,6 @@ function init_c()
             flags = C.Py_METH_O | C.Py_METH_CLASS,
         ),
         C.PyMethodDef(),
-    )
-    _pyjlbase_as_buffer[] = C.PyBufferProcs(
-        get = @cfunction(_pyjl_get_buffer, Cint, (C.PyPtr, Ptr{C.Py_buffer}, Cint)),
-        release = @cfunction(_pyjl_release_buffer, Cvoid, (C.PyPtr, Ptr{C.Py_buffer})),
     )
     
     # Create members for weakref support

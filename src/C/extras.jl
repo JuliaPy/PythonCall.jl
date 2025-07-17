@@ -10,6 +10,20 @@ Py_TypeCheckFast(o, f::Integer) = Base.GC.@preserve o PyType_IsSubtypeFast(Py_Ty
 PyType_IsSubtypeFast(t, f::Integer) =
     Base.GC.@preserve t Cint(!iszero(PyType_GetFlags(asptr(t)) & f))
 
+function pytypename(t::PyPtr)
+    name_obj = PyObject_GetAttrString(t, "__name__")
+    name_obj == C_NULL && return "(unknown type)"
+    cstr = PyUnicode_AsUTF8(name_obj)
+    if cstr == C_NULL
+        Py_DecRef(name_obj)
+        return "(unknown type)"
+    else
+        str = unsafe_string(cstr)
+        Py_DecRef(name_obj)
+        return str
+    end
+end
+
 PyMemoryView_GET_BUFFER(m) = Base.GC.@preserve m Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(asptr(m)).view)
 
 PyType_CheckBuffer(t) = Base.GC.@preserve t begin
@@ -25,7 +39,7 @@ PyObject_GetBuffer(_o, b, flags) = Base.GC.@preserve _o begin
     if getbuf == C_NULL
         PyErr_SetString(
             POINTERS.PyExc_TypeError,
-            "a bytes-like object is required, not '$(String(UnsafePtr{PyTypeObject}(Py_Type(o)).name[]))'",
+            "a bytes-like object is required, not '$(pytypename(Py_Type(o)))'",
         )
         return Cint(-1)
     end

@@ -346,8 +346,7 @@ function init_c()
     # Create PyType_Spec
     _pyjlbase_spec[] = C.PyType_Spec(
         name = pointer(_pyjlbase_name),
-        basicsize = Cint(sizeof(PyJuliaValueObject)),
-        itemsize = Cint(0),
+        basicsize = sizeof(PyJuliaValueObject),
         flags = C.Py_TPFLAGS_BASETYPE | C.Py_TPFLAGS_HAVE_VERSION_TAG,
         slots = pointer(_pyjlbase_slots),
     )

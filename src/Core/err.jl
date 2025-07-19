@@ -176,47 +176,37 @@ function _showerror(io::IO, e::PyException, bt; backtrace = true)
                         pystr(String, x.lineno),
                     ) for x in pyimport("traceback").extract_tb(e.b)
                 ]
-                if Base.VERSION < v"1.6.0-rc1"
-                    for (i, (name, fname, lineno)) in enumerate(reverse(fs))
-                        println(io)
-                        printstyled(io, " [", i, "] ")
-                        printstyled(io, name, bold = true)
-                        printstyled(io, " at ")
-                        printstyled(io, fname, ":", lineno, bold = true)
-                    end
-                else
-                    mcdict = Dict{String,Symbol}()
-                    mccyclyer =
-                        Iterators.Stateful(Iterators.cycle(Base.STACKTRACE_MODULECOLORS))
-                    # skip a couple as a basic attempt to make the colours different from the Julia stacktrace
-                    popfirst!(mccyclyer)
-                    popfirst!(mccyclyer)
-                    for (i, (name, fname, lineno)) in enumerate(reverse(fs))
-                        println(io)
-                        printstyled(io, " [", i, "] ")
-                        printstyled(io, name, bold = true)
-                        println(io)
-                        printstyled(io, "   @ ", color = :light_black)
-                        mod = file_to_pymodule(fname)
-                        if mod !== nothing
-                            # print the module, with colour determined by the top level name
-                            tmod = first(split(mod, ".", limit = 2))
-                            color = get!(mcdict, tmod) do
-                                popfirst!(mccyclyer)
-                            end
-                            printstyled(io, mod, " ", color = color)
+                mcdict = Dict{String,Symbol}()
+                mccyclyer =
+                    Iterators.Stateful(Iterators.cycle(Base.STACKTRACE_MODULECOLORS))
+                # skip a couple as a basic attempt to make the colours different from the Julia stacktrace
+                popfirst!(mccyclyer)
+                popfirst!(mccyclyer)
+                for (i, (name, fname, lineno)) in enumerate(reverse(fs))
+                    println(io)
+                    printstyled(io, " [", i, "] ")
+                    printstyled(io, name, bold = true)
+                    println(io)
+                    printstyled(io, "   @ ", color = :light_black)
+                    mod = file_to_pymodule(fname)
+                    if mod !== nothing
+                        # print the module, with colour determined by the top level name
+                        tmod = first(split(mod, ".", limit = 2))
+                        color = get!(mcdict, tmod) do
+                            popfirst!(mccyclyer)
                         end
-                        if isfile(fname) &&
-                           :stacktrace_contract_userdir in names(Base, all = true) &&
-                           Base.stacktrace_contract_userdir()
-                            if :replaceuserpath in names(Base, all = true)
-                                fname = Base.replaceuserpath(fname)
-                            elseif :contractuser in names(Base.Filesystem, all = true)
-                                fname = Base.Filesystem.contractuser(fname)
-                            end
-                        end
-                        printstyled(io, fname, ":", lineno, color = :light_black)
+                        printstyled(io, mod, " ", color = color)
                     end
+                    if isfile(fname) &&
+                        :stacktrace_contract_userdir in names(Base, all = true) &&
+                        Base.stacktrace_contract_userdir()
+                        if :replaceuserpath in names(Base, all = true)
+                            fname = Base.replaceuserpath(fname)
+                        elseif :contractuser in names(Base.Filesystem, all = true)
+                            fname = Base.Filesystem.contractuser(fname)
+                        end
+                    end
+                    printstyled(io, fname, ":", lineno, color = :light_black)
                 end
             catch err
                 print(io, "<error while printing stacktrace: $err>")

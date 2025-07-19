@@ -188,12 +188,8 @@ function init_context()
             Py_InitializeEx(0)
             atexit() do
                 CTX.is_initialized = false
-                if CTX.version === missing || CTX.version < v"3.6"
-                    Py_Finalize()
-                else
-                    if Py_FinalizeEx() == -1
-                        @warn "Py_FinalizeEx() error"
-                    end
+                if Py_FinalizeEx() == -1
+                    @warn "Py_FinalizeEx() error"
                 end
             end
         end
@@ -223,8 +219,8 @@ function init_context()
         error("Cannot parse version from version string: $(repr(verstr))")
     end
     CTX.version = VersionNumber(vermatch.match)
-    v"3.5" ≤ CTX.version < v"4" || error(
-        "Only Python 3.5+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
+    v"3.9" ≤ CTX.version < v"4" || error(
+        "Only Python 3.9+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
     )
 
     @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version

@@ -121,5 +121,18 @@ export PyPandasDataFrame
 export PySet
 export PyTable
 
+# JlWrap
+export pyfunc
+export pyclassmethod
+export pystaticmethod
+export pyproperty
+export pyjl
+export pyjltype
+export pyisjl
+export pyjlvalue
+export pyjlraw
+export pybinaryio
+export pytextio
+
 # Compat
 export pytable

@@ -112,6 +112,19 @@ function pyconvert_add_rule end
 function pyconvert_return end
 function pyconvert_unconverted end
 
+# JlWrap
+function pyfunc end
+function pyclassmethod end
+function pystaticmethod end
+function pyproperty end
+function pyjl end
+function pyjltype end
+function pyisjl end
+function pyjlvalue end
+function pyjlraw end
+function pybinaryio end
+function pytextio end
+
 # Compat
 function event_loop_on end
 function event_loop_off end

@@ -13,6 +13,19 @@ using ..Convert
 using ..GC: GC
 using ..GIL
 
+import ..PythonCall:
+    pyfunc,
+    pyclassmethod,
+    pystaticmethod,
+    pyproperty,
+    pyjl,
+    pyjltype,
+    pyisjl,
+    pyjlvalue,
+    pyjlraw,
+    pybinaryio,
+    pytextio
+
 using Pkg: Pkg
 using Base: @propagate_inbounds, allocatedinline
 

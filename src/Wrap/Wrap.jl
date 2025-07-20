@@ -11,6 +11,16 @@ using ..C
 using ..Core
 using ..PyMacro
 
+import ..PythonCall:
+    PyArray,
+    PyDict,
+    PyIO,
+    PyIterable,
+    PyList,
+    PyPandasDataFrame,
+    PySet,
+    PyTable
+
 using Base: @propagate_inbounds
 using Tables: Tables
 using UnsafePointers: UnsafePtr

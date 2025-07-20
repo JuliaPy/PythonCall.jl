@@ -109,3 +109,13 @@ export PYCONVERT_PRIORITY_ARRAY
 export PYCONVERT_PRIORITY_CANONICAL
 export PYCONVERT_PRIORITY_NORMAL
 export PYCONVERT_PRIORITY_FALLBACK
+
+# Wrap
+export PyArray
+export PyDict
+export PyIO
+export PyIterable
+export PyList
+export PyPandasDataFrame
+export PySet
+export PyTable

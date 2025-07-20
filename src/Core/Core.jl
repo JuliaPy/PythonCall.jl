@@ -134,7 +134,8 @@ import ..PythonCall:
     pycompile,
     @pyeval,
     @pyexec,
-    pyconvert
+    pyconvert,
+    @pyconst
     
 export
     pyisnot,

@@ -133,7 +133,8 @@ import ..PythonCall:
     pycallable,
     pycompile,
     @pyeval,
-    @pyexec
+    @pyexec,
+    pyconvert
     
 export
     pyisnot,

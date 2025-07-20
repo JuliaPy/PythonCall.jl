@@ -26,3 +26,15 @@ mutable struct Py
     ptr::Ptr{Cvoid}
     Py(::Val{:new}, ptr::Ptr{Cvoid}) = finalizer(Core.py_finalizer, new(ptr))
 end
+
+"""
+    PyException(x)
+
+Wraps the Python exception `x` as a Julia `Exception`.
+"""
+mutable struct PyException <: Exception
+    _t::Py
+    _v::Py
+    _b::Py
+    _isnormalized::Bool
+end

@@ -31,6 +31,8 @@ using MacroTools: MacroTools, @capture
 using Markdown: Markdown
 
 import ..PythonCall:
+    Py,
+    PyException,
     pynew,
     pyisnull,
     pycopy!,

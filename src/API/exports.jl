@@ -1,6 +1,7 @@
 # Core
 export Py
 export ispy
+export PyException
 export pyis
 export pyrepr
 export pyascii

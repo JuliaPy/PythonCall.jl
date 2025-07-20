@@ -15,7 +15,7 @@ errcheck_ambig(val) = iserrset_ambig(val) ? pythrow() : val
 
 errclear() = C.PyErr_Clear()
 
-errmatches(t) = (@autopy t C.PyErr_ExceptionMatches(getptr(t_))) == 1
+errmatches(t) = (@autopy t C.PyErr_ExceptionMatches(t_)) == 1
 
 function errget()
     t = Ref(C.PyNULL)
@@ -25,17 +25,14 @@ function errget()
     (pynew(t[]), pynew(v[]), pynew(b[]))
 end
 
-errset(t::Py) = Base.GC.@preserve t C.PyErr_SetNone(getptr(t))
-errset(t::Py, v::Py) = Base.GC.@preserve t v C.PyErr_SetObject(getptr(t), getptr(v))
-errset(t::Py, v::String) = Base.GC.@preserve t C.PyErr_SetString(getptr(t), v)
+errset(t::Py) = C.PyErr_SetNone(t)
+errset(t::Py, v::Py) = C.PyErr_SetObject(t, v)
+errset(t::Py, v::String) = C.PyErr_SetString(t, v)
 
 function errnormalize!(t::Py, v::Py, b::Py)
-    tptr = getptr(t)
-    vptr = getptr(v)
-    bptr = getptr(b)
-    tref = Ref(tptr)
-    vref = Ref(vptr)
-    bref = Ref(bptr)
+    tref = Ref(getptr(t))
+    vref = Ref(getptr(v))
+    bref = Ref(getptr(b))
     C.PyErr_NormalizeException(tref, vref, bref)
     setptr!(t, tref[])
     setptr!(v, vref[])
@@ -68,9 +65,9 @@ end
 function Base.getproperty(exc::PyException, k::Symbol)
     if k in (:t, :v, :b) && !exc._isnormalized
         errnormalize!(exc._t, exc._v, exc._b)
-        pyisnull(exc._t) && setptr!(exc._t, incref(getptr(pybuiltins.None)))
-        pyisnull(exc._v) && setptr!(exc._v, incref(getptr(pybuiltins.None)))
-        pyisnull(exc._b) && setptr!(exc._b, incref(getptr(pybuiltins.None)))
+        pyisnull(exc._t) && pycopy!(exc._t, pybuiltins.None)
+        pyisnull(exc._v) && pycopy!(exc._v, pybuiltins.None)
+        pyisnull(exc._b) && pycopy!(exc._b, pybuiltins.None)
         pyisnone(exc._v) || (exc._v.__traceback__ = exc._b)
         exc._isnormalized = true
     end
@@ -167,47 +164,37 @@ function _showerror(io::IO, e::PyException, bt; backtrace = true)
                         pystr(String, x.lineno),
                     ) for x in pyimport("traceback").extract_tb(e.b)
                 ]
-                if Base.VERSION < v"1.6.0-rc1"
-                    for (i, (name, fname, lineno)) in enumerate(reverse(fs))
-                        println(io)
-                        printstyled(io, " [", i, "] ")
-                        printstyled(io, name, bold = true)
-                        printstyled(io, " at ")
-                        printstyled(io, fname, ":", lineno, bold = true)
-                    end
-                else
-                    mcdict = Dict{String,Symbol}()
-                    mccyclyer =
-                        Iterators.Stateful(Iterators.cycle(Base.STACKTRACE_MODULECOLORS))
-                    # skip a couple as a basic attempt to make the colours different from the Julia stacktrace
-                    popfirst!(mccyclyer)
-                    popfirst!(mccyclyer)
-                    for (i, (name, fname, lineno)) in enumerate(reverse(fs))
-                        println(io)
-                        printstyled(io, " [", i, "] ")
-                        printstyled(io, name, bold = true)
-                        println(io)
-                        printstyled(io, "   @ ", color = :light_black)
-                        mod = file_to_pymodule(fname)
-                        if mod !== nothing
-                            # print the module, with colour determined by the top level name
-                            tmod = first(split(mod, ".", limit = 2))
-                            color = get!(mcdict, tmod) do
-                                popfirst!(mccyclyer)
-                            end
-                            printstyled(io, mod, " ", color = color)
+                mcdict = Dict{String,Symbol}()
+                mccyclyer =
+                    Iterators.Stateful(Iterators.cycle(Base.STACKTRACE_MODULECOLORS))
+                # skip a couple as a basic attempt to make the colours different from the Julia stacktrace
+                popfirst!(mccyclyer)
+                popfirst!(mccyclyer)
+                for (i, (name, fname, lineno)) in enumerate(reverse(fs))
+                    println(io)
+                    printstyled(io, " [", i, "] ")
+                    printstyled(io, name, bold = true)
+                    println(io)
+                    printstyled(io, "   @ ", color = :light_black)
+                    mod = file_to_pymodule(fname)
+                    if mod !== nothing
+                        # print the module, with colour determined by the top level name
+                        tmod = first(split(mod, ".", limit = 2))
+                        color = get!(mcdict, tmod) do
+                            popfirst!(mccyclyer)
                         end
-                        if isfile(fname) &&
-                           :stacktrace_contract_userdir in names(Base, all = true) &&
-                           Base.stacktrace_contract_userdir()
-                            if :replaceuserpath in names(Base, all = true)
-                                fname = Base.replaceuserpath(fname)
-                            elseif :contractuser in names(Base.Filesystem, all = true)
-                                fname = Base.Filesystem.contractuser(fname)
-                            end
-                        end
-                        printstyled(io, fname, ":", lineno, color = :light_black)
+                        printstyled(io, mod, " ", color = color)
                     end
+                    if isfile(fname) &&
+                        :stacktrace_contract_userdir in names(Base, all = true) &&
+                        Base.stacktrace_contract_userdir()
+                        if :replaceuserpath in names(Base, all = true)
+                            fname = Base.replaceuserpath(fname)
+                        elseif :contractuser in names(Base.Filesystem, all = true)
+                            fname = Base.Filesystem.contractuser(fname)
+                        end
+                    end
+                    printstyled(io, fname, ":", lineno, color = :light_black)
                 end
             catch err
                 print(io, "<error while printing stacktrace: $err>")

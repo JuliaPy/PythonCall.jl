@@ -230,7 +230,7 @@ function _pyconvert_get_rules(pytype::Py)
         end
     end
     for (t, x) in reverse(collect(zip(mro, xmro)))
-        if C.PyType_CheckBuffer(getptr(t))
+        if C.PyType_CheckBuffer(t)
             push!(x, "<buffer>")
             break
         end
@@ -342,7 +342,7 @@ function pytryconvert(::Type{T}, x_) where {T}
 
     # get rules from the cache
     # TODO: we should hold weak references and clear the cache if types get deleted
-    tptr = C.Py_Type(getptr(x))
+    tptr = C.Py_Type(x)
     trules = pyconvert_rules_cache(T)
     rules = get!(trules, tptr) do
         t = pynew(incref(tptr))

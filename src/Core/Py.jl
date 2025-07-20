@@ -32,6 +32,11 @@ pyconvert(::Type{Py}, x::Py) = x
 
 setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, Ptr{Cvoid}(ptr)); x)
 
+incref(x::Py) = Base.GC.@preserve x (incref(getptr(x)); x)
+decref(x::Py) = Base.GC.@preserve x (decref(getptr(x)); x)
+
+Base.unsafe_convert(::Type{C.PyPtr}, x::Py) = getptr(x)
+
 const PYNULL_CACHE = Py[]
 
 """
@@ -56,7 +61,7 @@ const PyNULL = pynew()
 
 pynew(ptr::C.PyPtr) = setptr!(pynew(), ptr)
 
-pynew(x::Py) = pynew(incref(getptr(x)))
+pynew(x::Py) = Base.GC.@preserve x pynew(incref(getptr(x)))
 
 """
     pycopy!(dst::Py, src)
@@ -145,13 +150,13 @@ Base.print(io::IO, x::Py) = print(io, string(x))
 
 function Base.show(io::IO, x::Py)
     if get(io, :typeinfo, Any) == Py
-        if getptr(x) == C.PyNULL
+        if pyisnull(x)
             print(io, "NULL")
         else
             print(io, pyrepr(String, x))
         end
     else
-        if getptr(x) == C.PyNULL
+        if pyisnull(x)
             print(io, "<py NULL>")
         else
             s = pyrepr(String, x)

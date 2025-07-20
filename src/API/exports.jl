@@ -120,3 +120,6 @@ export PyList
 export PyPandasDataFrame
 export PySet
 export PyTable
+
+# Compat
+export pytable

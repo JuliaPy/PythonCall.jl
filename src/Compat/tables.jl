@@ -26,7 +26,6 @@ function pytable(src, format = :pandas; opts...)
         error("invalid format")
     end
 end
-export pytable
 
 function _pytable_columns(src, cols = Tables.columns(src))
     pydict(

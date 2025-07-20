@@ -116,3 +116,4 @@ function pyconvert_unconverted end
 function event_loop_on end
 function event_loop_off end
 function fix_qt_plugin_path end
+function pytable end

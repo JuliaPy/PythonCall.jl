@@ -33,6 +33,7 @@ using Markdown: Markdown
 import ..PythonCall:
     Py,
     PyException,
+    pybuiltins,
     pynew,
     pyisnull,
     pycopy!,

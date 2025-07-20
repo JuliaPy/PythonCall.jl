@@ -38,3 +38,13 @@ mutable struct PyException <: Exception
     _b::Py
     _isnormalized::Bool
 end
+
+"""
+    pybuiltins
+
+An object whose fields are the Python builtins, of type [`Py`](@ref).
+
+For example `pybuiltins.None`, `pybuiltins.int`, `pybuiltins.ValueError`.
+"""
+baremodule pybuiltins
+end

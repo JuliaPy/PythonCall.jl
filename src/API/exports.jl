@@ -2,6 +2,7 @@
 export Py
 export ispy
 export PyException
+export pybuiltins
 export pyis
 export pyrepr
 export pyascii

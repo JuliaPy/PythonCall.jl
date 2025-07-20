@@ -1,22 +1,3 @@
-"""
-    PyObjectArray(undef, dims...)
-    PyObjectArray(array)
-
-An array of `Py`s which supports the Python buffer protocol.
-
-Internally, the objects are stored as an array of pointers.
-"""
-mutable struct PyObjectArray{N} <: AbstractArray{Py,N}
-    ptrs::Array{C.PyPtr,N}
-    function PyObjectArray{N}(::UndefInitializer, dims::NTuple{N,Integer}) where {N}
-        x = new{N}(fill(C.PyNULL, dims))
-        finalizer(pyobjectarray_finalizer, x)
-    end
-end
-const PyObjectVector = PyObjectArray{1}
-const PyObjectMatrix = PyObjectArray{2}
-export PyObjectVector, PyObjectMatrix, PyObjectArray
-
 PyObjectArray{N}(undef::UndefInitializer, dims::Vararg{Integer,N}) where {N} =
     PyObjectArray(undef, dims)
 PyObjectArray(undef::UndefInitializer, dims::NTuple{N,Integer}) where {N} =
@@ -44,20 +25,20 @@ end
     @boundscheck checkbounds(x, i...)
     @inbounds ptr = x.ptrs[i...]
     ptr == C_NULL && throw(UndefRefError())
-    return pynew(incref(ptr))
+    return pynew(incref(Ptr{C.PyPtr}(ptr)))
 end
 
 @propagate_inbounds function Base.setindex!(x::PyObjectArray, v, i::Integer...)
     @boundscheck checkbounds(x, i...)
     v_ = Py(v)
-    @inbounds decref(x.ptrs[i...])
-    @inbounds x.ptrs[i...] = incref(getptr(v_))
+    @inbounds decref(C.PyPtr(x.ptrs[i...]))
+    @inbounds x.ptrs[i...] = getptr(incref(v_))
     return x
 end
 
 @propagate_inbounds function Base.deleteat!(x::PyObjectVector, i::Integer)
     @boundscheck checkbounds(x, i)
-    @inbounds decref(x.ptrs[i])
+    @inbounds decref(C.PyPtr(x.ptrs[i]))
     deleteat!(x.ptrs, i)
     return x
 end

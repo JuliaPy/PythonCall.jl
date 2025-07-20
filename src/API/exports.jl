@@ -133,6 +133,9 @@ export pyjlvalue
 export pyjlraw
 export pybinaryio
 export pytextio
+export PyObjectVector
+export PyObjectMatrix
+export PyObjectArray
 
 # Compat
 export pytable

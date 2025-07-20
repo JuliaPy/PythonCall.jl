@@ -24,7 +24,10 @@ import ..PythonCall:
     pyjlvalue,
     pyjlraw,
     pybinaryio,
-    pytextio
+    pytextio,
+    PyObjectVector,
+    PyObjectMatrix,
+    PyObjectArray
 
 using Pkg: Pkg
 using Base: @propagate_inbounds, allocatedinline

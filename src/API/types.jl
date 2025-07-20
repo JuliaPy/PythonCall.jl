@@ -229,3 +229,21 @@ struct PySet{T} <: AbstractSet{T}
     py::Py
     PySet{T}(x = pyset()) where {T} = new{T}(ispy(x) ? Py(x) : pyset(x))
 end
+
+"""
+    PyObjectArray(undef, dims...)
+    PyObjectArray(array)
+
+An array of `Py`s which supports the Python buffer protocol.
+
+Internally, the objects are stored as an array of pointers.
+"""
+mutable struct PyObjectArray{N} <: AbstractArray{Py,N}
+    ptrs::Array{Ptr{Cvoid},N}
+    function PyObjectArray{N}(::UndefInitializer, dims::NTuple{N,Integer}) where {N}
+        x = new{N}(fill(C_NULL, dims))
+        finalizer(JlWrap.pyobjectarray_finalizer, x)
+    end
+end
+const PyObjectVector = PyObjectArray{1}
+const PyObjectMatrix = PyObjectArray{2}

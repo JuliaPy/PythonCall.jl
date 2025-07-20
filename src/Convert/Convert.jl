@@ -18,12 +18,7 @@ import ..PythonCall:
     pyconvert_add_rule,
     pyconvert_return,
     pyconvert_unconverted,
-    PyConvertPriority,
-    PYCONVERT_PRIORITY_WRAP,
-    PYCONVERT_PRIORITY_ARRAY,
-    PYCONVERT_PRIORITY_CANONICAL,
-    PYCONVERT_PRIORITY_NORMAL,
-    PYCONVERT_PRIORITY_FALLBACK
+    PyConvertPriority
 
 export
     pyconvert_tryconvert,

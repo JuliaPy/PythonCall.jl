@@ -24,7 +24,7 @@ return `Py`.
 """
 mutable struct Py
     ptr::Ptr{Cvoid}
-    Py(::Val{:new}, ptr::Ptr{Cvoid}) = finalizer(Core.py_finalizer, new(ptr))
+    Py(::Val{:new}, ptr::Ptr) = finalizer(Core.py_finalizer, new(Ptr{Cvoid}(ptr)))
 end
 
 """

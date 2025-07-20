@@ -14,16 +14,6 @@ include("Wrap/Wrap.jl")
 include("JlWrap/JlWrap.jl")
 include("Compat/Compat.jl")
 
-# re-export everything
-for m in [:Core, :Convert, :PyMacro, :Wrap, :JlWrap, :Compat]
-    for k in names(@eval($m))
-        if k != m
-            @eval using .$m: $k
-            @eval export $k
-        end
-    end
-end
-
 # non-exported API
 using .Core: PyNULL, CONFIG
 

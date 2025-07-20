@@ -9,6 +9,7 @@ using ..PythonCall
 using ..Utils
 using ..C
 using ..Core
+using ..Convert
 using ..PyMacro
 
 import ..PythonCall:
@@ -26,11 +27,6 @@ using Tables: Tables
 using UnsafePointers: UnsafePtr
 
 import ..Core: Py, ispy
-import ..Convert:
-    pyconvert_add_rule,
-    PYCONVERT_PRIORITY_ARRAY,
-    PYCONVERT_PRIORITY_CANONICAL,
-    PYCONVERT_PRIORITY_NORMAL
 
 include("PyIterable.jl")
 include("PyDict.jl")

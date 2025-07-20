@@ -13,20 +13,20 @@ using ..Core
 using Dates: Date, Time, DateTime, Second, Millisecond, Microsecond, Nanosecond
 
 import ..PythonCall:
-    pyconvert,
     @pyconvert,
     pyconvert_add_rule,
     pyconvert_return,
     pyconvert_unconverted,
+    pyconvert,
     PyConvertPriority
 
 export
-    pyconvert_tryconvert,
-    pyconvertarg,
-    pyconvert_result,
-    pyconvert_unconverted,
     pyconvert_isunconverted,
-    pyconvert_result
+    pyconvert_result,
+    pyconvert_result,
+    pyconvert_tryconvert,
+    pyconvert_unconverted,
+    pyconvertarg
 
 
 include("pyconvert.jl")

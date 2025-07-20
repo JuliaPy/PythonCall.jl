@@ -1,25 +1,29 @@
 if Base.VERSION ≥ v"1.11"
     eval(Meta.parse("""
-        public VERSION,
-               GIL,
-               GC,
-               # C
-               python_executable_path,
-               python_library_path,
-               python_library_handle,
-               python_version,
-               # Core
-               pynew,
-               pyisnull,
-               pycopy!,
-               getptr,
-               pydel!,
-               unsafe_pynext,
-               PyNULL,
-               CONFIG,
-               # Compat
-               event_loop_on,
-               event_loop_off,
-               fix_qt_plugin_path
+        public
+            GC,
+            GIL,
+            VERSION,
+
+            # C
+            python_executable_path,
+            python_library_handle,
+            python_library_path,
+            python_version,
+
+            # Core
+            CONFIG,
+            getptr,
+            pycopy!,
+            pydel!,
+            pyisnull,
+            pynew,
+            PyNULL,
+            unsafe_pynext,
+            
+            # Compat
+            event_loop_off,
+            event_loop_on,
+            fix_qt_plugin_path
     """))
 end

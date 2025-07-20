@@ -1,11 +1,3 @@
-@enum PyConvertPriority begin
-    PYCONVERT_PRIORITY_WRAP = 400
-    PYCONVERT_PRIORITY_ARRAY = 300
-    PYCONVERT_PRIORITY_CANONICAL = 200
-    PYCONVERT_PRIORITY_NORMAL = 0
-    PYCONVERT_PRIORITY_FALLBACK = -100
-end
-
 struct PyConvertRule
     type::Type
     func::Function
@@ -387,7 +379,6 @@ macro pyconvert(T, x, onfail = :(return $pyconvert_unconverted()))
         end
     end
 end
-export @pyconvert
 
 """
     pyconvert(T, x, [d])
@@ -400,7 +391,6 @@ pyconvert(::Type{T}, x) where {T} = @autopy x @pyconvert T x_ error(
     "cannot convert this Python '$(pytype(x_).__name__)' to a Julia '$T'",
 )
 pyconvert(::Type{T}, x, d) where {T} = @autopy x @pyconvert T x_ d
-export pyconvert
 
 """
     pyconvertarg(T, x, name)

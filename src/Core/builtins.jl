@@ -6,7 +6,6 @@
 True if `x` and `y` are the same Python object. Equivalent to `x is y` in Python.
 """
 pyis(x, y) = @autopy x y getptr(x_) == getptr(y_)
-export pyis
 
 pyisnot(x, y) = !pyis(x, y)
 
@@ -17,7 +16,6 @@ Equivalent to `repr(x)` in Python.
 """
 pyrepr(x) = pynew(errcheck(@autopy x C.PyObject_Repr(x_)))
 pyrepr(::Type{String}, x) = (s = pyrepr(x); ans = pystr_asstring(s); pydel!(s); ans)
-export pyrepr
 
 """
     pyascii(x)
@@ -26,7 +24,6 @@ Equivalent to `ascii(x)` in Python.
 """
 pyascii(x) = pynew(errcheck(@autopy x C.PyObject_ASCII(x_)))
 pyascii(::Type{String}, x) = (s = pyascii(x); ans = pystr_asstring(s); pydel!(s); ans)
-export pyascii
 
 """
     pyhasattr(x, k)
@@ -50,7 +47,6 @@ function pyhasattr(x, k)
     end
 end
 # pyhasattr(x, k) = errcheck(@autopy x k C.PyObject_HasAttr(x_, k_)) == 1
-export pyhasattr
 
 """
     pygetattr(x, k, [d])
@@ -73,7 +69,6 @@ function pygetattr(x, k, d)
         return pynew(ptr)
     end
 end
-export pygetattr
 
 """
     pysetattr(x, k, v)
@@ -83,7 +78,6 @@ Equivalent to `setattr(x, k, v)` or `x.k = v` in Python.
 pysetattr(x, k, v) = (
     errcheck(@autopy x k v C.PyObject_SetAttr(x_, k_, v_)); nothing
 )
-export pysetattr
 
 """
     pydelattr(x, k)
@@ -92,7 +86,6 @@ Equivalent to `delattr(x, k)` or `del x.k` in Python.
 """
 pydelattr(x, k) =
     (errcheck(@autopy x k C.PyObject_SetAttr(x_, k_, C.PyNULL)); nothing)
-export pydelattr
 
 """
     pyissubclass(s, t)
@@ -101,7 +94,6 @@ Test if `s` is a subclass of `t`. Equivalent to `issubclass(s, t)` in Python.
 """
 pyissubclass(s, t) =
     errcheck(@autopy s t C.PyObject_IsSubclass(s_, t_)) == 1
-export pyissubclass
 
 """
     pyisinstance(x, t)
@@ -110,7 +102,6 @@ Test if `x` is of type `t`. Equivalent to `isinstance(x, t)` in Python.
 """
 pyisinstance(x, t) =
     errcheck(@autopy x t C.PyObject_IsInstance(x_, t_)) == 1
-export pyisinstance
 
 """
     pyhash(x)
@@ -118,7 +109,6 @@ export pyisinstance
 Equivalent to `hash(x)` in Python, converted to an `Integer`.
 """
 pyhash(x) = errcheck(@autopy x C.PyObject_Hash(x_))
-export pyhash
 
 """
     pytruth(x)
@@ -126,7 +116,6 @@ export pyhash
 The truthyness of `x`. Equivalent to `bool(x)` in Python, converted to a `Bool`.
 """
 pytruth(x) = errcheck(@autopy x C.PyObject_IsTrue(x_)) == 1
-export pytruth
 
 """
     pynot(x)
@@ -134,7 +123,6 @@ export pytruth
 The falsyness of `x`. Equivalent to `not x` in Python, converted to a `Bool`.
 """
 pynot(x) = errcheck(@autopy x C.PyObject_Not(x_)) == 1
-export pynot
 
 """
     pylen(x)
@@ -142,7 +130,6 @@ export pynot
 The length of `x`. Equivalent to `len(x)` in Python, converted to an `Integer`.
 """
 pylen(x) = errcheck(@autopy x C.PyObject_Length(x_))
-export pylen
 
 """
     pyhasitem(x, k)
@@ -163,7 +150,6 @@ function pyhasitem(x, k)
         return true
     end
 end
-export pyhasitem
 
 """
     pygetitem(x, k, [d])
@@ -187,7 +173,6 @@ function pygetitem(x, k, d)
         return pynew(ptr)
     end
 end
-export pygetitem
 
 """
     pysetitem(x, k, v)
@@ -197,7 +182,6 @@ Equivalent to `setitem(x, k, v)` or `x[k] = v` in Python.
 pysetitem(x, k, v) = (
     errcheck(@autopy x k v C.PyObject_SetItem(x_, k_, v_)); nothing
 )
-export pysetitem
 
 """
     pydelitem(x, k)
@@ -206,7 +190,6 @@ Equivalent to `delitem(x, k)` or `del x[k]` in Python.
 """
 pydelitem(x, k) =
     (errcheck(@autopy x k C.PyObject_DelItem(x_, k_)); nothing)
-export pydelitem
 
 """
     pydir(x)
@@ -214,7 +197,6 @@ export pydelitem
 Equivalent to `dir(x)` in Python.
 """
 pydir(x) = pynew(errcheck(@autopy x C.PyObject_Dir(x_)))
-export pydir
 
 pycallargs(f) = pynew(errcheck(@autopy f C.PyObject_CallObject(f_, C.PyNULL)))
 pycallargs(f, args) =
@@ -246,7 +228,6 @@ pycall(f, args...; kwargs...) =
     else
         pycallargs(f)
     end
-export pycall
 
 """
     pyeq(x, y)
@@ -313,7 +294,6 @@ pyge(::Type{Bool}, x, y) =
     errcheck(@autopy x y C.PyObject_RichCompareBool(x_, y_, C.Py_GE)) == 1
 pygt(::Type{Bool}, x, y) =
     errcheck(@autopy x y C.PyObject_RichCompareBool(x_, y_, C.Py_GT)) == 1
-export pyeq, pyne, pyle, pylt, pyge, pygt
 
 """
     pycontains(x, v)
@@ -321,7 +301,6 @@ export pyeq, pyne, pyle, pylt, pyge, pygt
 Equivalent to `v in x` in Python.
 """
 pycontains(x, v) = errcheck(@autopy x v C.PySequence_Contains(x_, v_)) == 1
-export pycontains
 
 """
     pyin(v, x)
@@ -329,7 +308,6 @@ export pycontains
 Equivalent to `v in x` in Python.
 """
 pyin(v, x) = pycontains(x, v)
-export pyin
 
 pynotin(v, x) = !pyin(v, x)
 
@@ -366,7 +344,6 @@ pyinv(x) = pynew(errcheck(@autopy x C.PyNumber_Invert(x_)))
 Convert `x` losslessly to an `int`.
 """
 pyindex(x) = pynew(errcheck(@autopy x C.PyNumber_Index(x_)))
-export pyneg, pypos, pyabs, pyinv, pyindex
 
 # binary
 """
@@ -449,19 +426,6 @@ pyxor(x, y) = pynew(errcheck(@autopy x y C.PyNumber_Xor(x_, y_)))
 Equivalent to `x | y` in Python.
 """
 pyor(x, y) = pynew(errcheck(@autopy x y C.PyNumber_Or(x_, y_)))
-export pyadd,
-    pysub,
-    pymul,
-    pymatmul,
-    pyfloordiv,
-    pytruediv,
-    pymod,
-    pydivmod,
-    pylshift,
-    pyrshift,
-    pyand,
-    pyxor,
-    pyor
 
 # binary in-place
 """
@@ -544,18 +508,6 @@ pyixor(x, y) = pynew(errcheck(@autopy x y C.PyNumber_InPlaceXor(x_, y_)))
 In-place or. `x = pyior(x, y)` is equivalent to `x |= y` in Python.
 """
 pyior(x, y) = pynew(errcheck(@autopy x y C.PyNumber_InPlaceOr(x_, y_)))
-export pyiadd,
-    pyisub,
-    pyimul,
-    pyimatmul,
-    pyifloordiv,
-    pyitruediv,
-    pyimod,
-    pyilshift,
-    pyirshift,
-    pyiand,
-    pyixor,
-    pyior
 
 # power
 """
@@ -573,7 +525,6 @@ In-place power. `x = pyipow(x, y)` is equivalent to `x **= y` in Python.
 pyipow(x, y, z = pybuiltins.None) = pynew(
     errcheck(@autopy x y z C.PyNumber_InPlacePower(x_, y_, z_)),
 )
-export pypow, pyipow
 
 ### iter
 
@@ -583,7 +534,6 @@ export pypow, pyipow
 Equivalent to `iter(x)` in Python.
 """
 pyiter(x) = pynew(errcheck(@autopy x C.PyObject_GetIter(x_)))
-export pyiter
 
 """
     pynext(x)
@@ -591,7 +541,6 @@ export pyiter
 Equivalent to `next(x)` in Python.
 """
 pynext(x) = pybuiltins.next(x)
-export pynext
 
 """
     unsafe_pynext(x)
@@ -614,7 +563,6 @@ Convert `x` to a Python `bool`.
 pybool(x::Bool = false) = pynew(x ? pybuiltins.True : pybuiltins.False)
 pybool(x::Number) = pybool(!iszero(x))
 pybool(x) = pybuiltins.bool(x)
-export pybool
 
 pyisTrue(x) = pyis(x, pybuiltins.True)
 pyisFalse(x) = pyis(x, pybuiltins.False)
@@ -645,7 +593,6 @@ pystr(x::String) = pystr_fromUTF8(x)
 pystr(x::SubString{String}) = pystr_fromUTF8(x)
 pystr(x::Char) = pystr(string(x))
 pystr(::Type{String}, x) = (s = pystr(x); ans = pystr_asstring(s); pydel!(s); ans)
-export pystr
 
 pystr_asUTF8bytes(x::Py) = pynew(errcheck(C.PyUnicode_AsUTF8String(x)))
 pystr_asUTF8vector(x::Py) =
@@ -679,7 +626,6 @@ pybytes(::Type{T}, x) where {Vector{UInt8} <: T <: Vector} =
     (b = pybytes(x); ans = pybytes_asvector(b); pydel!(b); ans)
 pybytes(::Type{T}, x) where {Base.CodeUnits{UInt8,String} <: T <: Base.CodeUnits} =
     (b = pybytes(x); ans = Base.CodeUnits(pybytes_asUTF8string(b)); pydel!(b); ans)
-export pybytes
 
 pyisbytes(x) = pytypecheckfast(x, C.Py_TPFLAGS_BYTES_SUBCLASS)
 
@@ -729,7 +675,6 @@ function pyint(x::Unsigned)
     end
 end
 pyint(x) = @autopy x pynew(errcheck(C.PyNumber_Long(x_)))
-export pyint
 
 pyisint(x) = pytypecheckfast(x, C.Py_TPFLAGS_LONG_SUBCLASS)
 
@@ -742,7 +687,6 @@ Convert `x` to a Python `float`.
 """
 pyfloat(x::Real = 0.0) = pynew(errcheck(C.PyFloat_FromDouble(x)))
 pyfloat(x) = @autopy x pynew(errcheck(C.PyNumber_Float(x_)))
-export pyfloat
 
 pyisfloat(x) = pytypecheck(x, pybuiltins.float)
 
@@ -760,7 +704,6 @@ pycomplex(x::Real = 0.0, y::Real = 0.0) = pynew(errcheck(C.PyComplex_FromDoubles
 pycomplex(x::Complex) = pycomplex(real(x), imag(x))
 pycomplex(x) = pybuiltins.complex(x)
 pycomplex(x, y) = pybuiltins.complex(x, y)
-export pycomplex
 
 pyiscomplex(x) = pytypecheck(x, pybuiltins.complex)
 
@@ -778,7 +721,6 @@ end
 The Python `type` of `x`.
 """
 pytype(x) = pynew(errcheck(@autopy x C.PyObject_Type(x_)))
-export pytype
 
 """
     pytype(name, bases, dict)
@@ -868,7 +810,6 @@ Construct a Python `slice`. Unspecified arguments default to `None`.
 pyslice(x, y, z = pybuiltins.None) =
     pynew(errcheck(@autopy x y z C.PySlice_New(x_, y_, z_)))
 pyslice(y) = pyslice(pybuiltins.None, y, pybuiltins.None)
-export pyslice
 
 pyisslice(x) = pytypecheck(x, pybuiltins.slice)
 
@@ -882,7 +823,6 @@ Construct a Python `range`. Unspecified arguments default to `None`.
 pyrange(x, y, z) = pybuiltins.range(x, y, z)
 pyrange(x, y) = pybuiltins.range(x, y)
 pyrange(y) = pybuiltins.range(y)
-export pyrange
 
 pyrange_fromrange(x::AbstractRange) = pyrange(first(x), last(x) + sign(step(x)), step(x))
 
@@ -940,7 +880,6 @@ Otherwise `x` must be iterable.
 """
 pytuple() = pynulltuple(0)
 pytuple(x) = ispy(x) ? pybuiltins.tuple(x) : pytuple_fromiter(x)
-export pytuple
 
 pyistuple(x) = pytypecheckfast(x, C.Py_TPFLAGS_TUPLE_SUBCLASS)
 
@@ -986,7 +925,6 @@ Otherwise `x` must be iterable.
 """
 pylist() = pynulllist(0)
 pylist(x) = ispy(x) ? pybuiltins.list(x) : pylist_fromiter(x)
-export pylist
 
 """
     pycollist(x::AbstractArray)
@@ -1005,7 +943,6 @@ function pycollist(x::AbstractArray{T,N}) where {T,N}
     end
     return ans
 end
-export pycollist
 
 """
     pyrowlist(x::AbstractArray)
@@ -1024,7 +961,6 @@ function pyrowlist(x::AbstractArray{T,N}) where {T,N}
     end
     return ans
 end
-export pyrowlist
 
 ### set
 
@@ -1049,7 +985,6 @@ Otherwise `x` must be iterable.
 """
 pyset() = pynew(errcheck(C.PySet_New(C.PyNULL)))
 pyset(x) = ispy(x) ? pybuiltins.set(x) : pyset_fromiter(x)
-export pyset
 
 """
     pyfrozenset(x=())
@@ -1061,7 +996,6 @@ Otherwise `x` must be iterable.
 """
 pyfrozenset() = pynew(errcheck(C.PyFrozenSet_New(C.PyNULL)))
 pyfrozenset(x) = ispy(x) ? pybuiltins.frozenset(x) : pyfrozenset_fromiter(x)
-export pyfrozenset
 
 ### dict
 
@@ -1097,7 +1031,6 @@ pydict(; kwargs...) =
     isempty(kwargs) ? pynew(errcheck(C.PyDict_New())) : pystrdict_fromiter(kwargs)
 pydict(x) = ispy(x) ? pybuiltins.dict(x) : pydict_fromiter(x)
 pydict(x::NamedTuple) = pydict(; x...)
-export pydict
 
 ### datetime
 
@@ -1112,7 +1045,6 @@ end
 
 pydate(year, month, day) = pydatetype(year, month, day)
 pydate(x::Date) = pydate(year(x), month(x), day(x))
-export pydate
 
 pytime(
     _hour = 0,
@@ -1137,7 +1069,6 @@ pytime(x::Time) =
         )
         pythrow()
     end
-export pytime
 
 pydatetime(
     year,
@@ -1164,7 +1095,6 @@ function pydatetime(x::DateTime)
     return ans
 end
 pydatetime(x::Date) = pydatetime(year(x), month(x), day(x))
-export pydatetime
 
 function pytime_isaware(x)
     tzinfo = pygetattr(x, "tzinfo")
@@ -1202,7 +1132,6 @@ pyfraction(x::Rational) = pyfraction(numerator(x), denominator(x))
 pyfraction(x, y) = pyfractiontype(x, y)
 pyfraction(x) = pyfractiontype(x)
 pyfraction() = pyfractiontype()
-export pyfraction
 
 ### eval/exec
 
@@ -1260,7 +1189,6 @@ function pyeval(::Type{T}, code, globals, locals = nothing) where {T}
     return pyconvert(T, ans)
 end
 pyeval(code, globals, locals = nothing) = pyeval(Py, code, globals, locals)
-export pyeval
 
 _pyexec_ans(::Type{Nothing}, globals, locals) = nothing
 @generated function _pyexec_ans(
@@ -1328,7 +1256,6 @@ function pyexec(::Type{T}, code, globals, locals = nothing) where {T}
     return ans
 end
 pyexec(code, globals, locals = nothing) = pyexec(Nothing, code, globals, locals)
-export pyexec
 
 function _pyeval_macro_code(arg)
     if arg isa String
@@ -1424,7 +1351,6 @@ macro pyeval(arg)
     end
     esc(:($pyeval($outputs, $code, $__module__, $locals)))
 end
-export @pyeval
 
 """
     @pyexec [inputs =>] code [=> outputs]
@@ -1510,7 +1436,6 @@ macro pyexec(arg)
         esc(ans)
     end
 end
-export @pyexec
 
 ### with
 
@@ -1543,7 +1468,6 @@ function pywith(f, o, d = nothing)
         exited || exit(o, pybuiltins.None, pybuiltins.None, pybuiltins.None)
     end
 end
-export pywith
 
 ### import
 
@@ -1562,7 +1486,6 @@ pyimport((m, k)::Pair) = (m_ = pyimport(m); k_ = pygetattr(m_, k); pydel!(m_); k
 pyimport((m, ks)::Pair{<:Any,<:Tuple}) =
     (m_ = pyimport(m); ks_ = map(k -> pygetattr(m_, k), ks); pydel!(m_); ks_)
 pyimport(m1, m2, ms...) = map(pyimport, (m1, m2, ms...))
-export pyimport
 
 ### builtins not covered elsewhere
 
@@ -1572,7 +1495,6 @@ export pyimport
 Equivalent to `print(...)` in Python.
 """
 pyprint(args...; kwargs...) = (pydel!(pybuiltins.print(args...; kwargs...)); nothing)
-export pyprint
 
 function _pyhelp(args...)
     pyisnone(pybuiltins.help) && error("Python help is not available")
@@ -1586,7 +1508,6 @@ Equivalent to `help(x)` in Python.
 """
 pyhelp() = _pyhelp()
 pyhelp(x) = _pyhelp(x)
-export pyhelp
 
 """
     pyall(x)
@@ -1599,7 +1520,6 @@ function pyall(x)
     pydel!(y)
     z
 end
-export pyall
 
 """
     pyany(x)
@@ -1612,7 +1532,6 @@ function pyany(x)
     pydel!(y)
     z
 end
-export pyany
 
 """
     pycallable(x)
@@ -1625,7 +1544,6 @@ function pycallable(x)
     pydel!(y)
     z
 end
-export pycallable
 
 """
     pycompile(...)
@@ -1633,4 +1551,3 @@ export pycallable
 Equivalent to `compile(...)` in Python.
 """
 pycompile(args...; kwargs...) = pybuiltins.compile(args...; kwargs...)
-export pycompile

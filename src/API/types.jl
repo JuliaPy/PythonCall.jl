@@ -42,12 +42,11 @@ end
 """
     pybuiltins
 
-An object whose fields are the Python builtins, of type [`Py`](@ref).
+An object whose fields are the Python builtins, of type [`Py`](@ref PythonCall.Py).
 
 For example `pybuiltins.None`, `pybuiltins.int`, `pybuiltins.ValueError`.
 """
-baremodule pybuiltins
-end
+baremodule pybuiltins end
 
 # Wrap
 

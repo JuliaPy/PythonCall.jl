@@ -37,6 +37,7 @@ import ..PythonCall:
     getptr,
     pydel!,
     unsafe_pynext,
+    ispy,
     pyis,
     pyrepr,
     pyascii,

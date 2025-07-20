@@ -1,4 +1,5 @@
 # Core
+export ispy
 export pyis
 export pyrepr
 export pyascii

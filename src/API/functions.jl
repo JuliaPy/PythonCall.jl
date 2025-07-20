@@ -12,6 +12,7 @@ function getptr end
 function pydel! end
 function unsafe_pynext end
 
+function ispy end
 function pyis end
 function pyrepr end
 function pyascii end

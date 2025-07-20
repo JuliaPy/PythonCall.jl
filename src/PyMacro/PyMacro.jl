@@ -21,6 +21,8 @@ module PyMacro
 using ..PythonCall
 using ..Core
 
+import ..PythonCall: @py
+
 using MacroTools: MacroTools, @capture, isexpr
 
 const PY_MACRO_NILOPS = Dict(
@@ -877,6 +879,5 @@ See the online documentation for more details.
 macro py(ex)
     esc(py_macro(ex, __module__, __source__))
 end
-export @py
 
 end

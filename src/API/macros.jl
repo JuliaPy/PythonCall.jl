@@ -5,3 +5,6 @@ macro pyconst end
 
 # Convert
 macro pyconvert end
+
+# PyMacro
+macro py end

@@ -96,6 +96,7 @@ export pycallable
 export pycompile
 export @pyeval
 export @pyexec
+export @py
 export @pyconst
 
 # Convert

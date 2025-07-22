@@ -16,13 +16,12 @@ while True:
         continue
     except EOFError:
         break
-    if not line.strip():
-        continue
-    try:
-        result = Main.seval(line)
-        if result is not None:
-            Main.display(result)
-            print()
-    except Exception as e:
-        print(f"{RED}ERROR:{RESET} {e}")
+    if sline := line.strip():
+        try:
+            result = Main.seval(sline)
+            if result is not None:
+                Main.display(result)
+        except Exception as e:
+            print(f"{RED}ERROR:{RESET} {e}")
+    print()
 

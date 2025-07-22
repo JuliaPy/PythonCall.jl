@@ -26,6 +26,3 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["pysrc/juliacall"]
-
-[project.scripts]
-juliapy = "juliacall.repl:run_repl"

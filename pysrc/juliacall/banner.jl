@@ -20,16 +20,18 @@ function __PythonCall_banner(io::IO = stdout)
         c = Base.text_colors
         tx = c[:normal] # text
         jl = c[:normal] # julia
-        jc = c[:blue] # juliacall
+        jc = c[:blue] # juliacall text
+        jb = c[:bold] * jc  # bold blue dot
         d1 = c[:bold] * c[:blue]    # first dot
         d2 = c[:bold] * c[:red]     # second dot
         d3 = c[:bold] * c[:green]   # third dot
         d4 = c[:bold] * c[:magenta] # fourth dot
+        d5 = c[:bold] * c[:yellow]  # bold yellow dot
 
         if short
             print(io,"""
-              $(d3)o$(tx)    | Julia $(VERSION)
-             $(d2)o$(tx) $(d4)o$(tx) $(c[:bold] * jc)o$(tx) | PythonCall $(PythonCall.VERSION)
+              $(jb)o$(tx)  | Julia $(VERSION)
+             $(jb)o$(tx) $(d5)o$(tx) | PythonCall $(PythonCall.VERSION)
             """)
         else
             print(io,"""               $(d3)_$(tx)
@@ -46,8 +48,8 @@ function __PythonCall_banner(io::IO = stdout)
     else
         if short
             print(io,"""
-              o    |  Julia $(VERSION)
-             o o o |  PythonCall $(PythonCall.VERSION)
+              o  |  Julia $(VERSION)
+             o o |  PythonCall $(PythonCall.VERSION)
             """)
         else
             print(io,"""

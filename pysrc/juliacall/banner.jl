@@ -1,14 +1,7 @@
 # https://github.com/JuliaLang/julia/blob/fae0d0ad3e5d9804533435fe81f4eaac819895af/stdlib/REPL/src/REPL.jl#L1727C1-L1795C4
 
-function __PythonCall_banner(io::IO = stdout)
-    banner_opt = begin
-        opts = Base.JLOptions()
-        b = opts.banner
-        b == -1 ? :yes :
-        b == 0 ? :no :
-        b == 1 ? :yes :
-        :short # b == 2
-    end
+function __PythonCall_banner(banner_opt::Symbol = :yes)
+    io = stdout
 
     if banner_opt == :no
         return

@@ -4,9 +4,9 @@ function __PythonCall_banner(io::IO = stdout)
     banner_opt = begin
         opts = Base.JLOptions()
         b = opts.banner
-        auto = b == -1
-        b == 0 || (auto && !interactiveinput) ? :no  :
-        b == 1 || (auto && interactiveinput)  ? :yes :
+        b == -1 ? :yes :
+        b == 0 ? :no :
+        b == 1 ? :yes :
         :short # b == 2
     end
 

@@ -1,27 +1,20 @@
+import os
+os.environ.setdefault("PYTHON_JULIACALL_HANDLE_SIGNALS", "yes")
+if os.environ.get("PYTHON_JULIACALL_HANDLE_SIGNALS") != "yes":
+    print("Experimental JuliaCall REPL requires PYTHON_JULIACALL_HANDLE_SIGNALS=yes")
+    exit(1)
+
 from juliacall import Main
 
-RED = "\033[1;31m"
-GREEN = "\033[1;32m"
-RESET = "\033[0m"
+Main.seval(f"""\
+Base.is_interactive = true
 
-import os
-path_to_banner = os.path.join(os.path.dirname(__file__), "banner.jl")
-Main.seval(f"include(\"{path_to_banner}\"); banner()")
+include(\"{os.path.join(os.path.dirname(__file__), 'banner.jl')}\")
+banner()
 
-while True:
-    try:
-        line = input(f"{GREEN}juliacall> {RESET}")
-    except KeyboardInterrupt:
-        print("\n")
-        continue
-    except EOFError:
-        break
-    if sline := line.strip():
-        try:
-            result = Main.seval(sline)
-            if result is not None:
-                Main.display(result)
-        except Exception as e:
-            print(f"{RED}ERROR:{RESET} {e}")
-    print()
-
+if VERSION > v"v1.11.0-alpha1"
+    Base.run_main_repl(true, false, :no, true, true)
+else # interactive, quiet, banner, history_file, color_set
+    Base.run_main_repl(true, false, false, true, true)
+end
+""")

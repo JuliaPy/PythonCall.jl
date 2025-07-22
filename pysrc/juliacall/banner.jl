@@ -1,26 +1,20 @@
 # https://github.com/JuliaLang/julia/blob/fae0d0ad3e5d9804533435fe81f4eaac819895af/stdlib/REPL/src/REPL.jl#L1727C1-L1795C4
 
-function banner(io::IO = stdout; short = false)
-    if Base.GIT_VERSION_INFO.tagged_commit
-        commit_string = Base.TAGGED_RELEASE_BANNER
-    elseif isempty(Base.GIT_VERSION_INFO.commit)
-        commit_string = ""
-    else
-        days = Int(floor((ccall(:jl_clock_now, Float64, ()) - Base.GIT_VERSION_INFO.fork_master_timestamp) / (60 * 60 * 24)))
-        days = max(0, days)
-        unit = days == 1 ? "day" : "days"
-        distance = Base.GIT_VERSION_INFO.fork_master_distance
-        commit = Base.GIT_VERSION_INFO.commit_short
-
-        if distance == 0
-            commit_string = "Commit $(commit) ($(days) $(unit) old master)"
-        else
-            branch = Base.GIT_VERSION_INFO.branch
-            commit_string = "$(branch)/$(commit) (fork: $(distance) commits, $(days) $(unit))"
-        end
+function __PythonCall_banner(io::IO = stdout)
+    banner_opt = begin
+        opts = Base.JLOptions()
+        b = opts.banner
+        auto = b == -1
+        b == 0 || (auto && !interactiveinput) ? :no  :
+        b == 1 || (auto && interactiveinput)  ? :yes :
+        :short # b == 2
     end
 
-    commit_date = isempty(Base.GIT_VERSION_INFO.date_string) ? "" : " ($(split(Base.GIT_VERSION_INFO.date_string)[1]))"
+    if banner_opt == :no
+        return
+    end
+
+    short = banner_opt == :short
 
     if get(io, :color, false)::Bool
         c = Base.text_colors
@@ -34,8 +28,8 @@ function banner(io::IO = stdout; short = false)
 
         if short
             print(io,"""
-              $(d3)o$(tx)  | Version $(VERSION)PythonCall: $(PythonCall.VERSION)
-             $(d2)o$(tx) $(d4)o$(tx) | $(commit_string)
+              $(d3)o$(tx)    | Julia $(VERSION)
+             $(d2)o$(tx) $(d4)o$(tx) $(c[:bold] * jc)o$(tx) | PythonCall $(PythonCall.VERSION)
             """)
         else
             print(io,"""               $(d3)_$(tx)
@@ -52,8 +46,8 @@ function banner(io::IO = stdout; short = false)
     else
         if short
             print(io,"""
-              o  |  Version $(VERSION)PythonCall: $(PythonCall.VERSION)
-             o o |  $(commit_string)
+              o    |  Julia $(VERSION)
+             o o o |  PythonCall $(PythonCall.VERSION)
             """)
         else
             print(io,"""

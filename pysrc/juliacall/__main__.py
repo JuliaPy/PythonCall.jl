@@ -4,17 +4,16 @@ if os.environ.get("PYTHON_JULIACALL_HANDLE_SIGNALS") != "yes":
     print("Experimental JuliaCall REPL requires PYTHON_JULIACALL_HANDLE_SIGNALS=yes")
     exit(1)
 
-from juliacall import Main
+from juliacall import Main, Base
 
-Main.seval(f"""\
-Base.is_interactive = true
+Base.is_interactive = True
 
-include(\"{os.path.join(os.path.dirname(__file__), 'banner.jl')}\")
-banner()
+Main.include(os.path.join(os.path.dirname(__file__), 'banner.jl'))
+Main.__PythonCall_banner()
 
-if VERSION > v"v1.11.0-alpha1"
-    Base.run_main_repl(true, false, :no, true, true)
-else # interactive, quiet, banner, history_file, color_set
-    Base.run_main_repl(true, false, false, true, true)
-end
-""")
+if Main.seval(r'VERSION > v"v1.11.0-alpha1"'):
+    no_banner_opt = Base.Symbol("no")
+else:
+    no_banner_opt = False
+
+Base.run_main_repl(True, False, no_banner_opt, True, True)

@@ -44,8 +44,8 @@ function banner(io::IO = stdout; short = false)
                $(jl)_ _   _| |_  __ _$(jc)  ___  __ _ | || |$(tx)  |  Julia: $(VERSION)
               $(jl)| | | | | | |/ _` |$(jc)/ __|/ _` || || |$(tx)  |  PythonCall: $(PythonCall.VERSION)
               $(jl)| | |_| | | | (_| |$(jc) |__  (_| || || |$(tx)  |
-             $(jl)_/ |\\__'_|_|_|\\__'_|$(jc)\\___|\\__'_||_||_|$(tx)  |  This REPL is running via Python using JuliaCall.
-            $(jl)|__/$(tx)                                    |    Only basic features are supported.
+             $(jl)_/ |\\__'_|_|_|\\__'_|$(jc)\\___|\\__'_||_||_|$(tx)  |  The JuliaCall REPL is experimental.
+            $(jl)|__/$(tx)                                    |
 
             """)
         end
@@ -63,9 +63,8 @@ function banner(io::IO = stdout; short = false)
                _ _   _| |_  __ _  ___  __ _ | || |  |  Julia: $(VERSION)
               | | | | | | |/ _` |/ __|/ _` || || |  |  PythonCall: $(PythonCall.VERSION)
               | | |_| | | | (_| | |__  (_| || || |  |
-             _/ |\\__'_|_|_|\\__'_|\\___|\\__'_||_||_|  |  This REPL is running via Python using JuliaCall.
-            |__/                                    |    Only basic features are supported.
-
+             _/ |\\__'_|_|_|\\__'_|\\___|\\__'_||_||_|  |  The JuliaCall REPL is experimental.
+            |__/                                    |
             """)
         end
     end

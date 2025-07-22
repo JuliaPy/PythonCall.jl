@@ -11,6 +11,9 @@ Main.seval(f"include(\"{path_to_banner}\"); banner()")
 while True:
     try:
         line = input(f"{GREEN}juliacall> {RESET}")
+    except KeyboardInterrupt:
+        print("\n")
+        continue
     except EOFError:
         break
     if not line.strip():
@@ -18,7 +21,8 @@ while True:
     try:
         result = Main.seval(line)
         if result is not None:
-            print(result)
+            Main.display(result)
+            print()
     except Exception as e:
         print(f"{RED}ERROR:{RESET} {e}")
 

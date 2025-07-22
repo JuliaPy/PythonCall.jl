@@ -36,10 +36,9 @@ class JuliaError(Exception):
         e = self.exception
         b = self.backtrace
         if b is None:
-            f = Main.seval("e -> io -> showerror(IOContext(io, :color=>true), e)")(e)
+            return Base.sprint(Base.showerror, e)
         else:
-            f = Main.seval("(e, b) -> io -> showerror(IOContext(io, :color=>true), e, b)")(e, b)
-        return Base.sprint(f)
+            return Base.sprint(Base.showerror, e, b)
     @property
     def exception(self):
         return self.args[0]

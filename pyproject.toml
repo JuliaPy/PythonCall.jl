@@ -28,4 +28,4 @@ dev = [
 packages = ["pysrc/juliacall"]
 
 [project.scripts]
-pyjulia = "juliacall.repl:run_repl"
+juliapy = "juliacall.repl:run_repl"

@@ -10,7 +10,7 @@ if __name__ == '__main__':
     parser.add_argument('--history-file', choices=['yes', 'no'], default='yes', help='Load or save history')
     parser.add_argument('--preamble', type=Path, help='Code to be included before the REPL starts')
     args = parser.parse_args()
-    assert not (args.eval is not None and args.print is not None)
+    assert not (args.eval is not None and args.print is not None), "Cannot specify both -e/--eval and -E/--print"
     if args.eval is not None:
         from juliacall import Main
         Main.seval(args.eval)

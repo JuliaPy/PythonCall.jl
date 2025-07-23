@@ -1,9 +1,12 @@
-if __name__ == '__main__':
-    import juliacall as _  # calls init() which calls juliapkg.executable() which lazily downloads julia
+import json
+import juliapkg
+import sys
 
-    import sys
+if __name__ == '__main__':
+    # invoking python -m juliacall.init automatically imports juliacall which
+    # calls init() which calls juliapkg.executable() which lazily downloads julia
+
     if "--debug" in sys.argv:
-        import juliapkg, json
         state = juliapkg.state.STATE
         state["version"] = str(state["version"])
         print(json.dumps(state, indent=2))

@@ -4,7 +4,7 @@ from juliacall import Main
 from juliacall.repl import run_repl, add_repl_args
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser("JuliaCall REPL (experimental)")
     parser.add_argument('-e', '--eval', type=str, default=None, help='Evaluate <expr>. If specified, all other arguments are ignored.')
     parser.add_argument('-E', '--print', type=str, default=None, help='Evaluate <expr> and display the result. If specified, all other arguments are ignored.')
@@ -26,3 +26,6 @@ if __name__ == '__main__':
             history_file=args.history_file,
             preamble=args.preamble
         )
+
+if __name__ == '__main__':
+    main()

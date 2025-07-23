@@ -29,5 +29,17 @@ def run_repl(banner='yes', quiet=False, history_file='yes', preamble=None):
         True
     )
 
+def add_repl_args(parser):
+    from pathlib import Path
+    parser.add_argument('--banner', choices=['yes', 'no', 'short'], default='yes', help='Enable or disable startup banner')
+    parser.add_argument('--quiet', '-q', action='store_true', help='Quiet startup: no banner, suppress REPL warnings')
+    parser.add_argument('--history-file', choices=['yes', 'no'], default='yes', help='Load or save history')
+    parser.add_argument('--preamble', type=Path, help='Code to be included before the REPL starts')
+
 if __name__ == '__main__':
-    run_repl()
+    import argparse
+    parser = argparse.ArgumentParser("JuliaCall REPL (experimental)")
+    from juliacall.repl import add_repl_args
+    add_repl_args(parser)
+    args = parser.parse_args()
+    run_repl(args.banner, args.quiet, args.history_file, args.preamble)

@@ -16,7 +16,7 @@ def run_repl(banner='yes', quiet=False, history_file='yes', preamble=None):
         Main.include(os.path.join(os.path.dirname(__file__), 'banner.jl'))
         Main.__PythonCall_banner(Base.Symbol(banner))
 
-    if Main.seval(r'VERSION > v"v1.11.0-alpha1"'):
+    if Main.seval(r'VERSION ≥ v"v1.11.0-alpha1"'):
         no_banner_opt = Base.Symbol("no")
     else:
         no_banner_opt = False

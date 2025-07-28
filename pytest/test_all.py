@@ -168,3 +168,45 @@ def test_call_nogil(yld, raw):
         t2 = time() - t0
     # executing the tasks should take about 1 second because they happen in parallel
     assert 0.9 < t2 < 1.5
+
+
+def test_repl():
+    import sys
+    import tomllib
+    import juliapkg
+    import juliacall as _
+    import subprocess
+    import time
+
+    jl_version = juliapkg.state.STATE["version"]
+
+    # grab PythonCall.jl version from pyproject.toml
+    with open("pyproject.toml", "rb") as f:
+        pyproject = tomllib.load(f)
+    pythoncall_version = pyproject["project"]["version"]
+
+    cmd = [sys.executable, '-m', 'juliacall']
+    process = subprocess.Popen(
+        cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1
+    )
+    output = ""
+    timestart = time.time()
+    while time.time() - timestart < 100:
+        char = process.stdout.read(1)
+        if not char:
+            break
+        output += char
+        if output.endswith("julia>"):
+            break
+    assert f"Julia: {jl_version}" in output
+    assert f"PythonCall: {pythoncall_version}" in output
+    assert "julia>" in output
+    process.stdin.write('\x04')  # Ctrl+D
+    process.stdin.flush()
+    process.wait()
+    assert process.returncode == 0

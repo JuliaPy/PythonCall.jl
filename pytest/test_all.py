@@ -168,3 +168,20 @@ def test_call_nogil(yld, raw):
         t2 = time() - t0
     # executing the tasks should take about 1 second because they happen in parallel
     assert 0.9 < t2 < 1.5
+
+
+def test_repl():
+    import sys, subprocess
+    import juliapkg
+    import juliacall as _
+
+    output, _ = subprocess.Popen(
+        [sys.executable, "-m", "juliacall"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    ).communicate(input="", timeout=10)
+
+    assert f"Julia: {juliapkg.state.STATE['version']}" in output
+    assert "julia>" in output

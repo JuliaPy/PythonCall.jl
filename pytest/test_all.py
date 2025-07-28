@@ -183,5 +183,5 @@ def test_repl():
         text=True
     ).communicate(input="", timeout=10)
 
-    assert f"Julia: {juliapkg.state.STATE["version"]}" in output
+    assert f"Julia: {juliapkg.state.STATE['version']}" in output
     assert "julia>" in output

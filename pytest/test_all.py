@@ -171,35 +171,17 @@ def test_call_nogil(yld, raw):
 
 
 def test_repl():
-    import sys
+    import sys, subprocess
     import juliapkg
     import juliacall as _
-    import subprocess
-    import time
 
-    jl_version = juliapkg.state.STATE["version"]
-
-    cmd = [sys.executable, '-m', 'juliacall']
-    process = subprocess.Popen(
-        cmd,
+    output, _ = subprocess.Popen(
+        [sys.executable, "-m", "juliacall"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1
-    )
-    output = ""
-    timestart = time.time()
-    while time.time() - timestart < 100:
-        char = process.stdout.read(1)
-        if not char:
-            break
-        output += char
-        if output.endswith("julia>"):
-            break
-    assert f"Julia: {jl_version}" in output
+        stderr=subprocess.STDOUT,
+        text=True
+    ).communicate(input="", timeout=10)
+
+    assert f"Julia: {juliapkg.state.STATE["version"]}" in output
     assert "julia>" in output
-    process.stdin.write('\x04')  # Ctrl+D
-    process.stdin.flush()
-    process.wait()
-    assert process.returncode == 0

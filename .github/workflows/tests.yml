@@ -22,7 +22,7 @@ jobs:
         jlversion: ['1','1.9']
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Julia ${{ matrix.jlversion }}
         uses: julia-actions/setup-julia@v2
@@ -59,7 +59,7 @@ jobs:
         pyversion: ["3", "3.9"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python ${{ matrix.pyversion }}
         uses: actions/setup-python@v5

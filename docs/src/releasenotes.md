@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased
+## 0.9.27 (2025-08-19)
 * Internal: Use heap-allocated types (PyType_FromSpec) to improve ABI compatibility.
 * Minimum supported Python version is now 3.9.
 * Better compatibility with libstdc++.

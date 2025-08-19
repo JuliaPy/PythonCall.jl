@@ -3,6 +3,7 @@
 ## Unreleased
 * Internal: Use heap-allocated types (PyType_FromSpec) to improve ABI compatibility.
 * Minimum supported Python version is now 3.9.
+* Better compatibility with libstdc++.
 
 ## 0.9.26 (2025-07-15)
 * Added PySide6 support to the GUI compatibility layer.

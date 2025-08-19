@@ -17,7 +17,7 @@ UnsafePointers = "e17b2a0c-0bdf-430a-bd0c-3a23cae4ff39"
 
 [compat]
 Aqua = "0 - 999"
-CondaPkg = "0.2.23"
+CondaPkg = "0.2.30"
 Dates = "1"
 Libdl = "1"
 MacroTools = "0.5"

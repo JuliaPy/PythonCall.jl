@@ -9,6 +9,7 @@ using ..PythonCall
 using ..Utils
 using ..C
 using ..Core
+import ..Core: Py
 using ..Wrap
 
 using Serialization: Serialization, AbstractSerializer, serialize, deserialize

@@ -38,8 +38,12 @@ end
     # TODO
 end
 
-@testitem "PyCall.jl" begin
-    # TODO
+@testitem "PyCall.jl" setup = [PyCall] begin
+    x1 = pylist()
+    x2 = PyCall.PyObject(x1)
+    x3 = Py(x2)
+    @test pyisinstance(x3, pybuiltins.list)
+    @test pyis(x3, x1)
 end
 
 @testitem "Serialization.jl" begin

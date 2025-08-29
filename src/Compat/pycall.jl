@@ -10,7 +10,7 @@ function init_pycall(PyCall::Module)
     - Set the environment variable `PYTHON` to `PythonCall.C.CTX.exe_path` and rebuild PyCall. This forces PyCall
       to use the same interpreter as PythonCall, but needs to be repeated whenever you switch Julia environment.
     """
-    @eval function Py(x::$PyCall.PyObject)
+    @eval function PythonCall.Py(x::$PyCall.PyObject)
         C.CTX.matches_pycall::Bool || error($errmsg)
         return pynew(C.PyPtr($PyCall.pyreturn(x)))
     end

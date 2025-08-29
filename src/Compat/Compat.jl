@@ -15,11 +15,7 @@ using Serialization: Serialization, AbstractSerializer, serialize, deserialize
 using Tables: Tables
 using Requires: @require
 
-import ..PythonCall:
-    event_loop_on,
-    event_loop_off,
-    fix_qt_plugin_path,
-    pytable
+import ..PythonCall: event_loop_on, event_loop_off, fix_qt_plugin_path, pytable
 
 include("gui.jl")
 include("ipython.jl")

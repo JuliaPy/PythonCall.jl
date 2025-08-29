@@ -63,14 +63,3 @@ function _pytable_pandas(src, cols = Tables.columns(src); opts...)
         opts...,
     )
 end
-
-function init_tables()
-    @require CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597" @eval begin
-        aspandasvector(x::CategoricalArrays.CategoricalArray) = begin
-            codes = map(x -> x === missing ? -1 : Int(CategoricalArrays.levelcode(x)) - 1, x)
-            cats = CategoricalArrays.levels(x)
-            ordered = x.pool.ordered
-            pyimport("pandas").Categorical.from_codes(codes, cats, ordered = ordered)
-        end
-    end
-end

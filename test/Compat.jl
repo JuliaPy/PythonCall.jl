@@ -39,11 +39,10 @@ end
 end
 
 @testitem "PyCall.jl" setup = [PyCall] begin
+    @test Base.get_extension(PythonCall, :PyCallExt).SAME[]
     x1 = pylist()
     x2 = PyCall.PyObject(x1)
     x3 = Py(x2)
-    @test PythonCall.C.CTX.matches_pycall
-    @test pyisinstance(x3, pybuiltins.list)
     @test pyis(x3, x1)
 end
 

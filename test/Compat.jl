@@ -38,12 +38,25 @@ end
     # TODO
 end
 
-@testitem "PyCall.jl" setup = [PyCall] begin
-    @test Base.get_extension(PythonCall, :PyCallExt).SAME[]
-    x1 = pylist()
-    x2 = PyCall.PyObject(x1)
-    x3 = Py(x2)
-    @test pyis(x3, x1)
+@testitem "PyCall.jl" begin
+    using PyCall
+    same = Base.get_extension(PythonCall, :PyCallExt).SAME[]::Bool
+    @info "testing PyCall" same
+    if get(ENV, "CI", "") != ""
+        # ensure we test both `same` and `!same` in CI
+        @test same == (ENV["JULIA_PYTHONCALL_EXE"] == "python")
+    end
+    if same
+        x1 = pylist()::Py
+        x2 = PyCall.PyObject(x1)::PyCall.PyObject
+        x3 = Py(x2)::Py
+        @test pyis(x3, x1)
+    else
+        x1 = pylist()::Py
+        @test_throws "only possible when using the same Python" PyCall.PyObject(x1)
+        x2 = PyCall.pybuiltin("list")()::PyCall.PyObject
+        @test_throws "only possible when using the same Python" Py(x2)
+    end
 end
 
 @testitem "Serialization.jl" begin

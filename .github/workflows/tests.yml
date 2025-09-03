@@ -20,7 +20,7 @@ jobs:
         arch: [x64] # x86 unsupported by MicroMamba
         os: [ubuntu-latest, windows-latest, macos-latest]
         jlversion: ['1','1.9']
-        python: ['@CondaPkg']
+        pythonexe: ['@CondaPkg']
         include:
         - arch: x64
           os: ubuntu-latest

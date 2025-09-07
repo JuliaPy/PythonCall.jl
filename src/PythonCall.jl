@@ -4,6 +4,7 @@ const ROOT_DIR = dirname(@__DIR__)
 
 include("API/API.jl")
 include("Utils/Utils.jl")
+include("NumpyDates/NumpyDates.jl")
 include("C/C.jl")
 include("GIL/GIL.jl")
 include("GC/GC.jl")

@@ -268,6 +268,35 @@ pyarray_typestrdescr_to_type(ts::String, descr::Py) = begin
         sizeof(T) == sz ||
             error("size mismatch: itemsize=$sz but sizeof(descr)=$(sizeof(T))")
         return T
+    elseif etc == 'M' || etc == 'm'
+        m = match(r"^([0-9]+)(\[([0-9]+)?([a-zA-Z]+)\])?$", ts[3:end])
+        m === nothing && error("could not parse type: $ts")
+        sz = parse(Int, m[1])
+        sz == sizeof(Int64) || error(
+            "$(etc == 'M' ? "datetime" : "timedelta") of this size not supported: $sz",
+        )
+        s = m[3] === nothing ? 1 : parse(Int, m[3])
+        us = m[4] === nothing ? "" : m[4]
+        u =
+            us == "Y" ? NumpyDates.YEARS :
+            us == "M" ? NumpyDates.MONTHS :
+            us == "W" ? NumpyDates.WEEKS :
+            us == "D" ? NumpyDates.DAYS :
+            us == "h" ? NumpyDates.HOURS :
+            us == "m" ? NumpyDates.MINUTES :
+            us == "s" ? NumpyDates.SECONDS :
+            us == "ms" ? NumpyDates.MILLISECONDS :
+            us == "us" ? NumpyDates.MICROSECONDS :
+            us == "ns" ? NumpyDates.NANOSECONDS :
+            us == "ps" ? NumpyDates.PICOSECONDS :
+            us == "fs" ? NumpyDates.FEMTOSECONDS :
+            us == "as" ? NumpyDates.ATTOSECONDS :
+            error("not supported: $(etc == 'M' ? "datetime" : "timedelta") unit: $us")
+        if etc == 'M'
+            return NumpyDates.InlineDateTime64{s == 1 ? u : (u, s)}
+        else
+            return NumpyDates.InlineTimeDelta64{s == 1 ? u : (u, s)}
+        end
     else
         error("not supported: dtype of kind: $(repr(etc))")
     end

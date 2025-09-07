@@ -24,6 +24,7 @@ function unitpair(d::DateTime64)
     d.unit
 end
 
+
 # constructors
 
 function DateTime64(d::AbstractDateTime64, unit::UnitArg = defaultunit(d))
@@ -88,12 +89,13 @@ function DateTime64(d::Dates.DateTime, unit::UnitArg = defaultunit(d))
     DateTime64(v, unit)
 end
 
+
 function DateTime64(d::Dates.Date, unit::UnitArg = defaultunit(d))
     u, m = unit = unitpair(unit)
     if u == YEARS
-        v = value(Dates.Year(d)) - 1970
+        v = Dates.year(d) - 1970
     elseif u == MONTHS
-        v = 12 * (value(Dates.Year(d)) - 1970) + (value(Dates.Month(d)) - 1)
+        v = 12 * (Dates.year(d) - 1970) + (Dates.month(d) - 1)
     else
         v = value((d - Dates.Date(1970))::Dates.Day)
         if u == WEEKS
@@ -125,6 +127,7 @@ function DateTime64(d::Dates.Date, unit::UnitArg = defaultunit(d))
     v = v ÷ m
     DateTime64(v, unit)
 end
+
 
 # show
 

@@ -1,7 +1,56 @@
+# type
+
+"""
+    InlineTimeDelta64{unit}(value)
+    InlineTimeDelta64(value, [unit])
+
+Construct an `InlineTimeDelta64` with the given value and unit.
+"""
 struct InlineTimeDelta64{U} <: AbstractTimeDelta64
     value::Int64
+    function InlineTimeDelta64{U}(value::Int64) where {U}
+        U isa Unit ||
+            U isa Tuple{Unit,Int} ||
+            error("U must be a Unit or a Tuple{Unit,Int}")
+        new{U}(value)
+    end
 end
 
-function unit(::InlineTimeDelta64{U}) where {U}
-    _unit(U)
+# accessors
+
+function Dates.value(d::InlineTimeDelta64)
+    d.value
+end
+
+function unitpair(::InlineTimeDelta64{U}) where {U}
+    unitpair(U)
+end
+
+# constructors
+
+function InlineTimeDelta64{U}(
+    v::Union{AbstractTimeDelta64,AbstractString,Dates.Period},
+) where {U}
+    InlineTimeDelta64{U}(value(TimeDelta64(v, U)))
+end
+
+function InlineTimeDelta64(
+    v::Union{AbstractTimeDelta64,AbstractString,Dates.Period},
+    u::UnitArg = defaultunit(v),
+)
+    InlineTimeDelta64{unitparam(u)}(v)
+end
+
+# show
+
+function Base.show(io::IO, d::InlineTimeDelta64)
+    if get(io, :typeinfo, Any) == typeof(d)
+        showvalue(io, d)
+    else
+        show(io, typeof(d))
+        print(io, "(")
+        showvalue(io, d)
+        print(io, ")")
+    end
+    nothing
 end

@@ -28,16 +28,27 @@ end
 
 # constructors
 
-function InlineTimeDelta64{U}(
-    v::Union{AbstractTimeDelta64,AbstractString,Dates.Period},
-) where {U}
+function InlineTimeDelta64{U}(v::AbstractTimeDelta64) where {U}
     InlineTimeDelta64{U}(value(TimeDelta64(v, U)))
 end
 
-function InlineTimeDelta64(
-    v::Union{AbstractTimeDelta64,AbstractString,Dates.Period},
-    u::UnitArg = defaultunit(v),
-)
+function InlineTimeDelta64{U}(v::AbstractString) where {U}
+    InlineTimeDelta64{U}(value(TimeDelta64(v, U)))
+end
+
+function InlineTimeDelta64{U}(v::Dates.Period) where {U}
+    InlineTimeDelta64{U}(value(TimeDelta64(v, U)))
+end
+
+function InlineTimeDelta64(v::AbstractTimeDelta64, u::UnitArg = defaultunit(v))
+    InlineTimeDelta64{unitparam(u)}(v)
+end
+
+function InlineTimeDelta64(v::AbstractString, u::UnitArg = defaultunit(v))
+    InlineTimeDelta64{unitparam(u)}(v)
+end
+
+function InlineTimeDelta64(v::Dates.Period, u::UnitArg = defaultunit(v))
     InlineTimeDelta64{unitparam(u)}(v)
 end
 

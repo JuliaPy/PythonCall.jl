@@ -30,9 +30,19 @@ end
 
 # constructors
 
-function InlineDateTime64{U}(
-    v::Union{AbstractDateTime64,AbstractString,Dates.DateTime,Dates.Date},
-) where {U}
+function InlineDateTime64{U}(v::AbstractDateTime64) where {U}
+    InlineDateTime64{U}(value(DateTime64(v, U)))
+end
+
+function InlineDateTime64{U}(v::AbstractString) where {U}
+    InlineDateTime64{U}(value(DateTime64(v, U)))
+end
+
+function InlineDateTime64{U}(v::Dates.DateTime) where {U}
+    InlineDateTime64{U}(value(DateTime64(v, U)))
+end
+
+function InlineDateTime64{U}(v::Dates.Date) where {U}
     InlineDateTime64{U}(value(DateTime64(v, U)))
 end
 
@@ -47,10 +57,19 @@ function InlineDateTime64{U}(
     InlineDateTime64{U}(value(DateTime64(v, f, U)))
 end
 
-function InlineDateTime64(
-    v::Union{AbstractDateTime64,AbstractString,Dates.DateTime,Dates.Date},
-    u::UnitArg = defaultunit(v),
-)
+function InlineDateTime64(v::AbstractDateTime64, u::UnitArg = defaultunit(v))
+    InlineDateTime64{unitparam(u)}(v)
+end
+
+function InlineDateTime64(v::AbstractString, u::UnitArg = defaultunit(v))
+    InlineDateTime64{unitparam(u)}(v)
+end
+
+function InlineDateTime64(v::Dates.DateTime, u::UnitArg = defaultunit(v))
+    InlineDateTime64{unitparam(u)}(v)
+end
+
+function InlineDateTime64(v::Dates.Date, u::UnitArg = defaultunit(v))
     InlineDateTime64{unitparam(u)}(v)
 end
 

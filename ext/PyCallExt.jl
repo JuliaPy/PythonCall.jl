@@ -1,5 +1,11 @@
 module PyCallExt
 
+# While this extension is precompilable, it can only be used without crashing if PyCall is
+# using the same Python interpreter. However Julia precompiles all available extensions
+# eagerly, which therefore crashes if PyCall is using a different interpreter. So for now
+# we disable precompilation of this extension entirely.
+__precompile__(false)
+
 using PythonCall
 using PythonCall.Core
 using PythonCall.C

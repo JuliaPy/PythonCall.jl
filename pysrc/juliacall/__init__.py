@@ -110,7 +110,7 @@ def init():
             raise ValueError(f'{s}: expecting an int'+(' or auto' if accept_auto else ""))
 
     def args_from_config(config):
-        argv = [config['exepath']]
+        argv = [config['exe']]
         for opt, val in config.items():
             if opt.startswith('opt_'):
                 if val is None:
@@ -147,21 +147,32 @@ def init():
     CONFIG['opt_handle_signals'] = choice('handle_signals', ['yes', 'no'])[0]
     CONFIG['opt_startup_file'] = choice('startup_file', ['yes', 'no'])[0]
     CONFIG['opt_heap_size_hint'] = option('heap_size_hint')[0]
+    CONFIG['project'] = path_option('project', check_exists=True)[0]
+    CONFIG['exe'] = path_option('exe', check_exists=True)[0]
 
     # Stop if we already initialised
     if CONFIG['inited']:
         return
 
-    # we don't import this at the top level because it is not required when juliacall is
-    # loaded by PythonCall and won't be available
-    import juliapkg
+    have_exe = CONFIG['exe'] is not None
+    have_project = CONFIG['project'] is not None
+    if not have_exe and not have_project:
+        # we don't import this at the top level because it is not required when
+        # juliacall is loaded by PythonCall and won't be available, or if both
+        # `exe` and `project` are set by the user.
+        import juliapkg
 
-    # Find the Julia executable and project
-    CONFIG['exepath'] = exepath = juliapkg.executable()
-    CONFIG['project'] = project = juliapkg.project()
+        # Find the Julia executable and project
+        CONFIG['exe'] = juliapkg.executable()
+        CONFIG['project'] = juliapkg.project()
+    elif (not have_exe and have_project) or (have_exe and not have_project):
+        raise Exception("Both PYTHON_JULIACALL_PROJECT and PYTHON_JULIACALL_EXE must be set together, not only one of them.")
+
+    exe = CONFIG['exe']
+    project = CONFIG['project']
 
     # Find the Julia library
-    cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min',
+    cmd = [exe, '--project='+project, '--startup-file=no', '-O0', '--compile=min',
            '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")), "\\0", Sys.BINDIR)']
     libpath, default_bindir = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout.split('\0')
     assert os.path.exists(libpath)

@@ -73,7 +73,8 @@ What to read next:
 
 ## [Managing Julia dependencies](@id julia-deps)
 
-JuliaCall manages its Julia dependencies using [JuliaPkg](https://github.com/JuliaPy/PyJuliaPkg).
+By default JuliaCall manages its Julia dependencies using
+[JuliaPkg](https://github.com/JuliaPy/PyJuliaPkg).
 
 It will automatically download a suitable version of Julia if required.
 
@@ -100,6 +101,15 @@ Alternatively you can use `add`, `rm`, etc. from JuliaPkg to edit this file.
 
 See [JuliaPkg](https://github.com/JuliaPy/PyJuliaPkg) for more details.
 
+### Using existing environments
+
+It's possible to override the defaults and disable JuliaPkg entirely by setting
+the `PYTHON_JULIACALL_EXE` and `PYTHON_JULIACALL_PROJECT` options (both must be
+set together). This is particularly useful when using shared environments on HPC
+systems that may be readonly. Note that the project set in
+`PYTHON_JULIACALL_PROJECT` *must* already have PythonCall.jl installed and it
+*must* match the JuliaCall version, otherwise loading Julia will fail.
+
 ## [Configuration](@id julia-config)
 
 Some features of the Julia process, such as the optimization level or number of threads, may
@@ -125,6 +135,8 @@ be configured in two ways:
 | `-X juliacall-warn-overwrite=<yes\|no>` | `PYTHON_JULIACALL_WARN_OVERWRITE=<yes\|no>` | Enable or disable method overwrite warnings. |
 | `-X juliacall-autoload-ipython-extension=<yes\|no>` | `PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=<yes\|no>` | Enable or disable IPython extension autoloading. |
 | `-X juliacall-heap-size-hint=<N>` | `PYTHON_JULIACALL_HEAP_SIZE_HINT=<N>` | Hint for initial heap size in bytes. |
+| `-X juliacall-exepath=<file>` | `PYTHON_JULIACALL_EXEPATH=<file>` | Path to Julia binary to use (overrides JuliaPkg). |
+| `-X juliacall-project=<dir>` | `PYTHON_JULIACALL_PROJECT=<dir>` | Path to the Julia project to use (overrides JuliaPkg). |
 
 ## [Multi-threading](@id py-multi-threading)
 

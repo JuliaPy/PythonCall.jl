@@ -3,6 +3,7 @@
 ## Unreleased
 * Bug fixes.
 * Internal: switch from Requires.jl to package extensions.
+* Added support for specifying the Julia binary and project to override JuliaPkg.
 
 ## 0.9.27 (2025-08-19)
 * Internal: Use heap-allocated types (PyType_FromSpec) to improve ABI compatibility.

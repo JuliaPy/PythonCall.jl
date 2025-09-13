@@ -525,6 +525,42 @@ end
     end
 end
 
+@testitem "DateTime64 isnan" begin
+    using Dates
+    using PythonCall: NumpyDates
+
+    units = (:Y, :M, :W, :D, :h, :m, :s, :ms, :us, :ns, :ps, :fs, :as)
+
+    # Non-NaT examples should be false
+    @test !isnan(NumpyDates.DateTime64(Date(1970, 1, 1), :D))
+    @test !isnan(NumpyDates.DateTime64(DateTime(1970, 1, 1), :ms))
+    @test !isnan(NumpyDates.InlineDateTime64{NumpyDates.SECONDS}(0))
+    @test !isnan(NumpyDates.InlineDateTime64(0, :ns))
+
+    # NaT via strings for each unit
+    @testset "NaT string -> $u" for u in units
+        x = NumpyDates.DateTime64("NaT", u)
+        @test isnan(x)
+        xi = NumpyDates.InlineDateTime64{NumpyDates.Unit(u)}("NaT")
+        @test isnan(xi)
+        xid = NumpyDates.InlineDateTime64("NaT", u)
+        @test isnan(xid)
+    end
+
+    # NaT via sentinel (typemin(Int64))
+    @testset "NAT sentinel -> $u" for u in units
+        x = NumpyDates.DateTime64(NumpyDates.NAT, u)
+        @test isnan(x)
+        xi = NumpyDates.InlineDateTime64{NumpyDates.Unit(u)}(NumpyDates.NAT)
+        @test isnan(xi)
+    end
+
+    # Changing unit on NaT remains NaT
+    nat_d = NumpyDates.DateTime64("NaT", :D)
+    y = NumpyDates.DateTime64(nat_d, :s)
+    @test isnan(y)
+end
+
 @testitem "TimeDelta64 from Dates.Period" begin
     using Dates
     using PythonCall: NumpyDates
@@ -746,6 +782,42 @@ end
                   "PythonCall.NumpyDates.InlineTimeDelta64{PythonCall.NumpyDates.$ustr}($expected_val)"
         end
     end
+end
+
+@testitem "TimeDelta64 isnan" begin
+    using Dates
+    using PythonCall: NumpyDates
+
+    units = (:Y, :M, :W, :D, :h, :m, :s, :ms, :us, :ns, :ps, :fs, :as)
+
+    # Non-NaT examples should be false
+    @test !isnan(NumpyDates.TimeDelta64(0, :s))
+    @test !isnan(NumpyDates.TimeDelta64(Day(1), :D))
+    @test !isnan(NumpyDates.InlineTimeDelta64{NumpyDates.MINUTES}(0))
+    @test !isnan(NumpyDates.InlineTimeDelta64(0, :ns))
+
+    # NaT via strings for each unit
+    @testset "NaT string -> $u" for u in units
+        x = NumpyDates.TimeDelta64("NaT", u)
+        @test isnan(x)
+        xi = NumpyDates.InlineTimeDelta64{NumpyDates.Unit(u)}("NaT")
+        @test isnan(xi)
+        xid = NumpyDates.InlineTimeDelta64("NaT", u)
+        @test isnan(xid)
+    end
+
+    # NaT via sentinel (typemin(Int64))
+    @testset "NAT sentinel -> $u" for u in units
+        x = NumpyDates.TimeDelta64(NumpyDates.NAT, u)
+        @test isnan(x)
+        xi = NumpyDates.InlineTimeDelta64{NumpyDates.Unit(u)}(NumpyDates.NAT)
+        @test isnan(xi)
+    end
+
+    # Changing unit on NaT remains NaT
+    nat_td = NumpyDates.TimeDelta64("NaT", :s)
+    z = NumpyDates.TimeDelta64(nat_td, :ns)
+    @test isnan(z)
 end
 
 @testitem "defaultunit" begin

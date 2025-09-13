@@ -145,7 +145,9 @@ function Base.show(io::IO, d::TimeDelta64)
         show(io, typeof(d))
         print(io, "(")
         showvalue(io, d)
-        print(io, ", ", unitparam(unitpair(d)), ")")
+        print(io, ", ")
+        show(io, unitparam(unitpair(d)))
+        print(io, ")")
     end
     nothing
 end

@@ -40,6 +40,10 @@ function InlineTimeDelta64{U}(v::Dates.Period) where {U}
     InlineTimeDelta64{U}(value(TimeDelta64(v, U)))
 end
 
+function InlineTimeDelta64{U}(v::Integer) where {U}
+    InlineTimeDelta64{U}(convert(Int, v))
+end
+
 function InlineTimeDelta64(v::AbstractTimeDelta64, u::UnitArg = defaultunit(v))
     InlineTimeDelta64{unitparam(u)}(v)
 end
@@ -49,6 +53,10 @@ function InlineTimeDelta64(v::AbstractString, u::UnitArg = defaultunit(v))
 end
 
 function InlineTimeDelta64(v::Dates.Period, u::UnitArg = defaultunit(v))
+    InlineTimeDelta64{unitparam(u)}(v)
+end
+
+function InlineTimeDelta64(v::Integer, u::UnitArg)
     InlineTimeDelta64{unitparam(u)}(v)
 end
 

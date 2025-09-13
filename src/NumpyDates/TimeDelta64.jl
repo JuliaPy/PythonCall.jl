@@ -57,17 +57,17 @@ function TimeDelta64(p::Dates.Period, unit::UnitArg = defaultunit(p))
     if u == YEARS
         if p isa Dates.Year
             v = value(p)
-            return TimeDelta64(v ÷ m, unit)
+            return TimeDelta64(fld(v, m), unit)
         else
             error("cannot convert $(typeof(p)) to years")
         end
     elseif u == MONTHS
         if p isa Dates.Month
             v = value(p)
-            return TimeDelta64(v ÷ m, unit)
+            return TimeDelta64(fld(v, m), unit)
         elseif p isa Dates.Year
             v = mul(value(p), 12)
-            return TimeDelta64(v ÷ m, unit)
+            return TimeDelta64(fld(v, m), unit)
         else
             error("cannot convert $(typeof(p)) to months")
         end
@@ -76,13 +76,13 @@ function TimeDelta64(p::Dates.Period, unit::UnitArg = defaultunit(p))
         ns = _period_to_ns(p)
         scale = u == PICOSECONDS ? 1_000 : u == FEMTOSECONDS ? 1_000_000 : 1_000_000_000
         ns_scaled = mul(ns, scale)
-        return TimeDelta64(ns_scaled ÷ m, unit)
+        return TimeDelta64(fld(ns_scaled, m), unit)
     else
         # weeks..nanoseconds: convert via nanoseconds
         ns = _period_to_ns(p)
         unit_ns = _unit_to_ns(u)
         denom = mul(unit_ns, Int64(m))
-        return TimeDelta64(ns ÷ denom, unit)
+        return TimeDelta64(fld(ns, denom), unit)
     end
 end
 

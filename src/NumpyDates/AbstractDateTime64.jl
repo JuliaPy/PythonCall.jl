@@ -31,11 +31,11 @@ function Dates.DateTime(d::AbstractDateTime64)
     elseif u == NANOSECONDS
         b + Dates.Nanosecond(v)
     elseif u == PICOSECONDS
-        b + Dates.Nanosecond(v ÷ 1_000)
+        b + Dates.Nanosecond(fld(v, 1_000))
     elseif u == FEMTOSECONDS
-        b + Dates.Nanosecond(v ÷ 1_000_000)
+        b + Dates.Nanosecond(fld(v, 1_000_000))
     elseif u == ATTOSECONDS
-        b + Dates.Nanosecond(v ÷ 1_000_000_000)
+        b + Dates.Nanosecond(fld(v, 1_000_000_000))
     else
         error("Unsupported units: $unit_base")
     end

@@ -81,11 +81,11 @@ function DateTime64(d::Dates.DateTime, unit::UnitArg = defaultunit(d))
     elseif u == FEMTOSECONDS
         v = mul(v, 1000_000_000_000)
     elseif u == ATTOSECONDS
-        v = mul(v, 1000_000_000_000)
+        v = mul(v, 1000_000_000_000_000)
     else
         error("unknown unit: $u")
     end
-    v = v ÷ m
+    v = fld(v, m)
     DateTime64(v, unit)
 end
 
@@ -124,7 +124,7 @@ function DateTime64(d::Dates.Date, unit::UnitArg = defaultunit(d))
             error("unknown unit: $u")
         end
     end
-    v = v ÷ m
+    v = fld(v, m)
     DateTime64(v, unit)
 end
 

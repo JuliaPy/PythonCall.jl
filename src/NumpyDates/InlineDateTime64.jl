@@ -36,6 +36,10 @@ function InlineDateTime64{U}(
     InlineDateTime64{U}(value(DateTime64(v, U)))
 end
 
+function InlineDateTime64{U}(v::Integer) where {U}
+    InlineDateTime64{U}(convert(Int, v))
+end
+
 function InlineDateTime64{U}(
     v::AbstractString,
     f::Union{AbstractString,Dates.DateFormat},
@@ -47,6 +51,10 @@ function InlineDateTime64(
     v::Union{AbstractDateTime64,AbstractString,Dates.DateTime,Dates.Date},
     u::UnitArg = defaultunit(v),
 )
+    InlineDateTime64{unitparam(u)}(v)
+end
+
+function InlineDateTime64(v::Integer, u::UnitArg)
     InlineDateTime64{unitparam(u)}(v)
 end
 

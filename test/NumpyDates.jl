@@ -1,4 +1,4 @@
-@testitem "Date -> DateTime64" begin
+@testitem "DateTime64 from Date" begin
     using Dates
     using PythonCall: NumpyDates
 
@@ -100,7 +100,7 @@
     end
 end
 
-@testitem "String -> DateTime64" begin
+@testitem "DateTime64 from String" begin
     using Dates
     using PythonCall: NumpyDates
 
@@ -199,7 +199,7 @@ end
     end
 end
 
-@testitem "String and DateFormat -> DateTime64" begin
+@testitem "DateTime64 from String and DateFormat" begin
     using Dates
     using PythonCall: NumpyDates
 
@@ -237,7 +237,7 @@ end
     end
 end
 
-@testitem "AbstractDateTime64 -> DateTime64" begin
+@testitem "DateTime64 from AbstractDateTime64" begin
     using Dates
     using PythonCall: NumpyDates
 
@@ -255,7 +255,7 @@ end
     @test NumpyDates.unitpair(z) == NumpyDates.unitpair(:s)
 end
 
-@testitem "Integer -> DateTime64" begin
+@testitem "DateTime64 from Integer" begin
     using Dates
     using PythonCall: NumpyDates
 
@@ -279,7 +279,7 @@ end
     @test Dates.DateTime(s2) == DateTime(1970, 1, 1, 1, 0, 0)
 end
 
-@testitem "DateTime -> DateTime64/InlineDateTime64" begin
+@testitem "DateTime64 from DateTime" begin
     using Dates
     using PythonCall: NumpyDates
 
@@ -383,5 +383,65 @@ end
         inline_dyn = NumpyDates.InlineDateTime64(dt, usym)
         @test Dates.value(inline_dyn) == expected
         @test NumpyDates.unitpair(inline_dyn) == NumpyDates.unitpair(usym)
+    end
+end
+
+@testitem "DateTime64 show" begin
+    using Dates
+    using PythonCall: NumpyDates
+
+    # Helper to get "showvalue" form by setting :typeinfo to the concrete type
+    function showvalue_string(x)
+        io = IOBuffer()
+        show(IOContext(io, :typeinfo => typeof(x)), x)
+        String(take!(io))
+    end
+
+    # Helper to get the default Base.show output (with type wrapper)
+    function show_string(x)
+        io = IOBuffer()
+        show(io, x)
+        String(take!(io))
+    end
+
+    # Cases: (kind, value, unit_symbol, expected_showvalue_string)
+    cases = [
+        # 1) Days-aligned: prints Date in value form
+        (Date(1999, 12, 31), :D, "\"1999-12-31\"", "DAYS"),
+
+        # 2) Seconds-aligned: prints DateTime in value form
+        (DateTime(1999, 12, 31, 23, 59, 59), :s, "\"1999-12-31T23:59:59\"", "SECONDS"),
+
+        # 3) Sub-millisecond units: fall back to raw integer in value form
+        (1, :us, "1", "MICROSECONDS"),
+        (1, :ns, "1", "NANOSECONDS"),
+
+        # 4) Calendar units (years/months): value form shows truncated Date
+        (Date(2000, 2, 29), :Y, "\"2000-01-01\"", "YEARS"),
+        (Date(1999, 12, 31), :M, "\"1999-12-01\"", "MONTHS"),
+
+        # 5) NaT
+        ("NaT", :D, "\"NaT\"", "DAYS"),
+    ]
+
+    @testset "$v $usym" for (v, usym, expected_val, ustr) in cases
+        # Construct DateTime64
+        x = NumpyDates.DateTime64(v, usym)
+
+        # showvalue checks
+        s_val = showvalue_string(x)
+        @test s_val == expected_val
+
+        # default show checks
+        s_def = show_string(x)
+        @test s_def == "PythonCall.NumpyDates.DateTime64($expected_val, $ustr)"
+
+        # and again with InlineDateTime64
+        x2 = NumpyDates.InlineDateTime64(v, usym)
+        s_val2 = showvalue_string(x2)
+        @test s_val2 == expected_val
+        s_def2 = show_string(x2)
+        @test s_def2 ==
+              "PythonCall.NumpyDates.InlineDateTime64{PythonCall.NumpyDates.$ustr}($expected_val)"
     end
 end

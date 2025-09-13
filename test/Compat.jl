@@ -38,13 +38,23 @@ end
     # TODO
 end
 
-@testitem "PyCall.jl" setup = [PyCall] begin
-    x1 = pylist()
-    x2 = PyCall.PyObject(x1)
-    x3 = Py(x2)
-    @test PythonCall.C.CTX.matches_pycall
-    @test pyisinstance(x3, pybuiltins.list)
-    @test pyis(x3, x1)
+@testitem "PyCall.jl" begin
+    if (get(ENV, "CI", "") != "") && (ENV["JULIA_PYTHONCALL_EXE"] == "python")
+        # Only run this test when we can guarantee PyCall and PythonCall are using the
+        # same Python. Currently this only runs in CI, and if PythonCall is using the
+        # system Python installation.
+        using PyCall
+        # Check they are indeed using the same Python.
+        @test Base.get_extension(PythonCall, :PyCallExt).SAME[]
+        # Check we can round-trip and object PythonCall -> PyCall -> PythonCall and
+        # have the same identical Python object afterward.
+        x1 = pylist()::Py
+        x2 = PyCall.PyObject(x1)::PyCall.PyObject
+        x3 = Py(x2)::Py
+        @test pyis(x3, x1)
+    else
+        @warn "Skipping PyCall.jl tests."
+    end
 end
 
 @testitem "Serialization.jl" begin

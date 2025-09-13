@@ -17,7 +17,6 @@ A handle to a loaded instance of libpython, its interpreter, function pointers, 
     pyhome_w::Any = missing
     which::Symbol = :unknown # :CondaPkg, :PyCall, :embedded or :unknown
     version::Union{VersionNumber,Missing} = missing
-    matches_pycall::Union{Bool,Missing} = missing
 end
 
 const CTX = Context()
@@ -141,15 +140,9 @@ function init_context()
         # Get function pointers from the library
         init_pointers()
 
-        # Compare libpath with PyCall
-        @require PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
-
         # Initialize the interpreter
         CTX.is_preinitialized = Py_IsInitialized() != 0
-        if CTX.is_preinitialized
-            @assert CTX.which == :PyCall || CTX.matches_pycall isa Bool
-        else
-            @assert CTX.which != :PyCall
+        if !CTX.is_preinitialized
             # Find ProgramName and PythonHome
             script = if Sys.iswindows()
                 """
@@ -243,13 +236,3 @@ const PYTHONCALL_PKGID = Base.PkgId(PYTHONCALL_UUID, "PythonCall")
 
 const PYCALL_UUID = Base.UUID("438e738f-606a-5dbb-bf0a-cddfbfd45ab0")
 const PYCALL_PKGID = Base.PkgId(PYCALL_UUID, "PyCall")
-
-function init_pycall(PyCall::Module)
-    # see if PyCall and PythonCall are using the same interpreter by checking if a couple of memory addresses are the same
-    ptr1 = Py_GetVersion()
-    ptr2 = @eval PyCall ccall(@pysym(:Py_GetVersion), Ptr{Cchar}, ())
-    CTX.matches_pycall = ptr1 == ptr2
-    if CTX.which == :PyCall
-        @assert CTX.matches_pycall
-    end
-end

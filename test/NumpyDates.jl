@@ -747,3 +747,71 @@ end
         @test_throws Exception Dates.Date(nat3)
     end
 end
+
+@testitem "defaultunit" begin
+    using Dates
+    using PythonCall: NumpyDates
+
+    # Helper: normalize any defaultunit result to a unitpair tuple
+    norm(u) = NumpyDates.unitpair(u)
+
+    # 1) Primitives and Dates.* types
+    cases = [
+        # fallback Any (e.g. AbstractString)
+        ("hello", :ns),
+
+        # Dates.Date / Dates.DateTime
+        (Date(2000, 1, 2), :D),
+        (DateTime(2000, 1, 2, 3, 4, 5), :ms),
+
+        # Dates.Periods => exact unit mapping
+        (Year(1), :Y),
+        (Month(1), :M),
+        (Week(1), :W),
+        (Day(1), :D),
+        (Hour(1), :h),
+        (Minute(1), :m),
+        (Second(1), :s),
+        (Millisecond(1), :ms),
+        (Microsecond(1), :us),
+        (Nanosecond(1), :ns),
+    ]
+
+    @testset "$x -> $u" for (x, u) in cases
+        @test norm(NumpyDates.defaultunit(x)) == norm(u)
+    end
+
+    # 2) (Inline)DateTime64 should return their own unitpair
+    @testset "AbstractDateTime64 instances" begin
+        # DateTime64
+        dt_s = NumpyDates.DateTime64(0, :s)
+        dt_ms = NumpyDates.DateTime64(0, :ms)
+        @test norm(NumpyDates.defaultunit(dt_s)) == NumpyDates.unitpair(dt_s)
+        @test norm(NumpyDates.defaultunit(dt_ms)) == NumpyDates.unitpair(dt_ms)
+
+        # InlineDateTime64 typed
+        idt_typed = NumpyDates.InlineDateTime64{NumpyDates.SECONDS}(0)
+        @test norm(NumpyDates.defaultunit(idt_typed)) == NumpyDates.unitpair(idt_typed)
+
+        # InlineDateTime64 dynamic
+        idt_dyn = NumpyDates.InlineDateTime64(0, :us)
+        @test norm(NumpyDates.defaultunit(idt_dyn)) == NumpyDates.unitpair(idt_dyn)
+    end
+
+    # 3) (Inline)TimeDelta64 should return their own unitpair
+    @testset "AbstractTimeDelta64 instances" begin
+        # TimeDelta64
+        td_ns = NumpyDates.TimeDelta64(0, :ns)
+        td_ps = NumpyDates.TimeDelta64(0, :ps)
+        @test norm(NumpyDates.defaultunit(td_ns)) == NumpyDates.unitpair(td_ns)
+        @test norm(NumpyDates.defaultunit(td_ps)) == NumpyDates.unitpair(td_ps)
+
+        # InlineTimeDelta64 typed
+        itd_typed = NumpyDates.InlineTimeDelta64{NumpyDates.MINUTES}(0)
+        @test norm(NumpyDates.defaultunit(itd_typed)) == NumpyDates.unitpair(itd_typed)
+
+        # InlineTimeDelta64 dynamic
+        itd_dyn = NumpyDates.InlineTimeDelta64(0, :as)
+        @test norm(NumpyDates.defaultunit(itd_dyn)) == NumpyDates.unitpair(itd_dyn)
+    end
+end

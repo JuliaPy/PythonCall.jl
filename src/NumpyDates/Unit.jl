@@ -74,3 +74,43 @@ end
 function defaultunit(::Dates.DateTime)
     MILLISECONDS
 end
+
+function defaultunit(::Dates.Year)
+    YEARS
+end
+
+function defaultunit(::Dates.Month)
+    MONTHS
+end
+
+function defaultunit(::Dates.Week)
+    WEEKS
+end
+
+function defaultunit(::Dates.Day)
+    DAYS
+end
+
+function defaultunit(::Dates.Hour)
+    HOURS
+end
+
+function defaultunit(::Dates.Minute)
+    MINUTES
+end
+
+function defaultunit(::Dates.Second)
+    SECONDS
+end
+
+function defaultunit(::Dates.Millisecond)
+    MILLISECONDS
+end
+
+function defaultunit(::Dates.Microsecond)
+    MICROSECONDS
+end
+
+function defaultunit(::Dates.Nanosecond)
+    NANOSECONDS
+end

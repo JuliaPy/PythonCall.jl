@@ -669,3 +669,81 @@ end
         end
     end
 end
+
+@testitem "DateTime64 to Date/DateTime" begin
+    using Dates
+    using PythonCall: NumpyDates
+
+    # Cases: (value, unit_symbol_or_tuple, expected_DateTime, expected_Date)
+    cases = [
+        # Day counts (since 1970-01-01)
+        (10_956, :D, DateTime(1999, 12, 31, 0, 0, 0), Date(1999, 12, 31)),
+        (0, :D, DateTime(1970, 1, 1, 0, 0, 0), Date(1970, 1, 1)),
+        (1, :D, DateTime(1970, 1, 2, 0, 0, 0), Date(1970, 1, 2)),
+
+        # Seconds since epoch
+        (946_684_799, :s, DateTime(1999, 12, 31, 23, 59, 59), Date(1999, 12, 31)),
+        (0, :s, DateTime(1970, 1, 1, 0, 0, 0), Date(1970, 1, 1)),
+        (3_600, :s, DateTime(1970, 1, 1, 1, 0, 0), Date(1970, 1, 1)),
+
+        # Hours/minutes (epoch-based)
+        (24, :h, DateTime(1970, 1, 2, 0, 0, 0), Date(1970, 1, 2)),
+        (60, :m, DateTime(1970, 1, 1, 1, 0, 0), Date(1970, 1, 1)),
+
+        # Years/months (calendar truncation semantics from 1970-01-01)
+        (30, :Y, DateTime(2000, 1, 1, 0, 0, 0), Date(2000, 1, 1)),
+        (361, :M, DateTime(2000, 2, 1, 0, 0, 0), Date(2000, 2, 1)),
+        (359, :M, DateTime(1999, 12, 1, 0, 0, 0), Date(1999, 12, 1)),
+
+        # Weeks
+        (1, :W, DateTime(1970, 1, 8, 0, 0, 0), Date(1970, 1, 8)),
+        (-1, :W, DateTime(1969, 12, 25, 0, 0, 0), Date(1969, 12, 25)),
+
+        # Sub-nanosecond units: floored to nanoseconds
+        (1_500, :ps, DateTime(1970, 1, 1, 0, 0, 0) + Nanosecond(1), Date(1970, 1, 1)),
+        (1_500_000, :fs, DateTime(1970, 1, 1, 0, 0, 0) + Nanosecond(1), Date(1970, 1, 1)),
+        (
+            1_500_000_000,
+            :as,
+            DateTime(1970, 1, 1, 0, 0, 0) + Nanosecond(1),
+            Date(1970, 1, 1),
+        ),
+
+        # Multiplier tuple unit: value * multiplier is applied before adding
+        (1_800, (:s, 2), DateTime(1970, 1, 1, 1, 0, 0), Date(1970, 1, 1)),
+    ]
+
+    @testset "$v $u" for (v, u, expdt, expd) in cases
+        # 1) DateTime64(value, unit)
+        x = NumpyDates.DateTime64(v, u)
+        @test Dates.DateTime(x) == expdt
+        @test Dates.Date(x) == expd
+
+        # 2) InlineDateTime64 typed
+        Uconst = u isa Tuple ? (NumpyDates.Unit(u[1]), Int(u[2])) : NumpyDates.Unit(u)
+        y = NumpyDates.InlineDateTime64{Uconst}(v)
+        @test Dates.DateTime(y) == expdt
+        @test Dates.Date(y) == expd
+
+        # 3) InlineDateTime64 dynamic
+        z = NumpyDates.InlineDateTime64(v, u)
+        @test Dates.DateTime(z) == expdt
+        @test Dates.Date(z) == expd
+    end
+
+    # NaT conversion errors
+    for u in (:Y, :M, :W, :D, :h, :m, :s, :ms, :us, :ns, :ps, :fs, :as)
+        nat1 = NumpyDates.DateTime64("NaT", u)
+        @test_throws Exception Dates.DateTime(nat1)
+        @test_throws Exception Dates.Date(nat1)
+
+        Uconst = NumpyDates.Unit(u)
+        nat2 = NumpyDates.InlineDateTime64{Uconst}("NaT")
+        @test_throws Exception Dates.DateTime(nat2)
+        @test_throws Exception Dates.Date(nat2)
+
+        nat3 = NumpyDates.InlineDateTime64("NaT", u)
+        @test_throws Exception Dates.DateTime(nat3)
+        @test_throws Exception Dates.Date(nat3)
+    end
+end

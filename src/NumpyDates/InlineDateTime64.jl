@@ -8,6 +8,8 @@
 
 Construct an `InlineDateTime64` with the given `value` and [`unit`](@ref Unit).
 
+The unit is part of the type, so an instance just consists of one `Int64` for the value.
+
 The `value` can be:
 - An `Integer`, in which case the `unit` is required.
 - A `Dates.Date` or `Dates.DateTime`.

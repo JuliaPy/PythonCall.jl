@@ -6,6 +6,10 @@
 
 Construct an `DateTime64` with the given `value` and [`unit`](@ref Unit).
 
+The unit is stored as a run-time value. If the units in your code are known, using
+[`InlineDateTime64{unit}`](@ref InlineDateTime64) may be preferable. The memory layout
+is the same as for a `numpy.datetime64`.
+
 The value can be:
 - An `Integer`, in which case the `unit` is required.
 - A `Dates.Date` or `Dates.DateTime`.

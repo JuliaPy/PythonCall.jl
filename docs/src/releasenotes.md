@@ -1,5 +1,8 @@
 # Release Notes
 
+## Unreleased
+* Added NumpyDates: NumPy-compatible DateTime64/TimeDelta64 types and units.
+
 ## 0.9.27 (2025-08-19)
 * Internal: Use heap-allocated types (PyType_FromSpec) to improve ABI compatibility.
 * Minimum supported Python version is now 3.9.

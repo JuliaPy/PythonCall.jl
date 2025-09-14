@@ -5,6 +5,10 @@
 
 Construct a `TimeDelta64` with the given `value` and [`unit`](@ref Unit).
 
+The unit is stored as a run-time value. If the units in your code are known, using
+[`InlineTimeDelta64{unit}`](@ref InlineTimeDelta64) may be preferable. The memory layout
+is the same as for a `numpy.timedelta64`.
+
 The value can be:
 - An `Integer`, in which case the `unit` is required.
 - `"NaT"` or `"NaN"` to make a not-a-time value.

@@ -4,7 +4,11 @@
     InlineTimeDelta64{unit}(value)
     InlineTimeDelta64(value, [unit])
 
-Construct an `InlineTimeDelta64` with the given value and unit.
+Construct an `InlineTimeDelta64` with the given `value` and [`unit`](@ref Unit).
+
+The value can be:
+- An `Integer`, in which case the `unit` is required.
+- `"NaT"` or `"NaN"` to make a not-a-time value.
 """
 struct InlineTimeDelta64{U} <: AbstractTimeDelta64
     value::Int64

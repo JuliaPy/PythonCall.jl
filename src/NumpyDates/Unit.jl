@@ -1,3 +1,16 @@
+"""
+    @enum Unit
+
+The possible time units for datetimes and timedeltas in this module.
+
+Values are: `YEARS`, `MONTHS`, `WEEKS`, `DAYS`, `HOURS`, `MINUTES`, `SECONDS`,
+`MILLISECONDS`, `MICROSECONDS`, `NANOSECONDS`, `PICOSECONDS`, `FEMTOSECONDS`,
+`ATTOSECONDS`.
+
+For compatibility with numpy, the types in this module also accept scaled units as a
+`Tuple{Unit,Int}`. For example `(MINUTES, 15)` for units of 15 minutes. This feature is
+rarely used.
+"""
 @enum Unit::Cint begin
     YEARS = 0
     MONTHS = 1

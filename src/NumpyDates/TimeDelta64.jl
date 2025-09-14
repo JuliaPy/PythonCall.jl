@@ -3,7 +3,11 @@
 """
     TimeDelta64(value, [unit])
 
-Construct a `TimeDelta64` with the given value and unit.
+Construct a `TimeDelta64` with the given `value` and [`unit`](@ref Unit).
+
+The value can be:
+- An `Integer`, in which case the `unit` is required.
+- `"NaT"` or `"NaN"` to make a not-a-time value.
 """
 struct TimeDelta64 <: AbstractTimeDelta64
     value::Int64

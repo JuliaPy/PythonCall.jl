@@ -1,3 +1,8 @@
+"""
+    abstract type AbstractDateTime64 <: Dates.TimeType
+
+Supertype for [`DateTime64`](@ref) and [`InlineDateTime64`](@ref).
+"""
 abstract type AbstractDateTime64 <: Dates.TimeType end
 
 function Dates.value(d::AbstractDateTime64)

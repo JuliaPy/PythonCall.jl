@@ -4,7 +4,14 @@
     DateTime64(value, [unit])
     DateTime64(value, format, [unit])
 
-Construct an `DateTime64` with the given value and unit.
+Construct an `DateTime64` with the given `value` and [`unit`](@ref Unit).
+
+The value can be:
+- An `Integer`, in which case the `unit` is required.
+- A `Dates.Date` or `Dates.DateTime`.
+- `"NaT"` or `"NaN"` to make a not-a-time value.
+- An `AbstractString`, which is parsed the same as `Dates.DateTime`, with an optional
+  `format` string.
 """
 struct DateTime64 <: AbstractDateTime64
     value::Int64

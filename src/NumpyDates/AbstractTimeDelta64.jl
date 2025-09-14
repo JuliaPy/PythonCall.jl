@@ -1,3 +1,8 @@
+"""
+    abstract type AbstractTimeDelta64 <: Dates.Period
+
+Supertype for [`TimeDelta64`](@ref) and [`InlineTimeDelta64`](@ref).
+"""
 abstract type AbstractTimeDelta64 <: Dates.Period end
 
 function Base.isnan(d::AbstractTimeDelta64)

@@ -1,3 +1,13 @@
+"""
+    module NumpyDates
+
+Provides datetimes and timedeltas compatible with Numpy.
+
+See: [`DateTime64`](@ref), [`InlineDateTime64`](@ref), [`TimeDelta64`](@ref) and
+[`InlineTimeDelta64`](@ref).
+
+These can generally be converted to/from their respective types in the `Dates` stdlib.
+"""
 module NumpyDates
 
 using Dates: Dates, value

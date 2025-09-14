@@ -6,7 +6,14 @@
     InlineDateTime64(value, [unit])
     InlineDateTime64(value, format, [unit])
 
-Construct an `InlineDateTime64` with the given value and unit.
+Construct an `InlineDateTime64` with the given `value` and [`unit`](@ref Unit).
+
+The `value` can be:
+- An `Integer`, in which case the `unit` is required.
+- A `Dates.Date` or `Dates.DateTime`.
+- `"NaT"` or `"NaN"` to make a not-a-time value.
+- An `AbstractString`, which is parsed the same as `Dates.DateTime`, with an optional
+  `format` string.
 """
 struct InlineDateTime64{U} <: AbstractDateTime64
     value::Int64

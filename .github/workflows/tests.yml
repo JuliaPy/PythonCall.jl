@@ -93,7 +93,6 @@ jobs:
   
       - name: Set up Julia
         id: setup_julia
-        if: ${{ matrix.juliaexe == 'julia' }}
         uses: julia-actions/setup-julia@v2
         with:
           version: '1'

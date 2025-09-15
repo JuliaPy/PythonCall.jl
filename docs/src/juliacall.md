@@ -135,7 +135,7 @@ be configured in two ways:
 | `-X juliacall-warn-overwrite=<yes\|no>` | `PYTHON_JULIACALL_WARN_OVERWRITE=<yes\|no>` | Enable or disable method overwrite warnings. |
 | `-X juliacall-autoload-ipython-extension=<yes\|no>` | `PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=<yes\|no>` | Enable or disable IPython extension autoloading. |
 | `-X juliacall-heap-size-hint=<N>` | `PYTHON_JULIACALL_HEAP_SIZE_HINT=<N>` | Hint for initial heap size in bytes. |
-| `-X juliacall-exepath=<file>` | `PYTHON_JULIACALL_EXEPATH=<file>` | Path to Julia binary to use (overrides JuliaPkg). |
+| `-X juliacall-exe=<file>` | `PYTHON_JULIACALL_EXE=<file>` | Path to Julia binary to use (overrides JuliaPkg). |
 | `-X juliacall-project=<dir>` | `PYTHON_JULIACALL_PROJECT=<dir>` | Path to the Julia project to use (overrides JuliaPkg). |
 
 ## [Multi-threading](@id py-multi-threading)

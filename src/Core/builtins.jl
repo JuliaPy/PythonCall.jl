@@ -1088,6 +1088,7 @@ end
 """
     pydict(x)
     pydict(; x...)
+    pydict(x::Pair...)
 
 Convert `x` to a Python `dict`. In the second form, the keys are strings.
 
@@ -1098,7 +1099,7 @@ pydict(; kwargs...) =
     isempty(kwargs) ? pynew(errcheck(C.PyDict_New())) : pystrdict_fromiter(kwargs)
 pydict(x) = ispy(x) ? pybuiltins.dict(x) : pydict_fromiter(x)
 pydict(x::NamedTuple) = pydict(; x...)
-pydict(pairs::Pair...) = pydict(pairs)
+pydict(pair::Pair, pairs::Pair...) = pydict((pair, pairs...))
 export pydict
 
 ### datetime

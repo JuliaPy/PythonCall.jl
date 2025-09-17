@@ -70,75 +70,29 @@ function DateTime64(d::AbstractString, f::Dates.DateFormat, unit::UnitArg = defa
 end
 
 function DateTime64(d::Dates.DateTime, unit::UnitArg = defaultunit(d))
-    u, m = unit = unitpair(unit)
-    if u ≤ DAYS
-        return DateTime64(Dates.Date(d), unit)
-    end
-    v = value((d - Dates.DateTime(1970))::Dates.Millisecond)
-    if u == HOURS
-        m = mul(m, 1000 * 60 * 60)
-    elseif u == MINUTES
-        m = mul(m, 1000 * 60)
-    elseif u == SECONDS
-        m = mul(m, 1000)
-    elseif u == MILLISECONDS
-        # nothing
-    elseif u == MICROSECONDS
-        v = mul(v, 1000)
-    elseif u == NANOSECONDS
-        v = mul(v, 1000_000)
-    elseif u == PICOSECONDS
-        v = mul(v, 1000_000_000)
-    elseif u == FEMTOSECONDS
-        v = mul(v, 1000_000_000_000)
-    elseif u == ATTOSECONDS
-        v = mul(v, 1000_000_000_000_000)
+    u, _ = unit = unitpair(unit)
+    if u == YEARS
+        v_yr = sub(Dates.year(d), 1970)
+        v, _ = rescale(v_yr, YEARS, unit)
+    elseif u == MONTHS
+        yr, mn = Dates.yearmonth(d)
+        v_mn = add(mul(12, sub(yr, 1970)), sub(mn, 1))
+        v, _ = rescale(v_mn, MONTHS, unit)
     else
-        error("unknown unit: $u")
+        v_ms = d - Dates.DateTime(1970)
+        v, _ = rescale(value(v_ms), Unit(v_ms), unit)
     end
-    v = fld(v, m)
     DateTime64(v, unit)
 end
 
 
 function DateTime64(d::Dates.Date, unit::UnitArg = defaultunit(d))
-    u, m = unit = unitpair(unit)
-    if u == YEARS
-        v = Dates.year(d) - 1970
-    elseif u == MONTHS
-        v = 12 * (Dates.year(d) - 1970) + (Dates.month(d) - 1)
-    else
-        v = value((d - Dates.Date(1970))::Dates.Day)
-        if u == WEEKS
-            m = mul(m, 7)
-        elseif u == DAYS
-            # nothing
-        elseif u == HOURS
-            v = mul(v, 24)
-        elseif u == MINUTES
-            v = mul(v, 24 * 60)
-        elseif u == SECONDS
-            v = mul(v, 24 * 60 * 60)
-        elseif u == MILLISECONDS
-            v = mul(v, 24 * 60 * 60 * 1000)
-        elseif u == MICROSECONDS
-            v = mul(v, 24 * 60 * 60 * 1000_000)
-        elseif u == NANOSECONDS
-            v = mul(v, 24 * 60 * 60 * 1000_000_000)
-        elseif u == PICOSECONDS
-            v = mul(v, 24 * 60 * 60 * 1000_000_000_000)
-        elseif u == FEMTOSECONDS
-            throw(OverflowError(""))
-        elseif u == ATTOSECONDS
-            throw(OverflowError(""))
-        else
-            error("unknown unit: $u")
-        end
-    end
-    v = fld(v, m)
-    DateTime64(v, unit)
+    DateTime64(Dates.DateTime(d), unit)
 end
 
+# convert
+
+Base.convert(::Type{DateTime64}, x::DatesInstant) = DateTime64(x)
 
 # show
 

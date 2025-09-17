@@ -94,6 +94,12 @@ function InlineDateTime64(
     InlineTimeDelta64{unitparam(u)}(v, f)
 end
 
+# convert
+
+Base.convert(::Type{InlineDateTime64}, x::DatesInstant) = InlineDateTime64(x)
+Base.convert(::Type{InlineDateTime64{U}}, x::DatesInstant) where {U} =
+    InlineDateTime64{U}(x)
+
 # show
 
 function Base.show(io::IO, d::InlineDateTime64)

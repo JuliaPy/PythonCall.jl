@@ -13,6 +13,10 @@ function pyconvert_rule_datetime64(::Type{DateTime64}, x::Py)
     pyconvert_return(C.PySimpleObject_GetValue(DateTime64, x))
 end
 
+function pyconvert_rule_datetime64(::Type{T}, x::Py) where {T<:InlineDateTime64}
+    pyconvert_return(T(C.PySimpleObject_GetValue(DateTime64, x)))
+end
+
 function pyconvert_rule_datetime64(::Type{DateTime}, x::Py)
     d = C.PySimpleObject_GetValue(DateTime64, x)
     if isnan(d)
@@ -42,6 +46,10 @@ end
 
 function pyconvert_rule_timedelta64(::Type{TimeDelta64}, x::Py)
     pyconvert_return(C.PySimpleObject_GetValue(TimeDelta64, x))
+end
+
+function pyconvert_rule_datetime64(::Type{T}, x::Py) where {T<:InlineTimeDelta64}
+    pyconvert_return(T(C.PySimpleObject_GetValue(TimeDelta64, x)))
 end
 
 function pyconvert_rule_timedelta64(::Type{Missing}, x::Py)
@@ -116,6 +124,7 @@ function init_numpy()
         pyconvert_rule_datetime64,
         PYCONVERT_PRIORITY_ARRAY,
     )
+    pyconvert_add_rule("numpy:datetime64", InlineDateTime64, pyconvert_rule_datetime64)
     pyconvert_add_rule("numpy:datetime64", DateTime, pyconvert_rule_datetime64)
     pyconvert_add_rule("numpy:datetime64", Missing, pyconvert_rule_datetime64)
     pyconvert_add_rule("numpy:datetime64", Nothing, pyconvert_rule_datetime64)
@@ -127,6 +136,7 @@ function init_numpy()
         pyconvert_rule_timedelta64,
         PYCONVERT_PRIORITY_ARRAY,
     )
+    pyconvert_add_rule("numpy:timedelta64", InlineTimeDelta64, pyconvert_rule_timedelta64)
     pyconvert_add_rule("numpy:timedelta64", Missing, pyconvert_rule_timedelta64)
     pyconvert_add_rule("numpy:timedelta64", Nothing, pyconvert_rule_timedelta64)
 end

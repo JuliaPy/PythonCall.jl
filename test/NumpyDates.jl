@@ -570,7 +570,6 @@ end
     # Each case is: (period, unit_symbol, expected_numpy_integer)
     cases = [
         # negative one day
-        (Day(-1), :W, -1),
         (Day(-1), :D, -1),
         (Day(-1), :h, -24),
         (Day(-1), :m, -1440),
@@ -628,6 +627,15 @@ end
         inline_dyn = NumpyDates.InlineTimeDelta64(p, usym)
         @test Dates.value(inline_dyn) == expected
         @test NumpyDates.unitpair(inline_dyn) == NumpyDates.unitpair(usym)
+    end
+
+    inexact_cases = [(Millisecond(3001), :s), (Day(-1), :W)]
+
+    @testset "$p $usym" for (p, usym) in inexact_cases
+        @test_throws InexactError NumpyDates.TimeDelta64(p, usym)
+        @test_throws InexactError NumpyDates.InlineTimeDelta64(p, usym)
+        Uconst = NumpyDates.Unit(usym)
+        @test_throws InexactError NumpyDates.InlineTimeDelta64{Uconst}(p)
     end
 end
 
@@ -818,6 +826,76 @@ end
     nat_td = NumpyDates.TimeDelta64("NaT", :s)
     z = NumpyDates.TimeDelta64(nat_td, :ns)
     @test isnan(z)
+end
+
+@testitem "TimeDelta64 to Dates.Period" begin
+    using Dates
+    using PythonCall: NumpyDates
+
+    # Mapping from unit symbols to Dates.Period constructors
+    const PERIOD_CONST = Dict(
+        :Y => Dates.Year,
+        :M => Dates.Month,
+        :D => Dates.Day,
+        :h => Dates.Hour,
+        :m => Dates.Minute,
+        :s => Dates.Second,
+        :ms => Dates.Millisecond,
+        :us => Dates.Microsecond,
+        :ns => Dates.Nanosecond,
+    )
+
+    # Test cases: (value, unit_symbol)
+    cases = [
+        (1, :Y),
+        (-1, :Y),
+        (1, :M),
+        (-12, :M),
+        (1, :D),
+        (-7, :D),
+        (1, :h),
+        (-24, :h),
+        (1, :m),
+        (-60, :m),
+        (1, :s),
+        (-3600, :s),
+        (1, :ms),
+        (-1000, :ms),
+        (1, :us),
+        (-1000000, :us),
+        (1, :ns),
+        (-1000000000, :ns),
+    ]
+
+    @testset "$v $usym" for (v, usym) in cases
+        # TimeDelta64
+        td = NumpyDates.TimeDelta64(v, usym)
+        PeriodType = PERIOD_CONST[usym]
+        @test PeriodType(td) == PeriodType(v)
+
+        # InlineTimeDelta64 typed
+        Uconst = NumpyDates.Unit(usym)
+        inline_typed = NumpyDates.InlineTimeDelta64{Uconst}(v)
+        @test PeriodType(inline_typed) == PeriodType(v)
+
+        # InlineTimeDelta64 dynamic
+        inline_dyn = NumpyDates.InlineTimeDelta64(v, usym)
+        @test PeriodType(inline_dyn) == PeriodType(v)
+    end
+
+    # NaT conversion errors
+    for usym in keys(PERIOD_CONST)
+        nat1 = NumpyDates.TimeDelta64("NaT", usym)
+        PeriodType = PERIOD_CONST[usym]
+        @test_throws Exception PeriodType(nat1)
+
+        Uconst = NumpyDates.Unit(usym)
+        nat2 = NumpyDates.InlineTimeDelta64{Uconst}("NaT")
+        @test_throws Exception PeriodType(nat2)
+
+        nat3 = NumpyDates.InlineTimeDelta64("NaT", usym)
+        @test_throws Exception PeriodType(nat3)
+    end
 end
 
 @testitem "defaultunit" begin

@@ -42,7 +42,7 @@ function InlineTimeDelta64{U}(v::AbstractString) where {U}
     InlineTimeDelta64{U}(value(TimeDelta64(v, U)))
 end
 
-function InlineTimeDelta64{U}(v::Dates.Period) where {U}
+function InlineTimeDelta64{U}(v::DatesPeriod) where {U}
     InlineTimeDelta64{U}(value(TimeDelta64(v, U)))
 end
 
@@ -58,13 +58,19 @@ function InlineTimeDelta64(v::AbstractString, u::UnitArg = defaultunit(v))
     InlineTimeDelta64{unitparam(u)}(v)
 end
 
-function InlineTimeDelta64(v::Dates.Period, u::UnitArg = defaultunit(v))
+function InlineTimeDelta64(v::DatesPeriod, u::UnitArg = defaultunit(v))
     InlineTimeDelta64{unitparam(u)}(v)
 end
 
 function InlineTimeDelta64(v::Integer, u::UnitArg)
     InlineTimeDelta64{unitparam(u)}(v)
 end
+
+# convert
+
+Base.convert(::Type{InlineTimeDelta64}, p::DatesPeriod) = InlineTimeDelta64(p)
+Base.convert(::Type{InlineTimeDelta64{U}}, p::DatesPeriod) where {U} =
+    InlineTimeDelta64{U}(p)
 
 # show
 
@@ -79,3 +85,5 @@ function Base.show(io::IO, d::InlineTimeDelta64)
     end
     nothing
 end
+
+Base.show(io::IO, ::MIME"text/plain", d::InlineTimeDelta64) = show(io, d)

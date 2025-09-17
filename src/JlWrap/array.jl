@@ -267,7 +267,8 @@ pytypestrdescr(::Type{T}) where {T} =
             ("$(c)c8", PyNULL)
         elseif T == Complex{Float64}
             ("$(c)c16", PyNULL)
-        elseif T <: Union{NumpyDates.InlineDateTime64,NumpyDates.InlineTimeDelta64}
+        elseif isconcretetype(T) &&
+               T <: Union{NumpyDates.InlineDateTime64,NumpyDates.InlineTimeDelta64}
             u, m = NumpyDates.unitpair(T)
             tc = T <: NumpyDates.InlineDateTime64 ? 'M' : 'm'
             us =

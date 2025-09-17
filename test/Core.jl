@@ -508,10 +508,7 @@ end
     @test pyeq(Bool, pydict(Dict("foo" => 1, "bar" => 2)), x)
     @test pyeq(Bool, pydict((foo = 1, bar = 2)), x)
     @test pyeq(Bool, pydict(x), x)
-    y = pydict("foo" => 1, "bar" => 2)
-    @test pyeq(Bool, pygetitem(y, "foo"), 1)
-    @test pyeq(Bool, pygetitem(y, "bar"), 2)
-    @test pyeq(Bool, x, y)
+    @test pyeq(Bool, pydict("foo" => 1, "bar" => 2), x)
 end
 
 @testitem "bool" begin

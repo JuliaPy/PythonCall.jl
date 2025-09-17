@@ -75,14 +75,38 @@ function init_context()
             exe_path = PyCall.python::String
             CTX.lib_path = PyCall.libpython::String
             CTX.which = :PyCall
+        elseif exe_path == "@venv"
+            # load from a .venv in the active project
+            exe_path = abspath(dirname(Base.active_project()), ".venv")
+            if Sys.iswindows()
+                exe_path = abspath(exe_path, "Scripts", "python.exe")::String
+            else
+                exe_path = abspath(exe_path, "bin", "python")::String
+            end
         elseif startswith(exe_path, "@")
             error("invalid JULIA_PYTHONCALL_EXE=$exe_path")
         else
             # Otherwise we use the Python specified
             CTX.which = :unknown
+            if isabspath(exe_path)
+                # nothing to do
+            elseif '/' in exe_path || '\\' in exe_path
+                # it's a relative path, interpret it as relative to the current project
+                exe_path = abspath(dirname(Base.active_project()), exe_path)::String
+            else
+                # it's a command, find it in the PATH
+                given_exe_path = exe_path
+                exe_path = Sys.which(exe_path)
+                exe_path === nothing &&
+                    error("Python executable $(repr(given_exe_path)) not found.")
+                exe_path::String
+            end
         end
 
         # Ensure Python is runnable
+        if !ispath(exe_path)
+            error("Python executable $(repr(exe_path)) does not exist.")
+        end
         try
             run(pipeline(`$exe_path --version`, stdout = devnull, stderr = devnull))
         catch

@@ -24,13 +24,10 @@ end
 
 # accessors
 
-function Dates.value(d::InlineTimeDelta64)
-    d.value
-end
+Dates.value(d::InlineTimeDelta64) = d.value
 
-function unitpair(::InlineTimeDelta64{U}) where {U}
-    unitpair(U)
-end
+unitpair(::InlineTimeDelta64{U}) where {U} = unitpair(U)
+unitpair(::Type{InlineTimeDelta64{U}}) where {U} = unitpair(U)
 
 # constructors
 

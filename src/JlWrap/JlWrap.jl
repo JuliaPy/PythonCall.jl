@@ -7,6 +7,7 @@ module JlWrap
 
 using ..PythonCall
 using ..Utils
+using ..NumpyDates: NumpyDates
 using ..C
 using ..Core
 using ..Convert

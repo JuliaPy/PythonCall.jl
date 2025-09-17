@@ -278,6 +278,7 @@ pyarray_typestrdescr_to_type(ts::String, descr::Py) = begin
         s = m[3] === nothing ? 1 : parse(Int, m[3])
         us = m[4] === nothing ? "" : m[4]
         u =
+            us == "" ? NumpyDates.UNBOUND_UNITS :
             us == "Y" ? NumpyDates.YEARS :
             us == "M" ? NumpyDates.MONTHS :
             us == "W" ? NumpyDates.WEEKS :

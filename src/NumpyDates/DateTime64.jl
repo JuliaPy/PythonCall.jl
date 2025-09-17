@@ -27,14 +27,9 @@ end
 
 # accessors
 
-function Dates.value(d::DateTime64)
-    d.value
-end
+Dates.value(d::DateTime64) = d.value
 
-function unitpair(d::DateTime64)
-    d.unit
-end
-
+unitpair(d::DateTime64) = d.unit
 
 # constructors
 

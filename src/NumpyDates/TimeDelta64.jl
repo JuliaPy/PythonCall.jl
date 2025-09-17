@@ -23,13 +23,9 @@ end
 
 # accessors
 
-function Dates.value(d::TimeDelta64)
-    d.value
-end
+Dates.value(d::TimeDelta64) = d.value
 
-function unitpair(d::TimeDelta64)
-    d.unit
-end
+unitpair(d::TimeDelta64) = d.unit
 
 # constructors
 

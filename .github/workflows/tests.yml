@@ -60,13 +60,22 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   python:
-    name: Test Python (${{ matrix.pyversion }}, ${{ matrix.os }})
+    name: Test Python (${{ matrix.pyversion }}, ${{ matrix.os }}, ${{ matrix.juliaexe }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         pyversion: ["3", "3.9"]
+        juliaexe: ["@JuliaPkg"]
+        include:
+        - os: ubuntu-latest
+          pyversion: 3
+          juliaexe: julia
+    env:
+      MANUAL_TEST_PROJECT: /tmp/juliacall-test-project
+      PYTHON_JULIACALL_THREADS: '2'
+      PYTHON_JULIACALL_HANDLE_SIGNALS: 'yes'
 
     steps:
       - uses: actions/checkout@v5
@@ -82,9 +91,16 @@ jobs:
           python-version: ${{ matrix.pyversion }}
   
       - name: Set up Julia
+        id: setup_julia
         uses: julia-actions/setup-julia@v2
         with:
           version: '1'
+
+      - name: Set up test Julia project
+        if: ${{ matrix.juliaexe == 'julia' }}
+        run: |
+          mkdir ${{ env.MANUAL_TEST_PROJECT }}
+          julia --project=${{ env.MANUAL_TEST_PROJECT }} -e 'import Pkg; Pkg.develop(path="."); Pkg.instantiate()'
 
       - name: Install dependencies
         run: |
@@ -98,12 +114,18 @@ jobs:
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           uv run flake8 ./pysrc ./pytest --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Run tests
+      - name: Run tests (with JuliaPkg)
+        if: ${{ matrix.juliaexe == '@JuliaPkg' }}
+        run: |
+          uv run pytest -s --nbval --cov=pysrc ./pytest/
+
+      - name: Run tests (without JuliaPkg)
+        if: ${{ matrix.juliaexe == 'julia' }}
         run: |
           uv run pytest -s --nbval --cov=pysrc ./pytest/
         env:
-          PYTHON_JULIACALL_THREADS: '2'
-          PYTHON_JULIACALL_HANDLE_SIGNALS: 'yes'
+          PYTHON_JULIACALL_EXE: "${{ steps.setup_julia.outputs.julia-bindir }}/julia"
+          PYTHON_JULIACALL_PROJECT: ${{ env.MANUAL_TEST_PROJECT }}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

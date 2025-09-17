@@ -96,6 +96,16 @@ def init():
                 raise ValueError(f'{s}: path does not exist')
             return os.path.abspath(path), s
         return default, s
+    
+    def executable_option(name, default=None, **kw):
+        import shutil
+        _path, s = option(name, **kw)
+        if _path is not None:
+            path = shutil.which(_path)
+            if path is None:
+                raise ValueError(f'{s}: executable not found')
+            return os.path.abspath(path), s
+        return default, s
 
     def int_option(name, *, accept_auto=False, **kw):
         val, s = option(name, **kw)
@@ -147,18 +157,31 @@ def init():
     CONFIG['opt_handle_signals'] = choice('handle_signals', ['yes', 'no'])[0]
     CONFIG['opt_startup_file'] = choice('startup_file', ['yes', 'no'])[0]
     CONFIG['opt_heap_size_hint'] = option('heap_size_hint')[0]
+    CONFIG['project'] = path_option('project', check_exists=True)[0]
+    CONFIG['exepath'] = executable_option('exe')[0]
 
     # Stop if we already initialised
     if CONFIG['inited']:
         return
 
-    # we don't import this at the top level because it is not required when juliacall is
-    # loaded by PythonCall and won't be available
-    import juliapkg
+    have_exepath = CONFIG['exepath'] is not None
+    have_project = CONFIG['project'] is not None
+    if have_exepath and have_project:
+        pass
+    elif (not have_exepath) and (not have_project):
+        # we don't import this at the top level because it is not required when
+        # juliacall is loaded by PythonCall and won't be available, or if both
+        # `exepath` and `project` are set by the user.
+        import juliapkg
 
-    # Find the Julia executable and project
-    CONFIG['exepath'] = exepath = juliapkg.executable()
-    CONFIG['project'] = project = juliapkg.project()
+        # Find the Julia executable and project
+        CONFIG['exepath'] = juliapkg.executable()
+        CONFIG['project'] = juliapkg.project()
+    else:
+        raise Exception("Both PYTHON_JULIACALL_PROJECT and PYTHON_JULIACALL_EXE must be set together, not only one of them.")
+
+    exepath = CONFIG['exepath']
+    project = CONFIG['project']
 
     # Find the Julia library
     cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min',

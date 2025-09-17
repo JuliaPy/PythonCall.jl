@@ -122,25 +122,16 @@ end
 Py(x::Py) = x
 Py(x::Nothing) = pybuiltins.None
 Py(x::Bool) = x ? pybuiltins.True : pybuiltins.False
-Py(x::Union{String,SubString{String},Char}) = pystr(x)
+Py(x::Union{AbstractString,AbstractChar}) = pystr(x)
 Py(x::Base.CodeUnits{UInt8,String}) = pybytes(x)
 Py(x::Base.CodeUnits{UInt8,SubString{String}}) = pybytes(x)
 Py(x::Tuple) = pytuple_fromiter(x)
 Py(x::Pair) = pytuple_fromiter(x)
-Py(x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}) =
-    pyint(x)
-Py(
-    x::Rational{
-        <:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt},
-    },
-) = pyfraction(x)
+Py(x::Integer) = pyint(x)
+Py(x::Rational{<:Integer}) = pyfraction(x)
 Py(x::Union{Float16,Float32,Float64}) = pyfloat(x)
-Py(x::Complex{<:Union{Float16,Float32,Float64}}) = pycomplex(x)
-Py(
-    x::AbstractRange{
-        <:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt},
-    },
-) = pyrange_fromrange(x)
+Py(x::Union{Complex{Float16},Complex{Float32},Complex{Float64}}) = pycomplex(x)
+Py(x::AbstractRange{<:Integer}) = pyrange_fromrange(x)
 Py(x::Date) = pydate(x)
 Py(x::Time) = pytime(x)
 Py(x::DateTime) = pydatetime(x)

@@ -1,11 +1,3 @@
-@enum PyConvertPriority begin
-    PYCONVERT_PRIORITY_WRAP = 400
-    PYCONVERT_PRIORITY_ARRAY = 300
-    PYCONVERT_PRIORITY_CANONICAL = 200
-    PYCONVERT_PRIORITY_NORMAL = 0
-    PYCONVERT_PRIORITY_FALLBACK = -100
-end
-
 struct PyConvertRule
     type::Type
     func::Function
@@ -238,7 +230,7 @@ function _pyconvert_get_rules(pytype::Py)
         end
     end
     for (t, x) in reverse(collect(zip(mro, xmro)))
-        if C.PyType_CheckBuffer(getptr(t))
+        if C.PyType_CheckBuffer(t)
             push!(x, "<buffer>")
             break
         end
@@ -350,7 +342,7 @@ function pytryconvert(::Type{T}, x_) where {T}
 
     # get rules from the cache
     # TODO: we should hold weak references and clear the cache if types get deleted
-    tptr = C.Py_Type(getptr(x))
+    tptr = C.Py_Type(x)
     trules = pyconvert_rules_cache(T)
     rules = get!(trules, tptr) do
         t = pynew(incref(tptr))
@@ -387,7 +379,6 @@ macro pyconvert(T, x, onfail = :(return $pyconvert_unconverted()))
         end
     end
 end
-export @pyconvert
 
 """
     pyconvert(T, x, [d])
@@ -400,7 +391,6 @@ pyconvert(::Type{T}, x) where {T} = @autopy x @pyconvert T x_ error(
     "cannot convert this Python '$(pytype(x_).__name__)' to a Julia '$T'",
 )
 pyconvert(::Type{T}, x, d) where {T} = @autopy x @pyconvert T x_ d
-export pyconvert
 
 """
     pyconvertarg(T, x, name)

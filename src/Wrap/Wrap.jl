@@ -5,44 +5,22 @@ Defines Julia wrappers around Python objects, including `PyList`, `PyDict`, `PyA
 """
 module Wrap
 
+using ..PythonCall
+using ..Utils
+using ..NumpyDates
+using ..C
 using ..Core
-using ..Core:
-    C,
-    Utils,
-    @autopy,
-    unsafe_pynext,
-    pyisnull,
-    PyNULL,
-    getptr,
-    pydel!,
-    pybytes_asvector,
-    pystr_asUTF8vector,
-    pystr_fromUTF8,
-    incref,
-    decref,
-    pynew,
-    pyisnone,
-    pyistuple,
-    pyisstr
-using ..Convert:
-    pyconvert,
-    pyconvert_tryconvert,
-    pyconvert_unconverted,
-    pyconvert_isunconverted,
-    pyconvert_return,
-    pyconvert_result
+using ..Convert
 using ..PyMacro
+
+import ..PythonCall:
+    PyArray, PyDict, PyIO, PyIterable, PyList, PyPandasDataFrame, PySet, PyTable
 
 using Base: @propagate_inbounds
 using Tables: Tables
 using UnsafePointers: UnsafePtr
 
 import ..Core: Py, ispy
-import ..Convert:
-    pyconvert_add_rule,
-    PYCONVERT_PRIORITY_ARRAY,
-    PYCONVERT_PRIORITY_CANONICAL,
-    PYCONVERT_PRIORITY_NORMAL
 
 include("PyIterable.jl")
 include("PyDict.jl")

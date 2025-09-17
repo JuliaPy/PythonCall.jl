@@ -9,7 +9,6 @@ True if `x` is a Python object.
 This includes `Py` and Python wrapper types such as `PyList`.
 """
 ispy(x) = false
-export ispy
 
 """
     pyisnull(x)
@@ -25,31 +24,18 @@ Get the underlying pointer from the Python object `x`.
 """
 getptr(x) = ispy(x) ? getptr(Py(x)::Py) : throw(MethodError(getptr, (x,)))
 
-"""
-    Py(x)
-
-Convert `x` to a Python object, of type `Py`.
-
-Conversion happens according to [these rules](@ref jl2py-conversion).
-
-Such an object supports attribute access (`obj.attr`), indexing (`obj[idx]`), calling
-(`obj(arg1, arg2)`), iteration (`for x in obj`), arithmetic (`obj + obj2`) and comparison
-(`obj > obj2`), among other things. These operations convert all their arguments to `Py` and
-return `Py`.
-"""
-mutable struct Py
-    ptr::C.PyPtr
-    Py(::Val{:new}, ptr::C.PyPtr) = finalizer(py_finalizer, new(ptr))
-end
-export Py
-
 py_finalizer(x::Py) = GC.enqueue(getptr(x))
 
 ispy(::Py) = true
-getptr(x::Py) = getfield(x, :ptr)
+getptr(x::Py) = C.PyPtr(getfield(x, :ptr))
 pyconvert(::Type{Py}, x::Py) = x
 
-setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, ptr); x)
+setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, Ptr{Cvoid}(ptr)); x)
+
+incref(x::Py) = Base.GC.@preserve x (incref(getptr(x)); x)
+decref(x::Py) = Base.GC.@preserve x (decref(getptr(x)); x)
+
+Base.unsafe_convert(::Type{C.PyPtr}, x::Py) = getptr(x)
 
 const PYNULL_CACHE = Py[]
 
@@ -75,7 +61,7 @@ const PyNULL = pynew()
 
 pynew(ptr::C.PyPtr) = setptr!(pynew(), ptr)
 
-pynew(x::Py) = pynew(incref(getptr(x)))
+pynew(x::Py) = Base.GC.@preserve x pynew(incref(getptr(x)))
 
 """
     pycopy!(dst::Py, src)
@@ -164,13 +150,13 @@ Base.print(io::IO, x::Py) = print(io, string(x))
 
 function Base.show(io::IO, x::Py)
     if get(io, :typeinfo, Any) == Py
-        if getptr(x) == C.PyNULL
+        if pyisnull(x)
             print(io, "NULL")
         else
             print(io, pyrepr(String, x))
         end
     else
-        if getptr(x) == C.PyNULL
+        if pyisnull(x)
             print(io, "<py NULL>")
         else
             s = pyrepr(String, x)

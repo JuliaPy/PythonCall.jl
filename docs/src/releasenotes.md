@@ -1,5 +1,27 @@
 # Release Notes
 
+## Unreleased
+* Added `NumpyDates`: NumPy-compatible DateTime64/TimeDelta64 types and units.
+* Added `pyconvert` rules for NumpyDates types.
+* Added `PyArray` support for NumPy arrays of `datetime64` and `timedelta64`.
+* Added `juliacall.ArrayValue` support for Julia arrays of `InlineDateTime64` and `InlineTimeDelta64`.
+* If `JULIA_PYTHONCALL_EXE` is a relative path, it is now considered relative to the active project.
+* Added option `JULIA_PYTHONCALL_EXE=@venv` to use a Python virtual environment relative to the active project.
+* Added `PYTHON_JULIACALL_EXE` and `PYTHON_JULIACALL_PROJECT` for specifying the Julia binary and project to override JuliaPkg.
+* Bug fixes.
+* Internal: switch from Requires.jl to package extensions.
+
+## 0.9.27 (2025-08-19)
+* Internal: Use heap-allocated types (PyType_FromSpec) to improve ABI compatibility.
+* Minimum supported Python version is now 3.9.
+* Better compatibility with libstdc++.
+
+## 0.9.26 (2025-07-15)
+* Added PySide6 support to the GUI compatibility layer.
+* Added FAQ on interactive threads.
+* Added CI benchmarking suite.
+* Bug fixes.
+
 ## 0.9.25 (2025-05-13)
 * Added `PYTHON_JULIACALL_HEAP_SIZE_HINT` option to configure initial Julia heap size.
 * `Base.elsize` now defined for `PyArray`.

@@ -2,46 +2,6 @@ struct UnsafePyObject
     ptr::C.PyPtr
 end
 
-"""
-    PyArray{T,N,M,L,R}(x; copy=true, array=true, buffer=true)
-
-Wrap the Python array `x` as a Julia `AbstractArray{T,N}`.
-
-The input `x` can be `bytes`, `bytearray`, `array.array`, `numpy.ndarray` or anything satisfying the buffer protocol (if `buffer=true`) or the numpy array interface (if `array=true`).
-
-If `copy=false` then the resulting array is guaranteed to directly wrap the data in `x`. If `copy=true` then a copy is taken if necessary to produce an array.
-
-The type parameters are all optional, and are:
-- `T`: The element type.
-- `N`: The number of dimensions.
-- `M`: True if the array is mutable.
-- `L`: True if the array supports fast linear indexing.
-- `R`: The element type of the underlying buffer. Often equal to `T`.
-"""
-struct PyArray{T,N,M,L,R} <: AbstractArray{T,N}
-    ptr::Ptr{R}             # pointer to the data
-    length::Int             # length of the array
-    size::NTuple{N,Int}     # size of the array
-    strides::NTuple{N,Int}  # strides (in bytes) between elements
-    py::Py                  # underlying python object
-    handle::Py              # the data in this array is valid as long as this handle is alive
-    function PyArray{T,N,M,L,R}(
-        ::Val{:new},
-        ptr::Ptr{R},
-        size::NTuple{N,Int},
-        strides::NTuple{N,Int},
-        py::Py,
-        handle::Py,
-    ) where {T,N,M,L,R}
-        T isa Type || error("T must be a Type")
-        N isa Int || error("N must be an Int")
-        M isa Bool || error("M must be a Bool")
-        L isa Bool || error("L must be a Bool")
-        R isa DataType || error("R must be a DataType")
-        new{T,N,M,L,R}(ptr, prod(size), size, strides, py, handle)
-    end
-end
-export PyArray
 
 ispy(::PyArray) = true
 Py(x::PyArray) = x.py
@@ -123,7 +83,7 @@ function pyarray_make(
             @debug "failed to make PyArray from __array_interface__" exc = exc
         end
     end
-    if buffer && C.PyObject_CheckBuffer(getptr(x))
+    if buffer && C.PyObject_CheckBuffer(x)
         try
             return pyarray_make(A, x, PyArraySource_Buffer(x))
         catch exc
@@ -246,7 +206,7 @@ function PyArraySource_ArrayInterface(x::Py, d::Py = x.__array_interface__)
     else
         memview = @py memoryview(data === None ? x : data)
         pydel!(data)
-        buf = UnsafePtr(C.PyMemoryView_GET_BUFFER(getptr(memview)))
+        buf = UnsafePtr(C.PyMemoryView_GET_BUFFER(memview))
         ptr = buf.buf[!]
         readonly = buf.readonly[] != 0
         handle = Py((x, memview))
@@ -308,6 +268,36 @@ pyarray_typestrdescr_to_type(ts::String, descr::Py) = begin
         sizeof(T) == sz ||
             error("size mismatch: itemsize=$sz but sizeof(descr)=$(sizeof(T))")
         return T
+    elseif etc == 'M' || etc == 'm'
+        m = match(r"^([0-9]+)(\[([0-9]+)?([a-zA-Z]+)\])?$", ts[3:end])
+        m === nothing && error("could not parse type: $ts")
+        sz = parse(Int, m[1])
+        sz == sizeof(Int64) || error(
+            "$(etc == 'M' ? "datetime" : "timedelta") of this size not supported: $sz",
+        )
+        s = m[3] === nothing ? 1 : parse(Int, m[3])
+        us = m[4] === nothing ? "" : m[4]
+        u =
+            us == "" ? NumpyDates.UNBOUND_UNITS :
+            us == "Y" ? NumpyDates.YEARS :
+            us == "M" ? NumpyDates.MONTHS :
+            us == "W" ? NumpyDates.WEEKS :
+            us == "D" ? NumpyDates.DAYS :
+            us == "h" ? NumpyDates.HOURS :
+            us == "m" ? NumpyDates.MINUTES :
+            us == "s" ? NumpyDates.SECONDS :
+            us == "ms" ? NumpyDates.MILLISECONDS :
+            us == "us" ? NumpyDates.MICROSECONDS :
+            us == "ns" ? NumpyDates.NANOSECONDS :
+            us == "ps" ? NumpyDates.PICOSECONDS :
+            us == "fs" ? NumpyDates.FEMTOSECONDS :
+            us == "as" ? NumpyDates.ATTOSECONDS :
+            error("not supported: $(etc == 'M' ? "datetime" : "timedelta") unit: $us")
+        if etc == 'M'
+            return NumpyDates.InlineDateTime64{s == 1 ? u : (u, s)}
+        else
+            return NumpyDates.InlineTimeDelta64{s == 1 ? u : (u, s)}
+        end
     else
         error("not supported: dtype of kind: $(repr(etc))")
     end
@@ -411,8 +401,8 @@ struct PyArraySource_ArrayStruct <: PyArraySource
     info::C.PyArrayInterface
 end
 function PyArraySource_ArrayStruct(x::Py, capsule::Py = x.__array_struct__)
-    name = C.PyCapsule_GetName(getptr(capsule))
-    ptr = C.PyCapsule_GetPointer(getptr(capsule), name)
+    name = C.PyCapsule_GetName(capsule)
+    ptr = C.PyCapsule_GetPointer(capsule, name)
     info = unsafe_load(Ptr{C.PyArrayInterface}(ptr))
     @assert info.two == 2
     return PyArraySource_ArrayStruct(x, capsule, info)
@@ -540,7 +530,7 @@ struct PyArraySource_Buffer <: PyArraySource
 end
 function PyArraySource_Buffer(x::Py)
     memview = pybuiltins.memoryview(x)
-    buf = C.UnsafePtr(C.PyMemoryView_GET_BUFFER(getptr(memview)))
+    buf = C.UnsafePtr(C.PyMemoryView_GET_BUFFER(memview))
     PyArraySource_Buffer(x, memview, buf)
 end
 
@@ -703,7 +693,7 @@ function pyarray_store!(p::Ptr{R}, x::T) where {R,T}
     elseif R == UnsafePyObject
         @autopy x begin
             decref(unsafe_load(p).ptr)
-            unsafe_store!(p, UnsafePyObject(incref(getptr(x_))))
+            unsafe_store!(p, UnsafePyObject(getptr(incref(x_))))
         end
     else
         unsafe_store!(p, convert(R, x))

@@ -240,6 +240,7 @@ to your current Julia project containing Python and any required Python packages
 ENV["JULIA_CONDAPKG_BACKEND"] = "Null"
 ENV["JULIA_PYTHONCALL_EXE"] = "/path/to/python"  # optional
 ENV["JULIA_PYTHONCALL_EXE"] = "@PyCall"  # optional
+ENV["JULIA_PYTHONCALL_EXE"] = "@venv" # optional
 ```
 
 By setting the CondaPkg backend to Null, it will never install any Conda packages. In this
@@ -247,10 +248,13 @@ case, PythonCall will use whichever Python is currently installed and in your `P
 must have already installed any Python packages that you need.
 
 If `python` is not in your `PATH`, you will also need to set `JULIA_PYTHONCALL_EXE` to its
-path.
+path. Relative paths are resolved relative to the current active project.
 
 If you also use PyCall, you can set `JULIA_PYTHONCALL_EXE=@PyCall` to use the same Python
-interpreter.
+interpreter. [See here](@ref faq-pycall).
+
+If you have a Python virtual environment at `.venv` in your current active project, you
+can set `JULIA_PYTHONCALL_EXE=@venv` to use it.
 
 #### If you already have a Conda environment
 
@@ -391,6 +395,8 @@ started with at least four threads (`julia -t4`) then the above code will take a
 Both `@unlock` and `@lock` are important. If the GIL were not unlocked, then a deadlock
 would occur when attempting to lock the already-locked GIL from the threads. If the GIL
 were not re-locked, then Python would crash when interacting with it.
+
+With multiple Julia threads you need exactly one interactive thread, see the [FAQ](@ref faq-multi-threading).
 
 You can also use [multi-threading from Python](@ref py-multi-threading).
 

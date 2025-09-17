@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "juliacall"
-version = "0.9.25"
+version = "0.9.27"
 description = "Julia and Python in seamless harmony"
 readme = { file = "README.md", content-type = "text/markdown" }
 classifiers = [
@@ -12,8 +12,17 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-requires-python = ">=3.8"
-dependencies = ["juliapkg ~=0.1.17"]
+requires-python = ">=3.9, <4"
+dependencies = ["juliapkg >=0.1.17, <0.2"]
+
+[dependency-groups]
+dev = [
+    "flake8>=5.0",
+    "nbval>=0.11.0",
+    "numpy>=1.24",
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["pysrc/juliacall"]

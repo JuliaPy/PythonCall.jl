@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased
+## 0.9.28 (2025-09-17)
 * Added `NumpyDates`: NumPy-compatible DateTime64/TimeDelta64 types and units.
 * Added `pyconvert` rules for NumpyDates types.
 * Added `PyArray` support for NumPy arrays of `datetime64` and `timedelta64`.
@@ -10,6 +10,7 @@
 * Added `PYTHON_JULIACALL_EXE` and `PYTHON_JULIACALL_PROJECT` for specifying the Julia binary and project to override JuliaPkg.
 * Adds methods `Py(::AbstractString)`, `Py(::AbstractChar)` (previously only builtin string and char types were allowed).
 * Adds methods `Py(::Integer)`, `Py(::Rational{<:Integer})`, `Py(::AbstractRange{<:Integer})` (previously only builtin integer types were allowed).
+* Adds method `pydict(::Pair...)` to construct a python `dict` from `Pair`s, similar to `Dict`.
 * Bug fixes.
 * Internal: switch from Requires.jl to package extensions.
 

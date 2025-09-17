@@ -8,6 +8,8 @@
 * If `JULIA_PYTHONCALL_EXE` is a relative path, it is now considered relative to the active project.
 * Added option `JULIA_PYTHONCALL_EXE=@venv` to use a Python virtual environment relative to the active project.
 * Added `PYTHON_JULIACALL_EXE` and `PYTHON_JULIACALL_PROJECT` for specifying the Julia binary and project to override JuliaPkg.
+* Adds methods `Py(::AbstractString)`, `Py(::AbstractChar)` (previously only builtin string and char types were allowed).
+* Adds methods `Py(::Integer)`, `Py(::Rational{<:Integer})`, `Py(::AbstractRange{<:Integer})` (previously only builtin integer types were allowed).
 * Bug fixes.
 * Internal: switch from Requires.jl to package extensions.
 

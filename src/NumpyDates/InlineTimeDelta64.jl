@@ -68,9 +68,14 @@ end
 
 # convert
 
-Base.convert(::Type{InlineTimeDelta64}, p::DatesPeriod) = InlineTimeDelta64(p)
-Base.convert(::Type{InlineTimeDelta64{U}}, p::DatesPeriod) where {U} =
-    InlineTimeDelta64{U}(p)
+Base.convert(::Type{InlineTimeDelta64}, p::InlineTimeDelta64) = p
+Base.convert(::Type{InlineTimeDelta64}, p::Union{AbstractTimeDelta64,DatesPeriod}) =
+    InlineTimeDelta64(p)
+Base.convert(::Type{InlineTimeDelta64{U}}, p::InlineTimeDelta64{U}) where {U} = p
+Base.convert(
+    ::Type{InlineTimeDelta64{U}},
+    p::Union{AbstractTimeDelta64,DatesPeriod},
+) where {U} = InlineTimeDelta64{U}(p)
 
 # show
 

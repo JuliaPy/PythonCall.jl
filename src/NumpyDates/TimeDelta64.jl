@@ -42,9 +42,9 @@ function TimeDelta64(d::AbstractTimeDelta64, unit::UnitArg = defaultunit(d))
     elseif isnan(d)
         TimeDelta64(NAT, unit)
     else
-        error(
-            "not implemented: changing units: $(unitparam(unitpair(d))) to $(unitparam(unit))",
-        )
+        v, r = rescale(value(d), unitpair(d), unit)
+        iszero(r) || throw(InexactError(:TimeDelta64, TimeDelta64, d, unit))
+        TimeDelta64(v, unit)
     end
 end
 
@@ -67,7 +67,9 @@ end
 
 # convert
 
-Base.convert(::Type{TimeDelta64}, p::DatesPeriod) = TimeDelta64(p)
+Base.convert(::Type{TimeDelta64}, p::TimeDelta64) = p
+Base.convert(::Type{TimeDelta64}, p::Union{AbstractTimeDelta64,DatesPeriod}) =
+    TimeDelta64(p)
 
 # show
 

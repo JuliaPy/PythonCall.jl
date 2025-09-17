@@ -96,9 +96,14 @@ end
 
 # convert
 
-Base.convert(::Type{InlineDateTime64}, x::DatesInstant) = InlineDateTime64(x)
-Base.convert(::Type{InlineDateTime64{U}}, x::DatesInstant) where {U} =
-    InlineDateTime64{U}(x)
+Base.convert(::Type{InlineDateTime64}, x::InlineDateTime64) = x
+Base.convert(::Type{InlineDateTime64}, x::Union{AbstractDateTime64,DatesInstant}) =
+    InlineDateTime64(x)
+Base.convert(::Type{InlineDateTime64{U}}, x::InlineDateTime64{U}) where {U} = x
+Base.convert(
+    ::Type{InlineDateTime64{U}},
+    x::Union{AbstractDateTime64,DatesInstant},
+) where {U} = InlineDateTime64{U}(x)
 
 # show
 

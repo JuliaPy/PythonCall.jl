@@ -45,9 +45,8 @@ function DateTime64(d::AbstractDateTime64, unit::UnitArg = defaultunit(d))
     elseif isnan(d)
         DateTime64(NAT, unit)
     else
-        error(
-            "not implemented: changing units: $(unitparam(unitpair(d))) to $(unitparam(unit))",
-        )
+        v, _ = rescale(value(d), unitpair(d), unit)
+        DateTime64(v, unit)
     end
 end
 
@@ -92,6 +91,8 @@ end
 
 # convert
 
+Base.convert(::Type{DateTime64}, x::DateTime64) = x
+Base.convert(::Type{DateTime64}, x::AbstractDateTime64) = DateTime64(x)
 Base.convert(::Type{DateTime64}, x::DatesInstant) = DateTime64(x)
 
 # show

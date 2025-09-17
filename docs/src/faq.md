@@ -1,6 +1,6 @@
 # FAQ & Troubleshooting
 
-## Can I use PythonCall and PyCall together?
+## [Can I use PythonCall and PyCall together?](@id faq-pycall)
 
 Yes, you can use both PyCall and PythonCall in the same Julia session. This is platform-dependent:
 - On most systems the Python interpreter used by PythonCall and PyCall must be the same (see below).

@@ -1,7 +1,10 @@
 # Release Notes
 
 ## Unreleased
-* Added NumpyDates: NumPy-compatible DateTime64/TimeDelta64 types and units.
+* Added `NumpyDates`: NumPy-compatible DateTime64/TimeDelta64 types and units.
+* Added `pyconvert` rules for NumpyDates types.
+* Added `PyArray` support for NumPy arrays of `datetime64` and `timedelta64`.
+* Added `juliacall.ArrayValue` support for Julia arrays of `InlineDateTime64` and `InlineTimeDelta64`.
 
 ## 0.9.27 (2025-08-19)
 * Internal: Use heap-allocated types (PyType_FromSpec) to improve ABI compatibility.

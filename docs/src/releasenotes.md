@@ -1,9 +1,9 @@
 # Release Notes
 
 ## Unreleased
+* Added `PYTHON_JULIACALL_EXE` and `PYTHON_JULIACALL_PROJECT` for specifying the Julia binary and project to override JuliaPkg.
 * Bug fixes.
 * Internal: switch from Requires.jl to package extensions.
-* Added support for specifying the Julia binary and project to override JuliaPkg.
 
 ## 0.9.27 (2025-08-19)
 * Internal: Use heap-allocated types (PyType_FromSpec) to improve ABI compatibility.

@@ -69,8 +69,7 @@ jobs:
         pyversion: ["3", "3.9"]
         juliaexe: ["@JuliaPkg"]
         include:
-        - arch: x64
-          os: ubuntu-latest
+        - os: ubuntu-latest
           pyversion: 3
           juliaexe: julia
     env:

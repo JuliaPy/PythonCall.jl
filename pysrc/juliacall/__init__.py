@@ -156,7 +156,9 @@ def init():
 
     have_exepath = CONFIG['exepath'] is not None
     have_project = CONFIG['project'] is not None
-    if not have_exepath and not have_project:
+    if have_exepath and have_project:
+        pass
+    elif (not have_exepath) and (not have_project):
         # we don't import this at the top level because it is not required when
         # juliacall is loaded by PythonCall and won't be available, or if both
         # `exepath` and `project` are set by the user.
@@ -165,7 +167,7 @@ def init():
         # Find the Julia executable and project
         CONFIG['exepath'] = juliapkg.executable()
         CONFIG['project'] = juliapkg.project()
-    elif (not have_exepath and have_project) or (have_exepath and not have_project):
+    else:
         raise Exception("Both PYTHON_JULIACALL_PROJECT and PYTHON_JULIACALL_EXE must be set together, not only one of them.")
 
     exepath = CONFIG['exepath']

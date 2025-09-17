@@ -75,33 +75,28 @@ end
 
 Equivalent to `setattr(x, k, v)` or `x.k = v` in Python.
 """
-pysetattr(x, k, v) = (
-    errcheck(@autopy x k v C.PyObject_SetAttr(x_, k_, v_)); nothing
-)
+pysetattr(x, k, v) = (errcheck(@autopy x k v C.PyObject_SetAttr(x_, k_, v_)); nothing)
 
 """
     pydelattr(x, k)
 
 Equivalent to `delattr(x, k)` or `del x.k` in Python.
 """
-pydelattr(x, k) =
-    (errcheck(@autopy x k C.PyObject_SetAttr(x_, k_, C.PyNULL)); nothing)
+pydelattr(x, k) = (errcheck(@autopy x k C.PyObject_SetAttr(x_, k_, C.PyNULL)); nothing)
 
 """
     pyissubclass(s, t)
 
 Test if `s` is a subclass of `t`. Equivalent to `issubclass(s, t)` in Python.
 """
-pyissubclass(s, t) =
-    errcheck(@autopy s t C.PyObject_IsSubclass(s_, t_)) == 1
+pyissubclass(s, t) = errcheck(@autopy s t C.PyObject_IsSubclass(s_, t_)) == 1
 
 """
     pyisinstance(x, t)
 
 Test if `x` is of type `t`. Equivalent to `isinstance(x, t)` in Python.
 """
-pyisinstance(x, t) =
-    errcheck(@autopy x t C.PyObject_IsInstance(x_, t_)) == 1
+pyisinstance(x, t) = errcheck(@autopy x t C.PyObject_IsInstance(x_, t_)) == 1
 
 """
     pyhash(x)
@@ -179,17 +174,14 @@ end
 
 Equivalent to `setitem(x, k, v)` or `x[k] = v` in Python.
 """
-pysetitem(x, k, v) = (
-    errcheck(@autopy x k v C.PyObject_SetItem(x_, k_, v_)); nothing
-)
+pysetitem(x, k, v) = (errcheck(@autopy x k v C.PyObject_SetItem(x_, k_, v_)); nothing)
 
 """
     pydelitem(x, k)
 
 Equivalent to `delitem(x, k)` or `del x[k]` in Python.
 """
-pydelitem(x, k) =
-    (errcheck(@autopy x k C.PyObject_DelItem(x_, k_)); nothing)
+pydelitem(x, k) = (errcheck(@autopy x k C.PyObject_DelItem(x_, k_)); nothing)
 
 """
     pydir(x)
@@ -199,13 +191,9 @@ Equivalent to `dir(x)` in Python.
 pydir(x) = pynew(errcheck(@autopy x C.PyObject_Dir(x_)))
 
 pycallargs(f) = pynew(errcheck(@autopy f C.PyObject_CallObject(f_, C.PyNULL)))
-pycallargs(f, args) =
-    pynew(errcheck(@autopy f args C.PyObject_CallObject(f_, args_)))
-pycallargs(f, args, kwargs) = pynew(
-    errcheck(
-        @autopy f args kwargs C.PyObject_Call(f_, args_, kwargs_)
-    ),
-)
+pycallargs(f, args) = pynew(errcheck(@autopy f args C.PyObject_CallObject(f_, args_)))
+pycallargs(f, args, kwargs) =
+    pynew(errcheck(@autopy f args kwargs C.PyObject_Call(f_, args_, kwargs_)))
 
 """
     pycall(f, args...; kwargs...)
@@ -235,8 +223,7 @@ pycall(f, args...; kwargs...) =
 
 Equivalent to `x == y` in Python. The second form converts to `Bool`.
 """
-pyeq(x, y) =
-    pynew(errcheck(@autopy x y C.PyObject_RichCompare(x_, y_, C.Py_EQ)))
+pyeq(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(x_, y_, C.Py_EQ)))
 
 """
     pyne(x, y)
@@ -244,8 +231,7 @@ pyeq(x, y) =
 
 Equivalent to `x != y` in Python. The second form converts to `Bool`.
 """
-pyne(x, y) =
-    pynew(errcheck(@autopy x y C.PyObject_RichCompare(x_, y_, C.Py_NE)))
+pyne(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(x_, y_, C.Py_NE)))
 
 """
     pyle(x, y)
@@ -253,8 +239,7 @@ pyne(x, y) =
 
 Equivalent to `x <= y` in Python. The second form converts to `Bool`.
 """
-pyle(x, y) =
-    pynew(errcheck(@autopy x y C.PyObject_RichCompare(x_, y_, C.Py_LE)))
+pyle(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(x_, y_, C.Py_LE)))
 
 """
     pylt(x, y)
@@ -262,8 +247,7 @@ pyle(x, y) =
 
 Equivalent to `x < y` in Python. The second form converts to `Bool`.
 """
-pylt(x, y) =
-    pynew(errcheck(@autopy x y C.PyObject_RichCompare(x_, y_, C.Py_LT)))
+pylt(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(x_, y_, C.Py_LT)))
 
 """
     pyge(x, y)
@@ -271,8 +255,7 @@ pylt(x, y) =
 
 Equivalent to `x >= y` in Python. The second form converts to `Bool`.
 """
-pyge(x, y) =
-    pynew(errcheck(@autopy x y C.PyObject_RichCompare(x_, y_, C.Py_GE)))
+pyge(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(x_, y_, C.Py_GE)))
 
 """
     pygt(x, y)
@@ -280,8 +263,7 @@ pyge(x, y) =
 
 Equivalent to `x > y` in Python. The second form converts to `Bool`.
 """
-pygt(x, y) =
-    pynew(errcheck(@autopy x y C.PyObject_RichCompare(x_, y_, C.Py_GT)))
+pygt(x, y) = pynew(errcheck(@autopy x y C.PyObject_RichCompare(x_, y_, C.Py_GT)))
 pyeq(::Type{Bool}, x, y) =
     errcheck(@autopy x y C.PyObject_RichCompareBool(x_, y_, C.Py_EQ)) == 1
 pyne(::Type{Bool}, x, y) =
@@ -369,15 +351,13 @@ pymul(x, y) = pynew(errcheck(@autopy x y C.PyNumber_Multiply(x_, y_)))
 
 Equivalent to `x @ y` in Python.
 """
-pymatmul(x, y) =
-    pynew(errcheck(@autopy x y C.PyNumber_MatrixMultiply(x_, y_)))
+pymatmul(x, y) = pynew(errcheck(@autopy x y C.PyNumber_MatrixMultiply(x_, y_)))
 """
     pyfloordiv(x, y)
 
 Equivalent to `x // y` in Python.
 """
-pyfloordiv(x, y) =
-    pynew(errcheck(@autopy x y C.PyNumber_FloorDivide(x_, y_)))
+pyfloordiv(x, y) = pynew(errcheck(@autopy x y C.PyNumber_FloorDivide(x_, y_)))
 """
     pytruediv(x, y)
 
@@ -439,57 +419,49 @@ pyiadd(x, y) = pynew(errcheck(@autopy x y C.PyNumber_InPlaceAdd(x_, y_)))
 
 In-place subtract. `x = pyisub(x, y)` is equivalent to `x -= y` in Python.
 """
-pyisub(x, y) =
-    pynew(errcheck(@autopy x y C.PyNumber_InPlaceSubtract(x_, y_)))
+pyisub(x, y) = pynew(errcheck(@autopy x y C.PyNumber_InPlaceSubtract(x_, y_)))
 """
     pyimul(x, y)
 
 In-place multiply. `x = pyimul(x, y)` is equivalent to `x *= y` in Python.
 """
-pyimul(x, y) =
-    pynew(errcheck(@autopy x y C.PyNumber_InPlaceMultiply(x_, y_)))
+pyimul(x, y) = pynew(errcheck(@autopy x y C.PyNumber_InPlaceMultiply(x_, y_)))
 """
     pyimatmul(x, y)
 
 In-place matrix multiply. `x = pyimatmul(x, y)` is equivalent to `x @= y` in Python.
 """
-pyimatmul(x, y) =
-    pynew(errcheck(@autopy x y C.PyNumber_InPlaceMatrixMultiply(x_, y_)))
+pyimatmul(x, y) = pynew(errcheck(@autopy x y C.PyNumber_InPlaceMatrixMultiply(x_, y_)))
 """
     pyifloordiv(x, y)
 
 In-place floor divide. `x = pyifloordiv(x, y)` is equivalent to `x //= y` in Python.
 """
-pyifloordiv(x, y) =
-    pynew(errcheck(@autopy x y C.PyNumber_InPlaceFloorDivide(x_, y_)))
+pyifloordiv(x, y) = pynew(errcheck(@autopy x y C.PyNumber_InPlaceFloorDivide(x_, y_)))
 """
     pyitruediv(x, y)
 
 In-place true division. `x = pyitruediv(x, y)` is equivalent to `x /= y` in Python.
 """
-pyitruediv(x, y) =
-    pynew(errcheck(@autopy x y C.PyNumber_InPlaceTrueDivide(x_, y_)))
+pyitruediv(x, y) = pynew(errcheck(@autopy x y C.PyNumber_InPlaceTrueDivide(x_, y_)))
 """
     pyimod(x, y)
 
 In-place subtraction. `x = pyimod(x, y)` is equivalent to `x %= y` in Python.
 """
-pyimod(x, y) =
-    pynew(errcheck(@autopy x y C.PyNumber_InPlaceRemainder(x_, y_)))
+pyimod(x, y) = pynew(errcheck(@autopy x y C.PyNumber_InPlaceRemainder(x_, y_)))
 """
     pyilshift(x, y)
 
 In-place left shift. `x = pyilshift(x, y)` is equivalent to `x <<= y` in Python.
 """
-pyilshift(x, y) =
-    pynew(errcheck(@autopy x y C.PyNumber_InPlaceLshift(x_, y_)))
+pyilshift(x, y) = pynew(errcheck(@autopy x y C.PyNumber_InPlaceLshift(x_, y_)))
 """
     pyirshift(x, y)
 
 In-place right shift. `x = pyirshift(x, y)` is equivalent to `x >>= y` in Python.
 """
-pyirshift(x, y) =
-    pynew(errcheck(@autopy x y C.PyNumber_InPlaceRshift(x_, y_)))
+pyirshift(x, y) = pynew(errcheck(@autopy x y C.PyNumber_InPlaceRshift(x_, y_)))
 """
     pyiand(x, y)
 
@@ -522,9 +494,8 @@ pypow(x, y, z = pybuiltins.None) =
 
 In-place power. `x = pyipow(x, y)` is equivalent to `x **= y` in Python.
 """
-pyipow(x, y, z = pybuiltins.None) = pynew(
-    errcheck(@autopy x y z C.PyNumber_InPlacePower(x_, y_, z_)),
-)
+pyipow(x, y, z = pybuiltins.None) =
+    pynew(errcheck(@autopy x y z C.PyNumber_InPlacePower(x_, y_, z_)))
 
 ### iter
 
@@ -1001,8 +972,7 @@ pyfrozenset(x) = ispy(x) ? pybuiltins.frozenset(x) : pyfrozenset_fromiter(x)
 
 ### dict
 
-pydict_setitem(x::Py, k, v) =
-    errcheck(@autopy k v C.PyDict_SetItem(x, k_, v_))
+pydict_setitem(x::Py, k, v) = errcheck(@autopy k v C.PyDict_SetItem(x, k_, v_))
 
 function pydict_fromiter(kvs)
     ans = pydict()
@@ -1023,6 +993,7 @@ end
 """
     pydict(x)
     pydict(; x...)
+    pydict(x::Pair...)
 
 Convert `x` to a Python `dict`. In the second form, the keys are strings.
 
@@ -1033,6 +1004,7 @@ pydict(; kwargs...) =
     isempty(kwargs) ? pynew(errcheck(C.PyDict_New())) : pystrdict_fromiter(kwargs)
 pydict(x) = ispy(x) ? pybuiltins.dict(x) : pydict_fromiter(x)
 pydict(x::NamedTuple) = pydict(; x...)
+pydict(pair::Pair, pairs::Pair...) = pydict((pair, pairs...))
 
 ### datetime
 

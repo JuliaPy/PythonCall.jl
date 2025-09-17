@@ -1,6 +1,10 @@
 # Release Notes
 
 ## Unreleased
+* Added `NumpyDates`: NumPy-compatible DateTime64/TimeDelta64 types and units.
+* Added `pyconvert` rules for NumpyDates types.
+* Added `PyArray` support for NumPy arrays of `datetime64` and `timedelta64`.
+* Added `juliacall.ArrayValue` support for Julia arrays of `InlineDateTime64` and `InlineTimeDelta64`.
 * Bug fixes.
 * Internal: switch from Requires.jl to package extensions.
 

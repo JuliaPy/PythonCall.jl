@@ -7,20 +7,14 @@ module Wrap
 
 using ..PythonCall
 using ..Utils
+using ..NumpyDates
 using ..C
 using ..Core
 using ..Convert
 using ..PyMacro
 
 import ..PythonCall:
-    PyArray,
-    PyDict,
-    PyIO,
-    PyIterable,
-    PyList,
-    PyPandasDataFrame,
-    PySet,
-    PyTable
+    PyArray, PyDict, PyIO, PyIterable, PyList, PyPandasDataFrame, PySet, PyTable
 
 using Base: @propagate_inbounds
 using Tables: Tables

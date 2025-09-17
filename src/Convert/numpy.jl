@@ -9,6 +9,76 @@ function (::pyconvert_rule_numpysimplevalue{R,SAFE})(::Type{T}, x::Py) where {R,
     end
 end
 
+function pyconvert_rule_datetime64(::Type{DateTime64}, x::Py)
+    pyconvert_return(C.PySimpleObject_GetValue(DateTime64, x))
+end
+
+function pyconvert_rule_datetime64(::Type{T}, x::Py) where {T<:InlineDateTime64}
+    pyconvert_tryconvert(T, C.PySimpleObject_GetValue(DateTime64, x))
+end
+
+function pyconvert_rule_datetime64(::Type{T}, x::Py) where {T<:NumpyDates.DatesInstant}
+    d = C.PySimpleObject_GetValue(DateTime64, x)
+    if isnan(d)
+        pyconvert_unconverted()
+    else
+        pyconvert_tryconvert(T, d)
+    end
+end
+
+function pyconvert_rule_datetime64(::Type{Missing}, x::Py)
+    d = C.PySimpleObject_GetValue(DateTime64, x)
+    if isnan(d)
+        pyconvert_return(missing)
+    else
+        pyconvert_unconverted()
+    end
+end
+
+function pyconvert_rule_datetime64(::Type{Nothing}, x::Py)
+    d = C.PySimpleObject_GetValue(DateTime64, x)
+    if isnan(d)
+        pyconvert_return(nothing)
+    else
+        pyconvert_unconverted()
+    end
+end
+
+function pyconvert_rule_timedelta64(::Type{TimeDelta64}, x::Py)
+    pyconvert_return(C.PySimpleObject_GetValue(TimeDelta64, x))
+end
+
+function pyconvert_rule_timedelta64(::Type{T}, x::Py) where {T<:InlineTimeDelta64}
+    pyconvert_tryconvert(T, C.PySimpleObject_GetValue(TimeDelta64, x))
+end
+
+function pyconvert_rule_timedelta64(::Type{T}, x::Py) where {T<:NumpyDates.DatesPeriod}
+    d = C.PySimpleObject_GetValue(TimeDelta64, x)
+    if isnan(d)
+        pyconvert_unconverted()
+    else
+        pyconvert_tryconvert(T, d)
+    end
+end
+
+function pyconvert_rule_timedelta64(::Type{Missing}, x::Py)
+    d = C.PySimpleObject_GetValue(TimeDelta64, x)
+    if isnan(d)
+        pyconvert_return(missing)
+    else
+        pyconvert_unconverted()
+    end
+end
+
+function pyconvert_rule_timedelta64(::Type{Nothing}, x::Py)
+    d = C.PySimpleObject_GetValue(TimeDelta64, x)
+    if isnan(d)
+        pyconvert_return(missing)
+    else
+        pyconvert_unconverted()
+    end
+end
+
 const NUMPY_SIMPLE_TYPES = [
     ("bool_", Bool),
     ("int8", Int8),
@@ -28,6 +98,7 @@ const NUMPY_SIMPLE_TYPES = [
 ]
 
 function init_numpy()
+    # simple numeric scalar types
     for (t, T) in NUMPY_SIMPLE_TYPES
         isbool = occursin("bool", t)
         isint = occursin("int", t) || isbool
@@ -54,4 +125,36 @@ function init_numpy()
         iscomplex && pyconvert_add_rule(name, Complex, rule)
         isnumber && pyconvert_add_rule(name, Number, rule)
     end
+
+    # datetime64
+    pyconvert_add_rule(
+        "numpy:datetime64",
+        DateTime64,
+        pyconvert_rule_datetime64,
+        PYCONVERT_PRIORITY_ARRAY,
+    )
+    pyconvert_add_rule("numpy:datetime64", InlineDateTime64, pyconvert_rule_datetime64)
+    pyconvert_add_rule(
+        "numpy:datetime64",
+        NumpyDates.DatesInstant,
+        pyconvert_rule_datetime64,
+    )
+    pyconvert_add_rule("numpy:datetime64", Missing, pyconvert_rule_datetime64)
+    pyconvert_add_rule("numpy:datetime64", Nothing, pyconvert_rule_datetime64)
+
+    # timedelta64
+    pyconvert_add_rule(
+        "numpy:timedelta64",
+        TimeDelta64,
+        pyconvert_rule_timedelta64,
+        PYCONVERT_PRIORITY_ARRAY,
+    )
+    pyconvert_add_rule("numpy:timedelta64", InlineTimeDelta64, pyconvert_rule_timedelta64)
+    pyconvert_add_rule(
+        "numpy:timedelta64",
+        NumpyDates.DatesPeriod,
+        pyconvert_rule_timedelta64,
+    )
+    pyconvert_add_rule("numpy:timedelta64", Missing, pyconvert_rule_timedelta64)
+    pyconvert_add_rule("numpy:timedelta64", Nothing, pyconvert_rule_timedelta64)
 end

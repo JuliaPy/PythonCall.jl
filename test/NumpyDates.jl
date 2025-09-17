@@ -631,7 +631,7 @@ end
 
     inexact_cases = [(Millisecond(3001), :s), (Day(-1), :W)]
 
-    @testset "$p $usym" for (p, usym) in inexact_cases
+    @testset "$p => $usym" for (p, usym) in inexact_cases
         @test_throws InexactError NumpyDates.TimeDelta64(p, usym)
         @test_throws InexactError NumpyDates.InlineTimeDelta64(p, usym)
         Uconst = NumpyDates.Unit(usym)

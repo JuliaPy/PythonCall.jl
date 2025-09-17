@@ -39,7 +39,7 @@ function TimeDelta64(d::AbstractTimeDelta64, unit::UnitArg = defaultunit(d))
         TimeDelta64(NAT, unit)
     else
         v, r = rescale(value(d), unitpair(d), unit)
-        iszero(r) || throw(InexactError(:TimeDelta64, TimeDelta64, d, unit))
+        iszero(r) || throw(InexactError(:convert, TimeDelta64, d))
         TimeDelta64(v, unit)
     end
 end
@@ -57,7 +57,7 @@ end
 
 function TimeDelta64(p::DatesPeriod, unit::UnitArg = defaultunit(p))
     v, r = rescale(value(p), Unit(p), unit)
-    iszero(r) || throw(InexactError(:TimeDelta64, TimeDelta64, p, unit))
+    iszero(r) || throw(InexactError(:convert, TimeDelta64, p))
     TimeDelta64(v, unit)
 end
 

@@ -7,7 +7,7 @@ abstract type AbstractTimeDelta64 <: Dates.Period end
 
 function construct(::Type{T}, d::AbstractTimeDelta64) where {T<:DatesPeriod}
     v, r = rescale(value(d), unitpair(d), Unit(T))
-    iszero(r) || throw(InexactError(nameof(T), T, d))
+    iszero(r) || throw(InexactError(:convert, T, d))
     T(v)
 end
 

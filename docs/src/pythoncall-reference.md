@@ -255,3 +255,18 @@ PythonCall.getptr
 PythonCall.pydel!
 PythonCall.unsafe_pynext
 ```
+
+## NumpyDates
+
+The submodule `PythonCall.NumpyDates` provides types corresponding to Numpy's `datetime64` and `timedelta64` types. Enables conversion of these Numpy types (either as scalars or in arrays) to native Julia types.
+
+```@docs
+PythonCall.NumpyDates
+PythonCall.NumpyDates.AbstractDateTime64
+PythonCall.NumpyDates.InlineDateTime64
+PythonCall.NumpyDates.DateTime64
+PythonCall.NumpyDates.AbstractTimeDelta64
+PythonCall.NumpyDates.InlineTimeDelta64
+PythonCall.NumpyDates.TimeDelta64
+PythonCall.NumpyDates.Unit
+```

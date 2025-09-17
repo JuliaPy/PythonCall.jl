@@ -9,6 +9,7 @@ using ..PythonCall
 using ..Utils
 using ..C
 using ..Core
+using ..NumpyDates
 
 using Dates: Date, Time, DateTime, Second, Millisecond, Microsecond, Nanosecond
 
@@ -20,8 +21,7 @@ import ..PythonCall:
     pyconvert,
     PyConvertPriority
 
-export
-    pyconvert_isunconverted,
+export pyconvert_isunconverted,
     pyconvert_result,
     pyconvert_result,
     pyconvert_tryconvert,

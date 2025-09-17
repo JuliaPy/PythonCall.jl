@@ -1,6 +1,12 @@
 # Release Notes
 
 ## Unreleased
+* Added `NumpyDates`: NumPy-compatible DateTime64/TimeDelta64 types and units.
+* Added `pyconvert` rules for NumpyDates types.
+* Added `PyArray` support for NumPy arrays of `datetime64` and `timedelta64`.
+* Added `juliacall.ArrayValue` support for Julia arrays of `InlineDateTime64` and `InlineTimeDelta64`.
+* If `JULIA_PYTHONCALL_EXE` is a relative path, it is now considered relative to the active project.
+* Added option `JULIA_PYTHONCALL_EXE=@venv` to use a Python virtual environment relative to the active project.
 * Added `PYTHON_JULIACALL_EXE` and `PYTHON_JULIACALL_PROJECT` for specifying the Julia binary and project to override JuliaPkg.
 * Bug fixes.
 * Internal: switch from Requires.jl to package extensions.

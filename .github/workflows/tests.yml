@@ -12,7 +12,7 @@ on:
 
 jobs:
   julia:
-    name: Test Julia (${{ matrix.jlversion }}, ${{ matrix.os }})
+    name: Test Julia (${{ matrix.jlversion }}, ${{ matrix.os }}, ${{ matrix.pythonexe }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -20,6 +20,12 @@ jobs:
         arch: [x64] # x86 unsupported by MicroMamba
         os: [ubuntu-latest, windows-latest, macos-latest]
         jlversion: ['1','1.9']
+        pythonexe: ['@CondaPkg']
+        include:
+        - arch: x64
+          os: ubuntu-latest
+          jlversion: '1'
+          pythonexe: python
 
     steps:
       - uses: actions/checkout@v5
@@ -34,12 +40,16 @@ jobs:
 
       - name: Build package
         uses: julia-actions/julia-buildpkg@v1
+        env:
+          PYTHON: python
 
       - name: Run tests
         uses: julia-actions/julia-runtest@v1
         env:
           JULIA_DEBUG: PythonCall
           JULIA_NUM_THREADS: '2'
+          PYTHON: python
+          JULIA_PYTHONCALL_EXE: ${{ matrix.pythonexe }}
 
       - name: Process coverage
         uses: julia-actions/julia-processcoverage@v1
@@ -62,7 +72,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Set up Python ${{ matrix.pyversion }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.pyversion }}
 

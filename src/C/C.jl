@@ -9,11 +9,11 @@ using Base: @kwdef
 using UnsafePointers: UnsafePtr
 using CondaPkg: CondaPkg
 using Pkg: Pkg
-using Requires: @require
 using Libdl:
     dlpath, dlopen, dlopen_e, dlclose, dlsym, dlsym_e, RTLD_LAZY, RTLD_DEEPBIND, RTLD_GLOBAL
 
-import ..PythonCall: python_executable_path, python_library_path, python_library_handle, python_version
+import ..PythonCall:
+    python_executable_path, python_library_path, python_library_handle, python_version
 
 
 include("consts.jl")

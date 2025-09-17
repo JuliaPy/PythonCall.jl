@@ -592,6 +592,8 @@ pystr(x) = pynew(errcheck(@autopy x C.PyObject_Str(x_)))
 pystr(x::String) = pystr_fromUTF8(x)
 pystr(x::SubString{String}) = pystr_fromUTF8(x)
 pystr(x::Char) = pystr(string(x))
+pystr(x::AbstractString) = pystr(convert(String, x)::String)
+pystr(x::AbstractChar) = pystr(convert(Char, x)::Char)
 pystr(::Type{String}, x) = (s = pystr(x); ans = pystr_asstring(s); pydel!(s); ans)
 
 pystr_asUTF8bytes(x::Py) = pynew(errcheck(C.PyUnicode_AsUTF8String(x)))

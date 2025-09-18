@@ -244,7 +244,10 @@ function pyjlany_help(self, mime_::Py)
     mime = pyconvertarg(Union{Nothing,String}, mime_, "mime")
     doc = Docs.getdoc(self)
     if doc === nothing
-        doc = Docs.doc(self)
+        # hack: the relevant methods of Docs.doc are actually
+        # in REPL, so we load it dynamically if needed
+        @eval Main using REPL
+        doc = invokelatest(Docs.doc, self)
     end
     x = Utils.ExtraNewline(doc)
     if mime === nothing

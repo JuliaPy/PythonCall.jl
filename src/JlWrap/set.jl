@@ -130,6 +130,5 @@ end
 Wrap `x` as a Python `set`-like object.
 """
 pyjlset(x::AbstractSet) = pyjl(pyjlsettype, x)
-export pyjlset
 
 Py(x::AbstractSet) = pyjlset(x)

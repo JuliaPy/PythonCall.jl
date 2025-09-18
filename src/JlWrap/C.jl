@@ -446,9 +446,6 @@ PyJuliaValue_GetValue(o) = Base.GC.@preserve o begin
     end
 end
 
-PyJuliaValue_IsNull(o) =
-    Base.GC.@preserve o UnsafePtr{PyJuliaValueObject}(C.asptr(o)).value[] == 0
-
 PyJuliaValue_SetValue(o, v::Union{Nothing,Bool}) = Base.GC.@preserve o begin
     optr = UnsafePtr{PyJuliaValueObject}(C.asptr(o))
     idx = optr.value[]

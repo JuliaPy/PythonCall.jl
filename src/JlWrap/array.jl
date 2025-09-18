@@ -390,6 +390,5 @@ This object can be converted to a Numpy array with `numpy.array(v)`, `v.to_numpy
 If `x` is one-dimensional (an `AbstractVector`) then it also behaves as a `list`.
 """
 pyjlarray(x::AbstractArray) = pyjl(pyjlarraytype, x)
-export pyjlarray
 
 Py(x::AbstractArray) = pyjlarray(x)

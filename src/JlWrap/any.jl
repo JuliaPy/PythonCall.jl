@@ -585,6 +585,5 @@ end
 Create a Python `juliacall.Jl` object wrapping the Julia object `x`.
 """
 pyjl(v) = pyjl(pyjlanytype, v)
-export pyjl
 
 pyjliter(x) = pyjl(pyjlitertype, x)

@@ -119,7 +119,7 @@ export PyIterable
 export PyList
 export PyTuple
 export PyNTuple
-for n = 1:8
+for n = 0:8
     @eval export $(Symbol(:Py, n, :Tuple))
 end
 export PyPandasDataFrame

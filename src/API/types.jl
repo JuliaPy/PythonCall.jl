@@ -212,9 +212,11 @@ end
 
 const PyNTuple{N,T} = PyTuple{NTuple{N,T}}
 
+const Py0Tuple = PyTuple{Tuple{}}
 for n = 1:8
     Ts = [Symbol(:T, i) for i = 1:n]
-    @eval $(Symbol(:Py, n, :Tuple)){$(Ts...)} = PyTuple{Tuple{$(Ts...)}}
+    name = Symbol(:Py, n, :Tuple)
+    @eval $name{$(Ts...)} = PyTuple{Tuple{$(Ts...)}}
 end
 
 """

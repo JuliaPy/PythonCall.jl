@@ -220,6 +220,7 @@
         pyjl(Foo(1)).jl_display(mime = "text/plain")
     end
     @testset "help" begin
+        using REPL
         pyjl(Foo(1)).jl_help()
         pyjl(Foo(1)).jl_help(mime = "text/plain")
     end

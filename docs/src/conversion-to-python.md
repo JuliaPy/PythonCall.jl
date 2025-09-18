@@ -12,17 +12,20 @@ From Python, this occurs when converting the return value of a Julia function.
 | From                                                                | To                                                      |
 | :------------------------------------------------------------------ | :------------------------------------------------------ |
 | Any Python object type (`Py`, `PyList`, etc.)                       | itself                                                  |
-| `Nothing`, `Missing`                                                | `None`                                                  |
+| `Nothing`                                                           | `None`                                                  |
 | `Bool`                                                              | `bool`                                                  |
-| Standard integer (`IntXX`, `UIntXX`, `BigInt`)                      | `int`                                                   |
-| Standard rational (`Rational{T}`, `T` a standard integer)           | `fractions.Fraction`                                    |
-| Standard float (`FloatXX`)                                          | `float`                                                 |
-| Standard complex (`Complex{T}`, `T` a standard float)               | `complex`                                               |
-| Standard string/char (`String` and `SubString{String}`, `Char`)     | `str`                                                   |
-| `Tuple`                                                             | `tuple`                                                 |
-| Standard integer range (`AbstractRange{T}`, `T` a standard integer) | `range`                                                 |
-| `Date`, `Time`, `DateTime` (from `Dates`)                           | `date`, `time`, `datetime` (from `datetime`)            |
-| `Second`, `Millisecond`, `Microsecond`, `Nanosecond` (from `Dates`) | `timedelta` (from `datetime`)                           |
+| `Integer`                                                           | `int`                                                   |
+| `Rational{<:Integer}`                                               | `fractions.Fraction`                                    |
+| `Float64`, `Float32`, `Float16`                                     | `float`                                                 |
+| `Complex{Float64}`, `Complex{Float32}`, `Complex{Float16}`          | `complex`                                               |
+| `AbstractString`, `AbstractChar`                                    | `str`                                                   |
+| `Base.CodeUnits{UInt8}` (e.g. `b"example"`)                         | `bytes`                                                 |
+| `Tuple`, `Pair`                                                     | `tuple`                                                 |
+| `AbstractRange{<:Integer}`                                          | `range`                                                 |
+| `Dates.Date`                                                        | `datetime.date`                                         |
+| `Dates.Time`                                                        | `datetime.time`                                         |
+| `Dates.DateTime`                                                    | `datetime.datetime`                                     |
+| `Dates.Second`, `Dates.Millisecond`, `Dates.Microsecond`, `Dates.Nanosecond` | `datetime.timedelta`                           |
 | `AbstractArray`                                                     | `juliacall.JlArray`, `juliacall.JlVector`               |
 | `AbstractDict`                                                      | `juliacall.JlDict`                                      |
 | `AbstractSet`                                                       | `juliacall.JlSet`                                       |

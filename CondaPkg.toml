@@ -1,3 +1,6 @@
+[deps.libstdcxx]
+version = "<=julia"
+
 [deps.libstdcxx-ng]
 version = "<=julia"
 
@@ -6,4 +9,4 @@ version = "<=julia"
 
 [deps.python]
 build = "**cpython**"
-version = ">=3.8,<4"
+version = ">=3.9,<4"

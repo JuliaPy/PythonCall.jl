@@ -1,6 +1,6 @@
 # FAQ & Troubleshooting
 
-## Can I use PythonCall and PyCall together?
+## [Can I use PythonCall and PyCall together?](@id faq-pycall)
 
 Yes, you can use both PyCall and PythonCall in the same Julia session. This is platform-dependent:
 - On most systems the Python interpreter used by PythonCall and PyCall must be the same (see below).
@@ -10,13 +10,18 @@ To force PythonCall to use the same Python interpreter as PyCall, set the enviro
 
 Alternatively, to force PyCall to use the same interpreter as PythonCall, set the environment variable `PYTHON` to [`PythonCall.python_executable_path()`](@ref) and then `Pkg.build("PyCall")`. You will need to do this each time you change project, because PythonCall by default uses a different Python for each project.
 
-## Is PythonCall/JuliaCall thread safe?
+## [Is PythonCall/JuliaCall thread safe?](@id faq-multi-threading)
 
 Yes, as of v0.9.22, provided you handle the GIL correctly. See the guides for
 [PythonCall](@ref jl-multi-threading) and [JuliaCall](@ref py-multi-threading).
 
 Before, tricks such as disabling the garbage collector were required. See the
 [old docs](https://juliapy.github.io/PythonCall.jl/v0.9.21/faq/#Is-PythonCall/JuliaCall-thread-safe?).
+
+When starting a Julia REPL with multiple threads, there must be exactly one interactive thread,
+to avoid triggering a segmentation fault on tab completion (issue [#586](https://github.com/JuliaPy/PythonCall.jl/issues/586)).
+Check this with `Threads.nthreads(:interactive)` or `versioninfo()`, set it with `JULIA_NUM_THREADS=X,1`,
+where `X` is the number of default threads, or use the Julia `--threads` CLI flag, see `julia --help`.
 
 Related issues:
 [#201](https://github.com/JuliaPy/PythonCall.jl/issues/201),
@@ -89,3 +94,17 @@ Related issues: [#255](https://github.com/JuliaPy/PythonCall.jl/issues/255)
 Yes, it may be possible. A good example of that is having Julia running inside the Python that is running inside Blender, as presented in [this Discourse post](https://discourse.julialang.org/t/running-julia-inside-blender-through-vscode-using-pythoncall-juliacall/96838/6).
 From the point that one has JuliaCall running inside Python, if it has access to the terminal, one can even launch a Julia REPL there, and if needed connect with VSCode Julia extension to it.
 The full Python script to install, launch JuliaCall, and launch a Julia REPL in Blender is [here](https://gist.github.com/cdsousa/d820d27174238c0d48e5252355584172).
+
+## Using PythonCall.jl and CondaPkg.jl in a script
+
+If running from a script, make sure that [CondaPkg.jl](https://github.com/JuliaPy/CondaPkg.jl) is used before [PythonCall.jl](https://github.com/JuliaPy/PythonCall.jl) to ensure proper loading of Python packages in your path. E.g.,
+
+```julia
+using CondaPkg
+
+CondaPkg.add("numpy")
+
+using PythonCall
+
+np = pyimport("numpy")
+```

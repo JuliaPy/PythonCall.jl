@@ -2,8 +2,7 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     # INITIALIZE
     :Py_Initialize => () => Cvoid,
     :Py_InitializeEx => (Cint,) => Cvoid,
-    :Py_Finalize => () => Cvoid,
-    :Py_FinalizeEx => () => Cint, # 3.6+
+    :Py_FinalizeEx => () => Cint,
     :Py_AtExit => (Ptr{Cvoid},) => Cint,
     :Py_IsInitialized => () => Cint,
     :Py_SetPythonHome => (Ptr{Cwchar_t},) => Cvoid,
@@ -77,6 +76,7 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     :PyType_IsSubtype => (PyPtr, PyPtr) => Cint,
     :PyType_Ready => (PyPtr,) => Cint,
     :PyType_GenericNew => (PyPtr, PyPtr, PyPtr) => PyPtr,
+    :PyType_FromSpec => (Ptr{Cvoid},) => PyPtr,
     # MAPPING
     :PyMapping_HasKeyString => (PyPtr, Ptr{Cchar}) => Cint,
     :PyMapping_SetItemString => (PyPtr, Ptr{Cchar}, PyPtr) => Cint,
@@ -282,11 +282,8 @@ const POINTERS = CAPIPointers()
 
 @eval init_pointers(p::CAPIPointers = POINTERS, lib::Ptr = CTX.lib_ptr) = begin
     $([
-        if name == :Py_FinalizeEx
-            :(p.$name = dlsym_e(lib, $(QuoteNode(name))))
-        else
-            :(p.$name = dlsym(lib, $(QuoteNode(name))))
-        end for name in CAPI_FUNCS
+        :(p.$name = dlsym(lib, $(QuoteNode(name))))
+        for name in CAPI_FUNCS
     ]...)
     $(
         [

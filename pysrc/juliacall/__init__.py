@@ -1,7 +1,7 @@
 # This module gets modified by PythonCall when it is loaded, e.g. to include Core, Base
 # and Main modules.
 
-__version__ = '0.9.22'
+__version__ = '0.9.28'
 
 _newmodule = None
 
@@ -87,6 +87,16 @@ def init():
                 raise ValueError(f'{s}: path does not exist')
             return os.path.abspath(path), s
         return default, s
+    
+    def executable_option(name, default=None, **kw):
+        import shutil
+        _path, s = option(name, **kw)
+        if _path is not None:
+            path = shutil.which(_path)
+            if path is None:
+                raise ValueError(f'{s}: executable not found')
+            return os.path.abspath(path), s
+        return default, s
 
     def int_option(name, *, accept_auto=False, **kw):
         val, s = option(name, **kw)
@@ -100,9 +110,9 @@ def init():
         except ValueError:
             raise ValueError(f'{s}: expecting an int'+(' or auto' if accept_auto else ""))
 
-    def args_from_config():
-        argv = [CONFIG['exepath']]
-        for opt, val in CONFIG.items():
+    def args_from_config(config):
+        argv = [config['exepath']]
+        for opt, val in config.items():
             if opt.startswith('opt_'):
                 if val is None:
                     if opt == 'opt_handle_signals':
@@ -137,18 +147,32 @@ def init():
     CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])[0]
     CONFIG['opt_handle_signals'] = choice('handle_signals', ['yes', 'no'])[0]
     CONFIG['opt_startup_file'] = choice('startup_file', ['yes', 'no'])[0]
+    CONFIG['opt_heap_size_hint'] = option('heap_size_hint')[0]
+    CONFIG['project'] = path_option('project', check_exists=True)[0]
+    CONFIG['exepath'] = executable_option('exe')[0]
 
     # Stop if we already initialised
     if CONFIG['inited']:
         return
 
-    # we don't import this at the top level because it is not required when juliacall is
-    # loaded by PythonCall and won't be available
-    import juliapkg
+    have_exepath = CONFIG['exepath'] is not None
+    have_project = CONFIG['project'] is not None
+    if have_exepath and have_project:
+        pass
+    elif (not have_exepath) and (not have_project):
+        # we don't import this at the top level because it is not required when
+        # juliacall is loaded by PythonCall and won't be available, or if both
+        # `exepath` and `project` are set by the user.
+        import juliapkg
 
-    # Find the Julia executable and project
-    CONFIG['exepath'] = exepath = juliapkg.executable()
-    CONFIG['project'] = project = juliapkg.project()
+        # Find the Julia executable and project
+        CONFIG['exepath'] = juliapkg.executable()
+        CONFIG['project'] = juliapkg.project()
+    else:
+        raise Exception("Both PYTHON_JULIACALL_PROJECT and PYTHON_JULIACALL_EXE must be set together, not only one of them.")
+
+    exepath = CONFIG['exepath']
+    project = CONFIG['project']
 
     # Find the Julia library
     cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min',
@@ -172,7 +196,7 @@ def init():
     CONFIG['lib'] = lib = c.PyDLL(libpath, mode=c.RTLD_GLOBAL)
 
     # parse options
-    argc, argv = args_from_config()
+    argc, argv = args_from_config(CONFIG)
     jl_parse_opts = lib.jl_parse_opts
     jl_parse_opts.argtypes = [c.c_void_p, c.c_void_p]
     jl_parse_opts.restype = None

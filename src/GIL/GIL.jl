@@ -9,6 +9,19 @@ module GIL
 
 using ..C: C
 
+if Base.VERSION ≥ v"1.11"
+    eval(
+        Expr(
+            :public,
+            :lock,
+            Symbol("@lock"),
+            :unlock,
+            Symbol("@unlock"),
+        ),
+    )
+end
+
+
 """
     lock(f)
 

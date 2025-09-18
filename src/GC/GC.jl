@@ -9,6 +9,17 @@ module GC
 
 using ..C: C
 
+if Base.VERSION ≥ v"1.11"
+    eval(
+        Expr(
+            :public,
+            :disable,
+            :enable,
+            :gc,
+        ),
+    )
+end
+
 const QUEUE = (; items = C.PyPtr[], lock = Threads.SpinLock())
 const HOOK = Ref{WeakRef}()
 
@@ -103,7 +114,7 @@ function enqueue(ptr::C.PyPtr)
 end
 
 function enqueue_all(ptrs)
-    if any(!=(C.PYNULL), ptrs) && C.CTX.is_initialized
+    if any(!=(C.PyNULL), ptrs) && C.CTX.is_initialized
         if C.PyGILState_Check() == 1
             for ptr in ptrs
                 if ptr != C.PyNULL

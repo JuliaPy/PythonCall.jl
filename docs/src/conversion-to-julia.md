@@ -31,6 +31,8 @@ From Python, the arguments to a Julia function will be converted according to th
 | `datetime.date`/`datetime.time`/`datetime.datetime`                                                          | `Date`/`Time`/`DateTime`                                    |
 | `datetime.timedelta`                                                                                         | `Microsecond` (or `Millisecond` or `Second` on overflow)    |
 | `numpy.intXX`/`numpy.uintXX`/`numpy.floatXX`                                                                 | `IntXX`/`UIntXX`/`FloatXX`                                  |
+| `numpy.datetime64`                                                                                           | `NumpyDates.DateTime64`                                     |
+| `numpy.timedelta64`                                                                                          | `NumpyDates.TimeDelta64`                                    |
 | **Standard priority (other reasonable conversions).**                                                        |                                                             |
 | `None`                                                                                                       | `Missing`                                                   |
 | `bytes`                                                                                                      | `Vector{UInt8}`, `Vector{Int8}`, `String`                   |
@@ -48,6 +50,8 @@ From Python, the arguments to a Julia function will be converted according to th
 | `ctypes.c_char_p`                                                                                            | `Cstring`, `Ptr{Cchar}`, `Ptr`                              |
 | `ctypes.c_wchar_p`                                                                                           | `Cwstring`, `Ptr{Cwchar}`, `Ptr`                            |
 | `numpy.bool_`/`numpy.intXX`/`numpy.uintXX`/`numpy.floatXX`                                                   | `Bool`, `Integer`, `Rational`, `Real`, `Number`             |
+| `numpy.datetime64`                                                                                           | `NumpyDates.InlineDateTime64`, `Dates.DateTime`             |
+| `numpy.timedelta64`                                                                                          | `NumpyDates.InlineTimeDelta64`, `Dates.Period`              |
 | Objects satisfying the buffer or array interface                                                             | `Array`, `AbstractArray`                                    |
 | **Low priority (fallback to `Py`).**                                                                         |                                                             |
 | Anything                                                                                                     | `Py`                                                        |

@@ -14,6 +14,42 @@
   * `pyjltype(x)` removed.
 * New functions: `pyjlarray`, `pyjldict`, `pyjlset`.
 
+## 0.9.28 (2025-09-17)
+* Added `NumpyDates`: NumPy-compatible DateTime64/TimeDelta64 types and units.
+* Added `pyconvert` rules for NumpyDates types.
+* Added `PyArray` support for NumPy arrays of `datetime64` and `timedelta64`.
+* Added `juliacall.ArrayValue` support for Julia arrays of `InlineDateTime64` and `InlineTimeDelta64`.
+* If `JULIA_PYTHONCALL_EXE` is a relative path, it is now considered relative to the active project.
+* Added option `JULIA_PYTHONCALL_EXE=@venv` to use a Python virtual environment relative to the active project.
+* Added `PYTHON_JULIACALL_EXE` and `PYTHON_JULIACALL_PROJECT` for specifying the Julia binary and project to override JuliaPkg.
+* Adds methods `Py(::AbstractString)`, `Py(::AbstractChar)` (previously only builtin string and char types were allowed).
+* Adds methods `Py(::Integer)`, `Py(::Rational{<:Integer})`, `Py(::AbstractRange{<:Integer})` (previously only builtin integer types were allowed).
+* Adds method `pydict(::Pair...)` to construct a python `dict` from `Pair`s, similar to `Dict`.
+* Bug fixes.
+* Internal: switch from Requires.jl to package extensions.
+
+## 0.9.27 (2025-08-19)
+* Internal: Use heap-allocated types (PyType_FromSpec) to improve ABI compatibility.
+* Minimum supported Python version is now 3.9.
+* Better compatibility with libstdc++.
+
+## 0.9.26 (2025-07-15)
+* Added PySide6 support to the GUI compatibility layer.
+* Added FAQ on interactive threads.
+* Added CI benchmarking suite.
+* Bug fixes.
+
+## 0.9.25 (2025-05-13)
+* Added `PYTHON_JULIACALL_HEAP_SIZE_HINT` option to configure initial Julia heap size.
+* `Base.elsize` now defined for `PyArray`.
+* JuliaCall now ensures a version of OpenSSL_jll compatible with Python is installed.
+
+## 0.9.24 (2025-01-22)
+* Bug fixes.
+
+## 0.9.23 (2024-08-22)
+* Bug fixes.
+
 ## 0.9.22 (2024-08-07)
 * Finalizers are now thread-safe, meaning PythonCall now works in the presence of
   multi-threaded Julia code. Previously, tricks such as disabling the garbage collector

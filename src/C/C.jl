@@ -8,9 +8,13 @@ module C
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
 using CondaPkg: CondaPkg
-using Requires: @require
+using Pkg: Pkg
 using Libdl:
     dlpath, dlopen, dlopen_e, dlclose, dlsym, dlsym_e, RTLD_LAZY, RTLD_DEEPBIND, RTLD_GLOBAL
+
+import ..PythonCall:
+    python_executable_path, python_library_path, python_library_handle, python_version
+
 
 include("consts.jl")
 include("pointers.jl")

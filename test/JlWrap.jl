@@ -1287,4 +1287,13 @@ end
         @test pyeq(Bool, x.count(nothing), 0)
         @test pyeq(Bool, x.count("2"), 0)
     end
+
+    @testset "PyObjectArray" begin
+        # https://github.com/JuliaPy/PythonCall.jl/issues/543
+        # Here we check the finalizer does not error
+        # We must not reuse `arr` in this code once we finalize it!
+        let arr = PyObjectArray([1, 2, 3])
+            finalize(arr)
+        end
+    end
 end

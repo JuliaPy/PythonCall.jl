@@ -116,6 +116,10 @@ function pyclassmethod end
 function pyfunc end
 function pyisjl end
 function pyjl end
+function pyjlcollection end
+function pyjlarray end
+function pyjlset end
+function pyjldict end
 function pyjlraw end
 function pyjltype end
 function pyjlvalue end

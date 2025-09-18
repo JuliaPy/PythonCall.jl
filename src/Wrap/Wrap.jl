@@ -14,7 +14,7 @@ using ..Convert
 using ..PyMacro
 
 import ..PythonCall:
-    PyArray, PyDict, PyIO, PyIterable, PyList, PyPandasDataFrame, PySet, PyTable
+    PyArray, PyDict, PyIO, PyIterable, PyList, PyTuple, PyPandasDataFrame, PySet, PyTable
 
 using Base: @propagate_inbounds
 using Tables: Tables
@@ -25,6 +25,7 @@ import ..Core: Py, ispy
 include("PyIterable.jl")
 include("PyDict.jl")
 include("PyList.jl")
+include("PyTuple.jl")
 include("PySet.jl")
 include("PyArray.jl")
 include("PyIO.jl")
@@ -69,6 +70,7 @@ function __init__()
     )
 
     priority = PYCONVERT_PRIORITY_NORMAL
+    pyconvert_add_rule("builtins:tuple", PyTuple, pyconvert_rule_tuple, priority)
     pyconvert_add_rule("<arraystruct>", Array, pyconvert_rule_array, priority)
     pyconvert_add_rule("<arrayinterface>", Array, pyconvert_rule_array, priority)
     pyconvert_add_rule("<array>", Array, pyconvert_rule_array, priority)

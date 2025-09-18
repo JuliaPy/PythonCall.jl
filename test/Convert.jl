@@ -196,6 +196,15 @@ end
     @test x2 == [1, 2, 3]
 end
 
+@testitem "sequence → PyTuple" begin
+    x1 = pyconvert(PyTuple, pylist([1, "foo", "B"]))
+    @test x1 isa PyTuple{Tuple}
+    @test isequal(Tuple(x1), (1, "foo", "B"))
+    x2 = pyconvert(PyTuple{Tuple{Int,Symbol,Char}}, pylist([1, "foo", "B"]))
+    @test x2 isa PyTuple{Tuple{Int,Symbol,Char}}
+    @test isequal(Tuple(x2), (1, :foo, 'B'))
+end
+
 @testitem "set → PySet" begin
     x1 = pyconvert(PySet, pyset([1, 2, 3]))
     @test x1 isa PySet{Any}

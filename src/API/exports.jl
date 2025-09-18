@@ -117,6 +117,11 @@ export PyDict
 export PyIO
 export PyIterable
 export PyList
+export PyTuple
+export PyNTuple
+for n = 0:8
+    @eval export $(Symbol(:Py, n, :Tuple))
+end
 export PyPandasDataFrame
 export PySet
 export PyTable

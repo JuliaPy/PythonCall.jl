@@ -181,6 +181,7 @@ Apart from a few fundamental immutable types, conversion from Python to Julia `A
 
 ```@docs
 PyList
+PyTuple
 PySet
 PyDict
 PyIterable

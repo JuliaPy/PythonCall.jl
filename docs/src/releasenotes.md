@@ -11,6 +11,7 @@
 * Adds methods `Py(::AbstractString)`, `Py(::AbstractChar)` (previously only builtin string and char types were allowed).
 * Adds methods `Py(::Integer)`, `Py(::Rational{<:Integer})`, `Py(::AbstractRange{<:Integer})` (previously only builtin integer types were allowed).
 * Adds method `pydict(::Pair...)` to construct a python `dict` from `Pair`s, similar to `Dict`.
+* Added `PyTuple` wrapper for Python tuples with typed indexing.
 * Bug fixes.
 * Internal: switch from Requires.jl to package extensions.
 

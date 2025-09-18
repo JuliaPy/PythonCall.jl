@@ -70,7 +70,12 @@ function __init__()
     )
 
     priority = PYCONVERT_PRIORITY_NORMAL
-    pyconvert_add_rule("builtins:tuple", PyTuple, pyconvert_rule_tuple, priority)
+    pyconvert_add_rule(
+        "collections.abc:Sequence",
+        PyTuple,
+        pyconvert_rule_sequence,
+        priority,
+    )
     pyconvert_add_rule("<arraystruct>", Array, pyconvert_rule_array, priority)
     pyconvert_add_rule("<arrayinterface>", Array, pyconvert_rule_array, priority)
     pyconvert_add_rule("<array>", Array, pyconvert_rule_array, priority)

@@ -80,8 +80,8 @@ function Base.Tuple(x::PyTuple{T}) where {T<:Tuple}
     end
 end
 
-# Conversion rule for builtins:tuple -> PyTuple
-function pyconvert_rule_tuple(
+# Conversion rule for Sequence -> PyTuple
+function pyconvert_rule_sequence(
     ::Type{T},
     x::Py,
     ::Type{T1} = Utils._type_ub(T),

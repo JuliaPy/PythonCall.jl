@@ -257,25 +257,29 @@ Base.setproperty!(x::Py, k::Symbol, v) = pysetattr(x, string(k), v)
 Base.setproperty!(x::Py, k::String, v) = pysetattr(x, k, v)
 
 function Base.propertynames(x::Py, private::Bool = false)
-    # this follows the logic of rlcompleter.py
-    function classmembers(c)
-        r = pydir(c)
-        if pyhasattr(c, "__bases__")
-            for b in c.__bases__
-                r = pyiadd(r, classmembers(b))
+    properties = C.on_main_thread() do
+        # this follows the logic of rlcompleter.py
+        function classmembers(c)
+            r = pydir(c)
+            if pyhasattr(c, "__bases__")
+                for b in c.__bases__
+                    r = pyiadd(r, classmembers(b))
+                end
             end
+            return r
         end
-        return r
-    end
-    words = pyset(pydir(x))
-    words.discard("__builtins__")
-    if pyhasattr(x, "__class__")
-        words.add("__class__")
-        words.update(classmembers(x.__class__))
-    end
-    words = map(pystr_asstring, words)
+
+        words = pyset(pydir(x::Py))
+        words.discard("__builtins__")
+        if pyhasattr(x, "__class__")
+            words.add("__class__")
+            words.update(classmembers(x.__class__))
+        end
+        map(pystr_asstring, words)
+    end::Vector{String} # explicit type since on_main_thread() is type-unstable
+
     # private || filter!(w->!startswith(w, "_"), words)
-    map(Symbol, words)
+    map(Symbol, properties)
 end
 
 Base.Bool(x::Py) = pytruth(x)

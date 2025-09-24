@@ -827,3 +827,12 @@ end
         @test !isdir(tname)
     end
 end
+
+@testitem "propertynames" begin
+    x = pyint(7)
+    task = Threads.@spawn propertynames(x)
+    properties = propertynames(x)
+    @test :__init__ in properties
+    prop_task = fetch(task)
+    @test properties == prop_task
+end

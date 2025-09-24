@@ -29,6 +29,20 @@ function _atpyexit()
     return
 end
 
+
+const MAIN_THREAD_TASK_LOCK = ReentrantLock()
+const MAIN_THREAD_CHANNEL_INPUT = Channel(1)
+const MAIN_THREAD_CHANNEL_OUTPUT = Channel(1)
+
+# Execute f() on the main thread.
+function on_main_thread(f)
+    @lock MAIN_THREAD_TASK_LOCK begin
+        put!(MAIN_THREAD_CHANNEL_INPUT, f)
+        take!(MAIN_THREAD_CHANNEL_OUTPUT)
+    end
+end
+
+
 function init_context()
 
     CTX.is_embedded = hasproperty(Base.Main, :__PythonCall_libptr)
@@ -240,6 +254,15 @@ function init_context()
         "Only Python 3.9+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
     )
 
+    main_thread_task = Task() do
+        while true
+            f = take!(MAIN_THREAD_CHANNEL_INPUT)
+            put!(MAIN_THREAD_CHANNEL_OUTPUT, f())
+        end
+    end
+    set_task_tid!(main_thread_task, Threads.threadid())
+    schedule(main_thread_task)
+
     @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version
 
     return
@@ -260,3 +283,26 @@ const PYTHONCALL_PKGID = Base.PkgId(PYTHONCALL_UUID, "PythonCall")
 
 const PYCALL_UUID = Base.UUID("438e738f-606a-5dbb-bf0a-cddfbfd45ab0")
 const PYCALL_PKGID = Base.PkgId(PYCALL_UUID, "PyCall")
+
+
+# taken from StableTasks.jl, itself taken from Dagger.jl
+function set_task_tid!(task::Task, tid::Integer)
+    task.sticky = true
+    ctr = 0
+    while true
+        ret = ccall(:jl_set_task_tid, Cint, (Any, Cint), task, tid-1)
+        if ret == 1
+            break
+        elseif ret == 0
+            yield()
+        else
+            error("Unexpected retcode from jl_set_task_tid: $ret")
+        end
+        ctr += 1
+        if ctr > 10
+            @warn "Setting task TID to $tid failed, giving up!"
+            return
+        end
+    end
+    @assert Threads.threadid(task) == tid "jl_set_task_tid failed!"
+end

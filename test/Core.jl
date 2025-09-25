@@ -836,3 +836,13 @@ end
     prop_task = fetch(task)
     @test properties == prop_task
 end
+
+@testitem "on_main_thread" begin
+    task = Threads.@spawn PythonCall.C.on_main_thread() do; Threads.threadid(); end
+    @test fetch(task) == 1
+    @test_throws DivideError redirect_stderr(devnull) do
+        PythonCall.C.on_main_thread() do
+            throw(DivideError())
+        end
+    end
+end

@@ -40,7 +40,15 @@ function setup_onfixedthread()
         worker_task = Task() do
             while true
                 f = take!(channel_input)
-                put!(channel_output, f())
+                ret = try
+                    Some(invokelatest(f))
+                    # invokelatest is necessary for development and interactive use.
+                    # Otherwise, only a method f defined in a world prior to the call of
+                    # launch_worker would work.
+                catch e
+                    e, catch_backtrace()
+                end
+                put!(channel_output, ret)
             end
         end
         # code adapted from set_task_tid! in StableTasks.jl, itself taken from Dagger.jl
@@ -63,7 +71,17 @@ function setup_onfixedthread()
     end
     function onfixedthread(f)
         put!(channel_input, f)
-        take!(channel_output)
+        ret = take!(channel_output)
+        if ret isa Tuple
+            e, backtrace = ret
+            printstyled(stderr, "ERROR: "; color=:red, bold=true)
+            showerror(stderr, e)
+            Base.show_backtrace(stderr, backtrace)
+            println(stderr)
+            throw(e) # the stacktrace of the actual error is printed above
+        else
+            something(ret)
+        end
     end
     launch_worker, onfixedthread
 end

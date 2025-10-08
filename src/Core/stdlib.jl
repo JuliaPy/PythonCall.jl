@@ -40,7 +40,8 @@ function init_stdlib()
      class JuliaCompatHooks:
          def __init__(self):
              self.hooks = {}
-         def find_module(self, name, path=None):
+         def find_spec(self, name, path=None, target=None):
+             print("find_spec:", name)
              hs = self.hooks.get(name)
              if hs is not None:
                  for h in hs:

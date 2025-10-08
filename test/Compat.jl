@@ -5,12 +5,21 @@
         @test PythonCall.fix_qt_plugin_path() === false
     end
     @testset "event_loop_on/off" begin
-        for g in [:pyqt4, :pyqt5, :pyside, :pyside2, :pyside6, :gtk, :gtk3, :wx]
+        @testset "$g" for g in [:pyqt4, :pyqt5, :pyside, :pyside2, :pyside6, :gtk, :gtk3, :wx]
             # TODO: actually test the various GUIs somehow?
-            @show g
-            @test_throws PyException PythonCall.event_loop_on(g)
+            if g == :pyside6
+                # pyside6 is installed as a dev dependency
+                # AND it's a dependency of matplotlib, which is also a dev dependency
+                @test PythonCall.event_loop_on(g) isa Timer
+            else
+                @test_throws PyException PythonCall.event_loop_on(g)
+            end
             @test PythonCall.event_loop_off(g) === nothing
         end
+    end
+    @testset "matplotlib issue 676" begin
+        plt = pyimport("matplotlib.pyplot")
+        @test plt.get_backend() isa Py
     end
 end
 

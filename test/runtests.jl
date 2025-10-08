@@ -1,10 +1,11 @@
 using TestItemRunner
 
 @testmodule Setup begin
+    using PythonCall
     # test if we are in CI
     ci = get(ENV, "CI", "") == "true"
-    # test if we have all dev conda deps (assume true if not in CI)
-    devdeps = ci ? ENV["JULIA_PYTHONCALL_EXE"] == "@CondaPkg" : true
+    # test if we have all dev conda deps
+    devdeps = PythonCall.C.CTX.which == :CondaPkg
 end
 
 @run_package_tests

@@ -28,9 +28,10 @@ function pyjlany_setattr(self, k_::Py, v_::Py)
     v = pyconvert(Any, v_)
     if self isa Module && !isdefined(self, k)
         # Fix for https://github.com/JuliaLang/julia/pull/54678
-        Base.Core.eval(self, Expr(:global, k))
+        @eval self (global $k = $v)
+    else
+        setproperty!(self, k, v)
     end
-    setproperty!(self, k, v)
     Py(nothing)
 end
 pyjl_handle_error_type(::typeof(pyjlany_setattr), self, exc) = pybuiltins.AttributeError

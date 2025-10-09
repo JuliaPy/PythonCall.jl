@@ -805,6 +805,9 @@ end
         @test sprint(show, MIME("text/plain"), Py(12)) == "Python: 12"
         # https://github.com/JuliaPy/PythonCall.jl/issues/522
         @test sprint(show, MIME("text/plain"), PythonCall.pynew()) == "Python: NULL"
+        # test compact printing
+        @test sprint(show, MIME("text/plain"), Py(String('A':'Z')), context=(:compact=>true, :displaysize=>(50, 20))) == "Py: 'ABCDE ... WXYZ'"
+        @test sprint(show, MIME("text/plain"), Py(String('A':'Z')), context=(:compact=>true, :limit=>false, :displaysize=>(50, 20))) == "Py: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'"
         @test_throws MethodError sprint(show, MIME("text/html"), PythonCall.pynew())
     end
 end

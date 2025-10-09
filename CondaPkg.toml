@@ -1,12 +1,17 @@
+
+[deps.openssl]
+version = "<=julia"
+
 [deps.libstdcxx]
 version = "<=julia"
 
 [deps.libstdcxx-ng]
 version = "<=julia"
 
-[deps.openssl]
-version = "<=julia"
-
 [deps.python]
 build = "**cpython**"
 version = ">=3.9,<4"
+
+[dev.deps]
+matplotlib = ""
+pyside6 = ""

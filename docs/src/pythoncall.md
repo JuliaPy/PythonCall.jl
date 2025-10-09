@@ -8,7 +8,7 @@ This package is in the general registry, so to install just type `]` in the Juli
 pkg> add PythonCall
 ```
 
-## Getting started
+## [Getting started](@id py_getting_started)
 
 Import the module with:
 
@@ -90,6 +90,47 @@ Python: ValueError('some error')
 
 With the functions introduced so far, you have access to the vast majority of Python's
 functionality.
+
+## Executing Python scripts
+
+A common use case is calling multiple blocks of Python code from Julia interactively. This can be accomplished in PythonCall via the [@pyexec](@ref) macro. For example, the sentence parsing application in the [Getting started](@ref py_getting_started) section could be rewritten as:
+
+```julia-repl
+julia> @pyexec """
+       global re
+       import re
+
+       def my_sentence(s):
+           words = re.findall("[a-zA-Z]+", s)
+           sentence = " ".join(words)
+           return sentence
+       """ => my_sentence
+Python: <function my_sentence at 0x7d83bb1b01a0>
+
+julia> sentence = my_sentence("PythonCall.jl is very useful!")
+Python: 'PythonCall jl is very useful'
+```
+
+Note the use of the `global` keyword to make the `re` package accessible in global scope, and the `=> my_sentence` syntax to create a Julia function named `my_sentence` that calls to the Python function of the same name. This syntax also supports calling to multiple functions:
+
+```julia-repl
+julia> @pyexec """
+       def add(a, b):
+         return a + b
+
+       def subtract(a, b):
+           return a - b
+       """ => (add, subtract)
+(add = <py function add at 0x7e6cbe398d50>, subtract = <py function subtract at 0x7e6cbdfa7b60>)
+
+julia> add(4, 3)
+Python: 7
+
+julia> subtract(4, 3)
+Python: 1
+```
+
+See [@pyexec](@ref), [@pyeval](@ref), and their functional forms [pyexec](@ref) and [pyeval](@ref), for more.
 
 ## Conversion between Julia and Python
 

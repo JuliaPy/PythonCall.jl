@@ -92,7 +92,7 @@ jobs:
           assert ssl.OPENSSL_VERSION_INFO < (3, 5)
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ matrix.pyversion }}
   

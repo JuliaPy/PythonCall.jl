@@ -158,13 +158,13 @@ This wraps any Julia `AbstractVector` value. It is a subclass of `juliacall.Arra
 
 `````@customdoc
 juliacall.DictValue - Class
-This wraps any Julia `AbstractDict` value. It is a subclass of `collections.abc.Mapping` and
+This wraps any Julia `AbstractDict` value. It is a subclass of `collections.abc.MutableMapping` and
 behaves similar to a Python `dict`.
 `````
 
 `````@customdoc
 juliacall.SetValue - Class
-This wraps any Julia `AbstractSet` value. It is a subclass of `collections.abc.Set` and
+This wraps any Julia `AbstractSet` value. It is a subclass of `collections.abc.MutableSet` and
 behaves similar to a Python `set`.
 `````
 

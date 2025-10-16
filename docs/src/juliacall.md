@@ -7,6 +7,11 @@ It's as simple as
 pip install juliacall
 ```
 
+If you prefer Conda, there is a community effort to also release this on conda-forge:
+```bash
+conda install conda-forge::pyjuliapkg
+```
+
 Developers may wish to clone the repo (https://github.com/JuliaPy/PythonCall.jl) directly
 and pip install the module in editable mode. You should add `"dev":true, "path":"../.."` to
 `pysrc/juliacall/juliapkg.json` to ensure you use the development version of PythonCall

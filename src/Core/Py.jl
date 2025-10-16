@@ -168,16 +168,23 @@ function Base.show(io::IO, ::MIME"text/plain", o::Py)
     end
     hasprefix = (get(io, :typeinfo, Any) != Py)::Bool
     compact = get(io, :compact, false)::Bool
+    limit = get(io, :limit, true)::Bool
+    if compact
+        # compact should output a single line, which we force by replacing newline
+        # characters with spaces
+        str = replace(str, "\n" => " ")
+    end
     multiline = '\n' in str
-    prefix =
-        hasprefix ?
-        compact ? "Py:$(multiline ? '\n' : ' ')" : "Python:$(multiline ? '\n' : ' ')" : ""
+    prefix = !hasprefix ? "" : compact ? "Py: " : multiline ? "Python:\n" : "Python: "
     print(io, prefix)
     h, w = displaysize(io)
-    if get(io, :limit, true)
+    if limit
+        # limit: fit the printed text into the display size
         h, w = displaysize(io)
         h = max(h - 3, 5) # use 3 fewer lines to allow for the prompt, but always allow at least 5 lines
         if multiline
+            # multiline: we truncate each line to the width of the screen, and skip
+            #   middle lines if there are too many for the height
             h -= 1 # for the prefix
             lines = split(str, '\n')
             function printlines(io, lines, w)
@@ -218,7 +225,25 @@ function Base.show(io::IO, ::MIME"text/plain", o::Py)
                 println(io)
                 printlines(io, lines[end-h1+1:end], w)
             end
+        elseif compact
+            # compact: we print up to one screen width, skipping characters in the
+            #    middle if the string is too long for the width
+            maxlen = w - length(prefix)
+            if length(str) ≤ maxlen
+                print(io, str)
+            else
+                gap = " ... "
+                gaplen = length(gap)
+                w0 = cld(maxlen - gaplen, 2)
+                i0 = nextind(str, 1, w0 - 1)
+                i1 = prevind(str, ncodeunits(str), maxlen - gaplen - w0 - 1)
+                print(io, str[begin:i0])
+                printstyled(io, gap, color = :light_black)
+                print(io, str[i1:end])
+            end
         else
+            # single-line: we print up to one screenfull, skipping characters in the
+            #    middle if the string is too long. We skip a whole line of characters.
             maxlen = h * w - length(prefix)
             if length(str) ≤ maxlen
                 print(io, str)

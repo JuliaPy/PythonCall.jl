@@ -1,5 +1,13 @@
 # Release Notes
 
+## Unreleased
+* Minimum supported Python version is now 3.10.
+* Minimum supported Julia version is now 1.10.
+* Showing `Py` now respects the `compact` option - output is limited to a single line of
+  at most the display width.
+* Support policy now documented in the FAQ.
+* Bug fixes.
+
 ## 0.9.28 (2025-09-17)
 * Added `NumpyDates`: NumPy-compatible DateTime64/TimeDelta64 types and units.
 * Added `pyconvert` rules for NumpyDates types.

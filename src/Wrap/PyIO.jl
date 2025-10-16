@@ -34,10 +34,51 @@ end
 # If obuf is non-empty, write it to the underlying stream.
 function putobuf(io::PyIO)
     if !isempty(io.obuf)
-        data = io.text ? pystr_fromUTF8(io.obuf) : pybytes(io.obuf)
-        pydel!(@py io.write(data))
-        pydel!(data)
-        empty!(io.obuf)
+        if io.text
+            # Check if there is a partial character at the end of obuf and if so then
+            # do not write it.
+            # get the last character
+            nskip = 0
+            n = length(io.obuf)
+            c = io.obuf[end]
+            if (c & 0xC0) == 0xC0
+                # 11xxxxxx => buffer ends in a multi-byte char
+                nskip = 1
+            elseif ((c & 0xC0) == 0x80) && (n > 1)
+                # 10xxxxxx => continuation char
+                # get the second to last character
+                c = io.obuf[end-1]
+                if (c & 0xE0) == 0xE0
+                    # 111xxxxx => buffer ends in a 3- or 4-byte char
+                    nskip = 2
+                elseif ((c & 0xC0) == 0x80) && (n > 2)
+                    # 10xxxxxx => continuation char
+                    # get the third to last character
+                    c = io.obuf[end-2]
+                    if (c & 0xF0) == 0xF0
+                        # 1111xxxx => buffer ends in a 4-byte char
+                        nskip = 3
+                    end
+                end
+            end
+            if nskip == 0
+                data = pystr_fromUTF8(io.obuf)
+            else
+                data = pystr_fromUTF8(view(io.obuf, 1:(n-nskip)))
+            end
+            pydel!(@py io.write(data))
+            pydel!(data)
+            if nskip == 0
+                empty!(io.obuf)
+            else
+                deleteat!(io.obuf, 1:(n-nskip))
+            end
+        else
+            data = pybytes(io.obuf)
+            pydel!(@py io.write(data))
+            pydel!(data)
+            empty!(io.obuf)
+        end
     end
     return
 end

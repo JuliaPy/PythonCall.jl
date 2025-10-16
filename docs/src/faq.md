@@ -108,3 +108,11 @@ using PythonCall
 
 np = pyimport("numpy")
 ```
+
+## What versions of Python and Julia do you support?
+
+Each release of PythonCall and JuliaCall will support and require:
+- Any currently supported version of Python, [see here](https://devguide.python.org/versions/). Currently 3.10+.
+- The current Julia LTS version and newer, [see here](https://julialang.org/downloads/#long_term_support_release). Currently 1.10+.
+
+Only the latest patch release within each minor version is supported.

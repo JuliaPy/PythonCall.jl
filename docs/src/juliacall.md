@@ -7,6 +7,11 @@ It's as simple as
 pip install juliacall
 ```
 
+If you prefer Conda, there is a community effort to also release this on conda-forge:
+```bash
+conda install conda-forge::pyjuliapkg
+```
+
 Developers may wish to clone the repo (https://github.com/JuliaPy/PythonCall.jl) directly
 and pip install the module in editable mode. You should add `"dev":true, "path":"../.."` to
 `pysrc/juliacall/juliapkg.json` to ensure you use the development version of PythonCall
@@ -139,6 +144,10 @@ be configured in two ways:
 | `-X juliacall-project=<dir>` | `PYTHON_JULIACALL_PROJECT=<dir>` | Path to the Julia project to use (overrides JuliaPkg). |
 
 ## [Multi-threading](@id py-multi-threading)
+
+!!! warning
+
+    Multi-threading support is experimental and can change without notice.
 
 From v0.9.22, JuliaCall supports multi-threading in Julia and/or Python, with some
 caveats.

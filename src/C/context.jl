@@ -29,6 +29,79 @@ function _atpyexit()
     return
 end
 
+
+function setup_onfixedthread()
+    channel_input = Channel(1)
+    channel_output = Channel(1)
+    islaunched = Ref(false) # use Ref to avoid closure boxing of variable
+    function launch_worker(tid)
+        islaunched[] && error("Cannot launch more than once: call setup_onfixedthread again if need be.")
+        islaunched[] = true
+        worker_task = Task() do
+            while true
+                f = take!(channel_input)
+                ret = try
+                    Some(invokelatest(f))
+                    # invokelatest is necessary for development and interactive use.
+                    # Otherwise, only a method f defined in a world prior to the call of
+                    # launch_worker would work.
+                catch e
+                    e, catch_backtrace()
+                end
+                put!(channel_output, ret)
+            end
+        end
+        # code adapted from set_task_tid! in StableTasks.jl, itself taken from Dagger.jl
+        worker_task.sticky = true
+        for _ in 1:100
+            # try to fix the task id to tid, retrying up to 100 times
+            ret = ccall(:jl_set_task_tid, Cint, (Any, Cint), worker_task, tid-1)
+            if ret == 1
+                break # success
+            elseif ret == 0
+                yield()
+            else
+                error("Unexpected retcode from jl_set_task_tid: $ret")
+            end
+        end
+        if Threads.threadid(worker_task) != tid
+            error("Failed setting the thread ID to $tid.")
+        end
+        schedule(worker_task)
+    end
+    function onfixedthread(f)
+        put!(channel_input, f)
+        ret = take!(channel_output)
+        if ret isa Tuple
+            e, backtrace = ret
+            printstyled(stderr, "ERROR: "; color=:red, bold=true)
+            showerror(stderr, e)
+            Base.show_backtrace(stderr, backtrace)
+            println(stderr)
+            throw(e) # the stacktrace of the actual error is printed above
+        else
+            something(ret)
+        end
+    end
+    launch_worker, onfixedthread
+end
+
+# launch_on_main_thread is used in init_context(), after which on_main_thread becomes usable
+const launch_on_main_thread, on_main_thread = setup_onfixedthread()
+
+"""
+    on_main_thread(f)
+
+Execute `f()` on the main thread.
+
+!!! warning
+    The value returned by `on_main_thread(f)` cannot be type-inferred by the compiler:
+    if necessary, use explicit type annotations such as `on_main_thread(f)::T`, where `T` is
+    the expected return type.
+"""
+on_main_thread
+
+
 function init_context()
 
     CTX.is_embedded = hasproperty(Base.Main, :__PythonCall_libptr)
@@ -239,6 +312,8 @@ function init_context()
     v"3.10" ≤ CTX.version < v"4" || error(
         "Only Python 3.10+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
     )
+
+    launch_on_main_thread(Threads.threadid()) # makes on_main_thread usable
 
     @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version
 

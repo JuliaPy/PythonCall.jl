@@ -66,7 +66,6 @@ The type parameters are all optional, and are:
   - `:mutable`: The array is mutable.
   - `:linear`: Supports fast linear indexing.
   - `:contiguous`: Data is F-contiguous. Implies `:linear`.
-  - `:copy`/`:nocopy`: Whether or not a copy of the data may be taken.
 """
 struct PyArray{T,N,F} <: AbstractArray{T,N}
     ptr::Ptr{Cvoid}         # pointer to the data

@@ -19,7 +19,7 @@ jobs:
       matrix:
         arch: [x64] # x86 unsupported by MicroMamba
         os: [ubuntu-latest, windows-latest, macos-latest]
-        jlversion: ['1','1.9']
+        jlversion: ['1','1.10']
         pythonexe: ['@CondaPkg']
         include:
         - arch: x64

@@ -14,7 +14,7 @@ Bringing [**Python®**](https://www.python.org/) and [**Julia**](https://juliala
 - Fast non-copying conversion of numeric arrays in either direction: modify Python arrays (e.g. `bytes`, `array.array`, `numpy.ndarray`) from Julia or Julia arrays from Python.
 - Helpful wrappers: interpret Python sequences, dictionaries, arrays, dataframes and IO streams as their Julia counterparts, and vice versa.
 - Beautiful stack-traces.
-- Supports modern systems: tested on Windows, MacOS and Linux, 64-bit, Julia 1.9 upwards and Python 3.10 upwards.
+- Supports modern systems: tested on Windows, MacOS and Linux, 64-bit, Julia 1.10 upwards and Python 3.10 upwards.
 
 ⭐ If you like this, a GitHub star would be lovely thank you. ⭐
 

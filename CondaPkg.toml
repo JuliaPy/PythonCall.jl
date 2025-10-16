@@ -10,7 +10,7 @@ version = "<=julia"
 
 [deps.python]
 build = "**cpython**"
-version = ">=3.9,<4"
+version = ">=3.10,<4"
 
 [dev.deps]
 matplotlib = ""

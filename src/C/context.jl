@@ -236,8 +236,8 @@ function init_context()
         error("Cannot parse version from version string: $(repr(verstr))")
     end
     CTX.version = VersionNumber(vermatch.match)
-    v"3.9" ≤ CTX.version < v"4" || error(
-        "Only Python 3.9+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
+    v"3.10" ≤ CTX.version < v"4" || error(
+        "Only Python 3.10+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
     )
 
     @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version

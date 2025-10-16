@@ -1,6 +1,7 @@
 # Release Notes
 
 ## Unreleased
+* Minimum supported Python version is now 3.10.
 * Showing `Py` now respects the `compact` option - output is limited to a single line of
   at most the display width.
 * Bug fixes.

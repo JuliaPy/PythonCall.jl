@@ -140,6 +140,10 @@ be configured in two ways:
 
 ## [Multi-threading](@id py-multi-threading)
 
+!!! warning
+
+    Multi-threading support is experimental and can change without notice.
+
 From v0.9.22, JuliaCall supports multi-threading in Julia and/or Python, with some
 caveats.
 

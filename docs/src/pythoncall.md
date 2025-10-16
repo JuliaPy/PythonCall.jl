@@ -415,6 +415,10 @@ See [Installing Python packages](@ref python-deps).
 
 ## [Multi-threading](@id jl-multi-threading)
 
+!!! warning
+
+    Multi-threading support is experimental and can change without notice.
+
 From v0.9.22, PythonCall supports multi-threading in Julia and/or Python, with some
 caveats.
 

@@ -584,3 +584,35 @@ end
     @test PyTable isa Type
     @test_throws Exception PyTable(0)
 end
+
+@testitem "PyTuple" begin
+    x = pytuple((1, "a"))
+    y = PyTuple(x)
+    z = PyTuple{Tuple{Int,String}}(x)
+    @testset "construct" begin
+        @test y isa PyTuple{Tuple}
+        @test z isa PyTuple{Tuple{Int,String}}
+        @test PythonCall.ispy(y)
+        @test PythonCall.ispy(z)
+        @test Py(y) === x
+        @test Py(z) === x
+    end
+    @testset "length" begin
+        @test length(y) == 2
+        @test length(z) == 2
+        v = PyTuple{Tuple{Int,Vararg{String}}}(pytuple((1, "a", "b")))
+        @test length(v) == 3
+    end
+    @testset "getindex" begin
+        @test_throws BoundsError y[0]
+        @test y[1] === 1
+        @test y[2] == "a"
+        @test z[1] === 1
+        @test z[2] == "a"
+        @test_throws BoundsError y[3]
+    end
+    @testset "Tuple" begin
+        @test Tuple(y) == (1, "a")
+        @test Tuple(z) == (1, "a")
+    end
+end

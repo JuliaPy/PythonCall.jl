@@ -182,6 +182,44 @@ struct PyList{T} <: AbstractVector{T}
 end
 
 """
+    PyTuple{[T<:Tuple]}([x])
+
+Wraps the Python tuple `x` as a Julia wrapper parametrised by a tuple type `T`.
+
+For example a `PyTuple{Tuple{Int,String}}` holds an `Int` and a `String`, a
+`PyTuple{Tuple{Int,Vararg{String}}}` holds and `Int` and any number of `String`s, and
+a `PyTuple{Tuple}` holds any number of anything.
+
+Supports `length(t)`, indexing `t[i]`, iteration `for x in t`, `Tuple(t)`, `eltype(t)`
+just as for an ordinary `Tuple`.
+
+For convenience, these aliases are also exported:
+- `PyNTuple{N,T}` for a tuple with `N` fields of the same type `T`, analogous to `NTuple{N,T}`
+- `Py0Tuple`, `Py1Tuple{T1}`, ..., `Py8Tuple{T1,...,T8}` for tuples of a particular length
+"""
+struct PyTuple{T<:Tuple}
+    py::Py
+    Base.@propagate_inbounds function PyTuple{T}(x = pytuple()) where {T<:Tuple}
+        ans = new{T}(ispy(x) ? Py(x) : pytuple(x))
+        @boundscheck (
+            PythonCall.Wrap.check_length(ans) || error(
+                "tuple is incorrect length for this PyTuple type, got len=$(pylen(ans.py))",
+            )
+        )
+        ans
+    end
+end
+
+const PyNTuple{N,T} = PyTuple{NTuple{N,T}}
+
+const Py0Tuple = PyTuple{Tuple{}}
+for n = 1:8
+    Ts = [Symbol(:T, i) for i = 1:n]
+    name = Symbol(:Py, n, :Tuple)
+    @eval $name{$(Ts...)} = PyTuple{Tuple{$(Ts...)}}
+end
+
+"""
     PyTable(x)
 
 Wrap `x` as a Tables.jl-compatible table.

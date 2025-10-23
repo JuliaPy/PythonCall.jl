@@ -118,6 +118,5 @@ end
 Wrap `x` as a Python `dict`-like object.
 """
 pyjldict(x::AbstractDict) = pyjl(pyjldicttype, x)
-export pyjldict
 
 Py(x::AbstractDict) = pyjldict(x)

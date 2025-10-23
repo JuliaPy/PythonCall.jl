@@ -17,7 +17,6 @@ A handle to a loaded instance of libpython, its interpreter, function pointers, 
     pyhome_w::Any = missing
     which::Symbol = :unknown # :CondaPkg, :PyCall, :embedded or :unknown
     version::Union{VersionNumber,Missing} = missing
-    matches_pycall::Union{Bool,Missing} = missing
 end
 
 const CTX = Context()
@@ -29,6 +28,79 @@ function _atpyexit()
     CTX.is_initialized = false
     return
 end
+
+
+function setup_onfixedthread()
+    channel_input = Channel(1)
+    channel_output = Channel(1)
+    islaunched = Ref(false) # use Ref to avoid closure boxing of variable
+    function launch_worker(tid)
+        islaunched[] && error("Cannot launch more than once: call setup_onfixedthread again if need be.")
+        islaunched[] = true
+        worker_task = Task() do
+            while true
+                f = take!(channel_input)
+                ret = try
+                    Some(invokelatest(f))
+                    # invokelatest is necessary for development and interactive use.
+                    # Otherwise, only a method f defined in a world prior to the call of
+                    # launch_worker would work.
+                catch e
+                    e, catch_backtrace()
+                end
+                put!(channel_output, ret)
+            end
+        end
+        # code adapted from set_task_tid! in StableTasks.jl, itself taken from Dagger.jl
+        worker_task.sticky = true
+        for _ in 1:100
+            # try to fix the task id to tid, retrying up to 100 times
+            ret = ccall(:jl_set_task_tid, Cint, (Any, Cint), worker_task, tid-1)
+            if ret == 1
+                break # success
+            elseif ret == 0
+                yield()
+            else
+                error("Unexpected retcode from jl_set_task_tid: $ret")
+            end
+        end
+        if Threads.threadid(worker_task) != tid
+            error("Failed setting the thread ID to $tid.")
+        end
+        schedule(worker_task)
+    end
+    function onfixedthread(f)
+        put!(channel_input, f)
+        ret = take!(channel_output)
+        if ret isa Tuple
+            e, backtrace = ret
+            printstyled(stderr, "ERROR: "; color=:red, bold=true)
+            showerror(stderr, e)
+            Base.show_backtrace(stderr, backtrace)
+            println(stderr)
+            throw(e) # the stacktrace of the actual error is printed above
+        else
+            something(ret)
+        end
+    end
+    launch_worker, onfixedthread
+end
+
+# launch_on_main_thread is used in init_context(), after which on_main_thread becomes usable
+const launch_on_main_thread, on_main_thread = setup_onfixedthread()
+
+"""
+    on_main_thread(f)
+
+Execute `f()` on the main thread.
+
+!!! warning
+    The value returned by `on_main_thread(f)` cannot be type-inferred by the compiler:
+    if necessary, use explicit type annotations such as `on_main_thread(f)::T`, where `T` is
+    the expected return type.
+"""
+on_main_thread
+
 
 function init_context()
 
@@ -76,14 +148,38 @@ function init_context()
             exe_path = PyCall.python::String
             CTX.lib_path = PyCall.libpython::String
             CTX.which = :PyCall
+        elseif exe_path == "@venv"
+            # load from a .venv in the active project
+            exe_path = abspath(dirname(Base.active_project()), ".venv")
+            if Sys.iswindows()
+                exe_path = abspath(exe_path, "Scripts", "python.exe")::String
+            else
+                exe_path = abspath(exe_path, "bin", "python")::String
+            end
         elseif startswith(exe_path, "@")
             error("invalid JULIA_PYTHONCALL_EXE=$exe_path")
         else
             # Otherwise we use the Python specified
             CTX.which = :unknown
+            if isabspath(exe_path)
+                # nothing to do
+            elseif '/' in exe_path || '\\' in exe_path
+                # it's a relative path, interpret it as relative to the current project
+                exe_path = abspath(dirname(Base.active_project()), exe_path)::String
+            else
+                # it's a command, find it in the PATH
+                given_exe_path = exe_path
+                exe_path = Sys.which(exe_path)
+                exe_path === nothing &&
+                    error("Python executable $(repr(given_exe_path)) not found.")
+                exe_path::String
+            end
         end
 
         # Ensure Python is runnable
+        if !ispath(exe_path)
+            error("Python executable $(repr(exe_path)) does not exist.")
+        end
         try
             run(pipeline(`$exe_path --version`, stdout = devnull, stderr = devnull))
         catch
@@ -141,15 +237,9 @@ function init_context()
         # Get function pointers from the library
         init_pointers()
 
-        # Compare libpath with PyCall
-        @require PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0" init_pycall(PyCall)
-
         # Initialize the interpreter
         CTX.is_preinitialized = Py_IsInitialized() != 0
-        if CTX.is_preinitialized
-            @assert CTX.which == :PyCall || CTX.matches_pycall isa Bool
-        else
-            @assert CTX.which != :PyCall
+        if !CTX.is_preinitialized
             # Find ProgramName and PythonHome
             script = if Sys.iswindows()
                 """
@@ -188,12 +278,8 @@ function init_context()
             Py_InitializeEx(0)
             atexit() do
                 CTX.is_initialized = false
-                if CTX.version === missing || CTX.version < v"3.6"
-                    Py_Finalize()
-                else
-                    if Py_FinalizeEx() == -1
-                        @warn "Py_FinalizeEx() error"
-                    end
+                if Py_FinalizeEx() == -1
+                    @warn "Py_FinalizeEx() error"
                 end
             end
         end
@@ -223,9 +309,11 @@ function init_context()
         error("Cannot parse version from version string: $(repr(verstr))")
     end
     CTX.version = VersionNumber(vermatch.match)
-    v"3.5" ≤ CTX.version < v"4" || error(
-        "Only Python 3.5+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
+    v"3.10" ≤ CTX.version < v"4" || error(
+        "Only Python 3.10+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
     )
+
+    launch_on_main_thread(Threads.threadid()) # makes on_main_thread usable
 
     @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version
 
@@ -247,13 +335,3 @@ const PYTHONCALL_PKGID = Base.PkgId(PYTHONCALL_UUID, "PythonCall")
 
 const PYCALL_UUID = Base.UUID("438e738f-606a-5dbb-bf0a-cddfbfd45ab0")
 const PYCALL_PKGID = Base.PkgId(PYCALL_UUID, "PyCall")
-
-function init_pycall(PyCall::Module)
-    # see if PyCall and PythonCall are using the same interpreter by checking if a couple of memory addresses are the same
-    ptr1 = Py_GetVersion()
-    ptr2 = @eval PyCall ccall(@pysym(:Py_GetVersion), Ptr{Cchar}, ())
-    CTX.matches_pycall = ptr1 == ptr2
-    if CTX.which == :PyCall
-        @assert CTX.matches_pycall
-    end
-end

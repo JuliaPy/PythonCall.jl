@@ -223,6 +223,8 @@ pyjlarray_isarrayabletype(::Type{T}) where {T} = T in (
     Complex{Float32},
     Complex{Float64},
 )
+pyjlarray_isarrayabletype(::Type{NumpyDates.InlineDateTime64{U}}) where {U} = true
+pyjlarray_isarrayabletype(::Type{NumpyDates.InlineTimeDelta64{U}}) where {U} = true
 pyjlarray_isarrayabletype(::Type{T}) where {T<:Tuple} =
     isconcretetype(T) &&
     Base.allocatedinline(T) &&
@@ -235,22 +237,45 @@ const PYTYPESTRDESCR = IdDict{Type,Tuple{String,Py}}()
 pytypestrdescr(::Type{T}) where {T} =
     get!(PYTYPESTRDESCR, T) do
         c = Utils.islittleendian() ? '<' : '>'
-        T == Bool ? ("$(c)b$(sizeof(Bool))", PyNULL) :
-        T == Int8 ? ("$(c)i1", PyNULL) :
-        T == UInt8 ? ("$(c)u1", PyNULL) :
-        T == Int16 ? ("$(c)i2", PyNULL) :
-        T == UInt16 ? ("$(c)u2", PyNULL) :
-        T == Int32 ? ("$(c)i4", PyNULL) :
-        T == UInt32 ? ("$(c)u4", PyNULL) :
-        T == Int64 ? ("$(c)i8", PyNULL) :
-        T == UInt64 ? ("$(c)u8", PyNULL) :
-        T == Float16 ? ("$(c)f2", PyNULL) :
-        T == Float32 ? ("$(c)f4", PyNULL) :
-        T == Float64 ? ("$(c)f8", PyNULL) :
-        T == Complex{Float16} ? ("$(c)c4", PyNULL) :
-        T == Complex{Float32} ? ("$(c)c8", PyNULL) :
-        T == Complex{Float64} ? ("$(c)c16", PyNULL) :
-        if isstructtype(T) && isconcretetype(T) && Base.allocatedinline(T)
+        if T == Bool
+            ("$(c)b$(sizeof(Bool))", PyNULL)
+        elseif T == Int8
+            ("$(c)i1", PyNULL)
+        elseif T == UInt8
+            ("$(c)u1", PyNULL)
+        elseif T == Int16
+            ("$(c)i2", PyNULL)
+        elseif T == UInt16
+            ("$(c)u2", PyNULL)
+        elseif T == Int32
+            ("$(c)i4", PyNULL)
+        elseif T == UInt32
+            ("$(c)u4", PyNULL)
+        elseif T == Int64
+            ("$(c)i8", PyNULL)
+        elseif T == UInt64
+            ("$(c)u8", PyNULL)
+        elseif T == Float16
+            ("$(c)f2", PyNULL)
+        elseif T == Float32
+            ("$(c)f4", PyNULL)
+        elseif T == Float64
+            ("$(c)f8", PyNULL)
+        elseif T == Complex{Float16}
+            ("$(c)c4", PyNULL)
+        elseif T == Complex{Float32}
+            ("$(c)c8", PyNULL)
+        elseif T == Complex{Float64}
+            ("$(c)c16", PyNULL)
+        elseif isconcretetype(T) &&
+               T <: Union{NumpyDates.InlineDateTime64,NumpyDates.InlineTimeDelta64}
+            u, m = NumpyDates.unitpair(T)
+            tc = T <: NumpyDates.InlineDateTime64 ? 'M' : 'm'
+            us =
+                u == NumpyDates.UNBOUND_UNITS ? "" :
+                m == 1 ? "[$(Symbol(u))]" : "[$(m)$(Symbol(u))]"
+            ("$(c)$(tc)8$(us)", PyNULL)
+        elseif isstructtype(T) && isconcretetype(T) && Base.allocatedinline(T)
             n = fieldcount(T)
             flds = []
             for i = 1:n
@@ -365,6 +390,5 @@ This object can be converted to a Numpy array with `numpy.array(v)`, `v.to_numpy
 If `x` is one-dimensional (an `AbstractVector`) then it also behaves as a `list`.
 """
 pyjlarray(x::AbstractArray) = pyjl(pyjlarraytype, x)
-export pyjlarray
 
 Py(x::AbstractArray) = pyjlarray(x)

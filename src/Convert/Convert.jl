@@ -5,48 +5,29 @@ Implements `pyconvert`.
 """
 module Convert
 
+using ..PythonCall
+using ..Utils
+using ..C
 using ..Core
-using ..Core:
-    C,
-    Utils,
-    @autopy,
-    getptr,
-    incref,
-    pynew,
-    PyNULL,
-    pyisnull,
-    pydel!,
-    pyisint,
-    iserrset_ambig,
-    pyisnone,
-    pyisTrue,
-    pyisFalse,
-    pyfloat_asdouble,
-    pycomplex_ascomplex,
-    pyisstr,
-    pystr_asstring,
-    pyisbytes,
-    pybytes_asvector,
-    pybytes_asUTF8string,
-    pyisfloat,
-    pyisrange,
-    pytuple_getitem,
-    unsafe_pynext,
-    pyistuple,
-    pydatetimetype,
-    pytime_isaware,
-    pydatetime_isaware,
-    _base_pydatetime,
-    _base_datetime,
-    errmatches,
-    errclear,
-    errset,
-    pyiscomplex,
-    pythrow,
-    pybool_asbool
+using ..NumpyDates
+
 using Dates: Date, Time, DateTime, Second, Millisecond, Microsecond, Nanosecond
 
-import ..Core: pyconvert
+import ..PythonCall:
+    @pyconvert,
+    pyconvert_add_rule,
+    pyconvert_return,
+    pyconvert_unconverted,
+    pyconvert,
+    PyConvertPriority
+
+export pyconvert_isunconverted,
+    pyconvert_result,
+    pyconvert_result,
+    pyconvert_tryconvert,
+    pyconvert_unconverted,
+    pyconvertarg
+
 
 include("pyconvert.jl")
 include("rules.jl")

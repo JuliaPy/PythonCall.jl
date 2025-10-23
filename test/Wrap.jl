@@ -26,6 +26,13 @@
         @test strides(y) === (1,)
         @test strides(z) === (1,)
     end
+    @testset "elsize" begin
+        @test Base.elsize(y) === sizeof(Cint)
+        @test Base.elsize(z) === sizeof(Cint)
+        @test Base.elsize(PyArray{Cint,1,true,true,Cint}) === sizeof(Cint)
+        @test Base.elsize(PyArray{Cint,1,false,false,Cint}) === sizeof(Cint)
+        @test_throws Exception elsize(PyArray{Cint,1,true,false,Cchar})
+    end
     @testset "getindex" begin
         @test_throws BoundsError y[0]
         @test y[1] == 1
@@ -263,6 +270,20 @@ end
         @test !isopen(b)
         @test !isopen(s)
     end
+    @testset "flush partial characters (issue 679)" begin
+        # In this example, "touché!" takes up 8 bytes, with 'é' taking 2. So when we
+        # make a PyIO with buflen=6, it tries to flush after 6 bytes. Previously this
+        # would try to create a string from those 6 bytes and fail with a
+        # UnicodeDecodeError because the final character is incomplete. This is now
+        # fixed by deferring printing of incomplete characters.
+        s0 = pyimport("io").StringIO()
+        s = PyIO(s0, buflen=6)
+        @test s.text
+        @test write(s, "touché!") == 8
+        flush(s)
+        s0.seek(0)
+        @test pyeq(Bool, s0.read(), "touché!")
+    end
 end
 
 @testitem "PyIterable" begin
@@ -380,6 +401,13 @@ end
         @test t == [1, 2, 3, 4, 5, 6]
         @test_throws Exception append!(t, [nothing, missing])
         @test t == [1, 2, 3, 4, 5, 6]
+    end
+    @testset "prepend!" begin
+        t = copy(z)
+        @test prepend!(t, [-3, -2, -1]) === t
+        @test t == [-3, -2, -1, 1, 2, 3]
+        @test_throws Exception append!(t, [nothing, missing])
+        @test t == [-3, -2, -1, 1, 2, 3]
     end
     @testset "pop!" begin
         t = copy(z)

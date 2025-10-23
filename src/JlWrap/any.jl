@@ -31,7 +31,12 @@ function pyjlany_setattr(self, k_::Py, v_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))
     pydel!(k_)
     v = pyconvert(Any, v_)
-    setproperty!(self, k, v)
+    if self isa Module && !isdefined(self, k)
+        # Fix for https://github.com/JuliaLang/julia/pull/54678
+        @eval self (global $k = $v)
+    else
+        setproperty!(self, k, v)
+    end
     Py(nothing)
 end
 pyjl_handle_error_type(::typeof(pyjlany_setattr), self, exc) = pybuiltins.AttributeError
@@ -240,7 +245,10 @@ function pyjlany_help(self, mime_::Py)
     mime = pyconvertarg(Union{Nothing,String}, mime_, "mime")
     doc = Docs.getdoc(self)
     if doc === nothing
-        doc = Docs.doc(self)
+        # hack: the relevant methods of Docs.doc are actually
+        # in REPL, so we load it dynamically if needed
+        @eval Main using REPL
+        doc = invokelatest(Docs.doc, self)
     end
     x = Utils.ExtraNewline(doc)
     if mime === nothing
@@ -581,6 +589,5 @@ end
 Create a Python `juliacall.Jl` object wrapping the Julia object `x`.
 """
 pyjl(v) = pyjl(pyjlanytype, v)
-export pyjl
 
 pyjliter(x) = pyjl(pyjlitertype, x)

@@ -9,7 +9,6 @@ True if `x` is a Python object.
 This includes `Py` and Python wrapper types such as `PyList`.
 """
 ispy(x) = false
-export ispy
 
 """
     pyisnull(x)
@@ -25,31 +24,18 @@ Get the underlying pointer from the Python object `x`.
 """
 getptr(x) = ispy(x) ? getptr(Py(x)::Py) : throw(MethodError(getptr, (x,)))
 
-"""
-    Py(x)
-
-Convert `x` to a Python object, of type `Py`.
-
-Conversion happens according to [these rules](@ref jl2py-conversion).
-
-Such an object supports attribute access (`obj.attr`), indexing (`obj[idx]`), calling
-(`obj(arg1, arg2)`), iteration (`for x in obj`), arithmetic (`obj + obj2`) and comparison
-(`obj > obj2`), among other things. These operations convert all their arguments to `Py` and
-return `Py`.
-"""
-mutable struct Py
-    ptr::C.PyPtr
-    Py(::Val{:new}, ptr::C.PyPtr) = finalizer(py_finalizer, new(ptr))
-end
-export Py
-
 py_finalizer(x::Py) = GC.enqueue(getptr(x))
 
 ispy(::Py) = true
-getptr(x::Py) = getfield(x, :ptr)
+getptr(x::Py) = C.PyPtr(getfield(x, :ptr))
 pyconvert(::Type{Py}, x::Py) = x
 
-setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, ptr); x)
+setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, Ptr{Cvoid}(ptr)); x)
+
+incref(x::Py) = Base.GC.@preserve x (incref(getptr(x)); x)
+decref(x::Py) = Base.GC.@preserve x (decref(getptr(x)); x)
+
+Base.unsafe_convert(::Type{C.PyPtr}, x::Py) = getptr(x)
 
 const PYNULL_CACHE = Py[]
 
@@ -75,7 +61,7 @@ const PyNULL = pynew()
 
 pynew(ptr::C.PyPtr) = setptr!(pynew(), ptr)
 
-pynew(x::Py) = pynew(incref(getptr(x)))
+pynew(x::Py) = Base.GC.@preserve x pynew(incref(getptr(x)))
 
 """
     pycopy!(dst::Py, src)
@@ -136,25 +122,16 @@ end
 Py(x::Py) = x
 Py(x::Nothing) = pybuiltins.None
 Py(x::Bool) = x ? pybuiltins.True : pybuiltins.False
-Py(x::Union{String,SubString{String},Char}) = pystr(x)
+Py(x::Union{AbstractString,AbstractChar}) = pystr(x)
 Py(x::Base.CodeUnits{UInt8,String}) = pybytes(x)
 Py(x::Base.CodeUnits{UInt8,SubString{String}}) = pybytes(x)
 Py(x::Tuple) = pytuple_fromiter(x)
 Py(x::Pair) = pytuple_fromiter(x)
-Py(x::Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt}) =
-    pyint(x)
-Py(
-    x::Rational{
-        <:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt},
-    },
-) = pyfraction(x)
+Py(x::Integer) = pyint(x)
+Py(x::Rational{<:Integer}) = pyfraction(x)
 Py(x::Union{Float16,Float32,Float64}) = pyfloat(x)
-Py(x::Complex{<:Union{Float16,Float32,Float64}}) = pycomplex(x)
-Py(
-    x::AbstractRange{
-        <:Union{Int8,Int16,Int32,Int64,Int128,UInt8,UInt16,UInt32,UInt64,UInt128,BigInt},
-    },
-) = pyrange_fromrange(x)
+Py(x::Union{Complex{Float16},Complex{Float32},Complex{Float64}}) = pycomplex(x)
+Py(x::AbstractRange{<:Integer}) = pyrange_fromrange(x)
 Py(x::Date) = pydate(x)
 Py(x::Time) = pytime(x)
 Py(x::DateTime) = pydatetime(x)
@@ -164,13 +141,13 @@ Base.print(io::IO, x::Py) = print(io, string(x))
 
 function Base.show(io::IO, x::Py)
     if get(io, :typeinfo, Any) == Py
-        if getptr(x) == C.PyNULL
+        if pyisnull(x)
             print(io, "NULL")
         else
             print(io, pyrepr(String, x))
         end
     else
-        if getptr(x) == C.PyNULL
+        if pyisnull(x)
             print(io, "<py NULL>")
         else
             s = pyrepr(String, x)
@@ -191,16 +168,23 @@ function Base.show(io::IO, ::MIME"text/plain", o::Py)
     end
     hasprefix = (get(io, :typeinfo, Any) != Py)::Bool
     compact = get(io, :compact, false)::Bool
+    limit = get(io, :limit, true)::Bool
+    if compact
+        # compact should output a single line, which we force by replacing newline
+        # characters with spaces
+        str = replace(str, "\n" => " ")
+    end
     multiline = '\n' in str
-    prefix =
-        hasprefix ?
-        compact ? "Py:$(multiline ? '\n' : ' ')" : "Python:$(multiline ? '\n' : ' ')" : ""
+    prefix = !hasprefix ? "" : compact ? "Py: " : multiline ? "Python:\n" : "Python: "
     print(io, prefix)
     h, w = displaysize(io)
-    if get(io, :limit, true)
+    if limit
+        # limit: fit the printed text into the display size
         h, w = displaysize(io)
         h = max(h - 3, 5) # use 3 fewer lines to allow for the prompt, but always allow at least 5 lines
         if multiline
+            # multiline: we truncate each line to the width of the screen, and skip
+            #   middle lines if there are too many for the height
             h -= 1 # for the prefix
             lines = split(str, '\n')
             function printlines(io, lines, w)
@@ -241,7 +225,25 @@ function Base.show(io::IO, ::MIME"text/plain", o::Py)
                 println(io)
                 printlines(io, lines[end-h1+1:end], w)
             end
+        elseif compact
+            # compact: we print up to one screen width, skipping characters in the
+            #    middle if the string is too long for the width
+            maxlen = w - length(prefix)
+            if length(str) ≤ maxlen
+                print(io, str)
+            else
+                gap = " ... "
+                gaplen = length(gap)
+                w0 = cld(maxlen - gaplen, 2)
+                i0 = nextind(str, 1, w0 - 1)
+                i1 = prevind(str, ncodeunits(str), maxlen - gaplen - w0 - 1)
+                print(io, str[begin:i0])
+                printstyled(io, gap, color = :light_black)
+                print(io, str[i1:end])
+            end
         else
+            # single-line: we print up to one screenfull, skipping characters in the
+            #    middle if the string is too long. We skip a whole line of characters.
             maxlen = h * w - length(prefix)
             if length(str) ≤ maxlen
                 print(io, str)
@@ -280,25 +282,29 @@ Base.setproperty!(x::Py, k::Symbol, v) = pysetattr(x, string(k), v)
 Base.setproperty!(x::Py, k::String, v) = pysetattr(x, k, v)
 
 function Base.propertynames(x::Py, private::Bool = false)
-    # this follows the logic of rlcompleter.py
-    function classmembers(c)
-        r = pydir(c)
-        if pyhasattr(c, "__bases__")
-            for b in c.__bases__
-                r = pyiadd(r, classmembers(b))
+    properties = C.on_main_thread() do
+        # this follows the logic of rlcompleter.py
+        function classmembers(c)
+            r = pydir(c)
+            if pyhasattr(c, "__bases__")
+                for b in c.__bases__
+                    r = pyiadd(r, classmembers(b))
+                end
             end
+            return r
         end
-        return r
-    end
-    words = pyset(pydir(x))
-    words.discard("__builtins__")
-    if pyhasattr(x, "__class__")
-        words.add("__class__")
-        words.update(classmembers(x.__class__))
-    end
-    words = map(pystr_asstring, words)
+
+        words = pyset(pydir(x::Py))
+        words.discard("__builtins__")
+        if pyhasattr(x, "__class__")
+            words.add("__class__")
+            words.update(classmembers(x.__class__))
+        end
+        map(pystr_asstring, words)
+    end::Vector{String} # explicit type since on_main_thread() is type-unstable
+
     # private || filter!(w->!startswith(w, "_"), words)
-    map(Symbol, words)
+    map(Symbol, properties)
 end
 
 Base.Bool(x::Py) = pytruth(x)
@@ -357,22 +363,22 @@ Base.broadcastable(x::Py) = Ref(x)
 (f::Py)(args...; kwargs...) = pycall(f, args...; kwargs...)
 
 # comparisons
-Base.:(==)(x::Py, y::Py) = pyeq(x, y)
-Base.:(<=)(x::Py, y::Py) = pyle(x, y)
-Base.:(<)(x::Py, y::Py) = pylt(x, y)
+Base.:(==)(x::Py, y::Py) = pyeq(Bool, x, y)
+Base.:(<=)(x::Py, y::Py) = pyle(Bool, x, y)
+Base.:(<)(x::Py, y::Py) = pylt(Bool, x, y)
 Base.isless(x::Py, y::Py) = pylt(Bool, x, y)
 Base.isequal(x::Py, y::Py) = pyeq(Bool, x, y)
 
 # we also allow comparison with numbers
-Base.:(==)(x::Py, y::Number) = pyeq(x, y)
-Base.:(<=)(x::Py, y::Number) = pyle(x, y)
-Base.:(<)(x::Py, y::Number) = pylt(x, y)
+Base.:(==)(x::Py, y::Number) = pyeq(Bool, x, y)
+Base.:(<=)(x::Py, y::Number) = pyle(Bool, x, y)
+Base.:(<)(x::Py, y::Number) = pylt(Bool, x, y)
 Base.isless(x::Py, y::Number) = pylt(Bool, x, y)
 Base.isequal(x::Py, y::Number) = pyeq(Bool, x, y)
 
-Base.:(==)(x::Number, y::Py) = pyeq(x, y)
-Base.:(<=)(x::Number, y::Py) = pyle(x, y)
-Base.:(<)(x::Number, y::Py) = pylt(x, y)
+Base.:(==)(x::Number, y::Py) = pyeq(Bool, x, y)
+Base.:(<=)(x::Number, y::Py) = pyle(Bool, x, y)
+Base.:(<)(x::Number, y::Py) = pylt(Bool, x, y)
 Base.isless(x::Number, y::Py) = pylt(Bool, x, y)
 Base.isequal(x::Number, y::Py) = pyeq(Bool, x, y)
 

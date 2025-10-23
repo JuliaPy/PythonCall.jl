@@ -56,7 +56,6 @@ function pyfunc(
     end
     return f3
 end
-export pyfunc
 
 """
     pyclassmethod(f; ...)
@@ -68,7 +67,6 @@ If `f` is not a Python object (e.g. if `f` is a `Function`) then it is converted
 `Py`. Keyword arguments are passed to `pyfunc`.
 """
 pyclassmethod(f; kw...) = pybuiltins.classmethod(ispy(f) ? f : pyfunc(f; kw...))
-export pyclassmethod
 
 """
     pystaticmethod(f; ...)
@@ -80,7 +78,6 @@ If `f` is not a Python object (e.g. if `f` is a `Function`) then it is converted
 `Py`. Any keyword arguments are passed to `pyfunc`.
 """
 pystaticmethod(f; kw...) = pybuiltins.staticmethod(ispy(f) ? f : pyfunc(f; kw...))
-export pystaticmethod
 
 """
     pyproperty(; get=nothing, set=nothing, del=nothing, doc=nothing, ...)
@@ -101,4 +98,3 @@ pyproperty(; get = nothing, set = nothing, del = nothing, doc = nothing, kw...) 
     )
 pyproperty(get, set = nothing, del = nothing; doc = nothing, kw...) =
     pyproperty(; get = get, set = set, del = del, doc = doc, kw...)
-export pyproperty

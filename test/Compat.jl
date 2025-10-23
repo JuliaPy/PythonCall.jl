@@ -1,15 +1,26 @@
-@testitem "gui" begin
+@testitem "gui" setup=[Setup] begin
     @testset "fix_qt_plugin_path" begin
         @test PythonCall.fix_qt_plugin_path() isa Bool
         # second time is a no-op
         @test PythonCall.fix_qt_plugin_path() === false
     end
     @testset "event_loop_on/off" begin
-        for g in [:pyqt4, :pyqt5, :pyside, :pyside2, :gtk, :gtk3, :wx]
+        @testset "$g" for g in [:pyqt4, :pyqt5, :pyside, :pyside2, :pyside6, :gtk, :gtk3, :wx]
             # TODO: actually test the various GUIs somehow?
-            @show g
-            @test_throws PyException PythonCall.event_loop_on(g)
+            if Setup.devdeps && g == :pyside6
+                # pyside6 is installed as a dev dependency
+                # AND it's a dependency of matplotlib, which is also a dev dependency
+                @test PythonCall.event_loop_on(g) isa Timer
+            else
+                @test_throws PyException PythonCall.event_loop_on(g)
+            end
             @test PythonCall.event_loop_off(g) === nothing
+        end
+    end
+    @testset "matplotlib issue 676" begin
+        if Setup.devdeps
+            plt = pyimport("matplotlib.pyplot")
+            @test plt.get_backend() isa Py
         end
     end
 end
@@ -39,7 +50,22 @@ end
 end
 
 @testitem "PyCall.jl" begin
-    # TODO
+    if (get(ENV, "CI", "") != "") && (ENV["JULIA_PYTHONCALL_EXE"] == "python")
+        # Only run this test when we can guarantee PyCall and PythonCall are using the
+        # same Python. Currently this only runs in CI, and if PythonCall is using the
+        # system Python installation.
+        using PyCall
+        # Check they are indeed using the same Python.
+        @test Base.get_extension(PythonCall, :PyCallExt).SAME[]
+        # Check we can round-trip and object PythonCall -> PyCall -> PythonCall and
+        # have the same identical Python object afterward.
+        x1 = pylist()::Py
+        x2 = PyCall.PyObject(x1)::PyCall.PyObject
+        x3 = Py(x2)::Py
+        @test pyis(x3, x1)
+    else
+        @warn "Skipping PyCall.jl tests."
+    end
 end
 
 @testitem "Serialization.jl" begin

@@ -1,60 +1,3 @@
-"""
-    PyIO(x; own=false, text=missing, line_buffering=false, buflen=4096)
-
-Wrap the Python IO stream `x` as a Julia IO stream.
-
-When this goes out of scope and is finalized, it is automatically flushed. If `own=true` then it is also closed.
-
-If `text=false` then `x` must be a binary stream and arbitrary binary I/O is possible.
-If `text=true` then `x` must be a text stream and only UTF-8 must be written (i.e. use `print` not `write`).
-If `text` is not specified then it is chosen automatically.
-If `x` is a text stream and you really need a binary stream, then often `PyIO(x.buffer)` will work.
-
-If `line_buffering=true` then output is flushed at each line.
-
-For efficiency, reads and writes are buffered before being sent to `x`.
-The size of the buffers is `buflen`.
-The buffers are cleared using `flush`.
-"""
-mutable struct PyIO <: IO
-    py::Py
-    # true to close the file automatically
-    own::Bool
-    # true if `o` is text, false if binary
-    text::Bool
-    # true to flush whenever '\n' or '\r' is encountered
-    line_buffering::Bool
-    # true if we are definitely at the end of the file; false if we are not or don't know
-    eof::Bool
-    # input buffer
-    ibuflen::Int
-    ibuf::Vector{UInt8}
-    # output buffer
-    obuflen::Int
-    obuf::Vector{UInt8}
-
-    function PyIO(
-        x;
-        own::Bool = false,
-        text::Union{Missing,Bool} = missing,
-        buflen::Integer = 4096,
-        ibuflen::Integer = buflen,
-        obuflen::Integer = buflen,
-        line_buffering::Bool = false,
-    )
-        if text === missing
-            text = pyhasattr(x, "encoding")
-        end
-        buflen = convert(Int, buflen)
-        buflen > 0 || error("buflen must be positive")
-        ibuflen = convert(Int, ibuflen)
-        ibuflen > 0 || error("ibuflen must be positive")
-        obuflen = convert(Int, obuflen)
-        obuflen > 0 || error("obuflen must be positive")
-        new(Py(x), own, text, line_buffering, false, ibuflen, UInt8[], obuflen, UInt8[])
-    end
-end
-export PyIO
 
 pyio_finalize!(io::PyIO) = begin
     C.CTX.is_initialized || return
@@ -91,10 +34,51 @@ end
 # If obuf is non-empty, write it to the underlying stream.
 function putobuf(io::PyIO)
     if !isempty(io.obuf)
-        data = io.text ? pystr_fromUTF8(io.obuf) : pybytes(io.obuf)
-        pydel!(@py io.write(data))
-        pydel!(data)
-        empty!(io.obuf)
+        if io.text
+            # Check if there is a partial character at the end of obuf and if so then
+            # do not write it.
+            # get the last character
+            nskip = 0
+            n = length(io.obuf)
+            c = io.obuf[end]
+            if (c & 0xC0) == 0xC0
+                # 11xxxxxx => buffer ends in a multi-byte char
+                nskip = 1
+            elseif ((c & 0xC0) == 0x80) && (n > 1)
+                # 10xxxxxx => continuation char
+                # get the second to last character
+                c = io.obuf[end-1]
+                if (c & 0xE0) == 0xE0
+                    # 111xxxxx => buffer ends in a 3- or 4-byte char
+                    nskip = 2
+                elseif ((c & 0xC0) == 0x80) && (n > 2)
+                    # 10xxxxxx => continuation char
+                    # get the third to last character
+                    c = io.obuf[end-2]
+                    if (c & 0xF0) == 0xF0
+                        # 1111xxxx => buffer ends in a 4-byte char
+                        nskip = 3
+                    end
+                end
+            end
+            if nskip == 0
+                data = pystr_fromUTF8(io.obuf)
+            else
+                data = pystr_fromUTF8(view(io.obuf, 1:(n-nskip)))
+            end
+            pydel!(@py io.write(data))
+            pydel!(data)
+            if nskip == 0
+                empty!(io.obuf)
+            else
+                deleteat!(io.obuf, 1:(n-nskip))
+            end
+        else
+            data = pybytes(io.obuf)
+            pydel!(@py io.write(data))
+            pydel!(data)
+            empty!(io.obuf)
+        end
     end
     return
 end

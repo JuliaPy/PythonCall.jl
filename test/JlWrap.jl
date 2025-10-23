@@ -220,6 +220,7 @@
         pyjl(Foo(1)).jl_display(mime = "text/plain")
     end
     @testset "help" begin
+        using REPL
         pyjl(Foo(1)).jl_help()
         pyjl(Foo(1)).jl_help(mime = "text/plain")
     end
@@ -717,7 +718,7 @@ end
             y = pytextio(x)
             z = y.fileno()
             @test pyisinstance(z, pybuiltins.int)
-            @test pyeq(Bool, z, fd(x))
+            @test z == Base.cconvert(Cint, fd(x))
         end
     end
     @testset "flush" begin
@@ -1286,5 +1287,14 @@ end
         @test pyeq(Bool, x.count(2.0), 2)
         @test pyeq(Bool, x.count(nothing), 0)
         @test pyeq(Bool, x.count("2"), 0)
+    end
+
+    @testset "PyObjectArray" begin
+        # https://github.com/JuliaPy/PythonCall.jl/issues/543
+        # Here we check the finalizer does not error
+        # We must not reuse `arr` in this code once we finalize it!
+        let arr = PyObjectArray([1, 2, 3])
+            finalize(arr)
+        end
     end
 end

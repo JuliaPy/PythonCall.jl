@@ -1,15 +1,3 @@
-"""
-    PyList{T=Py}([x])
-
-Wraps the Python list `x` (or anything satisfying the sequence interface) as an `AbstractVector{T}`.
-
-If `x` is not a Python object, it is converted to one using `pylist`.
-"""
-struct PyList{T} <: AbstractVector{T}
-    py::Py
-    PyList{T}(x = pylist()) where {T} = new{T}(ispy(x) ? Py(x) : pylist(x))
-end
-export PyList
 
 PyList(x = pylist()) = PyList{Py}(x)
 
@@ -57,6 +45,13 @@ end
 function Base.append!(x::PyList, vs)
     for v in vs
         push!(x, v)
+    end
+    return x
+end
+
+function Base.prepend!(x::PyList, vs)
+    for v in reverse(vs)
+        pushfirst!(x, v)
     end
     return x
 end

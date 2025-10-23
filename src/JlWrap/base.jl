@@ -1,10 +1,10 @@
 const pyjlbasetype = pynew()
 
-_pyjl_getvalue(x) = @autopy x Cjl.PyJuliaValue_GetValue(getptr(x_))
+_pyjl_getvalue(x) = @autopy x Cjl.PyJuliaValue_GetValue(x_)
 
-_pyjl_setvalue!(x, v) = @autopy x Cjl.PyJuliaValue_SetValue(getptr(x_), v)
+_pyjl_setvalue!(x, v) = @autopy x Cjl.PyJuliaValue_SetValue(x_, v)
 
-pyjl(t, v) = pynew(errcheck(@autopy t Cjl.PyJuliaValue_New(getptr(t_), v)))
+pyjl(t, v) = pynew(errcheck(@autopy t Cjl.PyJuliaValue_New(t_, v)))
 
 """
     pyisjl(x)
@@ -12,7 +12,6 @@ pyjl(t, v) = pynew(errcheck(@autopy t Cjl.PyJuliaValue_New(getptr(t_), v)))
 Test whether `x` is a wrapped Julia value, namely an instance of `juliacall.JlBase`.
 """
 pyisjl(x) = pytypecheck(x, pyjlbasetype)
-export pyisjl
 
 """
     pyjlvalue(x)
@@ -20,7 +19,6 @@ export pyisjl
 Extract the value from the wrapped Julia value `x`.
 """
 pyjlvalue(x) = @autopy x _pyjl_getvalue(x_)
-export pyjlvalue
 
 function init_base()
     setptr!(pyjlbasetype, incref(Cjl.PyJuliaBase_Type[]))
@@ -67,13 +65,13 @@ function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssi
                 "__jl_callmethod not implemented for this many arguments",
             )
         end
-        return incref(getptr(ans))
+        return getptr(incref(ans))
     catch exc
         if exc isa PyException
             Base.GC.@preserve exc C.PyErr_Restore(
-                incref(getptr(exc._t)),
-                incref(getptr(exc._v)),
-                incref(getptr(exc._b)),
+                incref(exc._t),
+                incref(exc._v),
+                incref(exc._b),
             )
             return C.PyNULL
         else
@@ -105,7 +103,7 @@ function pyjl_handle_error(f, self, exc)
         return C.PyNULL
     else
         # Otherwise, return the given object (e.g. NotImplemented)
-        return Base.GC.@preserve t incref(getptr(t))
+        return getptr(incref(t))
     end
 end
 

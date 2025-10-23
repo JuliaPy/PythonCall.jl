@@ -1,9 +1,13 @@
 {
-    "julia": "~1.6.1, ~1.7, ~1.8, ~1.9, =1.10.0, ^1.10.3",
+    "julia": "^1.10.3",
     "packages": {
         "PythonCall": {
             "uuid": "6099a3de-0909-46bc-b1f4-468b9a2dfc0d",
-            "version": "=0.9.22"
+            "version": "=0.9.28"
+        },
+        "OpenSSL_jll": {
+            "uuid": "458c3c95-2e84-50aa-8efc-19380b2a3a95",
+            "version": "<=python"
         }
     }
 }

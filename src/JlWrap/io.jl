@@ -10,7 +10,7 @@ pyjlio_closed(io::IO) = Py(!isopen(io))
 pyjl_handle_error_type(::typeof(pyjlio_closed), io, exc) =
     exc isa MethodError && exc.f === isopen ? pybuiltins.ValueError : PyNULL
 
-pyjlio_fileno(io::IO) = Py(fd(io))
+pyjlio_fileno(io::IO) = Py(Base.cconvert(Cint, fd(io))::Cint)
 pyjl_handle_error_type(::typeof(pyjlio_fileno), io, exc) =
     exc isa MethodError && exc.f === fd ? pybuiltins.ValueError : PyNULL
 
@@ -102,7 +102,7 @@ function pyjlbinaryio_readinto(io::IO, b::Py)
         return PyNULL
     end
     pydel!(c)
-    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(getptr(m)))
+    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(m))
     if buf.readonly != 0
         pydel!(m)
         errset(pybuiltins.ValueError, "output buffer is read-only")
@@ -125,7 +125,7 @@ function pyjlbinaryio_write(io::IO, b::Py)
         return PyNULL
     end
     pydel!(c)
-    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(getptr(m)))
+    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(m))
     data = unsafe_wrap(Array, Ptr{UInt8}(buf.buf), buf.len)
     write(io, data)
     pydel!(m)
@@ -341,7 +341,6 @@ Wrap `io` as a Python binary IO object.
 This is the default behaviour of `Py(io)`.
 """
 pybinaryio(v::IO) = pyjl(pyjlbinaryiotype, v)
-export pybinaryio
 
 """
     pytextio(io::IO)
@@ -349,6 +348,5 @@ export pybinaryio
 Wrap `io` as a Python text IO object.
 """
 pytextio(v::IO) = pyjl(pyjltextiotype, v)
-export pytextio
 
 Py(x::IO) = pybinaryio(x)

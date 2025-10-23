@@ -25,7 +25,7 @@ PyCallExt = "PyCall"
 [compat]
 Aqua = "0 - 999"
 CategoricalArrays = "0.10, 1"
-CondaPkg = "0.2.30"
+CondaPkg = "0.2.33"
 Dates = "1"
 Libdl = "1"
 MacroTools = "0.5"
@@ -38,7 +38,7 @@ Tables = "1"
 Test = "1"
 TestItemRunner = "0 - 999"
 UnsafePointers = "1"
-julia = "1.9"
+julia = "1.10"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"

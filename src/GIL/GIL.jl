@@ -4,6 +4,10 @@
 Handling the Python Global Interpreter Lock.
 
 See [`lock`](@ref), [`@lock`](@ref), [`unlock`](@ref) and [`@unlock`](@ref).
+
+!!! warning
+
+    Multi-threading support is experimental and can change without notice.
 """
 module GIL
 
@@ -32,6 +36,10 @@ threads. Since the main Julia thread holds the GIL by default, you will need to
 [`unlock`](@ref) the GIL before using this function.
 
 See [`@lock`](@ref) for the macro form.
+
+!!! warning
+
+    This function is experimental. Its semantics may be changed without notice.
 """
 function lock(f)
     state = C.PyGILState_Ensure()
@@ -52,6 +60,10 @@ threads. Since the main Julia thread holds the GIL by default, you will need to
 [`@unlock`](@ref) the GIL before using this function.
 
 The macro equivalent of [`lock`](@ref).
+
+!!! warning
+
+    This macro is experimental. Its semantics may be changed without notice.
 """
 macro lock(expr)
     quote
@@ -74,6 +86,10 @@ Python code. That other thread can be a Julia thread, which must lock the GIL us
 [`lock`](@ref).
 
 See [`@unlock`](@ref) for the macro form.
+
+!!! warning
+
+    This function is experimental. Its semantics may be changed without notice.
 """
 function unlock(f)
     state = C.PyEval_SaveThread()
@@ -94,6 +110,10 @@ Python code. That other thread can be a Julia thread, which must lock the GIL us
 [`@lock`](@ref).
 
 The macro equivalent of [`unlock`](@ref).
+
+!!! warning
+
+    This macro is experimental. Its semantics may be changed without notice.
 """
 macro unlock(expr)
     quote

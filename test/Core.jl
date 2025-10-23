@@ -220,6 +220,86 @@
         @test Base.Docs.getdoc(pybuiltins.int) isa Markdown.MD
         @test Base.Docs.getdoc(PythonCall.PyNULL) === nothing
     end
+    @testset "comparisons" begin
+        @testset "Py vs Py" begin
+            # ==
+            @test Py(1) == Py(1)
+            @test !(Py(1) == Py(2))
+            @test !(Py(1) == Py(0))
+            # !=
+            @test Py(2) != Py(1)
+            @test Py(2) != Py(3)
+            @test !(Py(2) != Py(2))
+            # <
+            @test Py(3) < Py(4)
+            @test !(Py(3) < Py(3))
+            @test !(Py(3) < Py(2))
+            # <=
+            @test Py(4) <= Py(5)
+            @test Py(4) <= Py(4)
+            @test !(Py(4) <= Py(3))
+            # >
+            @test Py(5) > Py(4)
+            @test !(Py(5) > Py(5))
+            @test !(Py(5) > Py(6))
+            # >=
+            @test Py(5) >= Py(4)
+            @test Py(5) >= Py(5)
+            @test !(Py(5) >= Py(6))
+        end
+        @testset "Py vs Number" begin
+            # ==
+            @test Py(1) == 1
+            @test !(Py(1) == 2)
+            @test !(Py(1) == 0)
+            # !=
+            @test Py(2) != 1
+            @test Py(2) != 3
+            @test !(Py(2) != 2)
+            # <
+            @test Py(3) < 4
+            @test !(Py(3) < 3)
+            @test !(Py(3) < 2)
+            # <=
+            @test Py(4) <= 5
+            @test Py(4) <= 4
+            @test !(Py(4) <= 3)
+            # >
+            @test Py(5) > 4
+            @test !(Py(5) > 5)
+            @test !(Py(5) > 6)
+            # >=
+            @test Py(5) >= 4
+            @test Py(5) >= 5
+            @test !(Py(5) >= 6)
+        end
+        @testset "Number vs Py" begin
+            # ==
+            @test 1 == Py(1)
+            @test !(1 == Py(2))
+            @test !(1 == Py(0))
+            # !=
+            @test 2 != Py(1)
+            @test 2 != Py(3)
+            @test !(2 != Py(2))
+            # <
+            @test 3 < Py(4)
+            @test !(3 < Py(3))
+            @test !(3 < Py(2))
+            # <=
+            @test 4 <= Py(5)
+            @test 4 <= Py(4)
+            @test !(4 <= Py(3))
+            # >
+            @test 5 > Py(4)
+            @test !(5 > Py(5))
+            @test !(5 > Py(6))
+            # >=
+            @test 5 >= Py(4)
+            @test 5 >= Py(5)
+            @test !(5 >= Py(6))
+        end
+    end
 end
 
 @testitem "iter" begin
@@ -805,6 +885,9 @@ end
         @test sprint(show, MIME("text/plain"), Py(12)) == "Python: 12"
         # https://github.com/JuliaPy/PythonCall.jl/issues/522
         @test sprint(show, MIME("text/plain"), PythonCall.pynew()) == "Python: NULL"
+        # test compact printing
+        @test sprint(show, MIME("text/plain"), Py(String('A':'Z')), context=(:compact=>true, :displaysize=>(50, 20))) == "Py: 'ABCDE ... WXYZ'"
+        @test sprint(show, MIME("text/plain"), Py(String('A':'Z')), context=(:compact=>true, :limit=>false, :displaysize=>(50, 20))) == "Py: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'"
         @test_throws MethodError sprint(show, MIME("text/html"), PythonCall.pynew())
     end
 end
@@ -825,5 +908,25 @@ end
         @test isdir(tname)
         @test_throws PyException pywith(name -> name.invalid_attr, tdir)
         @test !isdir(tname)
+    end
+end
+
+@testitem "propertynames" begin
+    x = pyint(7)
+    task = Threads.@spawn propertynames(x)
+    properties = propertynames(x)
+    @test :__init__ in properties
+    prop_task = fetch(task)
+    @test properties == prop_task
+end
+
+@testitem "on_main_thread" begin
+    refid = PythonCall.C.on_main_thread() do; Threads.threadid(); end
+    tasks = [Threads.@spawn(PythonCall.C.on_main_thread() do; Threads.threadid(); end) for _ in 1:20]
+    @test all(t -> fetch(t) == refid, tasks)
+    @test_throws DivideError redirect_stderr(devnull) do
+        PythonCall.C.on_main_thread() do
+            throw(DivideError())
+        end
     end
 end

@@ -270,6 +270,20 @@ end
         @test !isopen(b)
         @test !isopen(s)
     end
+    @testset "flush partial characters (issue 679)" begin
+        # In this example, "touché!" takes up 8 bytes, with 'é' taking 2. So when we
+        # make a PyIO with buflen=6, it tries to flush after 6 bytes. Previously this
+        # would try to create a string from those 6 bytes and fail with a
+        # UnicodeDecodeError because the final character is incomplete. This is now
+        # fixed by deferring printing of incomplete characters.
+        s0 = pyimport("io").StringIO()
+        s = PyIO(s0, buflen=6)
+        @test s.text
+        @test write(s, "touché!") == 8
+        flush(s)
+        s0.seek(0)
+        @test pyeq(Bool, s0.read(), "touché!")
+    end
 end
 
 @testitem "PyIterable" begin

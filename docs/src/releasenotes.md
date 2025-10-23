@@ -1,7 +1,10 @@
 # Release Notes
 
 ## Unreleased (v1)
-* `PythonCall.GC` is now more like `Base.GC`: `enable(true)` replaces `enable()`, `enable(false)` replaces `disable()`, and `gc()` is added.
+* Breaking changes to `PythonCall.GC`, which is now more like `Base.GC`:
+  * `enable(true)` replaces `enable()`.
+  * `enable(false)` replaces `disable()`.
+  * `gc()` added.
 * Breaking changes to Julia wrapper types:
   * Classes renamed: `ValueBase` to `JlBase`, `AnyValue` to `Jl`, `ArrayValue` to `JlArray`, etc.
   * Classes removed: `RawValue`, `ModuleValue`, `TypeValue`, `NumberValue`, `ComplexValue`, `RealValue`, `RationalValue`, `IntegerValue`.
@@ -12,7 +15,17 @@
   * Methods removed: `_jl_raw()`.
   * `pyjl(x)` now always returns a `juliacall.Jl` (it used to select a wrapper type if possible).
   * `pyjltype(x)` removed.
+* Other breaking changes:
+  * Comparisons like `==(::Py, ::Py)`, `<(::Py, ::Number)`, `isless(::Number, ::Py)` now return `Bool` instead of `Py`.
 * New functions: `pyjlarray`, `pyjldict`, `pyjlset`.
+
+## Unreleased
+* Minimum supported Python version is now 3.10.
+* Minimum supported Julia version is now 1.10.
+* Showing `Py` now respects the `compact` option - output is limited to a single line of
+  at most the display width.
+* Support policy now documented in the FAQ.
+* Bug fixes.
 
 ## 0.9.28 (2025-09-17)
 * Added `NumpyDates`: NumPy-compatible DateTime64/TimeDelta64 types and units.

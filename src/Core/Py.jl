@@ -364,30 +364,21 @@ Base.broadcastable(x::Py) = Ref(x)
 
 # comparisons
 Base.:(==)(x::Py, y::Py) = pyeq(Bool, x, y)
-Base.:(!=)(x::Py, y::Py) = pyne(Bool, x, y)
 Base.:(<=)(x::Py, y::Py) = pyle(Bool, x, y)
 Base.:(<)(x::Py, y::Py) = pylt(Bool, x, y)
-Base.:(>=)(x::Py, y::Py) = pyge(Bool, x, y)
-Base.:(>)(x::Py, y::Py) = pygt(Bool, x, y)
 Base.isless(x::Py, y::Py) = pylt(Bool, x, y)
 Base.isequal(x::Py, y::Py) = pyeq(Bool, x, y)
 
 # we also allow comparison with numbers
 Base.:(==)(x::Py, y::Number) = pyeq(Bool, x, y)
-Base.:(!=)(x::Py, y::Number) = pyne(Bool, x, y)
 Base.:(<=)(x::Py, y::Number) = pyle(Bool, x, y)
 Base.:(<)(x::Py, y::Number) = pylt(Bool, x, y)
-Base.:(>=)(x::Py, y::Number) = pyge(Bool, x, y)
-Base.:(>)(x::Py, y::Number) = pygt(Bool, x, y)
 Base.isless(x::Py, y::Number) = pylt(Bool, x, y)
 Base.isequal(x::Py, y::Number) = pyeq(Bool, x, y)
 
 Base.:(==)(x::Number, y::Py) = pyeq(Bool, x, y)
-Base.:(!=)(x::Number, y::Py) = pyne(Bool, x, y)
 Base.:(<=)(x::Number, y::Py) = pyle(Bool, x, y)
 Base.:(<)(x::Number, y::Py) = pylt(Bool, x, y)
-Base.:(>=)(x::Number, y::Py) = pyge(Bool, x, y)
-Base.:(>)(x::Number, y::Py) = pygt(Bool, x, y)
 Base.isless(x::Number, y::Py) = pylt(Bool, x, y)
 Base.isequal(x::Number, y::Py) = pyeq(Bool, x, y)
 

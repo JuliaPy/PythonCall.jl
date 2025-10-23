@@ -588,7 +588,7 @@ Base.IndexStyle(::Type{PyArray{T,N,F}}) where {T,N,F} =
 Base.unsafe_convert(::Type{Ptr{T}}, x::PyArray{T}) where {T} =
     pyarray_get_R(T) == T ? Ptr{T}(x.ptr) : error("")
 
-Base.elsize(::Type{PyArray{T}}) where {T} = pyarray_get_R(T) == T ? sizeof(T) : error("")
+Base.elsize(::Type{<:PyArray{T}}) where {T} = pyarray_get_R(T) == T ? sizeof(T) : error("")
 
 function Base.strides(x::PyArray{T}) where {T}
     R = pyarray_get_R(T)

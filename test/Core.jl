@@ -220,6 +220,86 @@
         @test Base.Docs.getdoc(pybuiltins.int) isa Markdown.MD
         @test Base.Docs.getdoc(PythonCall.PyNULL) === nothing
     end
+    @testset "comparisons" begin
+        @testset "Py vs Py" begin
+            # ==
+            @test Py(1) == Py(1)
+            @test !(Py(1) == Py(2))
+            @test !(Py(1) == Py(0))
+            # !=
+            @test Py(2) != Py(1)
+            @test Py(2) != Py(3)
+            @test !(Py(2) != Py(2))
+            # <
+            @test Py(3) < Py(4)
+            @test !(Py(3) < Py(3))
+            @test !(Py(3) < Py(2))
+            # <=
+            @test Py(4) <= Py(5)
+            @test Py(4) <= Py(4)
+            @test !(Py(4) <= Py(3))
+            # >
+            @test Py(5) > Py(4)
+            @test !(Py(5) > Py(5))
+            @test !(Py(5) > Py(6))
+            # >=
+            @test Py(5) >= Py(4)
+            @test Py(5) >= Py(5)
+            @test !(Py(5) >= Py(6))
+        end
+        @testset "Py vs Number" begin
+            # ==
+            @test Py(1) == 1
+            @test !(Py(1) == 2)
+            @test !(Py(1) == 0)
+            # !=
+            @test Py(2) != 1
+            @test Py(2) != 3
+            @test !(Py(2) != 2)
+            # <
+            @test Py(3) < 4
+            @test !(Py(3) < 3)
+            @test !(Py(3) < 2)
+            # <=
+            @test Py(4) <= 5
+            @test Py(4) <= 4
+            @test !(Py(4) <= 3)
+            # >
+            @test Py(5) > 4
+            @test !(Py(5) > 5)
+            @test !(Py(5) > 6)
+            # >=
+            @test Py(5) >= 4
+            @test Py(5) >= 5
+            @test !(Py(5) >= 6)
+        end
+        @testset "Number vs Py" begin
+            # ==
+            @test 1 == Py(1)
+            @test !(1 == Py(2))
+            @test !(1 == Py(0))
+            # !=
+            @test 2 != Py(1)
+            @test 2 != Py(3)
+            @test !(2 != Py(2))
+            # <
+            @test 3 < Py(4)
+            @test !(3 < Py(3))
+            @test !(3 < Py(2))
+            # <=
+            @test 4 <= Py(5)
+            @test 4 <= Py(4)
+            @test !(4 <= Py(3))
+            # >
+            @test 5 > Py(4)
+            @test !(5 > Py(5))
+            @test !(5 > Py(6))
+            # >=
+            @test 5 >= Py(4)
+            @test 5 >= Py(5)
+            @test !(5 >= Py(6))
+        end
+    end
 end
 
 @testitem "iter" begin

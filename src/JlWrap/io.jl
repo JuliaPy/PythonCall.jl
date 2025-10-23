@@ -10,7 +10,7 @@ pyjlio_closed(io::IO) = Py(!isopen(io))
 pyjl_handle_error_type(::typeof(pyjlio_closed), io, exc) =
     exc isa MethodError && exc.f === isopen ? pybuiltins.ValueError : PyNULL
 
-pyjlio_fileno(io::IO) = Py(fd(io))
+pyjlio_fileno(io::IO) = Py(Base.cconvert(Cint, fd(io))::Cint)
 pyjl_handle_error_type(::typeof(pyjlio_fileno), io, exc) =
     exc isa MethodError && exc.f === fd ? pybuiltins.ValueError : PyNULL
 

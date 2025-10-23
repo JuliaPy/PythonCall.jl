@@ -20,7 +20,7 @@ jobs:
       matrix:
         arch: [x64] # x86 unsupported by MicroMamba
         os: [ubuntu-latest, windows-latest, macos-latest]
-        jlversion: ['1','1.9']
+        jlversion: ['1','1.10']
         pythonexe: ['@CondaPkg']
         include:
         - arch: x64
@@ -67,7 +67,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        pyversion: ["3", "3.9"]
+        pyversion: ["3", "3.10"]
         juliaexe: ["@JuliaPkg"]
         include:
         - os: ubuntu-latest
@@ -85,9 +85,15 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.pyversion }}
+      
+      - name: Check Python OpenSSL version (see setup_julia)
+        shell: python
+        run: |
+          import ssl
+          assert ssl.OPENSSL_VERSION_INFO < (3, 5)
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ matrix.pyversion }}
   
@@ -95,7 +101,9 @@ jobs:
         id: setup_julia
         uses: julia-actions/setup-julia@v2
         with:
-          version: '1'
+          # Python in the GitHub runners ships with OpenSSL 3.0. Julia 1.12 requires
+          # OpenSSL 3.5. Therefore juliapkg requires Julia 1.11 or lower.
+          version: '1.11'
 
       - name: Set up test Julia project
         if: ${{ matrix.juliaexe == 'julia' }}

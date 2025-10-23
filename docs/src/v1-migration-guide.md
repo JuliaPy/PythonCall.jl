@@ -21,7 +21,29 @@ This submodule has been changed to closer mimic the `Base.GC` API.
 * Instead of `PythonCall.GC.enable()` use `PythonCall.GC.enable(true)`.
 * Instead of `PythonCall.GC.disable()` use `PythonCall.GC.enable(false)`.
 
-## Julia wrappers (JlDict, etc.)
+## Python wrappers (`PyArray`, etc.)
+
+`PyArray` has been reparametrised from `PyArray{T,N,L,M,R}` to `PyArray{T,N,F}` where
+`F` is a `Tuple` of `Symbol` flags replacing `L` (now `:linear`) and `M`
+(now `:mutable`). The `R` parameter (the underlying raw type) is removed and now implied
+by `T`.
+
+* Instead of `PyArray{Int,2,true,true,Int}` use `PyArray{Int,2,(:mutable,:linear)}`.
+* Instead of `PyArray{Bool,1,false,false,Bool}` use `PyArray{Bool,1,()}`.
+* Instead of `PyArray{Py,2,false,false,PythonCall.Wrap.UnsafePyObject}` use `PyArray{Py,2,()}`.
+
+Because the `R` parameter is removed, if the underlying array is of Python objects, the
+`PyArray` must have eltype `Py`. Previously you could construct a `PyArray{String}` from
+such a thing and the elements would be automatically `pyconvert(String, element)`-ed for
+you.
+
+* Instead of `PyArray{String}(x)` use `pyconvert.(String, PyArray{Py}(x))` if you are
+  OK with taking a copy. Or use `mappedarray(x->pyconvert(String, x), PyArray{Py}(x))`
+  from [MappedArrays.jl](https://github.com/JuliaArrays/MappedArrays.jl) to emulate the
+  old behaviour.
+* Same comments for `pyconvert(PyArray{String}, x)`.
+
+## Julia wrappers (`JlDict`, etc.)
 
 The wrapper types have been renamed.
 

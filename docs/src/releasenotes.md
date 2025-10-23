@@ -5,6 +5,10 @@
   * `enable(true)` replaces `enable()`.
   * `enable(false)` replaces `disable()`.
   * `gc()` added.
+* Breaking changes to Python wrapper types:
+  * `PyArray` has been reparametrised from `PyArray{T,N,M,L,R}` to `PyArray{T,N,F}`:
+    * `F` is a tuple of symbols representing flags, with `:linear` replacing `L` and `:mutable` replacing `M`.
+    * `R` is removed and is now implied by `T`, which currently must be either a bits type (equal to `R`) or `Py`, or a tuple of these.
 * Breaking changes to Julia wrapper types:
   * Classes renamed: `ValueBase` to `JlBase`, `AnyValue` to `Jl`, `ArrayValue` to `JlArray`, etc.
   * Classes removed: `RawValue`, `ModuleValue`, `TypeValue`, `NumberValue`, `ComplexValue`, `RealValue`, `RationalValue`, `IntegerValue`.

@@ -885,6 +885,9 @@ end
         @test sprint(show, MIME("text/plain"), Py(12)) == "Python: 12"
         # https://github.com/JuliaPy/PythonCall.jl/issues/522
         @test sprint(show, MIME("text/plain"), PythonCall.pynew()) == "Python: NULL"
+        # test compact printing
+        @test sprint(show, MIME("text/plain"), Py(String('A':'Z')), context=(:compact=>true, :displaysize=>(50, 20))) == "Py: 'ABCDE ... WXYZ'"
+        @test sprint(show, MIME("text/plain"), Py(String('A':'Z')), context=(:compact=>true, :limit=>false, :displaysize=>(50, 20))) == "Py: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'"
         @test_throws MethodError sprint(show, MIME("text/html"), PythonCall.pynew())
     end
 end
@@ -905,5 +908,25 @@ end
         @test isdir(tname)
         @test_throws PyException pywith(name -> name.invalid_attr, tdir)
         @test !isdir(tname)
+    end
+end
+
+@testitem "propertynames" begin
+    x = pyint(7)
+    task = Threads.@spawn propertynames(x)
+    properties = propertynames(x)
+    @test :__init__ in properties
+    prop_task = fetch(task)
+    @test properties == prop_task
+end
+
+@testitem "on_main_thread" begin
+    refid = PythonCall.C.on_main_thread() do; Threads.threadid(); end
+    tasks = [Threads.@spawn(PythonCall.C.on_main_thread() do; Threads.threadid(); end) for _ in 1:20]
+    @test all(t -> fetch(t) == refid, tasks)
+    @test_throws DivideError redirect_stderr(devnull) do
+        PythonCall.C.on_main_thread() do
+            throw(DivideError())
+        end
     end
 end

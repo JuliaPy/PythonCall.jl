@@ -1,15 +1,18 @@
 # Release Notes
 
 ## Unreleased (v1)
-* Breaking changes to `PythonCall.GC`, which is now more like `Base.GC`:
+* The vast majority of these changes are breaking, see the [v1 Migration Guide](@ref) for how to upgrade.
+* Changes to core functionality:
+  * Comparisons like `==(::Py, ::Py)`, `<(::Py, ::Number)`, `isless(::Number, ::Py)` now return `Bool` instead of `Py`.
+* Changes to `PythonCall.GC` (now more like `Base.GC`):
   * `enable(true)` replaces `enable()`.
   * `enable(false)` replaces `disable()`.
   * `gc()` added.
-* Breaking changes to Python wrapper types:
+* Changes to Python wrapper types:
   * `PyArray` has been reparametrised from `PyArray{T,N,M,L,R}` to `PyArray{T,N,F}`:
     * `F` is a tuple of symbols representing flags, with `:linear` replacing `L` and `:mutable` replacing `M`.
     * `R` is removed and is now implied by `T`, which currently must be either a bits type (equal to `R`) or `Py`, or a tuple of these.
-* Breaking changes to Julia wrapper types:
+* Changes to Julia wrapper types:
   * Classes renamed: `ValueBase` to `JlBase`, `AnyValue` to `Jl`, `ArrayValue` to `JlArray`, etc.
   * Classes removed: `RawValue`, `ModuleValue`, `TypeValue`, `NumberValue`, `ComplexValue`, `RealValue`, `RationalValue`, `IntegerValue`.
   * `Jl` now behaves similar to how `RawValue` behaved before. In particular, most methods on `Jl` now return a `Jl` instead of an arbitrary Python object.
@@ -19,9 +22,7 @@
   * Methods removed: `_jl_raw()`.
   * `pyjl(x)` now always returns a `juliacall.Jl` (it used to select a wrapper type if possible).
   * `pyjltype(x)` removed.
-* Other breaking changes:
-  * Comparisons like `==(::Py, ::Py)`, `<(::Py, ::Number)`, `isless(::Number, ::Py)` now return `Bool` instead of `Py`.
-* New functions: `pyjlarray`, `pyjldict`, `pyjlset`.
+  * New functions: `pyjlarray`, `pyjldict`, `pyjlset`.
 
 ## Unreleased
 * Minimum supported Python version is now 3.10.

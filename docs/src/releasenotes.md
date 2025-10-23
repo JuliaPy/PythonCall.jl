@@ -1,7 +1,7 @@
 # Release Notes
 
 ## Unreleased (v1)
-* The vast majority of these changes are breaking, see the [Migration Guide](@ref v1-migration-guide) for how to upgrade to v1.
+* The vast majority of these changes are breaking, see the [v1 Migration Guide](@ref) for how to upgrade.
 * Changes to core functionality:
   * Comparisons like `==(::Py, ::Py)`, `<(::Py, ::Number)`, `isless(::Number, ::Py)` now return `Bool` instead of `Py`.
 * Changes to `PythonCall.GC` (now more like `Base.GC`):

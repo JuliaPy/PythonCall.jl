@@ -1,4 +1,6 @@
-# [v0.9 to v1 Migration Guide](@id v1-migration-guide)
+# v1 Migration Guide
+
+Use this guide to help with migrating code from v0.9 to v1.
 
 ## Core functionality
 

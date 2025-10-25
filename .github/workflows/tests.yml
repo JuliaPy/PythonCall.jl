@@ -12,7 +12,7 @@ on:
 
 jobs:
   julia:
-    name: Test Julia (${{ matrix.jlversion }}, ${{ matrix.os }}, ${{ matrix.pythonexe }})
+    name: Test Julia (${{ matrix.jlversion }}, ${{ matrix.os }}, ${{ matrix.pythonstr }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -21,11 +21,39 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         jlversion: ['1','1.10']
         pythonexe: ['@CondaPkg']
+        pythonver: ['@CondaPkg']
+        pythonstr: ['@CondaPkg']
         include:
         - arch: x64
           os: ubuntu-latest
           jlversion: '1'
           pythonexe: python
+          pythonver: '3.14'
+          pythonstr: python 3.14
+        - arch: x64
+          os: ubuntu-latest
+          jlversion: '1'
+          pythonexe: python
+          pythonver: '3.13'
+          pythonstr: python 3.13
+        - arch: x64
+          os: ubuntu-latest
+          jlversion: '1'
+          pythonexe: python
+          pythonver: '3.12'
+          pythonstr: python 3.12
+        - arch: x64
+          os: ubuntu-latest
+          jlversion: '1'
+          pythonexe: python
+          pythonver: '3.11'
+          pythonstr: python 3.11
+        - arch: x64
+          os: ubuntu-latest
+          jlversion: '1'
+          pythonexe: python
+          pythonver: '3.10'
+          pythonstr: python 3.10
 
     steps:
       - uses: actions/checkout@v5
@@ -36,6 +64,12 @@ jobs:
           version: ${{ matrix.jlversion }}
           arch: ${{ matrix.arch }}
 
+      - name: Set up Python ${{ matrix.pythonver }}
+        if: ${{ matrix.pythonexe == 'python' }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.pythonver }}
+      
       - uses: julia-actions/cache@v2
 
       - name: Build package

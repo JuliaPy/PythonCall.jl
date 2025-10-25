@@ -230,7 +230,7 @@ function _pyconvert_get_rules(pytype::Py)
         end
     end
     for (t, x) in reverse(collect(zip(mro, xmro)))
-        if C.PyType_CheckBuffer(t)
+        if C.PyType_CheckBuffer(t) == 1
             push!(x, "<buffer>")
             break
         end

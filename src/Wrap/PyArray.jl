@@ -83,7 +83,7 @@ function pyarray_make(
             @debug "failed to make PyArray from __array_interface__" exc = exc
         end
     end
-    if buffer && C.PyObject_CheckBuffer(x)
+    if buffer && C.PyObject_CheckBuffer(x) == 1
         try
             return pyarray_make(A, x, PyArraySource_Buffer(x))
         catch exc

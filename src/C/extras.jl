@@ -7,8 +7,6 @@ Py_TypeCheckFast(o, f::Integer) = Base.GC.@preserve o PyType_IsSubtypeFast(Py_Ty
 
 PyType_IsSubtypeFast(t, f::Integer) = Cint(!iszero(PyType_GetFlags(t) & f))
 
-PyMemoryView_GET_BUFFER(m) = Base.GC.@preserve m Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(asptr(m)).view)
-
 PyType_CheckBuffer(t) = Base.GC.@preserve t begin
     o = Ref{PyObject}(PyObject(0, asptr(t)))
     PyObject_CheckBuffer(o)

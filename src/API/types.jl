@@ -72,14 +72,14 @@ struct PyArray{T,N,M,L,R} <: AbstractArray{T,N}
     size::NTuple{N,Int}     # size of the array
     strides::NTuple{N,Int}  # strides (in bytes) between elements
     py::Py                  # underlying python object
-    handle::Py              # the data in this array is valid as long as this handle is alive
+    handle::Any             # the data in this array is valid as long as this handle is alive
     function PyArray{T,N,M,L,R}(
         ::Val{:new},
         ptr::Ptr{R},
         size::NTuple{N,Int},
         strides::NTuple{N,Int},
         py::Py,
-        handle::Py,
+        handle::Any,
     ) where {T,N,M,L,R}
         T isa Type || error("T must be a Type")
         N isa Int || error("N must be an Int")

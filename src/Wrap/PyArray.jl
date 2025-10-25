@@ -187,7 +187,7 @@ struct PyArraySource_ArrayInterface <: PyArraySource
     dict::Py
     ptr::Ptr{Cvoid}
     readonly::Bool
-    handle::Py
+    handle::Any
 end
 function PyArraySource_ArrayInterface(x::Py, d::Py = x.__array_interface__)
     # offset
@@ -202,14 +202,16 @@ function PyArraySource_ArrayInterface(x::Py, d::Py = x.__array_interface__)
         ptr = Ptr{Cvoid}(pyconvert(UInt, data[0]))
         readonly = pyconvert(Bool, data[1])
         pydel!(data)
-        handle = Py((x, d))
+        handle = (x, d)
     else
-        memview = @py memoryview(data === None ? x : data)
-        pydel!(data)
-        buf = UnsafePtr(C.PyMemoryView_GET_BUFFER(memview))
-        ptr = buf.buf[!]
-        readonly = buf.readonly[] != 0
-        handle = Py((x, memview))
+        buf = Ref{C.Py_buffer}()
+        if C.PyObject_GetBuffer(data === None ? x : data, buf, C.PyBUF_RECORDS) < 0
+            pythrow()
+        end
+        finalizer(C.PyBuffer_Release, buf)
+        ptr = buf[].buf
+        readonly = buf[].readonly != 0
+        handle = buf
     end
     PyArraySource_ArrayInterface(x, d, ptr, readonly, handle)
 end
@@ -525,13 +527,15 @@ end
 
 struct PyArraySource_Buffer <: PyArraySource
     obj::Py
-    memview::Py
-    buf::C.UnsafePtr{C.Py_buffer}
+    buf::Base.RefValue{C.Py_buffer}
 end
 function PyArraySource_Buffer(x::Py)
-    memview = pybuiltins.memoryview(x)
-    buf = C.UnsafePtr(C.PyMemoryView_GET_BUFFER(memview))
-    PyArraySource_Buffer(x, memview, buf)
+    buf = Ref{C.Py_buffer}()
+    if C.PyObject_GetBuffer(x, buf, C.PyBUF_RECORDS) < 0
+        pythrow()
+    end
+    finalizer(C.PyBuffer_Release, buf)
+    PyArraySource_Buffer(x, buf)
 end
 
 const PYARRAY_BUFFERFORMAT_TO_TYPE = let c = Utils.islittleendian() ? '<' : '>'
@@ -578,20 +582,20 @@ pyarray_bufferformat_to_type(fmt::String) = get(
 )
 
 function pyarray_get_R(src::PyArraySource_Buffer)
-    ptr = src.buf.format[]
-    return ptr == C_NULL ? UInt8 : pyarray_bufferformat_to_type(String(ptr))
+    ptr = src.buf[].format
+    return ptr == C_NULL ? UInt8 : pyarray_bufferformat_to_type(unsafe_string(ptr))
 end
 
-pyarray_get_ptr(src::PyArraySource_Buffer, ::Type{R}) where {R} = Ptr{R}(src.buf.buf[!])
+pyarray_get_ptr(src::PyArraySource_Buffer, ::Type{R}) where {R} = Ptr{R}(src.buf[].buf)
 
-pyarray_get_N(src::PyArraySource_Buffer) = Int(src.buf.ndim[])
+pyarray_get_N(src::PyArraySource_Buffer) = Int(src.buf[].ndim)
 
 function pyarray_get_size(src::PyArraySource_Buffer, ::Val{N}) where {N}
-    size = src.buf.shape[]
+    size = src.buf[].shape
     if size == C_NULL
-        N == 0 ? () : N == 1 ? (Int(src.buf.len[]),) : @assert false
+        N == 0 ? () : N == 1 ? (Int(src.buf[].len),) : @assert false
     else
-        ntuple(i -> Int(size[i]), N)
+        ntuple(i -> Int(unsafe_load(size, i)), N)
     end
 end
 
@@ -601,18 +605,18 @@ function pyarray_get_strides(
     ::Type{R},
     size::NTuple{N,Int},
 ) where {N,R}
-    strides = src.buf.strides[]
+    strides = src.buf[].strides
     if strides == C_NULL
-        itemsize = src.buf.shape[] == C_NULL ? 1 : src.buf.itemsize[]
+        itemsize = src.buf[].shape == C_NULL ? 1 : src.buf[].itemsize
         Utils.size_to_cstrides(itemsize, size)
     else
-        ntuple(i -> Int(strides[i]), N)
+        ntuple(i -> Int(unsafe_load(strides, i)), N)
     end
 end
 
-pyarray_get_M(src::PyArraySource_Buffer) = src.buf.readonly[] == 0
+pyarray_get_M(src::PyArraySource_Buffer) = src.buf[].readonly == 0
 
-pyarray_get_handle(src::PyArraySource_Buffer) = src.memview
+pyarray_get_handle(src::PyArraySource_Buffer) = src.buf
 
 # AbstractArray methods
 

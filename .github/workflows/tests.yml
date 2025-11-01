@@ -66,7 +66,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        pyversion: ["3", "3.10"]
+        pyversion: ["3.13", "3.10"]
         juliaexe: ["@JuliaPkg"]
         include:
         - os: ubuntu-latest

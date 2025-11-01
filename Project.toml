@@ -15,7 +15,6 @@ Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 UnsafePointers = "e17b2a0c-0bdf-430a-bd0c-3a23cae4ff39"
 
 [compat]
-Aqua = "0 - 999"
 CategoricalArrays = "0.10, 1"
 CondaPkg = "0.2.33"
 Dates = "1"
@@ -26,8 +25,6 @@ Pkg = "1"
 PyCall = "1"
 Serialization = "1"
 Tables = "1"
-Test = "1"
-TestItemRunner = "0 - 999"
 UnsafePointers = "1"
 julia = "1.10"
 
@@ -36,15 +33,12 @@ PyCallExt = "PyCall"
 CategoricalArraysExt = "CategoricalArrays"
 
 [extras]
-Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"
-
-[targets]
-test = ["Aqua", "PyCall", "Test", "TestItemRunner"]
 
 [weakdeps]
 CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+
+[workspace]
+projects = ["test", "docs", "benchmark"]

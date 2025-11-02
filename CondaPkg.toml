@@ -14,5 +14,6 @@ version = ">=3.10,<4"
 
 [dev.deps]
 matplotlib = ""
+numpy = ""
 pyside6 = ""
 python = "<3.14"

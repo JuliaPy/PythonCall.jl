@@ -215,7 +215,7 @@
     end
 end
 
-@testitem "array" begin
+@testitem "array" setup=[Setup] begin
     @testset "type" begin
         @test pyis(pytype(pyjl(fill(nothing))), PythonCall.pyjlarraytype)
         @test pyis(pytype(pyjl([1 2; 3 4])), PythonCall.pyjlarraytype)
@@ -312,6 +312,42 @@ end
         x[0, 0] = 0
         @test pyjlvalue(x) == [0 2; 3 4]
         @test pyjlvalue(y) == [1 2; 3 4]
+    end
+    @testset "__array__" begin
+        if Setup.devdeps
+            np = pyimport("numpy")
+
+            numeric = pyjl(Float64[1, 2, 3])
+            numeric_array = numeric.__array__()
+            @test pyisinstance(numeric_array, np.ndarray)
+            @test pyconvert(Vector{Float64}, numeric_array) == [1.0, 2.0, 3.0]
+
+            numeric_no_copy = numeric.__array__(copy=false)
+            numeric_data = pyjlvalue(numeric)
+            numeric_data[1] = 42.0
+            @test pyconvert(Vector{Float64}, numeric_no_copy) == [42.0, 2.0, 3.0]
+
+            string_array = pyjl(["a", "b"])
+            string_result = string_array.__array__()
+            @test pyisinstance(string_result, np.ndarray)
+            @test pyconvert(Vector{String}, pybuiltins.list(string_result)) == ["a", "b"]
+
+            err = try
+                string_array.__array__(copy=false)
+                nothing
+            catch err
+                err
+            end
+            @test err !== nothing
+            @test err isa PythonCall.PyException
+            @test pyis(err._t, pybuiltins.ValueError)
+            @test occursin(
+                "copy=False is not supported when collecting ArrayValue data",
+                sprint(showerror, err),
+            )
+        else
+            @test_skip Setup.devdeps
+        end
     end
     @testset "array_interface" begin
         x = pyjl(Float32[1 2 3; 4 5 6]).__array_interface__

@@ -215,7 +215,7 @@
     end
 end
 
-@testitem "array" begin
+@testitem "array" setup=[Setup] begin
     @testset "type" begin
         @test pyis(pytype(pyjl(fill(nothing))), PythonCall.pyjlarraytype)
         @test pyis(pytype(pyjl([1 2; 3 4])), PythonCall.pyjlarraytype)
@@ -314,8 +314,7 @@ end
         @test pyjlvalue(y) == [1 2; 3 4]
     end
     @testset "__array__" begin
-        devdeps = PythonCall.C.CTX.which == :CondaPkg
-        if devdeps
+        if Setup.devdeps
             np = pyimport("numpy")
 
             numeric = pyjl(Float64[1, 2, 3])
@@ -347,7 +346,7 @@ end
                 sprint(showerror, err),
             )
         else
-            @test_skip devdeps
+            @test_skip Setup.devdeps
         end
     end
     @testset "array_interface" begin

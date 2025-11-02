@@ -355,22 +355,20 @@ class ArrayValue(AnyValue):
     @property
     def __array_interface__(self):
         return self._jl_callmethod($(pyjl_methodnum(pyjlarray_array_interface)))
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
+        import numpy
         # convert to an array-like object
         arr = self
         if not (hasattr(arr, "__array_interface__") or hasattr(arr, "__array_struct__")):
+            if copy is False:
+                raise ValueError("copy=False is not supported when collecting ArrayValue data")
             # the first attempt collects into an Array
             arr = self._jl_callmethod($(pyjl_methodnum(pyjlarray_array__array)))
             if not (hasattr(arr, "__array_interface__") or hasattr(arr, "__array_struct__")):
                 # the second attempt collects into a PyObjectArray
                 arr = self._jl_callmethod($(pyjl_methodnum(pyjlarray_array__pyobjectarray)))
         # convert to a numpy array if numpy is available
-        try:
-            import numpy
-            arr = numpy.array(arr, dtype=dtype)
-        except ImportError:
-            pass
-        return arr
+        return numpy.array(arr, dtype=dtype, copy=copy)
     def to_numpy(self, dtype=None, copy=True, order="K"):
         import numpy
         return numpy.array(self, dtype=dtype, copy=copy, order=order)

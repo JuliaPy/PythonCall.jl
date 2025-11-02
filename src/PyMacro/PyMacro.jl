@@ -860,18 +860,63 @@ end
 """
     @py expr
 
-Evaluate the given expression using Pythonic semantics.
+Evaluate `expr` using Python syntax and semantics while staying in Julia.
+The macro lowers the provided Julia syntax tree to calls into PythonCall's
+runtime (for example, `pycall`, `pyadd`, `pygetattr`, and friends) and returns
+the resulting `Py` object.
 
-For example:
-- `f(x, y)` is translated to `pycall(f, x, y)`
-- `x + y` is translated to `pyadd(x, y)`
-- `x === y` is translated to `pyis(x, y)` (`x is y` in Python)
-- `x.foo` is translated to `pygetattr(x, "foo")`
-- `import x: f as g` is translated to `g = pyimport("x" => "f")` (`from x import f as g` in Python)
+Supported syntax includes:
 
-Compound statements such as `begin`, `if`, `while` and `for` are supported.
+* **Literals and names** – Numeric and string literals, `None`, `True`, `False`,
+  container displays (`(…)`, `[…]`, `{…}`, `{key:value, …}`) and special
+  placeholders such as `__file__` and `__line__`.
+* **Calls and operators** – Function calls are translated to `pycall`, unary
+  and binary operators are forwarded to the corresponding `py*` helper
+  (e.g. `x + y` → `pyadd(x, y)`, `x === y` → `pyis(x, y)`), and chained
+  arithmetic or comparison expressions behave like their Python equivalents.
+* **Attribute access and indexing** – `obj.attr`, `obj[key]`, and slice syntax
+  (`obj[start:stop:step]`) map to `pygetattr`, `pygetitem`, and `pyslice`.
+* **Statements inside blocks** – Within `@py begin … end` you can perform
+  assignments, `@del` deletions, `if`/`elif`/`else`, `while`, and `for`
+  statements, and short-circuit boolean logic (`&&`/`||`). Import statements
+  (`import pkg`, `import pkg as alias`, `from pkg import name as alias`) are
+  also supported.
+* **Interop helpers** – Use `@jl expr` to splice the result of a Julia
+  expression into the Python evaluation. The auxiliary macros `@compile`,
+  `@eval`, and `@exec` wrap `pybuiltins.compile` to provide the same behaviour
+  as their Python counterparts.
 
-See the online documentation for more details.
+Names that match Python builtins are resolved through `pybuiltins`; other
+identifiers are captured from the surrounding Julia scope. Convert the result
+to Julia values with `pyconvert` or related helpers if desired.
+
+# Examples
+
+```julia
+julia> @py begin
+           import math: sqrt
+           sqrt(9)
+       end
+Py(3.0)
+
+julia> factor = 10
+julia> @py begin
+           data = [1, 2, @jl factor]
+           total = 0
+           for value in data
+               total = total + value
+           end
+           total
+       end
+Py(13)
+
+julia> @py begin
+           info = {"x": 1, "y": 2}
+           @del info["x"]
+           info
+       end
+Py({'y': 2})
+```
 
 !!! warning
     This macro is experimental. It may be modified or removed in a future release.

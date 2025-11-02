@@ -860,35 +860,31 @@ end
 """
     @py expr
 
-Evaluate `expr` using Python syntax and semantics while staying in Julia.
-The macro lowers the provided Julia syntax tree to calls into PythonCall's
-runtime (for example, `pycall`, `pyadd`, `pygetattr`, and friends) and returns
-the resulting `Py` object.
+Evaluate `expr` using Python-like syntax and semantics and return the
+resulting [`Py`](@ref) object.
 
 Supported syntax includes:
 
-* **Literals and names** – Numeric and string literals, `None`, `True`, `False`,
-  container displays (`(…)`, `[…]`, `{…}`, `{key:value, …}`) and special
+* **Literals and names:** Numeric and string literals, `None`, `True`, `False`,
+  containers (`(…)`, `[…]`, `{…}`, `{key:value, …}`) and special
   placeholders such as `__file__` and `__line__`.
-* **Calls and operators** – Function calls are translated to `pycall`, unary
+* **Calls and operators:** Function calls are translated to `pycall`, unary
   and binary operators are forwarded to the corresponding `py*` helper
   (e.g. `x + y` → `pyadd(x, y)`, `x === y` → `pyis(x, y)`), and chained
   arithmetic or comparison expressions behave like their Python equivalents.
-* **Attribute access and indexing** – `obj.attr`, `obj[key]`, and slice syntax
+* **Attribute access and indexing:** `obj.attr`, `obj[key]`, and slice syntax
   (`obj[start:stop:step]`) map to `pygetattr`, `pygetitem`, and `pyslice`.
-* **Statements inside blocks** – Within `@py begin … end` you can perform
-  assignments, `@del` deletions, `if`/`elif`/`else`, `while`, and `for`
-  statements, and short-circuit boolean logic (`&&`/`||`). Import statements
-  (`import pkg`, `import pkg as alias`, `from pkg import name as alias`) are
+* **Statements:** Assignments, `@del` deletions, `if`/`elseif`/`else`, `while`, `for`,
+  short-circuit boolean logic (`&&`/`||`). Import statements
+  (`import pkg`, `import pkg as alias`, `import pkg: attr as alias`) are
   also supported.
-* **Interop helpers** – Use `@jl expr` to splice the result of a Julia
+* **Interop helpers:** Use `@jl expr` to splice the result of a Julia
   expression into the Python evaluation. The auxiliary macros `@compile`,
-  `@eval`, and `@exec` wrap `pybuiltins.compile` to provide the same behaviour
-  as their Python counterparts.
+  `@eval`, and `@exec` work like `compile`/`eval`/`exec` in Python but compile
+  the code argument once and reuse it for speed.
 
-Names that match Python builtins are resolved through `pybuiltins`; other
-identifiers are captured from the surrounding Julia scope. Convert the result
-to Julia values with `pyconvert` or related helpers if desired.
+Names that match Python builtins are resolved through [`pybuiltins`](@ref); other
+identifiers are captured from the surrounding Julia scope.
 
 # Examples
 

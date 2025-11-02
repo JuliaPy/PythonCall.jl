@@ -718,7 +718,7 @@ end
             y = pytextio(x)
             z = y.fileno()
             @test pyisinstance(z, pybuiltins.int)
-            @test z == Base.cconvert(Cint, fd(x))
+            @test pyconvert(Int, z) == Base.cconvert(Cint, fd(x))
         end
     end
     @testset "flush" begin

@@ -94,42 +94,38 @@ pyjl_handle_error_type(::typeof(pyjlbinaryio_readline), io, exc) =
     exc isa MethodError && exc.f === read ? pybuiltins.ValueError : PyNULL
 
 function pyjlbinaryio_readinto(io::IO, b::Py)
-    m = pybuiltins.memoryview(b)
-    c = m.c_contiguous
-    if !pytruth(c)
-        pydel!(c)
-        errset(pybuiltins.ValueError, "input buffer is not contiguous")
+    buf = Ref{Py_buffer}()
+    if PyObject_GetBuffer(b, buf, PyBUF_SIMPLE | PyBUF_WRITABLE) < 0
         return PyNULL
     end
-    pydel!(c)
-    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(m))
-    if buf.readonly != 0
-        pydel!(m)
-        errset(pybuiltins.ValueError, "output buffer is read-only")
-        return PyNULL
+    local nb
+    ptr = buf[].buf
+    len = buf[].len
+    try
+        data = unsafe_wrap(Array, Ptr{UInt8}(ptr), len)
+        nb = readbytes!(io, data)
+    finally
+        PyBuffer_Release(buf)
     end
-    data = unsafe_wrap(Array, Ptr{UInt8}(buf.buf), buf.len)
-    nb = readbytes!(io, data)
-    pydel!(m)
     return Py(nb)
 end
 pyjl_handle_error_type(::typeof(pyjlbinaryio_readinto), io, exc) =
     exc isa MethodError && exc.f === readbytes! ? pybuiltins.ValueError : PyNULL
 
 function pyjlbinaryio_write(io::IO, b::Py)
-    m = pybuiltins.memoryview(b)
-    c = m.c_contiguous
-    if !pytruth(c)
-        pydel!(c)
-        errset(pybuiltins.ValueError, "input buffer is not contiguous")
+    buf = Ref{Py_buffer}()
+    if PyObject_GetBuffer(b, buf, PyBUF_SIMPLE) < 0
         return PyNULL
     end
-    pydel!(c)
-    buf = unsafe_load(C.PyMemoryView_GET_BUFFER(m))
-    data = unsafe_wrap(Array, Ptr{UInt8}(buf.buf), buf.len)
-    write(io, data)
-    pydel!(m)
-    return Py(buf.len)
+    ptr = buf[].buf
+    len = buf[].len
+    try
+        data = unsafe_wrap(Array, Ptr{UInt8}(ptr), len)
+        write(io, data)        
+    finally
+        PyBuffer_Release(buf)
+    end
+    return Py(len)
 end
 pyjl_handle_error_type(::typeof(pyjlbinaryio_write), io, exc) =
     exc isa MethodError && exc.f === write ? pybuiltins.ValueError : PyNULL

@@ -72,11 +72,15 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     :PyObject_GetIter => (PyPtr,) => PyPtr,
     :PyObject_Call => (PyPtr, PyPtr, PyPtr) => PyPtr,
     :PyObject_CallObject => (PyPtr, PyPtr) => PyPtr,
+    :PyObject_Type => (PyPtr,) => PyPtr,
+    :PyObject_CheckBuffer => (PyPtr,) => Cint,
+    :PyObject_GetBuffer => (PyPtr, Ptr{Py_buffer}, Cint) => Cint,
     # TYPE
     :PyType_IsSubtype => (PyPtr, PyPtr) => Cint,
     :PyType_Ready => (PyPtr,) => Cint,
     :PyType_GenericNew => (PyPtr, PyPtr, PyPtr) => PyPtr,
     :PyType_FromSpec => (Ptr{Cvoid},) => PyPtr,
+    :PyType_GetFlags => (PyPtr,) => Culong,
     # MAPPING
     :PyMapping_HasKeyString => (PyPtr, Ptr{Cchar}) => Cint,
     :PyMapping_SetItemString => (PyPtr, Ptr{Cchar}, PyPtr) => Cint,
@@ -175,6 +179,8 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     :PyCapsule_SetName => (PyPtr, Ptr{Cchar}) => Cint,
     :PyCapsule_GetPointer => (PyPtr, Ptr{Cchar}) => Ptr{Cvoid},
     :PyCapsule_SetDestructor => (PyPtr, Ptr{Cvoid}) => Cint,
+    # BUFFER
+    :PyBuffer_Release => (Ptr{Py_buffer},) => Cvoid,
 )
 
 const CAPI_EXCEPTIONS = Set([

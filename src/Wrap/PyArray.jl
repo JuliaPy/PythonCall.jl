@@ -669,6 +669,10 @@ end
     x
 end
 
+# Specialization for the common case where T == R, we can use the
+# constant-propagatable sizeof instead of looking up the stride.
+pyarray_offset(x::PyArray{T,N,M,true,T}, i::Int) where {T,N,M} =
+    N == 0 ? 0 : (i - 1) * sizeof(T)
 pyarray_offset(x::PyArray{T,N,M,true}, i::Int) where {T,N,M} =
     N == 0 ? 0 : (i - 1) * x.strides[1]
 pyarray_offset(x::PyArray{T,1,M,true}, i::Int) where {T,M} = (i - 1) .* x.strides[1]

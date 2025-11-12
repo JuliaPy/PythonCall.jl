@@ -353,7 +353,7 @@ function init_array()
                 @property
                 def __array_interface__(self):
                     return self._jl_callmethod($(pyjl_methodnum(pyjlarray_array_interface)))
-                def __array__(self, dtype=None):
+                def __array__(self, dtype=None, copy=None):
                     # convert to an array-like object
                     arr = self
                     if not (hasattr(arr, "__array_interface__") or hasattr(arr, "__array_struct__")):
@@ -365,7 +365,7 @@ function init_array()
                     except ImportError:
                         numpy = None
                     if numpy is not None:
-                        return numpy.array(arr, dtype=dtype, copy=copy, order=order)
+                        return numpy.array(arr, dtype=dtype, copy=copy)
                     return arr
                 def to_numpy(self, dtype=None, copy=True, order="K"):
                     import numpy

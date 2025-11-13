@@ -365,6 +365,10 @@ function init_array()
                     except ImportError:
                         numpy = None
                     if numpy is not None:
+                        # Numpy <2 does not support `copy=None` argument, so we have to check the version
+                        major_version = int(numpy.__version__.split(".")[0])
+                        if major_version < 2 and copy is None:
+                            copy = False
                         return numpy.array(arr, dtype=dtype, copy=copy)
                     return arr
                 def to_numpy(self, dtype=None, copy=True, order="K"):

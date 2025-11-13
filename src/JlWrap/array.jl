@@ -353,19 +353,29 @@ function init_array()
                 @property
                 def __array_interface__(self):
                     return self._jl_callmethod($(pyjl_methodnum(pyjlarray_array_interface)))
-                def __array__(self, dtype=None):
+                def __array__(self, dtype=None, copy=None):
                     # convert to an array-like object
                     arr = self
                     if not (hasattr(arr, "__array_interface__") or hasattr(arr, "__array_struct__")):
-                        # the second attempt collects into a PyObjectArray
-                        arr = self._jl_callmethod($(pyjl_methodnum(pyjlarray_array__pyobjectarray)))
+                        if copy is False:
+                            raise ValueError("copy=False is not supported when collecting ArrayValue data")
+                        # the first attempt collects into an Array
+                        arr = self._jl_callmethod($(pyjl_methodnum(pyjlarray_array__array)))
+                        if not (hasattr(arr, "__array_interface__") or hasattr(arr, "__array_struct__")):
+                            # the second attempt collects into a PyObjectArray
+                            arr = self._jl_callmethod($(pyjl_methodnum(pyjlarray_array__pyobjectarray)))
+
                     # convert to a numpy array if numpy is available
                     try:
                         import numpy
                     except ImportError:
                         numpy = None
                     if numpy is not None:
-                        return numpy.array(arr, dtype=dtype, copy=copy, order=order)
+                        # Numpy <2 does not support `copy=None` argument, so we have to check the version
+                        major_version = int(numpy.__version__.split(".")[0])
+                        if major_version < 2 and copy is None:
+                            copy = False
+                        arr = numpy.array(arr, dtype=dtype, copy=copy)
                     return arr
                 def to_numpy(self, dtype=None, copy=True, order="K"):
                     import numpy

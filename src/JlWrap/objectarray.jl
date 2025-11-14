@@ -10,7 +10,7 @@ PyObjectArray(x::AbstractArray{T,N}) where {T,N} = PyObjectArray{N}(x)
 
 pyobjectarray_finalizer(x::PyObjectArray) = GC.enqueue_all(x.ptrs)
 
-Base.IndexStyle(x::PyObjectArray) = Base.IndexStyle(x.ptrs)
+Base.IndexStyle(T::Type{<: PyObjectArray}) = Base.IndexStyle(fieldtype(T, :ptrs))
 
 Base.length(x::PyObjectArray) = length(x.ptrs)
 

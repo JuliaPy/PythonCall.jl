@@ -24,8 +24,6 @@ end
 
 # accessors
 
-Dates.value(d::InlineTimeDelta64) = d.value
-
 unitpair(::InlineTimeDelta64{U}) where {U} = unitpair(U)
 unitpair(::Type{InlineTimeDelta64{U}}) where {U} = unitpair(U)
 

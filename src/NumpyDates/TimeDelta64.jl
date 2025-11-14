@@ -23,8 +23,6 @@ end
 
 # accessors
 
-Dates.value(d::TimeDelta64) = d.value
-
 unitpair(d::TimeDelta64) = d.unit
 
 # constructors

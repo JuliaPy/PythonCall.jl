@@ -13,7 +13,7 @@ on:
 
 jobs:
   julia:
-    name: Test Julia (${{ matrix.jlversion }}, ${{ matrix.os }}, ${{ matrix.pythonexe }})
+    name: Julia (${{ matrix.jlversion }}, ${{ matrix.os }}, ${{ matrix.pythonexe }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -43,6 +43,13 @@ jobs:
         uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: python
+      
+      - name: Build PyCall
+        if: ${{ matrix.pythonexe == 'python' }}
+        run: |
+          julia --project=test -e 'import Pkg; Pkg.build("PyCall")'
+        env:
+          PYTHON: python
 
       - name: Run tests
         uses: julia-actions/julia-runtest@v1
@@ -61,7 +68,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   python:
-    name: Test Python (${{ matrix.pyversion }}, ${{ matrix.os }}, ${{ matrix.juliaexe }})
+    name: Python (${{ matrix.pyversion }}, ${{ matrix.os }}, ${{ matrix.juliaexe }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

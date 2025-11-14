@@ -1,4 +1,4 @@
-# Release Notes
+# Changelog
 
 ## Unreleased (v1)
 * The vast majority of these changes are breaking, see the [v1 Migration Guide](@ref) for how to upgrade.
@@ -24,12 +24,13 @@
   * `pyjltype(x)` removed.
   * New functions: `pyjlarray`, `pyjldict`, `pyjlset`.
 
-## Unreleased
+## 0.9.29 (2025-11-14)
 * Minimum supported Python version is now 3.10.
 * Minimum supported Julia version is now 1.10.
 * Showing `Py` now respects the `compact` option - output is limited to a single line of
   at most the display width.
 * Support policy now documented in the FAQ.
+* Added this changelog (was previously at `docs/src/releasenotes.md`).
 * Bug fixes.
 
 ## 0.9.28 (2025-09-17)

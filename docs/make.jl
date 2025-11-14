@@ -2,6 +2,11 @@ using Documenter, PythonCall
 
 include("customdocs.jl")
 
+# include the changelog in the docs (called release notes there)
+changelog = read("CHANGELOG.md", String)
+changelog = replace(changelog, "# Changelog" => "# Release Notes")
+write("docs/src/releasenotes.md", changelog)
+
 makedocs(
     sitename = "PythonCall & JuliaCall",
     modules = [PythonCall],

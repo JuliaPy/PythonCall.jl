@@ -7,3 +7,4 @@ dist/
 .CondaPkg/
 /jltest.*
 uv.lock
+docs/src/releasenotes.md

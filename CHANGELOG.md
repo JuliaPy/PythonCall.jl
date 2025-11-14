@@ -1,4 +1,4 @@
-# Release Notes
+# Changelog
 
 ## Unreleased
 * Minimum supported Python version is now 3.10.
@@ -6,6 +6,7 @@
 * Showing `Py` now respects the `compact` option - output is limited to a single line of
   at most the display width.
 * Support policy now documented in the FAQ.
+* Added this changelog (was previously at `docs/src/releasenotes.md`).
 * Bug fixes.
 
 ## 0.9.28 (2025-09-17)

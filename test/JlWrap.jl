@@ -499,7 +499,7 @@ end
         if Setup.devdeps
             np = pyimport("numpy")
 
-            numeric = pyjl(Float64[1, 2, 3])
+            numeric = pyjlarray(Float64[1, 2, 3])
             numeric_array = numeric.__array__()
             @test pyisinstance(numeric_array, np.ndarray)
             @test pyconvert(Vector{Float64}, numeric_array) == [1.0, 2.0, 3.0]
@@ -509,7 +509,7 @@ end
             numeric_data[1] = 42.0
             @test pyconvert(Vector{Float64}, numeric_no_copy) == [42.0, 2.0, 3.0]
 
-            string_array = pyjl(["a", "b"])
+            string_array = pyjlarray(["a", "b"])
             string_result = string_array.__array__()
             @test pyisinstance(string_result, np.ndarray)
             @test pyconvert(Vector{String}, pybuiltins.list(string_result)) == ["a", "b"]

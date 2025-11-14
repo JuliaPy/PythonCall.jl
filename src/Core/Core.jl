@@ -5,7 +5,7 @@ Defines the `Py` type and directly related functions.
 """
 module Core
 
-const VERSION = v"0.9.28"
+const VERSION = v"0.9.29"
 const ROOT_DIR = dirname(dirname(@__DIR__))
 
 using ..PythonCall

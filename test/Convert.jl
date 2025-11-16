@@ -265,6 +265,48 @@ end
     @test_throws Exception pyconvert(Microsecond, td(days = -200_000_000))
 end
 
+@testitem "ctypes scalars" begin
+    ctypes = pyimport("ctypes")
+
+    @test pyconvert(Int, ctypes.c_int(42)) === 42
+    @test pyconvert(Float64, ctypes.c_double(3.25)) === 3.25
+    @test pyconvert(Ptr{Cvoid}, ctypes.c_void_p(0)) == C_NULL
+end
+
+@testitem "numpy scalars" setup=[Setup] begin
+    if Setup.devdeps
+        np = try
+            pyimport("numpy")
+        catch
+            @test_skip "numpy not available"
+            return
+        end
+
+        @test pyconvert(Int, np.int64(5)) === 5
+        @test pyconvert(Float32, np.float32(1.25)) === Float32(1.25)
+        @test pyconvert(Missing, np.datetime64("NaT")) === missing
+        @test pyconvert(Missing, np.timedelta64("NaT")) === missing
+    else
+        @test_skip Setup.devdeps
+    end
+end
+
+@testitem "pandas NA" setup=[Setup] begin
+    if Setup.devdeps
+        pd = try
+            pyimport("pandas")
+        catch
+            @test_skip "pandas not available"
+            return
+        end
+
+        @test pyconvert(Missing, pd.NA) === missing
+        @test pyconvert(Nothing, pd.NA) === nothing
+    else
+        @test_skip Setup.devdeps
+    end
+end
+
 @testitem "timedelta → Millisecond" begin
     using Dates
     td = pyimport("datetime").timedelta

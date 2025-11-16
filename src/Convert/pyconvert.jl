@@ -140,103 +140,49 @@ end
 pyconvert_is_special_tname(tname::String) =
     tname in ("<arraystruct>", "<arrayinterface>", "<array>", "<buffer>")
 
+function _pyconvert_collect_supertypes(pytype::Py)
+    seen = Set{C.PyPtr}()
+    queue = Py[pytype]
+    types = Py[]
+    while !isempty(queue)
+        t = pop!(queue)
+        ptr = C.PyPtr(t)
+        ptr ∈ seen && continue
+        push!(seen, ptr)
+        push!(types, t)
+        if pyhasattr(t, "__bases__")
+            append!(queue, (Py(b) for b in t.__bases__))
+        end
+    end
+    return types
+end
+
 function _pyconvert_get_rules(pytype::Py)
-    pyisin(x, ys) = any(pyis(x, y) for y in ys)
-
-    # get the MROs of all base types we are considering
-    omro = collect(pytype.__mro__)
-    basetypes = Py[pytype]
-    basemros = Vector{Py}[omro]
-    for xtype in PYCONVERT_EXTRATYPES
-        # find the topmost supertype of
-        xbase = PyNULL
-        for base in omro
-            if pyissubclass(base, xtype)
-                xbase = base
-            end
-        end
-        if !pyisnull(xbase)
-            push!(basetypes, xtype)
-            xmro = collect(xtype.__mro__)
-            pyisin(xbase, xmro) || pushfirst!(xmro, xbase)
-            push!(basemros, xmro)
-        end
-    end
-    for xbase in basetypes[2:end]
-        push!(basemros, [xbase])
-    end
-
-    # merge the MROs
-    # this is a port of the merge() function at the bottom of:
-    # https://www.python.org/download/releases/2.3/mro/
-    mro = Py[]
-    while !isempty(basemros)
-        # find the first head not contained in any tail
-        ok = false
-        b = PyNULL
-        for bmro in basemros
-            b = bmro[1]
-            if all(bmro -> !pyisin(b, bmro[2:end]), basemros)
-                ok = true
-                break
-            end
-        end
-        ok || error(
-            "Fatal inheritance error: could not merge MROs (mro=$mro, basemros=$basemros)",
-        )
-        # add it to the list
-        push!(mro, b)
-        # remove it from consideration
-        for bmro in basemros
-            filter!(t -> !pyis(t, b), bmro)
-        end
-        # remove empty lists
-        filter!(x -> !isempty(x), basemros)
-    end
-    # check the original MRO is preserved
-    omro_ = filter(t -> pyisin(t, omro), mro)
-    @assert length(omro) == length(omro_)
-    @assert all(pyis(x, y) for (x, y) in zip(omro, omro_))
-
-    # get the names of the types in the MRO of pytype
-    xmro = [String[pyconvert_typename(t)] for t in mro]
-
-    # add special names corresponding to certain interfaces
-    # these get inserted just above the topmost type satisfying the interface
-    for (t, x) in reverse(collect(zip(mro, xmro)))
-        if pyhasattr(t, "__array_struct__")
-            push!(x, "<arraystruct>")
-            break
-        end
-    end
-    for (t, x) in reverse(collect(zip(mro, xmro)))
-        if pyhasattr(t, "__array_interface__")
-            push!(x, "<arrayinterface>")
-            break
-        end
-    end
-    for (t, x) in reverse(collect(zip(mro, xmro)))
-        if pyhasattr(t, "__array__")
-            push!(x, "<array>")
-            break
-        end
-    end
-    for (t, x) in reverse(collect(zip(mro, xmro)))
-        if C.PyType_CheckBuffer(t)
-            push!(x, "<buffer>")
-            break
-        end
-    end
-
-    # flatten to get the MRO as a list of strings
-    mro_strings = String[x for xs in xmro for x in xs]
-
     typemap = Dict{String,Py}()
-    for t in mro
-        typemap[pyconvert_typename(t)] = t
+    tnames = Set{String}()
+
+    function add_type!(t::Py)
+        tname = pyconvert_typename(t)
+        haskey(typemap, tname) || (typemap[tname] = t)
+        push!(tnames, tname)
+        return nothing
     end
 
-    # get corresponding rules
+    for t in _pyconvert_collect_supertypes(pytype)
+        add_type!(t)
+        pyhasattr(t, "__array_struct__") && push!(tnames, "<arraystruct>")
+        pyhasattr(t, "__array_interface__") && push!(tnames, "<arrayinterface>")
+        pyhasattr(t, "__array__") && push!(tnames, "<array>")
+        (C.PyType_CheckBuffer(t) != 0) && push!(tnames, "<buffer>")
+    end
+
+    for xtype in PYCONVERT_EXTRATYPES
+        pyissubclass(pytype, xtype) || continue
+        for t in _pyconvert_collect_supertypes(xtype)
+            add_type!(t)
+        end
+    end
+
     rules = PyConvertRuleInfo[
         PyConvertRuleInfo(
             tname,
@@ -245,10 +191,9 @@ function _pyconvert_get_rules(pytype::Py)
             rule.scope,
             rule.func,
             rule.order,
-        ) for tname in mro_strings for rule in get!(Vector{PyConvertRule}, PYCONVERT_RULES, tname)
+        ) for tname in tnames for rule in get!(Vector{PyConvertRule}, PYCONVERT_RULES, tname)
     ]
 
-    @debug "pyconvert" pytype mro = join(mro_strings, " ")
     return rules, typemap
 end
 

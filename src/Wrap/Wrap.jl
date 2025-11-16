@@ -37,33 +37,21 @@ function __init__()
     pyconvert_add_rule(pyconvert_rule_array_nocopy, "<array>", PyArray, Any)
     pyconvert_add_rule(pyconvert_rule_array_nocopy, "<buffer>", PyArray, Any)
 
-    pyconvert_add_rule(
-        pyconvert_rule_iterable,
-        "collections.abc:Iterable",
-        PyIterable,
-        Any,
-    )
-    pyconvert_add_rule(
-        pyconvert_rule_sequence,
-        "collections.abc:Sequence",
-        PyList,
-        Any,
-    )
-    pyconvert_add_rule(pyconvert_rule_set, "collections.abc:Set", PySet, Any)
-    pyconvert_add_rule(pyconvert_rule_mapping, "collections.abc:Mapping", PyDict, Any)
-    pyconvert_add_rule(pyconvert_rule_io, "io:IOBase", PyIO, Any)
-    pyconvert_add_rule(pyconvert_rule_io, "_io:_IOBase", PyIO, Any)
+    pyconvert_add_rule(pyconvert_rule_iterable, "collections.abc:Iterable", PyIterable)
+    pyconvert_add_rule(pyconvert_rule_sequence, "collections.abc:Sequence", PyList)
+    pyconvert_add_rule(pyconvert_rule_set, "collections.abc:Set", PySet)
+    pyconvert_add_rule(pyconvert_rule_mapping, "collections.abc:Mapping", PyDict)
+    pyconvert_add_rule(pyconvert_rule_io, "io:IOBase", PyIO)
+    pyconvert_add_rule(pyconvert_rule_io, "_io:_IOBase", PyIO)
     pyconvert_add_rule(
         pyconvert_rule_pandasdataframe,
         "pandas.core.frame:DataFrame",
         PyPandasDataFrame,
-        Any,
     )
     pyconvert_add_rule(
         pyconvert_rule_sequence,
         "pandas.core.arrays.base:ExtensionArray",
         PyList,
-        Any,
     )
 
     pyconvert_add_rule(pyconvert_rule_array, "<arraystruct>", Array)

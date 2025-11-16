@@ -275,12 +275,7 @@ end
 
 @testitem "numpy scalars" setup=[Setup] begin
     if Setup.devdeps
-        np = try
-            pyimport("numpy")
-        catch
-            @test_skip "numpy not available"
-            return
-        end
+        np = pyimport("numpy")
 
         @test pyconvert(Int, np.int64(5)) === 5
         @test pyconvert(Float32, np.float32(1.25)) === Float32(1.25)
@@ -293,12 +288,7 @@ end
 
 @testitem "pandas NA" setup=[Setup] begin
     if Setup.devdeps
-        pd = try
-            pyimport("pandas")
-        catch
-            @test_skip "pandas not available"
-            return
-        end
+        pd = pyimport("pandas")
 
         @test pyconvert(Missing, pd.NA) === missing
         @test pyconvert(Nothing, pd.NA) === nothing

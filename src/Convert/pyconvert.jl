@@ -146,7 +146,7 @@ function _pyconvert_collect_supertypes(pytype::Py)
     types = Py[]
     while !isempty(queue)
         t = pop!(queue)
-        ptr = C.PyPtr(t)
+        ptr = getptr(t)
         ptr ∈ seen && continue
         push!(seen, ptr)
         push!(types, t)

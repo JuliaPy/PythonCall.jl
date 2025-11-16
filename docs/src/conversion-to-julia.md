@@ -2,7 +2,7 @@
 
 ## [Conversion Rules](@id py2jl-conversion)
 
-The following table specifies the conversion rules used whenever converting a Python object to a Julia object. If the initial Python type matches the "From" column and the desired type `T` intersects with the "To" column, then that conversion is attempted. Conversions are tried in priority order, then in specificity order.
+The following table specifies the conversion rules used whenever converting a Python object to a Julia object. If the initial Python type matches the "From" column and the desired type `T` intersects with the "To" column, then that conversion is attempted. Rules are ordered by Python type specificity (strict subclassing only) and then by creation order. A rule only applies when the requested target type is a subtype of its scope; unless otherwise noted, the scope matches the type in the "To" column, so those rules apply when you explicitly request that type.
 
 From Julia, one can convert Python objects to a desired type using `pyconvert(T, x)` for example.
 
@@ -10,11 +10,11 @@ From Python, the arguments to a Julia function will be converted according to th
 
 | From                                                                                                         | To                                                          |
 | :----------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------- |
-| **Top priority (wrapped values).**                                                                           |                                                             |
-| `juliacall.Jl`                                                                                         | `Any`                                                       |
-| **Very high priority (arrays).**                                                                             |                                                             |
+| **Default-scope rules (apply even when converting to `Any`).**                                              |
+                                                    |
+| `juliacall.Jl`                                                                                         | `Any`                                               |
 | Objects satisfying the buffer or array interface (inc. `bytes`, `bytearray`, `array.array`, `numpy.ndarray`) | `PyArray`                                                   |
-| **High priority (canonical conversions).**                                                                   |                                                             |
+| **Default conversions for common types.**                                                               |
 | `None`                                                                                                       | `Nothing`                                                   |
 | `bool`                                                                                                       | `Bool`                                                      |
 | `numbers.Integral` (inc. `int`)                                                                              | `Integer` (prefers `Int`, or `BigInt` on overflow)          |
@@ -33,8 +33,9 @@ From Python, the arguments to a Julia function will be converted according to th
 | `numpy.intXX`/`numpy.uintXX`/`numpy.floatXX`                                                                 | `IntXX`/`UIntXX`/`FloatXX`                                  |
 | `numpy.datetime64`                                                                                           | `NumpyDates.DateTime64`                                     |
 | `numpy.timedelta64`                                                                                          | `NumpyDates.TimeDelta64`                                    |
-| **Standard priority (other reasonable conversions).**                                                        |                                                             |
-| `None`                                                                                                       | `Missing`                                                   |
+| **Additional conversions requiring matching target scope.**                                                    |
+                                                    |
+| `None`                                                                                                       | `Missing` (scope `Missing`)                                   |
 | `bytes`                                                                                                      | `Vector{UInt8}`, `Vector{Int8}`, `String`                   |
 | `str`                                                                                                        | `String`, `Symbol`, `Char`, `Vector{UInt8}`, `Vector{Int8}` |
 | `range`                                                                                                      | `UnitRange`                                                 |
@@ -52,11 +53,11 @@ From Python, the arguments to a Julia function will be converted according to th
 | `numpy.bool_`/`numpy.intXX`/`numpy.uintXX`/`numpy.floatXX`                                                   | `Bool`, `Integer`, `Rational`, `Real`, `Number`             |
 | `numpy.datetime64`                                                                                           | `NumpyDates.InlineDateTime64`, `Dates.DateTime`             |
 | `numpy.timedelta64`                                                                                          | `NumpyDates.InlineTimeDelta64`, `Dates.Period`              |
-| Objects satisfying the buffer or array interface                                                             | `Array`, `AbstractArray`                                    |
-| **Low priority (fallback to `Py`).**                                                                         |                                                             |
-| Anything                                                                                                     | `Py`                                                        |
-| **Bottom priority (must be explicitly specified by excluding `Py`).**                                        |                                                             |
-| Objects satisfying the buffer interface                                                                      | `PyBuffer`                                                  |
+| **Fallback conversion.**                                                                         |
+                                                    |
+| Anything                                                                                                     | `Py`                                                     |
+| **Explicit wrapper conversions (require excluding `Py`).**                                        |
+                                                    |
 | Anything                                                                                                     | `PyRef`                                                     |
 
 See [here](@ref python-wrappers) for an explanation of the `Py*` wrapper types (`PyList`, `PyIO`, etc).

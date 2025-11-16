@@ -25,8 +25,7 @@ function init_base()
     pyjuliacallmodule.JlBase = pyjlbasetype
 
     # conversion rule
-    priority = PYCONVERT_PRIORITY_WRAP
-    pyconvert_add_rule("juliacall:JlBase", Any, pyconvert_rule_jlvalue, priority)
+    pyconvert_add_rule(pyconvert_rule_jlvalue, "juliacall:JlBase", Any, Any)
 end
 
 pyconvert_rule_jlvalue(::Type{T}, x::Py) where {T} =

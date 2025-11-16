@@ -318,9 +318,10 @@ end
     @test pyconvert(Any, x) === x # This test has a side effect of influencing the rules cache
     t = pytype(x)
     PythonCall.pyconvert_add_rule(
+        (_, _) -> "Hello!!",
         "$(t.__module__):$(t.__qualname__)",
         String,
-        (_, _) -> "Hello!!",
+        Any,
     )
     @test pyconvert(String, x) == "Hello!!"
     @test pyconvert(Any, x) == "Hello!!" # Broken before PR #365

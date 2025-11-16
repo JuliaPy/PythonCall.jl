@@ -18,8 +18,7 @@ import ..PythonCall:
     pyconvert_add_rule,
     pyconvert_return,
     pyconvert_unconverted,
-    pyconvert,
-    PyConvertPriority
+    pyconvert
 
 export pyconvert_isunconverted,
     pyconvert_result,

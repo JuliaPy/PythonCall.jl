@@ -4,6 +4,7 @@
 * The vast majority of these changes are breaking, see the [v1 Migration Guide](@ref) for how to upgrade.
 * Changes to core functionality:
   * Comparisons like `==(::Py, ::Py)`, `<(::Py, ::Number)`, `isless(::Number, ::Py)` now return `Bool` instead of `Py`.
+  * `pyconvert` rules are now scoped by target type instead of prioritized; rules are ordered by Python type specificity and creation order.
 * Changes to `PythonCall.GC` (now more like `Base.GC`):
   * `enable(true)` replaces `enable()`.
   * `enable(false)` replaces `disable()`.

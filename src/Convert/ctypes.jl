@@ -72,8 +72,3 @@ function ctypes_rule_specs()
     return specs
 end
 
-function register_ctypes_rules!()
-    for rule in ctypes_rule_specs()
-        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
-    end
-end

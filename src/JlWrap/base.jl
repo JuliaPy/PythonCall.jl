@@ -25,10 +25,6 @@ function init_base()
     pyjuliacallmodule.JlBase = pyjlbasetype
 end
 
-function register_jlwrap_rules!()
-    pyconvert_add_rule(pyconvert_rule_jlvalue, "juliacall:JlBase", Any, Any)
-end
-
 pyconvert_rule_jlvalue(::Type{T}, x::Py) where {T} =
     pyconvert_tryconvert(T, _pyjl_getvalue(x))
 

@@ -13,8 +13,3 @@ function pandas_rule_specs()
     ]
 end
 
-function register_pandas_rules!()
-    for rule in pandas_rule_specs()
-        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
-    end
-end

@@ -25,12 +25,9 @@ function init_base()
     pyjuliacallmodule.JlBase = pyjlbasetype
 end
 
-jlwrap_rule_specs() = PyConvertRuleSpec[(
-    func = pyconvert_rule_jlvalue,
-    tname = "juliacall:JlBase",
-    type = Any,
-    scope = Any,
-)]
+function register_jlwrap_rules!()
+    pyconvert_add_rule(pyconvert_rule_jlvalue, "juliacall:JlBase", Any, Any)
+end
 
 pyconvert_rule_jlvalue(::Type{T}, x::Py) where {T} =
     pyconvert_tryconvert(T, _pyjl_getvalue(x))

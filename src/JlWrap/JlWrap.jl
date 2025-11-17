@@ -11,7 +11,6 @@ using ..NumpyDates: NumpyDates
 using ..C
 using ..Core
 using ..Convert
-using ..Convert: PyConvertRuleSpec
 using ..GC: GC
 using ..GIL
 

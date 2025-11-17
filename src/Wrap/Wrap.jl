@@ -11,7 +11,6 @@ using ..NumpyDates
 using ..C
 using ..Core
 using ..Convert
-using ..Convert: PyConvertRuleSpec
 using ..PyMacro
 
 import ..PythonCall:
@@ -32,39 +31,27 @@ include("PyIO.jl")
 include("PyTable.jl")
 include("PyPandasDataFrame.jl")
 
-function wrap_pyconvert_rule_specs()
-    return PyConvertRuleSpec[
-        (func = pyconvert_rule_array_nocopy, tname = "<arraystruct>", type = PyArray, scope = Any),
-        (func = pyconvert_rule_array_nocopy, tname = "<arrayinterface>", type = PyArray, scope = Any),
-        (func = pyconvert_rule_array_nocopy, tname = "<array>", type = PyArray, scope = Any),
-        (func = pyconvert_rule_array_nocopy, tname = "<buffer>", type = PyArray, scope = Any),
-        (func = pyconvert_rule_iterable, tname = "collections.abc:Iterable", type = PyIterable, scope = PyIterable),
-        (func = pyconvert_rule_sequence, tname = "collections.abc:Sequence", type = PyList, scope = PyList),
-        (func = pyconvert_rule_set, tname = "collections.abc:Set", type = PySet, scope = PySet),
-        (func = pyconvert_rule_mapping, tname = "collections.abc:Mapping", type = PyDict, scope = PyDict),
-        (func = pyconvert_rule_io, tname = "io:IOBase", type = PyIO, scope = PyIO),
-        (func = pyconvert_rule_io, tname = "_io:_IOBase", type = PyIO, scope = PyIO),
-        (
-            func = pyconvert_rule_pandasdataframe,
-            tname = "pandas.core.frame:DataFrame",
-            type = PyPandasDataFrame,
-            scope = PyPandasDataFrame,
-        ),
-        (
-            func = pyconvert_rule_sequence,
-            tname = "pandas.core.arrays.base:ExtensionArray",
-            type = PyList,
-            scope = PyList,
-        ),
-        (func = pyconvert_rule_array, tname = "<arraystruct>", type = Array, scope = Array),
-        (func = pyconvert_rule_array, tname = "<arrayinterface>", type = Array, scope = Array),
-        (func = pyconvert_rule_array, tname = "<array>", type = Array, scope = Array),
-        (func = pyconvert_rule_array, tname = "<buffer>", type = Array, scope = Array),
-        (func = pyconvert_rule_array, tname = "<arraystruct>", type = AbstractArray, scope = AbstractArray),
-        (func = pyconvert_rule_array, tname = "<arrayinterface>", type = AbstractArray, scope = AbstractArray),
-        (func = pyconvert_rule_array, tname = "<array>", type = AbstractArray, scope = AbstractArray),
-        (func = pyconvert_rule_array, tname = "<buffer>", type = AbstractArray, scope = AbstractArray),
-    ]
+function register_wrap_pyconvert_rules!()
+    pyconvert_add_rule(pyconvert_rule_array_nocopy, "<arraystruct>", PyArray, Any)
+    pyconvert_add_rule(pyconvert_rule_array_nocopy, "<arrayinterface>", PyArray, Any)
+    pyconvert_add_rule(pyconvert_rule_array_nocopy, "<array>", PyArray, Any)
+    pyconvert_add_rule(pyconvert_rule_array_nocopy, "<buffer>", PyArray, Any)
+    pyconvert_add_rule(pyconvert_rule_iterable, "collections.abc:Iterable", PyIterable, PyIterable)
+    pyconvert_add_rule(pyconvert_rule_sequence, "collections.abc:Sequence", PyList, PyList)
+    pyconvert_add_rule(pyconvert_rule_set, "collections.abc:Set", PySet, PySet)
+    pyconvert_add_rule(pyconvert_rule_mapping, "collections.abc:Mapping", PyDict, PyDict)
+    pyconvert_add_rule(pyconvert_rule_io, "io:IOBase", PyIO, PyIO)
+    pyconvert_add_rule(pyconvert_rule_io, "_io:_IOBase", PyIO, PyIO)
+    pyconvert_add_rule(pyconvert_rule_pandasdataframe, "pandas.core.frame:DataFrame", PyPandasDataFrame, PyPandasDataFrame)
+    pyconvert_add_rule(pyconvert_rule_sequence, "pandas.core.arrays.base:ExtensionArray", PyList, PyList)
+    pyconvert_add_rule(pyconvert_rule_array, "<arraystruct>", Array, Array)
+    pyconvert_add_rule(pyconvert_rule_array, "<arrayinterface>", Array, Array)
+    pyconvert_add_rule(pyconvert_rule_array, "<array>", Array, Array)
+    pyconvert_add_rule(pyconvert_rule_array, "<buffer>", Array, Array)
+    pyconvert_add_rule(pyconvert_rule_array, "<arraystruct>", AbstractArray, AbstractArray)
+    pyconvert_add_rule(pyconvert_rule_array, "<arrayinterface>", AbstractArray, AbstractArray)
+    pyconvert_add_rule(pyconvert_rule_array, "<array>", AbstractArray, AbstractArray)
+    pyconvert_add_rule(pyconvert_rule_array, "<buffer>", AbstractArray, AbstractArray)
 end
 
 end

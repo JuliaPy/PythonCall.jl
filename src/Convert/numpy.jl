@@ -182,3 +182,9 @@ function numpy_rule_specs()
 
     return specs
 end
+
+function register_numpy_rules!()
+    for rule in numpy_rule_specs()
+        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
+    end
+end

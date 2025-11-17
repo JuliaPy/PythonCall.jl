@@ -34,27 +34,13 @@ end
 function __init__()
     Convert.init_pyconvert_extratypes()
 
-    for rule in Convert.pyconvert_rule_specs()
-        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
-    end
-    for rule in Convert.ctypes_rule_specs()
-        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
-    end
-    for rule in Convert.numpy_rule_specs()
-        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
-    end
-    for rule in Convert.pandas_rule_specs()
-        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
-    end
-    for rule in Wrap.wrap_pyconvert_rule_specs()
-        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
-    end
-    for rule in JlWrap.jlwrap_rule_specs()
-        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
-    end
-    for rule in Convert.pyconvert_fallback_rule_specs()
-        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
-    end
+    Convert.register_pyconvert_rules!()
+    Convert.register_ctypes_rules!()
+    Convert.register_numpy_rules!()
+    Convert.register_pandas_rules!()
+    Wrap.register_wrap_pyconvert_rules!()
+    JlWrap.register_jlwrap_rules!()
+    Convert.register_pyconvert_fallback_rules!()
 end
 
 end

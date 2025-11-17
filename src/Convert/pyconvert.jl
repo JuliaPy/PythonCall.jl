@@ -436,108 +436,48 @@ function init_pyconvert_extratypes()
     )
 end
 
-function pyconvert_rule_specs()
-    return PyConvertRuleSpec[
-        (func = pyconvert_rule_none, tname = "builtins:NoneType", type = Nothing, scope = Any),
-        (func = pyconvert_rule_bool, tname = "builtins:bool", type = Bool, scope = Any),
-        (func = pyconvert_rule_float, tname = "builtins:float", type = Float64, scope = Any),
-        (
-            func = pyconvert_rule_complex,
-            tname = "builtins:complex",
-            type = Complex{Float64},
-            scope = Any,
-        ),
-        (func = pyconvert_rule_int, tname = "numbers:Integral", type = Integer, scope = Any),
-        (func = pyconvert_rule_str, tname = "builtins:str", type = String, scope = Any),
-        (
-            func = pyconvert_rule_bytes,
-            tname = "builtins:bytes",
-            type = Base.CodeUnits{UInt8,String},
-            scope = Any,
-        ),
-        (
-            func = pyconvert_rule_range,
-            tname = "builtins:range",
-            type = StepRange{<:Integer,<:Integer},
-            scope = Any,
-        ),
-        (
-            func = pyconvert_rule_fraction,
-            tname = "numbers:Rational",
-            type = Rational{<:Integer},
-            scope = Any,
-        ),
-        (func = pyconvert_rule_iterable, tname = "builtins:tuple", type = NamedTuple, scope = Any),
-        (func = pyconvert_rule_iterable, tname = "builtins:tuple", type = Tuple, scope = Any),
-        (func = pyconvert_rule_datetime, tname = "datetime:datetime", type = DateTime, scope = Any),
-        (func = pyconvert_rule_date, tname = "datetime:date", type = Date, scope = Any),
-        (func = pyconvert_rule_time, tname = "datetime:time", type = Time, scope = Any),
-        (
-            func = pyconvert_rule_timedelta,
-            tname = "datetime:timedelta",
-            type = Microsecond,
-            scope = Any,
-        ),
-        (
-            func = pyconvert_rule_exception,
-            tname = "builtins:BaseException",
-            type = PyException,
-            scope = Any,
-        ),
-        (func = pyconvert_rule_none, tname = "builtins:NoneType", type = Missing, scope = Missing),
-        (func = pyconvert_rule_bool, tname = "builtins:bool", type = Number, scope = Number),
-        (func = pyconvert_rule_float, tname = "numbers:Real", type = Number, scope = Number),
-        (func = pyconvert_rule_float, tname = "builtins:float", type = Nothing, scope = Nothing),
-        (func = pyconvert_rule_float, tname = "builtins:float", type = Missing, scope = Missing),
-        (func = pyconvert_rule_complex, tname = "numbers:Complex", type = Number, scope = Number),
-        (func = pyconvert_rule_int, tname = "numbers:Integral", type = Number, scope = Number),
-        (func = pyconvert_rule_str, tname = "builtins:str", type = Symbol, scope = Symbol),
-        (func = pyconvert_rule_str, tname = "builtins:str", type = Char, scope = Char),
-        (func = pyconvert_rule_bytes, tname = "builtins:bytes", type = Vector{UInt8}, scope = Vector{UInt8}),
-        (
-            func = pyconvert_rule_range,
-            tname = "builtins:range",
-            type = UnitRange{<:Integer},
-            scope = UnitRange{<:Integer},
-        ),
-        (func = pyconvert_rule_fraction, tname = "numbers:Rational", type = Number, scope = Number),
-        (
-            func = pyconvert_rule_iterable,
-            tname = "collections.abc:Iterable",
-            type = Vector,
-            scope = Vector,
-        ),
-        (func = pyconvert_rule_iterable, tname = "collections.abc:Iterable", type = Tuple, scope = Tuple),
-        (func = pyconvert_rule_iterable, tname = "collections.abc:Iterable", type = Pair, scope = Pair),
-        (func = pyconvert_rule_iterable, tname = "collections.abc:Iterable", type = Set, scope = Set),
-        (
-            func = pyconvert_rule_iterable,
-            tname = "collections.abc:Sequence",
-            type = Vector,
-            scope = Vector,
-        ),
-        (func = pyconvert_rule_iterable, tname = "collections.abc:Sequence", type = Tuple, scope = Tuple),
-        (func = pyconvert_rule_iterable, tname = "collections.abc:Set", type = Set, scope = Set),
-        (func = pyconvert_rule_mapping, tname = "collections.abc:Mapping", type = Dict, scope = Dict),
-        (
-            func = pyconvert_rule_timedelta,
-            tname = "datetime:timedelta",
-            type = Millisecond,
-            scope = Millisecond,
-        ),
-        (func = pyconvert_rule_timedelta, tname = "datetime:timedelta", type = Second, scope = Second),
-        (
-            func = pyconvert_rule_timedelta,
-            tname = "datetime:timedelta",
-            type = Nanosecond,
-            scope = Nanosecond,
-        ),
-    ]
+function register_pyconvert_rules!()
+    pyconvert_add_rule(pyconvert_rule_none, "builtins:NoneType", Nothing, Any)
+    pyconvert_add_rule(pyconvert_rule_bool, "builtins:bool", Bool, Any)
+    pyconvert_add_rule(pyconvert_rule_float, "builtins:float", Float64, Any)
+    pyconvert_add_rule(pyconvert_rule_complex, "builtins:complex", Complex{Float64}, Any)
+    pyconvert_add_rule(pyconvert_rule_int, "numbers:Integral", Integer, Any)
+    pyconvert_add_rule(pyconvert_rule_str, "builtins:str", String, Any)
+    pyconvert_add_rule(pyconvert_rule_bytes, "builtins:bytes", Base.CodeUnits{UInt8,String}, Any)
+    pyconvert_add_rule(pyconvert_rule_range, "builtins:range", StepRange{<:Integer,<:Integer}, Any)
+    pyconvert_add_rule(pyconvert_rule_fraction, "numbers:Rational", Rational{<:Integer}, Any)
+    pyconvert_add_rule(pyconvert_rule_iterable, "builtins:tuple", NamedTuple, Any)
+    pyconvert_add_rule(pyconvert_rule_iterable, "builtins:tuple", Tuple, Any)
+    pyconvert_add_rule(pyconvert_rule_datetime, "datetime:datetime", DateTime, Any)
+    pyconvert_add_rule(pyconvert_rule_date, "datetime:date", Date, Any)
+    pyconvert_add_rule(pyconvert_rule_time, "datetime:time", Time, Any)
+    pyconvert_add_rule(pyconvert_rule_timedelta, "datetime:timedelta", Microsecond, Any)
+    pyconvert_add_rule(pyconvert_rule_exception, "builtins:BaseException", PyException, Any)
+    pyconvert_add_rule(pyconvert_rule_none, "builtins:NoneType", Missing, Missing)
+    pyconvert_add_rule(pyconvert_rule_bool, "builtins:bool", Number, Number)
+    pyconvert_add_rule(pyconvert_rule_float, "numbers:Real", Number, Number)
+    pyconvert_add_rule(pyconvert_rule_float, "builtins:float", Nothing, Nothing)
+    pyconvert_add_rule(pyconvert_rule_float, "builtins:float", Missing, Missing)
+    pyconvert_add_rule(pyconvert_rule_complex, "numbers:Complex", Number, Number)
+    pyconvert_add_rule(pyconvert_rule_int, "numbers:Integral", Number, Number)
+    pyconvert_add_rule(pyconvert_rule_str, "builtins:str", Symbol, Symbol)
+    pyconvert_add_rule(pyconvert_rule_str, "builtins:str", Char, Char)
+    pyconvert_add_rule(pyconvert_rule_bytes, "builtins:bytes", Vector{UInt8}, Vector{UInt8})
+    pyconvert_add_rule(pyconvert_rule_range, "builtins:range", UnitRange{<:Integer}, UnitRange{<:Integer})
+    pyconvert_add_rule(pyconvert_rule_fraction, "numbers:Rational", Number, Number)
+    pyconvert_add_rule(pyconvert_rule_iterable, "collections.abc:Iterable", Vector, Vector)
+    pyconvert_add_rule(pyconvert_rule_iterable, "collections.abc:Iterable", Tuple, Tuple)
+    pyconvert_add_rule(pyconvert_rule_iterable, "collections.abc:Iterable", Pair, Pair)
+    pyconvert_add_rule(pyconvert_rule_iterable, "collections.abc:Iterable", Set, Set)
+    pyconvert_add_rule(pyconvert_rule_iterable, "collections.abc:Sequence", Vector, Vector)
+    pyconvert_add_rule(pyconvert_rule_iterable, "collections.abc:Sequence", Tuple, Tuple)
+    pyconvert_add_rule(pyconvert_rule_iterable, "collections.abc:Set", Set, Set)
+    pyconvert_add_rule(pyconvert_rule_mapping, "collections.abc:Mapping", Dict, Dict)
+    pyconvert_add_rule(pyconvert_rule_timedelta, "datetime:timedelta", Millisecond, Millisecond)
+    pyconvert_add_rule(pyconvert_rule_timedelta, "datetime:timedelta", Second, Second)
+    pyconvert_add_rule(pyconvert_rule_timedelta, "datetime:timedelta", Nanosecond, Nanosecond)
 end
 
-pyconvert_fallback_rule_specs() = PyConvertRuleSpec[(
-    func = pyconvert_rule_object,
-    tname = "builtins:object",
-    type = Py,
-    scope = Any,
-)]
+function register_pyconvert_fallback_rules!()
+    pyconvert_add_rule(pyconvert_rule_object, "builtins:object", Py, Any)
+end

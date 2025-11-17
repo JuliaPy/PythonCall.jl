@@ -286,6 +286,20 @@ end
     end
 end
 
+@testitem "numpy array → PyArray" setup=[Setup] begin
+    if Setup.devdeps
+        np = pyimport("numpy")
+
+        arr = np.array([1, 2, 3], dtype = np.int64)
+        pyarr = pyconvert(PyArray, arr)
+
+        @test pyarr isa PyArray
+        @test collect(pyarr) == [1, 2, 3]
+    else
+        @test_skip Setup.devdeps
+    end
+end
+
 @testitem "pandas NA" setup=[Setup] begin
     if Setup.devdeps
         pd = pyimport("pandas")

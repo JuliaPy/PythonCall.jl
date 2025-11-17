@@ -31,4 +31,30 @@ for k in [
     @eval using .JlWrap: $k
 end
 
+function __init__()
+    Convert.init_pyconvert_extratypes()
+
+    for rule in Convert.pyconvert_rule_specs()
+        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
+    end
+    for rule in Convert.ctypes_rule_specs()
+        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
+    end
+    for rule in Convert.numpy_rule_specs()
+        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
+    end
+    for rule in Convert.pandas_rule_specs()
+        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
+    end
+    for rule in Wrap.wrap_pyconvert_rule_specs()
+        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
+    end
+    for rule in JlWrap.jlwrap_rule_specs()
+        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
+    end
+    for rule in Convert.pyconvert_fallback_rule_specs()
+        pyconvert_add_rule(rule.func, rule.tname, rule.type, rule.scope)
+    end
+end
+
 end

@@ -35,10 +35,7 @@ include("numpy.jl")
 include("pandas.jl")
 
 function __init__()
-    init_pyconvert()
-    init_ctypes()
-    init_numpy()
-    init_pandas()
+    init_pyconvert_extratypes()
 end
 
 end

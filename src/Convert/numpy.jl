@@ -97,7 +97,8 @@ const NUMPY_SIMPLE_TYPES = [
     ("complex128", ComplexF64),
 ]
 
-function init_numpy()
+function numpy_rule_specs()
+    specs = PyConvertRuleSpec[]
     # simple numeric scalar types
     for (t, T) in NUMPY_SIMPLE_TYPES
         isbool = occursin("bool", t)
@@ -112,49 +113,72 @@ function init_numpy()
         rule = pyconvert_rule_numpysimplevalue{T,false}()
         saferule = pyconvert_rule_numpysimplevalue{T,true}()
 
-        pyconvert_add_rule(saferule, name, T, Any)
-        isuint && pyconvert_add_rule(sizeof(T) ≤ sizeof(UInt) ? saferule : rule, name, UInt)
-        isuint && pyconvert_add_rule(sizeof(T) < sizeof(Int) ? saferule : rule, name, Int)
-        isint &&
-            !isuint &&
-            pyconvert_add_rule(sizeof(T) ≤ sizeof(Int) ? saferule : rule, name, Int)
-        isint && pyconvert_add_rule(rule, name, Integer)
-        isfloat && pyconvert_add_rule(saferule, name, Float64)
-        isreal && pyconvert_add_rule(rule, name, Real)
-        iscomplex && pyconvert_add_rule(saferule, name, ComplexF64)
-        iscomplex && pyconvert_add_rule(rule, name, Complex)
-        isnumber && pyconvert_add_rule(rule, name, Number)
+        push!(specs, (func = saferule, tname = name, type = T, scope = Any))
+        isuint && push!(
+            specs,
+            (
+                func = sizeof(T) ≤ sizeof(UInt) ? saferule : rule,
+                tname = name,
+                type = UInt,
+                scope = UInt,
+            ),
+        )
+        isuint && push!(
+            specs,
+            (
+                func = sizeof(T) < sizeof(Int) ? saferule : rule,
+                tname = name,
+                type = Int,
+                scope = Int,
+            ),
+        )
+        isint && !isuint && push!(
+            specs,
+            (func = sizeof(T) ≤ sizeof(Int) ? saferule : rule, tname = name, type = Int, scope = Int),
+        )
+        isint && push!(specs, (func = rule, tname = name, type = Integer, scope = Integer))
+        isfloat && push!(specs, (func = saferule, tname = name, type = Float64, scope = Float64))
+        isreal && push!(specs, (func = rule, tname = name, type = Real, scope = Real))
+        iscomplex && push!(specs, (func = saferule, tname = name, type = ComplexF64, scope = ComplexF64))
+        iscomplex && push!(specs, (func = rule, tname = name, type = Complex, scope = Complex))
+        isnumber && push!(specs, (func = rule, tname = name, type = Number, scope = Number))
     end
 
     # datetime64
-    pyconvert_add_rule(
-        pyconvert_rule_datetime64,
-        "numpy:datetime64",
-        DateTime64,
-        Any,
+    push!(
+        specs,
+        (func = pyconvert_rule_datetime64, tname = "numpy:datetime64", type = DateTime64, scope = Any),
     )
-    pyconvert_add_rule(pyconvert_rule_datetime64, "numpy:datetime64", InlineDateTime64)
-    pyconvert_add_rule(
-        pyconvert_rule_datetime64,
-        "numpy:datetime64",
-        NumpyDates.DatesInstant,
+    push!(specs, (func = pyconvert_rule_datetime64, tname = "numpy:datetime64", type = InlineDateTime64, scope = InlineDateTime64))
+    push!(
+        specs,
+        (
+            func = pyconvert_rule_datetime64,
+            tname = "numpy:datetime64",
+            type = NumpyDates.DatesInstant,
+            scope = NumpyDates.DatesInstant,
+        ),
     )
-    pyconvert_add_rule(pyconvert_rule_datetime64, "numpy:datetime64", Missing, Missing)
-    pyconvert_add_rule(pyconvert_rule_datetime64, "numpy:datetime64", Nothing, Nothing)
+    push!(specs, (func = pyconvert_rule_datetime64, tname = "numpy:datetime64", type = Missing, scope = Missing))
+    push!(specs, (func = pyconvert_rule_datetime64, tname = "numpy:datetime64", type = Nothing, scope = Nothing))
 
     # timedelta64
-    pyconvert_add_rule(
-        pyconvert_rule_timedelta64,
-        "numpy:timedelta64",
-        TimeDelta64,
-        Any,
+    push!(
+        specs,
+        (func = pyconvert_rule_timedelta64, tname = "numpy:timedelta64", type = TimeDelta64, scope = Any),
     )
-    pyconvert_add_rule(pyconvert_rule_timedelta64, "numpy:timedelta64", InlineTimeDelta64)
-    pyconvert_add_rule(
-        pyconvert_rule_timedelta64,
-        "numpy:timedelta64",
-        NumpyDates.DatesPeriod,
+    push!(specs, (func = pyconvert_rule_timedelta64, tname = "numpy:timedelta64", type = InlineTimeDelta64, scope = InlineTimeDelta64))
+    push!(
+        specs,
+        (
+            func = pyconvert_rule_timedelta64,
+            tname = "numpy:timedelta64",
+            type = NumpyDates.DatesPeriod,
+            scope = NumpyDates.DatesPeriod,
+        ),
     )
-    pyconvert_add_rule(pyconvert_rule_timedelta64, "numpy:timedelta64", Missing, Missing)
-    pyconvert_add_rule(pyconvert_rule_timedelta64, "numpy:timedelta64", Nothing, Nothing)
+    push!(specs, (func = pyconvert_rule_timedelta64, tname = "numpy:timedelta64", type = Missing, scope = Missing))
+    push!(specs, (func = pyconvert_rule_timedelta64, tname = "numpy:timedelta64", type = Nothing, scope = Nothing))
+
+    return specs
 end

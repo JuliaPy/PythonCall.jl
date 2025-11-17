@@ -34,7 +34,8 @@ const CTYPES_SIMPLE_TYPES = [
     ("void_p", Ptr{Cvoid}),
 ]
 
-function init_ctypes()
+function ctypes_rule_specs()
+    specs = PyConvertRuleSpec[]
     for (t, T) in CTYPES_SIMPLE_TYPES
         isptr = endswith(t, "_p")
         isreal = !isptr
@@ -47,18 +48,26 @@ function init_ctypes()
         rule = pyconvert_rule_ctypessimplevalue{T,false}()
         saferule = pyconvert_rule_ctypessimplevalue{T,true}()
 
-        t == "char_p" && pyconvert_add_rule(saferule, name, Cstring)
-        t == "wchar_p" && pyconvert_add_rule(saferule, name, Cwstring)
-        pyconvert_add_rule(saferule, name, T)
-        isuint && pyconvert_add_rule(sizeof(T) ≤ sizeof(UInt) ? saferule : rule, name, UInt)
-        isuint && pyconvert_add_rule(sizeof(T) < sizeof(Int) ? saferule : rule, name, Int)
-        isint &&
-            !isuint &&
-            pyconvert_add_rule(sizeof(T) ≤ sizeof(Int) ? saferule : rule, name, Int)
-        isint && pyconvert_add_rule(rule, name, Integer)
-        isfloat && pyconvert_add_rule(saferule, name, Float64)
-        isreal && pyconvert_add_rule(rule, name, Real)
-        isnumber && pyconvert_add_rule(rule, name, Number)
-        isptr && pyconvert_add_rule(saferule, name, Ptr)
+        t == "char_p" && push!(specs, (func = saferule, tname = name, type = Cstring, scope = Cstring))
+        t == "wchar_p" && push!(specs, (func = saferule, tname = name, type = Cwstring, scope = Cwstring))
+        push!(specs, (func = saferule, tname = name, type = T, scope = T))
+        isuint && push!(
+            specs,
+            (func = sizeof(T) ≤ sizeof(UInt) ? saferule : rule, tname = name, type = UInt, scope = UInt),
+        )
+        isuint && push!(
+            specs,
+            (func = sizeof(T) < sizeof(Int) ? saferule : rule, tname = name, type = Int, scope = Int),
+        )
+        isint && !isuint && push!(
+            specs,
+            (func = sizeof(T) ≤ sizeof(Int) ? saferule : rule, tname = name, type = Int, scope = Int),
+        )
+        isint && push!(specs, (func = rule, tname = name, type = Integer, scope = Integer))
+        isfloat && push!(specs, (func = saferule, tname = name, type = Float64, scope = Float64))
+        isreal && push!(specs, (func = rule, tname = name, type = Real, scope = Real))
+        isnumber && push!(specs, (func = rule, tname = name, type = Number, scope = Number))
+        isptr && push!(specs, (func = saferule, tname = name, type = Ptr, scope = Ptr))
     end
+    return specs
 end

@@ -9,7 +9,6 @@ end
 const PYCONVERT_RULES = Dict{String,Vector{PyConvertRule}}()
 const PYCONVERT_RULE_ORDER = Ref{Int}(0)
 const PYCONVERT_EXTRATYPES = Py[]
-const PyConvertRuleSpec = NamedTuple{(:func, :tname, :type, :scope),Tuple{Function,String,Type,Type}}
 
 """
     pyconvert_add_rule(func::Function, tname::String, ::Type{T}, ::Type{S}=T) where {T,S}

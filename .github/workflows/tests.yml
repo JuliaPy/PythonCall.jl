@@ -54,7 +54,6 @@ jobs:
       - name: Run tests
         uses: julia-actions/julia-runtest@v1
         env:
-          JULIA_DEBUG: PythonCall
           JULIA_NUM_THREADS: '2'
           PYTHON: python
           JULIA_PYTHONCALL_EXE: ${{ matrix.pythonexe }}

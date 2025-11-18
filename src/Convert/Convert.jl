@@ -18,8 +18,7 @@ import ..PythonCall:
     pyconvert_add_rule,
     pyconvert_return,
     pyconvert_unconverted,
-    pyconvert,
-    PyConvertPriority
+    pyconvert
 
 export pyconvert_isunconverted,
     pyconvert_result,
@@ -36,10 +35,7 @@ include("numpy.jl")
 include("pandas.jl")
 
 function __init__()
-    init_pyconvert()
-    init_ctypes()
-    init_numpy()
-    init_pandas()
+    init_pyconvert_extratypes()
 end
 
 end

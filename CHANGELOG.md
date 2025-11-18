@@ -24,6 +24,9 @@
   * `pyjltype(x)` removed.
   * New functions: `pyjlarray`, `pyjldict`, `pyjlset`.
 
+## 0.9.30 (2025-11-18)
+* Maximum supported Python version is now 3.13 ([see the FAQ](https://juliapy.github.io/PythonCall.jl/stable/faq/#faq-python-314) for why).
+
 ## 0.9.29 (2025-11-14)
 * Minimum supported Python version is now 3.10.
 * Minimum supported Julia version is now 1.10.

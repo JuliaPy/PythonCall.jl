@@ -1,10 +1,10 @@
 @testitem "PyArray" begin
     x = pyimport("array").array("i", pylist([1, 2, 3]))
     y = PyArray(x)
-    z = PyArray{Cint,1,false,false,Cint}(x)
+    z = PyArray{Cint,1,()}(x)
     @testset "construct" begin
-        @test y isa PyArray{Cint,1,true,true,Cint}
-        @test z isa PyArray{Cint,1,false,false,Cint}
+        @test y isa PyArray{Cint,1,(:mutable,:linear,:contiguous)}
+        @test z isa PyArray{Cint,1,()}
         @test PythonCall.ispy(y)
         @test PythonCall.ispy(z)
         @test Py(y) === x
@@ -29,9 +29,10 @@
     @testset "elsize" begin
         @test Base.elsize(y) === sizeof(Cint)
         @test Base.elsize(z) === sizeof(Cint)
-        @test Base.elsize(PyArray{Cint,1,true,true,Cint}) === sizeof(Cint)
-        @test Base.elsize(PyArray{Cint,1,false,false,Cint}) === sizeof(Cint)
-        @test_throws Exception elsize(PyArray{Cint,1,true,false,Cchar})
+        @test Base.elsize(PyArray{UInt8}) === sizeof(UInt8)
+        @test Base.elsize(PyArray{UInt16,2}) === sizeof(UInt16)
+        @test Base.elsize(PyArray{UInt32,3,(:mutable,)}) === sizeof(UInt32)
+        @test_throws Exception elsize(PyArray{Py,1,()})
     end
     @testset "getindex" begin
         @test_throws BoundsError y[0]

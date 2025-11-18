@@ -44,7 +44,7 @@ Related issues:
 
 ## Issues when Numpy arrays are expected
 
-When a Julia array is passed to Python, it is wrapped as a [`ArrayValue`](#juliacall.ArrayValue).
+When a Julia array is passed to Python, it is wrapped as a [`JlArray`](#juliacall.JlArray).
 This type satisfies the Numpy array interface and the buffer protocol, so can be used in
 most places where a numpy array is valid.
 

@@ -51,7 +51,7 @@ baremodule pybuiltins end
 # Wrap
 
 """
-    PyArray{T,N,M,L,R}(x; copy=true, array=true, buffer=true)
+    PyArray{T,N,F}(x; copy=true, array=true, buffer=true)
 
 Wrap the Python array `x` as a Julia `AbstractArray{T,N}`.
 
@@ -62,31 +62,34 @@ If `copy=false` then the resulting array is guaranteed to directly wrap the data
 The type parameters are all optional, and are:
 - `T`: The element type.
 - `N`: The number of dimensions.
-- `M`: True if the array is mutable.
-- `L`: True if the array supports fast linear indexing.
-- `R`: The element type of the underlying buffer. Often equal to `T`.
+- `F`: Tuple of symbols, including:
+  - `:mutable`: The array is mutable.
+  - `:linear`: Supports fast linear indexing.
+  - `:contiguous`: Data is F-contiguous. Implies `:linear`.
 """
-struct PyArray{T,N,M,L,R} <: AbstractArray{T,N}
-    ptr::Ptr{R}             # pointer to the data
+struct PyArray{T,N,F} <: AbstractArray{T,N}
+    ptr::Ptr{Cvoid}         # pointer to the data
     length::Int             # length of the array
     size::NTuple{N,Int}     # size of the array
     strides::NTuple{N,Int}  # strides (in bytes) between elements
     py::Py                  # underlying python object
     handle::Py              # the data in this array is valid as long as this handle is alive
-    function PyArray{T,N,M,L,R}(
+    function PyArray{T,N,F}(
         ::Val{:new},
-        ptr::Ptr{R},
+        ptr::Ptr,
         size::NTuple{N,Int},
         strides::NTuple{N,Int},
         py::Py,
         handle::Py,
-    ) where {T,N,M,L,R}
+    ) where {T,N,F}
         T isa Type || error("T must be a Type")
         N isa Int || error("N must be an Int")
-        M isa Bool || error("M must be a Bool")
-        L isa Bool || error("L must be a Bool")
-        R isa DataType || error("R must be a DataType")
-        new{T,N,M,L,R}(ptr, prod(size), size, strides, py, handle)
+        F isa Tuple{Vararg{Symbol}} || error("F must be a tuple of Symbols")
+        for flag in F
+            flag in (:mutable, :linear, :contiguous, :copy, :nocopy) ||
+                error("invalid entry of F: $(repr(flag))")
+        end
+        new{T,N,F}(ptr, prod(size), size, strides, py, handle)
     end
 end
 

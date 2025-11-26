@@ -197,13 +197,13 @@
         @test pyis(_ver, sys.version_info)
     end
     @testset "short-circuit" begin
-        x = @py 3 && pylist([1, 2])
+        x = @py 3 && @jl(pylist([1, 2]))
         @test pyeq(Bool, x, pylist([1, 2]))
         x = @py None && True
         @test pyis(x, pybuiltins.None)
-        x = @py None || 0 || pyset()
+        x = @py None || 0 || @jl(pyset())
         @test pyeq(Bool, x, pyset())
-        x = @py pydict() || 8 || ""
+        x = @py @jl(pydict()) || 8 || ""
         @test pyeq(Bool, x, 8)
     end
     @testset "if" begin

@@ -127,6 +127,10 @@ export pyclassmethod
 export pyfunc
 export pyisjl
 export pyjl
+export pyjlcollection
+export pyjlarray
+export pyjldict
+export pyjlset
 export pyjlraw
 export pyjltype
 export pyjlvalue

@@ -1,19 +1,5 @@
 # FAQ & Troubleshooting
 
-## [Why is Python 3.14 not supported?](@id faq-python-314)
-
-Python has always had a mechanism for detecting recursion errors (stack overflows).
-The heuristics for this have been made stricter in Python 3.14, which means that any
-system which uses a non-standard stack and calls Python from it is likely to crash.
-Julia is such a system because each task has its own stack.
-
-There are discussions among Python developers about how to make the situation better but
-for now, PythonCall is highly likely to crash when using Python 3.14, so for the time
-being it is not supported.
-
-See the discussion and linked GitHub issue here:
-https://discuss.python.org/t/python-3-14-0-is-incompatible-with-stack-switching-systems-what-do-we-do/104880.
-
 ## [Can I use PythonCall and PyCall together?](@id faq-pycall)
 
 Yes, you can use both PyCall and PythonCall in the same Julia session. This is platform-dependent:

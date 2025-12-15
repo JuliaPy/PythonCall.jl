@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased (v1)
+* The vast majority of these changes are breaking, see the [v1 Migration Guide](@ref) for how to upgrade.
+* Changes to core functionality:
+  * Comparisons like `==(::Py, ::Py)`, `<(::Py, ::Number)`, `isless(::Number, ::Py)` now return `Bool` instead of `Py`.
+* Changes to `PythonCall.GC` (now more like `Base.GC`):
+  * `enable(true)` replaces `enable()`.
+  * `enable(false)` replaces `disable()`.
+  * `gc()` added.
+* Changes to Python wrapper types:
+  * `PyArray` has been reparametrised from `PyArray{T,N,M,L,R}` to `PyArray{T,N,F}`:
+    * `F` is a tuple of symbols representing flags, with `:linear` replacing `L` and `:mutable` replacing `M`.
+    * `R` is removed and is now implied by `T`, which currently must be either a bits type (equal to `R`) or `Py`, or a tuple of these.
+* Changes to Julia wrapper types:
+  * Classes renamed: `ValueBase` to `JlBase`, `AnyValue` to `Jl`, `ArrayValue` to `JlArray`, etc.
+  * Classes removed: `RawValue`, `ModuleValue`, `TypeValue`, `NumberValue`, `ComplexValue`, `RealValue`, `RationalValue`, `IntegerValue`.
+  * `Jl` now behaves similar to how `RawValue` behaved before. In particular, most methods on `Jl` now return a `Jl` instead of an arbitrary Python object.
+  * `juliacall.Pkg` removed (you can import it yourself).
+  * `juliacall.convert` removed (use `juliacall.Jl` instead).
+  * Methods renamed: `_jl_display()` to `jl_display()`, `_jl_help()` to `jl_help()`, etc.
+  * Methods removed: `_jl_raw()`.
+  * `pyjl(x)` now always returns a `juliacall.Jl` (it used to select a wrapper type if possible).
+  * `pyjltype(x)` removed.
+  * New functions: `pyjlarray`, `pyjldict`, `pyjlset`.
+
 ## 0.9.30 (2025-11-18)
 * Maximum supported Python version is now 3.13 ([see the FAQ](https://juliapy.github.io/PythonCall.jl/stable/faq/#faq-python-314) for why).
 

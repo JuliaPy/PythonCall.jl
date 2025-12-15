@@ -88,11 +88,13 @@ conversion to Python, unless the value is immutable and has a corresponding Pyth
 
 ```@docs
 pyjl
-pyjlraw
 pyisjl
 pyjlvalue
 pybinaryio
 pytextio
+pyjlarray
+pyjlset
+pyjldict
 ```
 
 ## Arithmetic

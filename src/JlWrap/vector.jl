@@ -25,11 +25,6 @@ function pyjlvector_reverse(x::AbstractVector)
     Py(nothing)
 end
 
-function pyjlvector_clear(x::AbstractVector)
-    empty!(x)
-    Py(nothing)
-end
-
 function pyjlvector_reversed(x::AbstractVector)
     Py(reverse(x))
 end
@@ -122,43 +117,45 @@ function init_vector()
     pybuiltins.exec(
         pybuiltins.compile(
             """
-$("\n"^(@__LINE__()-1))
-class VectorValue(ArrayValue):
-    __slots__ = ()
-    def resize(self, size):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_resize)), size)
-    def sort(self, reverse=False, key=None):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_sort)), reverse, key)
-    def reverse(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_reverse)))
-    def clear(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_clear)))
-    def __reversed__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_reversed)))
-    def insert(self, index, value):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_insert)), index, value)
-    def append(self, value):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_append)), value)
-    def extend(self, values):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_extend)), values)
-    def pop(self, index=-1):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_pop)), index)
-    def remove(self, value):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_remove)), value)
-    def index(self, value):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_index)), value)
-    def count(self, value):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_count)), value)
-import collections.abc
-collections.abc.MutableSequence.register(VectorValue)
-del collections
-""",
+            $("\n"^(@__LINE__()-1))
+            class JlVector(JlArray):
+                __slots__ = ()
+                def __init__(self, value=None):
+                    if value is None:
+                        value = Base.Vector()
+                    JlBase.__init__(self, value, Base.AbstractVector)
+                def resize(self, size):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlvector_resize)), size)
+                def sort(self, reverse=False, key=None):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlvector_sort)), reverse, key)
+                def reverse(self):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlvector_reverse)))
+                def __reversed__(self):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlvector_reversed)))
+                def insert(self, index, value):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlvector_insert)), index, value)
+                def append(self, value):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlvector_append)), value)
+                def extend(self, values):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlvector_extend)), values)
+                def pop(self, index=-1):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlvector_pop)), index)
+                def remove(self, value):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlvector_remove)), value)
+                def index(self, value):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlvector_index)), value)
+                def count(self, value):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlvector_count)), value)
+            import collections.abc
+            collections.abc.MutableSequence.register(JlVector)
+            del collections
+            """,
             @__FILE__(),
             "exec",
         ),
         jl.__dict__,
     )
-    pycopy!(pyjlvectortype, jl.VectorValue)
+    pycopy!(pyjlvectortype, jl.JlVector)
 end
 
-pyjltype(::AbstractVector) = pyjlvectortype
+pyjlarray(x::AbstractVector) = pyjl(pyjlvectortype, x)

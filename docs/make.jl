@@ -25,6 +25,7 @@ makedocs(
         "compat.md",
         "faq.md",
         "releasenotes.md",
+        "v1-migration-guide.md",
     ],
 )
 

@@ -139,6 +139,7 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     :PyComplex_AsCComplex => (PyPtr,) => Py_complex,
     # STR
     :PyUnicode_DecodeUTF8 => (Ptr{Cchar}, Py_ssize_t, Ptr{Cchar}) => PyPtr,
+    :PyUnicode_AsUTF8AndSize => (PyPtr, Ptr{Py_ssize_t}) => Ptr{Cchar},
     :PyUnicode_AsUTF8String => (PyPtr,) => PyPtr,
     :PyUnicode_InternInPlace => (Ptr{PyPtr},) => Cvoid,
     # BYTES

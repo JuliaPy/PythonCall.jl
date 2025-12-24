@@ -573,6 +573,13 @@ pystr_asUTF8vector(x::Py) =
 pystr_asstring(x::Py) =
     (b = pystr_asUTF8bytes(x); ans = pybytes_asUTF8string(b); pydel!(b); ans)
 
+function pystr_utf8_pointer(x::Py)
+    n = Ref{C.Py_ssize_t}()
+    p = C.PyUnicode_AsUTF8AndSize(x, n)
+    p == C_NULL && pythrow()
+    Ptr{UInt8}(p), Int(n[])
+end
+
 function pystr_intern!(x::Py)
     ptr = Ref(getptr(x))
     C.PyUnicode_InternInPlace(ptr)

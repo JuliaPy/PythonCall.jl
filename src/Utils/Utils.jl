@@ -180,6 +180,87 @@ size_to_fstrides(elsz::Integer, sz::Tuple{Vararg{Integer}}) =
 size_to_cstrides(elsz::Integer, sz::Tuple{Vararg{Integer}}) =
     isempty(sz) ? () : (size_to_cstrides(elsz * sz[end], sz[1:end-1])..., elsz)
 
+function utf8_allzeros(codeunit::F, n::Int, i::Int) where {F}
+    @inbounds for j in i:n
+        iszero(codeunit(j)) || return false
+    end
+    return true
+end
+
+function utf8_isvalid(codeunit::F, n::Int, i::Int; zeroterminated::Bool = false) where {F}
+    if i < 1 || i > n
+        return false
+    end
+    zeroterminated && utf8_allzeros(codeunit, n, i) && return false
+    c = @inbounds codeunit(i)
+    if (c & 0x80) == 0x00
+        return true
+    elseif (c & 0x40) == 0x00
+        return false
+    elseif (c & 0x20) == 0x00
+        return @inbounds (i ≤ n - 1) && ((codeunit(i + 1) & 0xC0) == 0x80)
+    elseif (c & 0x10) == 0x00
+        return @inbounds (i ≤ n - 2) &&
+                         ((codeunit(i + 1) & 0xC0) == 0x80) &&
+                         ((codeunit(i + 2) & 0xC0) == 0x80)
+    elseif (c & 0x08) == 0x00
+        return @inbounds (i ≤ n - 3) &&
+                         ((codeunit(i + 1) & 0xC0) == 0x80) &&
+                         ((codeunit(i + 2) & 0xC0) == 0x80) &&
+                         ((codeunit(i + 3) & 0xC0) == 0x80)
+    else
+        return false
+    end
+end
+
+function utf8_iterate(x, codeunit::F, n::Int, i::Int = 1; zeroterminated::Bool = false) where {F}
+    i > n && return
+    c = @inbounds codeunit(i)
+    if zeroterminated && utf8_allzeros(codeunit, n, i)
+        return
+    elseif (c & 0x80) == 0x00
+        return (reinterpret(Char, UInt32(c) << 24), i + 1)
+    elseif (c & 0x40) == 0x00
+        nothing
+    elseif (c & 0x20) == 0x00
+        if @inbounds (i ≤ n - 1) && ((codeunit(i + 1) & 0xC0) == 0x80)
+            return (
+                reinterpret(Char, (UInt32(codeunit(i)) << 24) | (UInt32(codeunit(i + 1)) << 16)),
+                i + 2,
+            )
+        end
+    elseif (c & 0x10) == 0x00
+        if @inbounds (i ≤ n - 2) && ((codeunit(i + 1) & 0xC0) == 0x80) && ((codeunit(i + 2) & 0xC0) == 0x80)
+            return (
+                reinterpret(
+                    Char,
+                    (UInt32(codeunit(i)) << 24) |
+                    (UInt32(codeunit(i + 1)) << 16) |
+                    (UInt32(codeunit(i + 2)) << 8),
+                ),
+                i + 3,
+            )
+        end
+    elseif (c & 0x08) == 0x00
+        if @inbounds (i ≤ n - 3) &&
+                     ((codeunit(i + 1) & 0xC0) == 0x80) &&
+                     ((codeunit(i + 2) & 0xC0) == 0x80) &&
+                     ((codeunit(i + 3) & 0xC0) == 0x80)
+            return (
+                reinterpret(
+                    Char,
+                    (UInt32(codeunit(i)) << 24) |
+                    (UInt32(codeunit(i + 1)) << 16) |
+                    (UInt32(codeunit(i + 2)) << 8) |
+                    UInt32(codeunit(i + 3)),
+                ),
+                i + 4,
+            )
+        end
+    end
+    throw(StringIndexError(x, i))
+end
+
 struct StaticString{T,N} <: AbstractString
     codeunits::NTuple{N,T}
     StaticString{T,N}(codeunits::NTuple{N,T}) where {T,N} = new{T,N}(codeunits)
@@ -213,83 +294,11 @@ Base.codeunit(x::StaticString, i::Integer) = x.codeunits[i]
 
 Base.codeunit(x::StaticString{T}) where {T} = T
 
-function Base.isvalid(x::StaticString{UInt8,N}, i::Int) where {N}
-    if i < 1 || i > N
-        return false
-    end
-    cs = x.codeunits
-    c = @inbounds cs[i]
-    if all(iszero, (cs[j] for j = i:N))
-        return false
-    elseif (c & 0x80) == 0x00
-        return true
-    elseif (c & 0x40) == 0x00
-        return false
-    elseif (c & 0x20) == 0x00
-        return @inbounds (i ≤ N - 1) && ((cs[i+1] & 0xC0) == 0x80)
-    elseif (c & 0x10) == 0x00
-        return @inbounds (i ≤ N - 2) &&
-                         ((cs[i+1] & 0xC0) == 0x80) &&
-                         ((cs[i+2] & 0xC0) == 0x80)
-    elseif (c & 0x08) == 0x00
-        return @inbounds (i ≤ N - 3) &&
-                         ((cs[i+1] & 0xC0) == 0x80) &&
-                         ((cs[i+2] & 0xC0) == 0x80) &&
-                         ((cs[i+3] & 0xC0) == 0x80)
-    else
-        return false
-    end
-    return false
-end
+Base.isvalid(x::StaticString{UInt8,N}, i::Int) where {N} =
+    utf8_isvalid(j -> @inbounds(x.codeunits[j]), N, i; zeroterminated = true)
 
-function Base.iterate(x::StaticString{UInt8,N}, i::Int = 1) where {N}
-    i > N && return
-    cs = x.codeunits
-    c = @inbounds cs[i]
-    if all(iszero, (cs[j] for j = i:N))
-        return
-    elseif (c & 0x80) == 0x00
-        return (reinterpret(Char, UInt32(c) << 24), i + 1)
-    elseif (c & 0x40) == 0x00
-        nothing
-    elseif (c & 0x20) == 0x00
-        if @inbounds (i ≤ N - 1) && ((cs[i+1] & 0xC0) == 0x80)
-            return (
-                reinterpret(Char, (UInt32(cs[i]) << 24) | (UInt32(cs[i+1]) << 16)),
-                i + 2,
-            )
-        end
-    elseif (c & 0x10) == 0x00
-        if @inbounds (i ≤ N - 2) && ((cs[i+1] & 0xC0) == 0x80) && ((cs[i+2] & 0xC0) == 0x80)
-            return (
-                reinterpret(
-                    Char,
-                    (UInt32(cs[i]) << 24) |
-                    (UInt32(cs[i+1]) << 16) |
-                    (UInt32(cs[i+2]) << 8),
-                ),
-                i + 3,
-            )
-        end
-    elseif (c & 0x08) == 0x00
-        if @inbounds (i ≤ N - 3) &&
-                     ((cs[i+1] & 0xC0) == 0x80) &&
-                     ((cs[i+2] & 0xC0) == 0x80) &&
-                     ((cs[i+3] & 0xC0) == 0x80)
-            return (
-                reinterpret(
-                    Char,
-                    (UInt32(cs[i]) << 24) |
-                    (UInt32(cs[i+1]) << 16) |
-                    (UInt32(cs[i+2]) << 8) |
-                    UInt32(cs[i+3]),
-                ),
-                i + 4,
-            )
-        end
-    end
-    throw(StringIndexError(x, i))
-end
+Base.iterate(x::StaticString{UInt8,N}, i::Int = 1) where {N} =
+    utf8_iterate(x, j -> @inbounds(x.codeunits[j]), N, i; zeroterminated = true)
 
 function Base.isvalid(x::StaticString{UInt32,N}, i::Int) where {N}
     i < 1 && return false

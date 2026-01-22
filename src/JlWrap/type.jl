@@ -11,6 +11,55 @@ function pyjltype_getitem(self::Type, k_)
     end
 end
 
+function pyjltype_numpy_dtype(self::Type)
+    np = pyimport("numpy")
+    if self === Bool
+        return np.dtype(np.bool_)
+    elseif self === Int8
+        return np.dtype(np.int8)
+    elseif self === Int16
+        return np.dtype(np.int16)
+    elseif self === Int32
+        return np.dtype(np.int32)
+    elseif self === Int64
+        return np.dtype(np.int64)
+    elseif self === UInt8
+        return np.dtype(np.uint8)
+    elseif self === UInt16
+        return np.dtype(np.uint16)
+    elseif self === UInt32
+        return np.dtype(np.uint32)
+    elseif self === UInt64
+        return np.dtype(np.uint64)
+    elseif self === Float16
+        return np.dtype(np.float16)
+    elseif self === Float32
+        return np.dtype(np.float32)
+    elseif self === Float64
+        return np.dtype(np.float64)
+    elseif self === ComplexF32
+        return np.dtype(np.complex64)
+    elseif self === ComplexF64
+        return np.dtype(np.complex128)
+    elseif self === Ptr{Cvoid}
+        return np.dtype("P")
+    end
+    @static if Int !== Int64
+        if self === Int
+            return np.dtype(np.int_)
+        end
+    end
+    @static if UInt !== UInt64
+        if self === UInt
+            return np.dtype(np.uintp)
+        end
+    end
+    errset(pybuiltins.AttributeError, "__numpy_dtype__")
+    return PyNULL
+end
+
+pyjl_handle_error_type(::typeof(pyjltype_numpy_dtype), x, exc) = pybuiltins.AttributeError
+
 function init_type()
     jl = pyjuliacallmodule
     pybuiltins.exec(
@@ -27,42 +76,7 @@ class TypeValue(AnyValue):
         raise TypeError("not supported")
     @property
     def __numpy_dtype__(self):
-        import numpy
-        if self == Base.Bool:
-            return numpy.dtype(numpy.bool_)
-        if self == Base.Int8:
-            return numpy.dtype(numpy.int8)
-        if self == Base.Int16:
-            return numpy.dtype(numpy.int16)
-        if self == Base.Int32:
-            return numpy.dtype(numpy.int32)
-        if self == Base.Int64:
-            return numpy.dtype(numpy.int64)
-        if self == Base.Int:
-            return numpy.dtype(numpy.int_)
-        if self == Base.UInt8:
-            return numpy.dtype(numpy.uint8)
-        if self == Base.UInt16:
-            return numpy.dtype(numpy.uint16)
-        if self == Base.UInt32:
-            return numpy.dtype(numpy.uint32)
-        if self == Base.UInt64:
-            return numpy.dtype(numpy.uint64)
-        if self == Base.UInt:
-            return numpy.dtype(numpy.uintp)
-        if self == Base.Float16:
-            return numpy.dtype(numpy.float16)
-        if self == Base.Float32:
-            return numpy.dtype(numpy.float32)
-        if self == Base.Float64:
-            return numpy.dtype(numpy.float64)
-        if self == Base.ComplexF32:
-            return numpy.dtype(numpy.complex64)
-        if self == Base.ComplexF64:
-            return numpy.dtype(numpy.complex128)
-        if self == Base.Ptr[Base.Cvoid]:
-            return numpy.dtype("P")
-        raise AttributeError("__numpy_dtype__")
+        return self._jl_callmethod($(pyjl_methodnum(pyjltype_numpy_dtype)))
 """,
             @__FILE__(),
             "exec",

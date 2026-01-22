@@ -200,6 +200,10 @@ from juliacall import Main as jl
 # equivalent to Vector{Int}() in Julia
 jl.Vector[jl.Int]()
 ```
+
+If NumPy is available, primitive types expose a `__numpy_dtype__` property that returns the
+corresponding `numpy.dtype` (e.g. `jl.Int64.__numpy_dtype__`). Unsupported types raise
+`AttributeError`.
 `````
 
 `````@customdoc

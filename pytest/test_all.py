@@ -25,6 +25,33 @@ def test_convert():
         assert jl.isa(y, t)
 
 
+def test_typevalue_numpy_dtype():
+    import numpy as np
+    from juliacall import Base as jl
+
+    assert jl.Bool.__numpy_dtype__ == np.dtype(np.bool_)
+    assert jl.Int8.__numpy_dtype__ == np.dtype(np.int8)
+    assert jl.Int16.__numpy_dtype__ == np.dtype(np.int16)
+    assert jl.Int32.__numpy_dtype__ == np.dtype(np.int32)
+    assert jl.Int64.__numpy_dtype__ == np.dtype(np.int64)
+    assert jl.Int.__numpy_dtype__ == np.dtype(np.int_)
+    assert jl.UInt8.__numpy_dtype__ == np.dtype(np.uint8)
+    assert jl.UInt16.__numpy_dtype__ == np.dtype(np.uint16)
+    assert jl.UInt32.__numpy_dtype__ == np.dtype(np.uint32)
+    assert jl.UInt64.__numpy_dtype__ == np.dtype(np.uint64)
+    assert jl.UInt.__numpy_dtype__ == np.dtype(np.uintp)
+    assert jl.Float16.__numpy_dtype__ == np.dtype(np.float16)
+    assert jl.Float32.__numpy_dtype__ == np.dtype(np.float32)
+    assert jl.Float64.__numpy_dtype__ == np.dtype(np.float64)
+    assert jl.ComplexF32.__numpy_dtype__ == np.dtype(np.complex64)
+    assert jl.ComplexF64.__numpy_dtype__ == np.dtype(np.complex128)
+    assert jl.Ptr[jl.Cvoid].__numpy_dtype__ == np.dtype("P")
+    with pytest.raises(AttributeError):
+        _ = jl.ComplexF16.__numpy_dtype__
+    with pytest.raises(AttributeError):
+        _ = jl.String.__numpy_dtype__
+
+
 def test_interactive():
     import juliacall
 

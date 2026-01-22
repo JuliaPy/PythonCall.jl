@@ -25,6 +25,44 @@ class TypeValue(AnyValue):
         raise TypeError("not supported")
     def __delitem__(self, k):
         raise TypeError("not supported")
+    @property
+    def __numpy_dtype__(self):
+        import numpy
+        if self == Base.Bool:
+            return numpy.dtype(numpy.bool_)
+        if self == Base.Int8:
+            return numpy.dtype(numpy.int8)
+        if self == Base.Int16:
+            return numpy.dtype(numpy.int16)
+        if self == Base.Int32:
+            return numpy.dtype(numpy.int32)
+        if self == Base.Int64:
+            return numpy.dtype(numpy.int64)
+        if self == Base.Int:
+            return numpy.dtype(numpy.int_)
+        if self == Base.UInt8:
+            return numpy.dtype(numpy.uint8)
+        if self == Base.UInt16:
+            return numpy.dtype(numpy.uint16)
+        if self == Base.UInt32:
+            return numpy.dtype(numpy.uint32)
+        if self == Base.UInt64:
+            return numpy.dtype(numpy.uint64)
+        if self == Base.UInt:
+            return numpy.dtype(numpy.uintp)
+        if self == Base.Float16:
+            return numpy.dtype(numpy.float16)
+        if self == Base.Float32:
+            return numpy.dtype(numpy.float32)
+        if self == Base.Float64:
+            return numpy.dtype(numpy.float64)
+        if self == Base.ComplexF32:
+            return numpy.dtype(numpy.complex64)
+        if self == Base.ComplexF64:
+            return numpy.dtype(numpy.complex128)
+        if self == Base.Ptr[Base.Cvoid]:
+            return numpy.dtype("P")
+        raise AttributeError("__numpy_dtype__")
 """,
             @__FILE__(),
             "exec",

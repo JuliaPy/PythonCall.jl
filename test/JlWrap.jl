@@ -472,7 +472,7 @@ end
     end
 end
 
-@testitem "type" setup=[Setup] begin
+@testitem "type" setup = [Setup] begin
     @testset "type" begin
         @test pyis(pytype(pyjl(Int)), PythonCall.pyjltypetype)
     end
@@ -482,44 +482,46 @@ end
     @testset "numpy dtype" begin
         if Setup.devdeps
             np = pyimport("numpy")
-            @test pyeq(Bool, pygetattr(pyjl(Bool), "__numpy_dtype__"), np.dtype(np.bool_))
-            @test pyeq(Bool, pygetattr(pyjl(Int8), "__numpy_dtype__"), np.dtype(np.int8))
-            @test pyeq(Bool, pygetattr(pyjl(Int16), "__numpy_dtype__"), np.dtype(np.int16))
-            @test pyeq(Bool, pygetattr(pyjl(Int32), "__numpy_dtype__"), np.dtype(np.int32))
-            @test pyeq(Bool, pygetattr(pyjl(Int64), "__numpy_dtype__"), np.dtype(np.int64))
-            @test pyeq(Bool, pygetattr(pyjl(Int), "__numpy_dtype__"), np.dtype(np.int_))
-            @test pyeq(Bool, pygetattr(pyjl(UInt8), "__numpy_dtype__"), np.dtype(np.uint8))
-            @test pyeq(Bool, pygetattr(pyjl(UInt16), "__numpy_dtype__"), np.dtype(np.uint16))
-            @test pyeq(Bool, pygetattr(pyjl(UInt32), "__numpy_dtype__"), np.dtype(np.uint32))
-            @test pyeq(Bool, pygetattr(pyjl(UInt64), "__numpy_dtype__"), np.dtype(np.uint64))
-            @test pyeq(Bool, pygetattr(pyjl(UInt), "__numpy_dtype__"), np.dtype(np.uintp))
-            @test pyeq(Bool, pygetattr(pyjl(Float16), "__numpy_dtype__"), np.dtype(np.float16))
-            @test pyeq(Bool, pygetattr(pyjl(Float32), "__numpy_dtype__"), np.dtype(np.float32))
-            @test pyeq(Bool, pygetattr(pyjl(Float64), "__numpy_dtype__"), np.dtype(np.float64))
-            @test pyeq(Bool, pygetattr(pyjl(ComplexF32), "__numpy_dtype__"), np.dtype(np.complex64))
-            @test pyeq(Bool, pygetattr(pyjl(ComplexF64), "__numpy_dtype__"), np.dtype(np.complex128))
-            @test pyeq(Bool, pygetattr(pyjl(Ptr{Cvoid}), "__numpy_dtype__"), np.dtype("P"))
-            @test pyeq(Bool, np.dtype(pyjl(Int64)), np.dtype(np.int64))
 
-            err = try
-                pygetattr(pyjl(ComplexF16), "__numpy_dtype__")
-                nothing
-            catch err
-                err
+            # success cases
+            @testset "$t -> $d" for (t, d) in [
+                (Bool, "bool"),
+                (Int8, "int8"),
+                (Int16, "int16"),
+                (Int32, "int32"),
+                (Int64, "int64"),
+                (UInt8, "uint8"),
+                (UInt16, "uint16"),
+                (UInt32, "uint32"),
+                (UInt64, "uint64"),
+                (Float16, "float16"),
+                (Float32, "float32"),
+                (Float64, "float64"),
+                (ComplexF32, "complex64"),
+                (ComplexF64, "complex128"),
+                (Ptr{Cvoid}, "P"),
+            ]
+                @test pyeq(Bool, pygetattr(pyjl(t), "__numpy_dtype__"), np.dtype(d))
+                @test pyeq(Bool, np.dtype(pyjl(t)), np.dtype(d))
             end
-            @test err isa PythonCall.PyException
-            @test pyis(err._t, pybuiltins.AttributeError)
 
-            err = try
-                pygetattr(pyjl(String), "__numpy_dtype__")
-                nothing
-            catch err
-                err
+            # unsupported cases
+            @testset "$t -> AttributeError" for t in [
+                ComplexF16,
+                String,
+                Tuple{},
+                Ptr{Int},
+                Ptr{PythonCall.C.PyPtr},
+            ]
+                err = try
+                    pygetattr(pyjl(t), "__numpy_dtype__")
+                    nothing
+                catch err
+                    err
+                end
+                @test err isa PythonCall.PyException
+                @test pyis(err.t, pybuiltins.AttributeError)
             end
-            @test err isa PythonCall.PyException
-            @test pyis(err._t, pybuiltins.AttributeError)
-        else
-            @test_skip Setup.devdeps
         end
     end
 end

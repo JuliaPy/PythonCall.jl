@@ -44,16 +44,6 @@ function pyjltype_numpy_dtype(self::Type)
     elseif self === Ptr{Cvoid}
         return np.dtype("P")
     end
-    @static if Int !== Int64
-        if self === Int
-            return np.dtype(np.int_)
-        end
-    end
-    @static if UInt !== UInt64
-        if self === UInt
-            return np.dtype(np.uintp)
-        end
-    end
     errset(pybuiltins.AttributeError, "__numpy_dtype__")
     return PyNULL
 end

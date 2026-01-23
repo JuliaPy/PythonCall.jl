@@ -201,9 +201,9 @@ from juliacall import Main as jl
 jl.Vector[jl.Int]()
 ```
 
-If NumPy is available, primitive types expose a `__numpy_dtype__` property that returns the
-corresponding `numpy.dtype` (e.g. `jl.Int64.__numpy_dtype__`). Unsupported types raise
-`AttributeError`.
+Some Julia types can be converted to corresponding numpy dtypes like `numpy.dtype(jl.Int)`.
+Currently supports these primitive types: `Bool`, `IntXX`, `UIntXX`, `FloatXX`,
+`ComplexFXX`, `Ptr{Cvoid}`.
 `````
 
 `````@customdoc

@@ -506,6 +506,11 @@ end
                 (InlineTimeDelta64{MINUTES}, "timedelta64[m]"),
                 (InlineTimeDelta64{(SECONDS, 5)}, "timedelta64[5s]"),
                 (InlineTimeDelta64{NumpyDates.UNBOUND_UNITS}, "timedelta64"),
+                (Tuple{}, np.dtype(pylist())),
+                (Tuple{Int32, Int32}, np.dtype(pylist([("f0", "int32"), ("f1", "int32")]))),
+                (@NamedTuple{}, np.dtype(pylist())),
+                (@NamedTuple{x::Int32, y::Int32}, np.dtype(pylist([("x", "int32"), ("y", "int32")]))),
+                (Pair{Int32, Int32}, np.dtype(pylist([("first", "int32"), ("second", "int32")]))),
             ]
                 @test pyeq(Bool, pygetattr(pyjl(t), "__numpy_dtype__"), np.dtype(d))
                 @test pyeq(Bool, np.dtype(pyjl(t)), np.dtype(d))

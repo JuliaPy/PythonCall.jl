@@ -473,6 +473,7 @@ end
 end
 
 @testitem "type" setup = [Setup] begin
+    using PythonCall.NumpyDates
     @testset "type" begin
         @test pyis(pytype(pyjl(Int)), PythonCall.pyjltypetype)
     end
@@ -499,7 +500,12 @@ end
                 (Float64, "float64"),
                 (ComplexF32, "complex64"),
                 (ComplexF64, "complex128"),
-                (Ptr{Cvoid}, "P"),
+                (InlineDateTime64{SECONDS}, "datetime64[s]"),
+                (InlineDateTime64{(SECONDS, 5)}, "datetime64[5s]"),
+                (InlineDateTime64{NumpyDates.UNBOUND_UNITS}, "datetime64"),
+                (InlineTimeDelta64{MINUTES}, "timedelta64[m]"),
+                (InlineTimeDelta64{(SECONDS, 5)}, "timedelta64[5s]"),
+                (InlineTimeDelta64{NumpyDates.UNBOUND_UNITS}, "timedelta64"),
             ]
                 @test pyeq(Bool, pygetattr(pyjl(t), "__numpy_dtype__"), np.dtype(d))
                 @test pyeq(Bool, np.dtype(pyjl(t)), np.dtype(d))
@@ -507,9 +513,9 @@ end
 
             # unsupported cases
             @testset "$t -> AttributeError" for t in [
-                ComplexF16,
                 String,
-                Tuple{},
+                Vector{Int},
+                Ptr{Cvoid},
                 Ptr{Int},
                 Ptr{PythonCall.C.PyPtr},
             ]

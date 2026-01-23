@@ -12,40 +12,17 @@ function pyjltype_getitem(self::Type, k_)
 end
 
 function pyjltype_numpy_dtype(self::Type)
-    np = pyimport("numpy")
-    if self === Bool
-        return np.dtype(np.bool_)
-    elseif self === Int8
-        return np.dtype(np.int8)
-    elseif self === Int16
-        return np.dtype(np.int16)
-    elseif self === Int32
-        return np.dtype(np.int32)
-    elseif self === Int64
-        return np.dtype(np.int64)
-    elseif self === UInt8
-        return np.dtype(np.uint8)
-    elseif self === UInt16
-        return np.dtype(np.uint16)
-    elseif self === UInt32
-        return np.dtype(np.uint32)
-    elseif self === UInt64
-        return np.dtype(np.uint64)
-    elseif self === Float16
-        return np.dtype(np.float16)
-    elseif self === Float32
-        return np.dtype(np.float32)
-    elseif self === Float64
-        return np.dtype(np.float64)
-    elseif self === ComplexF32
-        return np.dtype(np.complex64)
-    elseif self === ComplexF64
-        return np.dtype(np.complex128)
-    elseif self === Ptr{Cvoid}
-        return np.dtype("P")
+    typestr, descr = pytypestrdescr(self)
+    if isempty(typestr)
+        errset(pybuiltins.AttributeError, "__numpy_dtype__")
+        return PyNULL
     end
-    errset(pybuiltins.AttributeError, "__numpy_dtype__")
-    return PyNULL
+    np = pyimport("numpy")
+    if pyisnull(descr)
+        return np.dtype(typestr)
+    else
+        return np.dtype(descr)
+    end
 end
 
 pyjl_handle_error_type(::typeof(pyjltype_numpy_dtype), x, exc) = pybuiltins.AttributeError

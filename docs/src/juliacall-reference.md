@@ -203,7 +203,7 @@ jl.Vector[jl.Int]()
 
 Some Julia types can be converted to corresponding numpy dtypes like `numpy.dtype(jl.Int)`.
 Currently supports these primitive types: `Bool`, `IntXX`, `UIntXX`, `FloatXX`,
-`ComplexFXX`, `Ptr{Cvoid}`.
+`ComplexFXX`, `NumpyDates.InlineDateTime64{unit}` and `NumpyDates.InlineTimeDelta64{unit}`.
 `````
 
 `````@customdoc

@@ -510,15 +510,18 @@ end
                 (Tuple{Int32, Int32}, pylist([("f0", "int32"), ("f1", "int32")])),
                 (@NamedTuple{}, pylist()),
                 (@NamedTuple{x::Int32, y::Int32}, pylist([("x", "int32"), ("y", "int32")])),
-                (Pair{Int32, Int32}, pylist([("first", "int32"), ("second", "int32")])),
             ]
                 @test pyeq(Bool, pygetattr(pyjl(t), "__numpy_dtype__"), np.dtype(d))
-                @test pyeq(Bool, np.dtype(pyjl(t)), np.dtype(d))
+                @test pyeq(Bool, np.dtype(t), np.dtype(d))
+                # test the invariant np.dtype(eltype(array)) == np.array(array).dtype
+                @test isequal(np.dtype(t), np.array(t[]).dtype)
             end
 
             # unsupported cases
             @testset "$t -> AttributeError" for t in [
-                # non-primitives or mutables
+                # structs / mutables
+                Pair,
+                Pair{Int,Int},
                 String,
                 Vector{Int},
                 # pointers
@@ -526,6 +529,9 @@ end
                 Ptr{Int},
                 # PyPtr specifically should NOT be interpreted as np.dtype("O")
                 PythonCall.C.PyPtr,
+                # tuples containing illegal things
+                Tuple{String},
+                Tuple{Pair{Int,Int}},
             ]
                 err = try
                     pygetattr(pyjl(t), "__numpy_dtype__")

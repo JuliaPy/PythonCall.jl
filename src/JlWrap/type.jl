@@ -11,21 +11,48 @@ function pyjltype_getitem(self::Type, k_)
     end
 end
 
-function pyjltype_numpy_dtype(self::Type)
-    typestr, descr = pytypestrdescr(self)
-    if isempty(typestr)
-        errset(pybuiltins.AttributeError, "__numpy_dtype__")
-        return PyNULL
-    end
-    np = pyimport("numpy")
-    if pyisnull(descr)
-        return np.dtype(typestr)
-    else
-        return np.dtype(descr)
-    end
-end
+const PYNUMPYDTYPE = IdDict{Type,Py}()
 
-pyjl_handle_error_type(::typeof(pyjltype_numpy_dtype), x, exc) = pybuiltins.AttributeError
+function pyjltype_numpy_dtype(self::Type)
+    ans = get!(PYNUMPYDTYPE, self) do
+        typestr, descr = pytypestrdescr(self)
+        # unsupported type
+        if typestr == ""
+            return PyNULL
+        end
+        np = pyimport("numpy")
+        # simple scalar type
+        if pyisnull(descr)
+            return np.dtype(typestr)
+        end
+        # We could juse use np.dtype(descr), but when there is padding, np.dtype(descr)
+        # changes the names of the padding fields from "" to "f{N}". Using this other
+        # dtype constructor avoids this issue and preserves the invariant:
+        #   np.dtype(eltype(array)) == np.array(array).dtype
+        names = []
+        formats = []
+        offsets = []
+        for i = 1:fieldcount(self)
+            nm = fieldname(self, i)
+            push!(names, nm isa Integer ? "f$(nm-1)" : String(nm))
+            ts, ds = pytypestrdescr(fieldtype(self, i))
+            push!(formats, pyisnull(ds) ? ts : ds)
+            push!(offsets, fieldoffset(self, i))
+        end
+        return np.dtype(
+            pydict(
+                names = pylist(names),
+                formats = pylist(formats),
+                offsets = pylist(offsets),
+                itemsize = sizeof(self),
+            ),
+        )
+    end
+    if pyisnull(ans)
+        errset(pybuiltins.AttributeError, "__numpy_dtype__")
+    end
+    return ans
+end
 
 function init_type()
     jl = pyjuliacallmodule

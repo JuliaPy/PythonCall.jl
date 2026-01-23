@@ -187,7 +187,7 @@ pybufferformat(::Type{T}) where {T} =
         T == Complex{Cdouble} ? "Zd" :
         T == Bool ? "?" :
         T == Ptr{Cvoid} ? "P" :
-        if isstructtype(T) && isconcretetype(T) && allocatedinline(T)
+        if (T <: Union{Tuple,NamedTuple}) && isstructtype(T) && isconcretetype(T) && allocatedinline(T)
             n = fieldcount(T)
             flds = []
             for i = 1:n
@@ -234,7 +234,7 @@ pyjlarray_isarrayabletype(::Type{NamedTuple{names,types}}) where {names,types} =
 
 const PYTYPESTRDESCR = IdDict{Type,Tuple{String,Py}}()
 
-pytypestrdescr(::Type{T}) where {T} =
+function pytypestrdescr(::Type{T}) where {T}
     get!(PYTYPESTRDESCR, T) do
         c = Utils.islittleendian() ? '<' : '>'
         if T == Bool
@@ -275,7 +275,7 @@ pytypestrdescr(::Type{T}) where {T} =
                 u == NumpyDates.UNBOUND_UNITS ? "" :
                 m == 1 ? "[$(Symbol(u))]" : "[$(m)$(Symbol(u))]"
             ("$(c)$(tc)8$(us)", PyNULL)
-        elseif isstructtype(T) && isconcretetype(T) && Base.allocatedinline(T)
+        elseif (T <: Union{Tuple,NamedTuple}) && isstructtype(T) && isconcretetype(T) && Base.allocatedinline(T)
             n = fieldcount(T)
             flds = []
             for i = 1:n
@@ -298,6 +298,7 @@ pytypestrdescr(::Type{T}) where {T} =
             ("", PyNULL)
         end
     end
+end
 
 pyjlarray_array__array(x::AbstractArray) = x isa Array ? Py(nothing) : pyjl(Array(x))
 pyjlarray_array__pyobjectarray(x::AbstractArray) = pyjl(PyObjectArray(x))

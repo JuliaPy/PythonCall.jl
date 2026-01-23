@@ -303,6 +303,7 @@
         @test pyeq(Bool, z, y)
     end
     @testset "__numpy_dtype__" begin
+        using PythonCall.NumpyDates
         if Setup.devdeps
             np = pyimport("numpy")
 

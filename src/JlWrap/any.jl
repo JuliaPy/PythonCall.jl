@@ -618,7 +618,7 @@ class Jl(JlBase2):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)
     @property
     def __numpy_dtype__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjltype_numpy_dtype)))
+        return self._jl_callmethod($(pyjl_methodnum(pyjlany_numpy_dtype)))
 """,
             @__FILE__(),
             "exec",

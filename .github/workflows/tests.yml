@@ -29,7 +29,7 @@ jobs:
           pythonexe: python
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Set up Julia ${{ matrix.jlversion }}
         uses: julia-actions/setup-julia@v2
@@ -74,11 +74,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        pyversion: ['3.13', '3.10']
+        pyversion: ['3', '3.10']
         juliaexe: ["@JuliaPkg"]
         include:
         - os: ubuntu-latest
-          pyversion: '3.13'
+          pyversion: '3'
           juliaexe: julia
     env:
       MANUAL_TEST_PROJECT: /tmp/juliacall-test-project
@@ -86,7 +86,7 @@ jobs:
       PYTHON_JULIACALL_HANDLE_SIGNALS: 'yes'
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Set up Python ${{ matrix.pyversion }}
         uses: actions/setup-python@v6

@@ -24,6 +24,13 @@
   * `pyjltype(x)` removed.
   * New functions: `pyjlarray`, `pyjldict`, `pyjlset`.
 
+## Unreleased
+* Added `juliacall.TypeValue.__numpy_dtype__` attribute to allow converting Julia types
+  to the corresponding NumPy dtype, like `numpy.dtype(jl.Int)`.
+
+## 0.9.31 (2025-12-17)
+* Restore support for Python 3.14+.
+
 ## 0.9.30 (2025-11-18)
 * Maximum supported Python version is now 3.13 ([see the FAQ](https://juliapy.github.io/PythonCall.jl/stable/faq/#faq-python-314) for why).
 

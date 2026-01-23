@@ -75,6 +75,8 @@ and ending with `__` (since these are Python special methods) or starting with `
 - `jl_eval(expr)`: If the object is a Julia `Module`, evaluates the given expression.
 - `jl_help()`: Display help for the object.
 - `jl_to_py()`: Convert to a Python object using the [usual conversion rules](@ref jl2py).
+- `__numpy_dtype__`: Special attribute which allows you to do `numpy.dtype(jl.Int)` for
+  supported types - scalars, tuples and named tuples.
 `````
 
 `````@customdoc

@@ -1,4 +1,4 @@
-@testitem "any" begin
+@testitem "any" setup=[Setup] begin
     mutable struct Foo
         value::Int
     end
@@ -301,6 +301,70 @@
         z = pyjl(x).__round__()
         @test pyisinstance(z, pybuiltins.int)
         @test pyeq(Bool, z, y)
+    end
+    @testset "__numpy_dtype__" begin
+        if Setup.devdeps
+            np = pyimport("numpy")
+
+            # success cases
+            @testset "$t -> $d" for (t, d) in [
+                (Bool, "bool"),
+                (Int8, "int8"),
+                (Int16, "int16"),
+                (Int32, "int32"),
+                (Int64, "int64"),
+                (UInt8, "uint8"),
+                (UInt16, "uint16"),
+                (UInt32, "uint32"),
+                (UInt64, "uint64"),
+                (Float16, "float16"),
+                (Float32, "float32"),
+                (Float64, "float64"),
+                (ComplexF32, "complex64"),
+                (ComplexF64, "complex128"),
+                (InlineDateTime64{SECONDS}, "datetime64[s]"),
+                (InlineDateTime64{(SECONDS, 5)}, "datetime64[5s]"),
+                (InlineDateTime64{NumpyDates.UNBOUND_UNITS}, "datetime64"),
+                (InlineTimeDelta64{MINUTES}, "timedelta64[m]"),
+                (InlineTimeDelta64{(SECONDS, 5)}, "timedelta64[5s]"),
+                (InlineTimeDelta64{NumpyDates.UNBOUND_UNITS}, "timedelta64"),
+                (Tuple{}, pylist()),
+                (Tuple{Int32, Int32}, pylist([("f0", "int32"), ("f1", "int32")])),
+                (@NamedTuple{}, pylist()),
+                (@NamedTuple{x::Int32, y::Int32}, pylist([("x", "int32"), ("y", "int32")])),
+            ]
+                @test Py(t).__numpy_dtype__ == np.dtype(d)
+                @test np.dtype(t) == np.dtype(d)
+                # test the invariant np.dtype(eltype(array)) == np.array(array).dtype
+                @test np.dtype(t) == np.array(t[]).dtype
+            end
+
+            # unsupported cases
+            @testset "$t -> AttributeError" for t in [
+                # structs / mutables
+                Pair,
+                Pair{Int,Int},
+                String,
+                Vector{Int},
+                # pointers
+                Ptr{Cvoid},
+                Ptr{Int},
+                # PyPtr specifically should NOT be interpreted as np.dtype("O")
+                PythonCall.C.PyPtr,
+                # tuples containing illegal things
+                Tuple{String},
+                Tuple{Pair{Int,Int}},
+            ]
+                err = try
+                    Py(t).__numpy_dtype__
+                    nothing
+                catch err
+                    err
+                end
+                @test err isa PythonCall.PyException
+                @test pyis(err.t, pybuiltins.AttributeError)
+            end
+        end
     end
 end
 

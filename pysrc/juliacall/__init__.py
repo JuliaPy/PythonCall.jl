@@ -27,9 +27,9 @@ class JuliaError(Exception):
         e = self.exception
         b = self.backtrace
         if b is None:
-            return Base.sprint(Base.showerror, e)
+            return Base.sprint(Base.showerror, e).jl_to_py()
         else:
-            return Base.sprint(Base.showerror, e, b)
+            return Base.sprint(Base.showerror, e, b).jl_to_py()
     @property
     def exception(self):
         return self.args[0]

@@ -1,6 +1,12 @@
 asptr(x) = Base.unsafe_convert(PyPtr, x)
 
-Py_Type(x) = Base.GC.@preserve x PyPtr(UnsafePtr(asptr(x)).type[!])
+Py_Type(x) = Base.GC.@preserve x begin
+    if CTX.is_free_threaded
+        PyPtr(UnsafePtr{PyObjectFT}(asptr(x)).type[!])
+    else
+        PyPtr(UnsafePtr{PyObject}(asptr(x)).type[!])
+    end
+end
 
 PyObject_Type(x) = Base.GC.@preserve x (t = Py_Type(asptr(x)); Py_IncRef(t); t)
 
@@ -8,37 +14,45 @@ Py_TypeCheck(o, t) = Base.GC.@preserve o t PyType_IsSubtype(Py_Type(asptr(o)), a
 Py_TypeCheckFast(o, f::Integer) = Base.GC.@preserve o PyType_IsSubtypeFast(Py_Type(asptr(o)), f)
 
 PyType_IsSubtypeFast(t, f::Integer) =
-    Base.GC.@preserve t Cint(!iszero(UnsafePtr{PyTypeObject}(asptr(t)).flags[] & f))
+    Base.GC.@preserve t Cint(!iszero(PyType_GetFlags(asptr(t)) & f))
 
-PyMemoryView_GET_BUFFER(m) = Base.GC.@preserve m Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(asptr(m)).view)
+PyMemoryView_GET_BUFFER(m) = Base.GC.@preserve m begin
+    if CTX.is_free_threaded
+        Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObjectFT}(asptr(m)).view)
+    else
+        Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(asptr(m)).view)
+    end
+end
 
 PyType_CheckBuffer(t) = Base.GC.@preserve t begin
-    p = UnsafePtr{PyTypeObject}(asptr(t)).as_buffer[]
-    return p != C_NULL && p.get[!] != C_NULL
+    getbuf = PyType_GetSlot(asptr(t), Py_bf_getbuffer)
+    return getbuf != C_NULL
 end
 
 PyObject_CheckBuffer(o) = Base.GC.@preserve o PyType_CheckBuffer(Py_Type(asptr(o)))
 
 PyObject_GetBuffer(_o, b, flags) = Base.GC.@preserve _o begin
     o = asptr(_o)
-    p = UnsafePtr{PyTypeObject}(Py_Type(o)).as_buffer[]
-    if p == C_NULL || p.get[!] == C_NULL
-        PyErr_SetString(
-            POINTERS.PyExc_TypeError,
-            "a bytes-like object is required, not '$(String(UnsafePtr{PyTypeObject}(Py_Type(o)).name[]))'",
-        )
+    getbuf = PyType_GetSlot(Py_Type(o), Py_bf_getbuffer)
+    if getbuf == C_NULL
+        msg = if CTX.is_free_threaded
+            "a bytes-like object is required"
+        else
+            "a bytes-like object is required, not '$(String(UnsafePtr{PyTypeObject}(Py_Type(o)).name[]))'"
+        end
+        PyErr_SetString(POINTERS.PyExc_TypeError, msg)
         return Cint(-1)
     end
-    return ccall(p.get[!], Cint, (PyPtr, Ptr{Py_buffer}, Cint), o, b, flags)
+    return ccall(getbuf, Cint, (PyPtr, Ptr{Py_buffer}, Cint), o, b, flags)
 end
 
 PyBuffer_Release(_b) = begin
     b = UnsafePtr(Base.unsafe_convert(Ptr{Py_buffer}, _b))
     o = b.obj[]
     o == C_NULL && return
-    p = UnsafePtr{PyTypeObject}(Py_Type(o)).as_buffer[]
-    if (p != C_NULL && p.release[!] != C_NULL)
-        ccall(p.release[!], Cvoid, (PyPtr, Ptr{Py_buffer}), o, b)
+    releasebuf = PyType_GetSlot(Py_Type(o), Py_bf_releasebuffer)
+    if releasebuf != C_NULL
+        ccall(releasebuf, Cvoid, (PyPtr, Ptr{Py_buffer}), o, b)
     end
     b.obj[] = C_NULL
     Py_DecRef(o)
@@ -65,7 +79,13 @@ function PyOS_RunInputHook()
 end
 
 function PySimpleObject_GetValue(::Type{T}, o) where {T}
-    Base.GC.@preserve o UnsafePtr{PySimpleObject{T}}(asptr(o)).value[!]
+    Base.GC.@preserve o begin
+        if CTX.is_free_threaded
+            UnsafePtr{PySimpleObjectFT{T}}(asptr(o)).value[!]
+        else
+            UnsafePtr{PySimpleObject{T}}(asptr(o)).value[!]
+        end
+    end
 end
 
 # FAST REFCOUNTING

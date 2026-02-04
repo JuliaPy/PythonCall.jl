@@ -77,6 +77,8 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     :PyType_Ready => (PyPtr,) => Cint,
     :PyType_GenericNew => (PyPtr, PyPtr, PyPtr) => PyPtr,
     :PyType_FromSpec => (Ptr{Cvoid},) => PyPtr,
+    :PyType_GetFlags => (PyPtr,) => Culong,
+    :PyType_GetSlot => (PyPtr, Cint) => Ptr{Cvoid},
     # MAPPING
     :PyMapping_HasKeyString => (PyPtr, Ptr{Cchar}) => Cint,
     :PyMapping_SetItemString => (PyPtr, Ptr{Cchar}, PyPtr) => Cint,

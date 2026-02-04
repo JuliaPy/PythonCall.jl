@@ -17,6 +17,7 @@ A handle to a loaded instance of libpython, its interpreter, function pointers, 
     pyhome_w::Any = missing
     which::Symbol = :unknown # :CondaPkg, :PyCall, :embedded or :unknown
     version::Union{VersionNumber,Missing} = missing
+    is_free_threaded::Bool = false
 end
 
 const CTX = Context()
@@ -312,10 +313,11 @@ function init_context()
     v"3.10" ≤ CTX.version < v"4" || error(
         "Only Python 3.10+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
     )
+    CTX.is_free_threaded = occursin("free-threading build", verstr)
 
     launch_on_main_thread(Threads.threadid()) # makes on_main_thread usable
 
-    @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version
+    @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version CTX.is_free_threaded
 
     return
 end

@@ -9,6 +9,7 @@ on:
     - main
     tags:
     - '*'
+  workflow_dispatch:
 
 jobs:
   julia:
@@ -65,6 +66,43 @@ jobs:
         uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  julia-ft:
+    name: Julia (1, ubuntu-latest, python3.14t)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Julia 1
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+          arch: x64
+
+      - uses: julia-actions/cache@v2
+
+      - name: Set up micromamba (python3.14t)
+        id: micromamba
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: py314t
+          create-args: >-
+            -c conda-forge python=3.14.*=*cp314t*
+          cache-environment: true
+
+      - name: Build package
+        uses: julia-actions/julia-buildpkg@v1
+        env:
+          PYTHON: ${{ steps.micromamba.outputs.environment-path }}/bin/python
+
+      - name: Run tests
+        uses: julia-actions/julia-runtest@v1
+        env:
+          JULIA_DEBUG: PythonCall
+          JULIA_NUM_THREADS: '2'
+          PYTHON: ${{ steps.micromamba.outputs.environment-path }}/bin/python
+          JULIA_PYTHONCALL_EXE: ${{ steps.micromamba.outputs.environment-path }}/bin/python
 
   python:
     name: Python (${{ matrix.pyversion }}, ${{ matrix.os }}, ${{ matrix.juliaexe }})

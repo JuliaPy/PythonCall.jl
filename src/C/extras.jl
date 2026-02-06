@@ -43,11 +43,12 @@ CTX.is_free_threaded` throughout the code.
 """
 macro ft(ex)
     ex_ft = _ft_transform(ex)
-    return :(if CTX.is_free_threaded
-        $(esc(ex_ft))
+    ctx = GlobalRef(@__MODULE__, :CTX)
+    return esc(:(if $ctx.is_free_threaded
+        $ex_ft
     else
-        $(esc(ex))
-    end)
+        $ex
+    end))
 end
 
 Py_Type(x) = Base.GC.@preserve x @ft PyPtr(UnsafePtr{PyObject}(asptr(x)).type[!])

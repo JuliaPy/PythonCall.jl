@@ -55,18 +55,22 @@ function __init__()
     pyconvert_add_rule("collections.abc:Mapping", PyDict, pyconvert_rule_mapping, priority)
     pyconvert_add_rule("io:IOBase", PyIO, pyconvert_rule_io, priority)
     pyconvert_add_rule("_io:_IOBase", PyIO, pyconvert_rule_io, priority)
-    pyconvert_add_rule(
-        "pandas.core.frame:DataFrame",
-        PyPandasDataFrame,
-        pyconvert_rule_pandasdataframe,
-        priority,
-    )
-    pyconvert_add_rule(
-        "pandas.core.arrays.base:ExtensionArray",
-        PyList,
-        pyconvert_rule_sequence,
-        priority,
-    )
+    for typename in ["pandas.core.frame:DataFrame", "pandas:DataFrame"]
+        pyconvert_add_rule(
+            typename,
+            PyPandasDataFrame,
+            pyconvert_rule_pandasdataframe,
+            priority,
+        )
+    end
+    for typename in ["pandas.core.arrays.base:ExtensionArray", "pandas.api.extensions:ExtensionArray"]
+        pyconvert_add_rule(
+            typename,
+            PyList,
+            pyconvert_rule_sequence,
+            priority,
+        )
+    end
 
     priority = PYCONVERT_PRIORITY_NORMAL
     pyconvert_add_rule("<arraystruct>", Array, pyconvert_rule_array, priority)

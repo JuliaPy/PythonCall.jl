@@ -3,6 +3,7 @@
 ## Unreleased
 * Added `juliacall.TypeValue.__numpy_dtype__` attribute to allow converting Julia types
   to the corresponding NumPy dtype, like `numpy.dtype(jl.Int)`.
+* Bug fixes.
 
 ## 0.9.31 (2025-12-17)
 * Restore support for Python 3.14+.

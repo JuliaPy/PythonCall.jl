@@ -1,12 +1,56 @@
 asptr(x) = Base.unsafe_convert(PyPtr, x)
 
-Py_Type(x) = Base.GC.@preserve x begin
-    if CTX.is_free_threaded
-        PyPtr(UnsafePtr{PyObjectFT}(asptr(x)).type[!])
+# Free-threaded CPython builds ("3.14t") currently have different C struct layouts,
+# but there is no stable ABI yet. To keep the code manageable, we centralize the
+# branching in a single macro that rewrites type names in the expression.
+const _FT_TYPE_REPLACEMENTS = Dict{Symbol,Symbol}(
+    :PyObject => :PyObjectFT,
+    :PyVarObject => :PyVarObjectFT,
+    :PyMemoryViewObject => :PyMemoryViewObjectFT,
+    :PySimpleObject => :PySimpleObjectFT,
+    # Used from JlWrap/C.jl via `C.@ft`.
+    :PyJuliaValueObject => :PyJuliaValueObjectFT,
+)
+
+_ft_replace(sym::Symbol) = get(_FT_TYPE_REPLACEMENTS, sym, sym)
+
+function _ft_transform(ex)
+    if ex isa Symbol
+        return _ft_replace(ex)
+    elseif ex isa QuoteNode
+        v = ex.value
+        return v isa Symbol ? QuoteNode(_ft_replace(v)) : ex
+    elseif ex isa Expr
+        # Handle dotted refs like `C.PyObject` (Expr(:., ...)).
+        if ex.head === :. && length(ex.args) == 2 && ex.args[2] isa QuoteNode && ex.args[2].value isa Symbol
+            return Expr(:., _ft_transform(ex.args[1]), QuoteNode(_ft_replace(ex.args[2].value)))
+        end
+        return Expr(ex.head, map(_ft_transform, ex.args)...)
     else
-        PyPtr(UnsafePtr{PyObject}(asptr(x)).type[!])
+        return ex
     end
 end
+
+"""
+    @ft expr
+
+Evaluate `expr`, but when `CTX.is_free_threaded` is true (CPython "free-threaded"
+builds), rewrite internal type names like `PyObject` → `PyObjectFT` inside the
+expression.
+
+This keeps free-threaded branching centralized, so we don't scatter `if
+CTX.is_free_threaded` throughout the code.
+"""
+macro ft(ex)
+    ex_ft = _ft_transform(ex)
+    return :(if CTX.is_free_threaded
+        $(esc(ex_ft))
+    else
+        $(esc(ex))
+    end)
+end
+
+Py_Type(x) = Base.GC.@preserve x @ft PyPtr(UnsafePtr{PyObject}(asptr(x)).type[!])
 
 PyObject_Type(x) = Base.GC.@preserve x (t = Py_Type(asptr(x)); Py_IncRef(t); t)
 
@@ -16,13 +60,7 @@ Py_TypeCheckFast(o, f::Integer) = Base.GC.@preserve o PyType_IsSubtypeFast(Py_Ty
 PyType_IsSubtypeFast(t, f::Integer) =
     Base.GC.@preserve t Cint(!iszero(PyType_GetFlags(asptr(t)) & f))
 
-PyMemoryView_GET_BUFFER(m) = Base.GC.@preserve m begin
-    if CTX.is_free_threaded
-        Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObjectFT}(asptr(m)).view)
-    else
-        Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(asptr(m)).view)
-    end
-end
+PyMemoryView_GET_BUFFER(m) = Base.GC.@preserve m @ft Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(asptr(m)).view)
 
 PyType_CheckBuffer(t) = Base.GC.@preserve t begin
     getbuf = PyType_GetSlot(asptr(t), Py_bf_getbuffer)
@@ -79,13 +117,7 @@ function PyOS_RunInputHook()
 end
 
 function PySimpleObject_GetValue(::Type{T}, o) where {T}
-    Base.GC.@preserve o begin
-        if CTX.is_free_threaded
-            UnsafePtr{PySimpleObjectFT{T}}(asptr(o)).value[!]
-        else
-            UnsafePtr{PySimpleObject{T}}(asptr(o)).value[!]
-        end
-    end
+    Base.GC.@preserve o @ft UnsafePtr{PySimpleObject{T}}(asptr(o)).value[!]
 end
 
 # FAST REFCOUNTING

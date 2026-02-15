@@ -152,7 +152,7 @@ def init():
     CONFIG['opt_optimize'] = choice('optimize', ['0', '1', '2', '3'])[0]
     CONFIG['opt_procs'] = int_option('procs', accept_auto=True)[0]
     CONFIG['opt_sysimage'] = sysimg = path_option('sysimage', check_exists=True)[0]
-    CONFIG['opt_threads'] = int_option('threads', accept_auto=True)[0]
+    CONFIG['opt_threads'] = option('threads', default='1')[0]
     CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])[0]
     CONFIG['opt_handle_signals'] = choice('handle_signals', ['yes', 'no'])[0]
     CONFIG['opt_startup_file'] = choice('startup_file', ['yes', 'no'])[0]

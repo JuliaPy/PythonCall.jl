@@ -70,7 +70,7 @@ jobs:
           JULIA_DEBUG: PythonCall
           JULIA_NUM_THREADS: '2'
           PYTHON: ${{ steps.setup-python.outputs.python-path }}
-          JULIA_PYTHONCALL_EXE: ${{ matrix.pythonexe }}
+          JULIA_PYTHONCALL_EXE: ${{ case(matrix.pythonexe == 'python', steps.setup-python.outputs.python-path, matrix.pythonexe) }}
 
       - name: Process coverage
         uses: julia-actions/julia-processcoverage@v1

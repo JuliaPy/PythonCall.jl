@@ -64,52 +64,36 @@ def init():
             "For updates, see https://github.com/pytorch/pytorch/issues/78829."
         )
 
-    def flag(name):
-        """Get a boolean flag.
-        Flags can be set as command line arguments '-X juliacall-{name}=yes|no' or as
-        environment variables 'PYTHON_JULIACALL_{NAME}=yes|no'.
-        """
-        val, source = _get_config_var(name)
-        if val is None:
-            return None, ''
-
-        if val == "yes": return True, source
-        if val == "no":  return False, source
-
-        raise ValueError(f"{source}: Invalid flag '{val}'. Use 'yes' or 'no'.")
-
-    def option(name, default=None, xkey=None, envkey=None):
+    def option(name, default=None, xkey=None, envkey=None, allowflag=False):
         """Get an option.
 
         Options can be set as command line arguments '-X juliacall-{name}={value}' or as
         environment variables 'PYTHON_JULIACALL_{NAME}={value}'.
         """
-        val, source = _get_config_var(name, xkey=xkey, envkey=envkey)
-        if val is not None:
-            return val, f'{source}={val}'
-
+        k = xkey or 'juliacall-'+name.lower().replace('_', '-')
+        v = sys._xoptions.get(k)
+        if v is not None:
+            if v is True:
+                if not allowflag:
+                    raise ValueError(f'-X{k}: expecting an argument')
+                return True, f'-X{k}'
+            return v, f'-X{k}={v}'
+        k = envkey or 'PYTHON_JULIACALL_'+name.upper()
+        v = os.getenv(k)
+        if v is not None:
+            return v, f'{k}={v}'
         return default, f'<default>={default}'
 
-    def _get_config_var(name, xkey=None, envkey=None):
-        """
-        Retrieves a config value, checking -X options first, then Environment variables.
-        Returns (value, source_description).
-        """
-        if xkey is None:
-            xkey = 'juliacall-' + name.lower().replace('_', '-')
-
-        v = sys._xoptions.get(xkey)
-        if v is not None:
-            return v, f'-X{xkey}'
-
-        if envkey is None:
-            envkey = 'PYTHON_JULIACALL_' + name.upper()
-
-        v = os.getenv(envkey)
-        if v is not None:
-            return v, envkey
-
-        return None, ''
+    def flag(name, default=None, **kw):
+        v, s = option(name, allowflag=True, **kw)
+        if v is None:
+            return default, s
+        elif v is True or v == 'yes':
+            return True, s
+        elif v == 'no':
+            return False, s
+        else:
+            raise ValueError(f'{s}: expecting yes or no')
 
     def choice(name, choices, default=None, **kw):
         v, s = option(name, **kw)
@@ -120,24 +104,13 @@ def init():
         raise ValueError(
             f'{s}: expecting one of {", ".join(choices)}')
 
-    def path_or_keyword_option(name, keywords, check_exists=False, default=None, **kw):
-        v, s = option(name, **kw)
-        if v is None:
-            return default, s
-        if v in keywords:
-            return v, s
-        return _path(v, check_exists=check_exists), s
-
     def path_option(name, default=None, check_exists=False, **kw):
         path, s = option(name, **kw)
         if path is not None:
-            return _path(path, check_exists=check_exists), s
+            if check_exists and not os.path.exists(path):
+                raise ValueError(f'{s}: path does not exist')
+            return os.path.abspath(path), s
         return default, s
-
-    def _path(path, check_exists=False):
-        if check_exists and not os.path.exists(path):
-            raise ValueError(f'{path}: path does not exist')
-        return os.path.abspath(path)
     
     def executable_option(name, default=None, **kw):
         import shutil
@@ -173,8 +146,6 @@ def init():
                 arg = '--' + opt[4:].replace('_', '-')
                 if val is True:
                     argv.append(arg)
-                elif val is False:
-                    continue
                 elif val is not None:
                     argv.append(f"{arg}={val}")
         argv = [s.encode("utf-8") for s in argv]
@@ -193,7 +164,7 @@ def init():
     CONFIG['opt_home'] = bindir = path_option('home', check_exists=True, envkey='PYTHON_JULIACALL_BINDIR')[0]
     CONFIG['opt_check_bounds'] = choice('check_bounds', ['yes', 'no', 'auto'])[0]
     CONFIG['opt_compile'] = choice('compile', ['yes', 'no', 'all', 'min'])[0]
-    CONFIG["opt_trace_compile"] = path_or_keyword_option('trace_compile', ['stderr'], check_exists=False)[0]
+    CONFIG["opt_trace_compile"] = option('trace_compile')[0]
     CONFIG["opt_trace_compile_timing"] = flag('trace_compile_timing')[0]
     CONFIG['opt_compiled_modules'] = choice('compiled_modules', ['yes', 'no'])[0]
     CONFIG['opt_depwarn'] = choice('depwarn', ['yes', 'no', 'error'])[0]

@@ -3,7 +3,9 @@
 ## Unreleased
 * Added `juliacall.TypeValue.__numpy_dtype__` attribute to allow converting Julia types
   to the corresponding NumPy dtype, like `numpy.dtype(jl.Int)`.
+* JuliaCall now launches Julia with 1 thread by default.
 * Added options `trace_compile` and `trace_compile_timing` to JuliaCall.
+* Bug fixes.
 
 ## 0.9.31 (2025-12-17)
 * Restore support for Python 3.14+.

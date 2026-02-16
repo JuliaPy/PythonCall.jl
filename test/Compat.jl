@@ -104,12 +104,14 @@ end
     end
 end
 
-@testitem "Tables.jl" begin
+@testitem "Tables.jl" setup=[Setup] begin
     @testset "pytable" begin
         x = (x = [1, 2, 3], y = ["a", "b", "c"])
         # pandas
-        # TODO: install pandas and test properly
-        @test_throws PyException pytable(x, :pandas)
+        if Setup.devdeps
+            y = pytable(x, :pandas)
+            @test pyeq(Bool, pytype(y), pyimport("pandas").DataFrame)
+        end
         # columns
         y = pytable(x, :columns)
         @test pyeq(Bool, y, pydict(x = [1, 2, 3], y = ["a", "b", "c"]))

@@ -64,7 +64,7 @@ def init():
             "For updates, see https://github.com/pytorch/pytorch/issues/78829."
         )
 
-    def option(name, default=None, xkey=None, envkey=None):
+    def option(name, default=None, xkey=None, envkey=None, allowflag=False):
         """Get an option.
 
         Options can be set as command line arguments '-X juliacall-{name}={value}' or as
@@ -73,12 +73,27 @@ def init():
         k = xkey or 'juliacall-'+name.lower().replace('_', '-')
         v = sys._xoptions.get(k)
         if v is not None:
+            if v is True:
+                if not allowflag:
+                    raise ValueError(f'-X{k}: expecting an argument')
+                return True, f'-X{k}'
             return v, f'-X{k}={v}'
         k = envkey or 'PYTHON_JULIACALL_'+name.upper()
         v = os.getenv(k)
         if v is not None:
             return v, f'{k}={v}'
         return default, f'<default>={default}'
+
+    def flag(name, default=None, **kw):
+        v, s = option(name, allowflag=True, **kw)
+        if v is None:
+            return default, s
+        elif v is True or v == 'yes':
+            return True, s
+        elif v == 'no':
+            return False, s
+        else:
+            raise ValueError(f'{s}: expecting yes or no')
 
     def choice(name, choices, default=None, **kw):
         v, s = option(name, **kw)
@@ -128,7 +143,11 @@ def init():
                         val = 'no'
                     else:
                         continue
-                argv.append('--' + opt[4:].replace('_', '-') + '=' + val)
+                arg = '--' + opt[4:].replace('_', '-')
+                if val is True:
+                    argv.append(arg)
+                elif val is not None:
+                    argv.append(f"{arg}={val}")
         argv = [s.encode("utf-8") for s in argv]
 
         argc = len(argv)
@@ -145,6 +164,8 @@ def init():
     CONFIG['opt_home'] = bindir = path_option('home', check_exists=True, envkey='PYTHON_JULIACALL_BINDIR')[0]
     CONFIG['opt_check_bounds'] = choice('check_bounds', ['yes', 'no', 'auto'])[0]
     CONFIG['opt_compile'] = choice('compile', ['yes', 'no', 'all', 'min'])[0]
+    CONFIG["opt_trace_compile"] = option('trace_compile')[0]
+    CONFIG["opt_trace_compile_timing"] = flag('trace_compile_timing')[0]
     CONFIG['opt_compiled_modules'] = choice('compiled_modules', ['yes', 'no'])[0]
     CONFIG['opt_depwarn'] = choice('depwarn', ['yes', 'no', 'error'])[0]
     CONFIG['opt_inline'] = choice('inline', ['yes', 'no'])[0]
@@ -152,7 +173,7 @@ def init():
     CONFIG['opt_optimize'] = choice('optimize', ['0', '1', '2', '3'])[0]
     CONFIG['opt_procs'] = int_option('procs', accept_auto=True)[0]
     CONFIG['opt_sysimage'] = sysimg = path_option('sysimage', check_exists=True)[0]
-    CONFIG['opt_threads'] = int_option('threads', accept_auto=True)[0]
+    CONFIG['opt_threads'] = option('threads', default='1')[0]
     CONFIG['opt_warn_overwrite'] = choice('warn_overwrite', ['yes', 'no'])[0]
     CONFIG['opt_handle_signals'] = choice('handle_signals', ['yes', 'no'])[0]
     CONFIG['opt_startup_file'] = choice('startup_file', ['yes', 'no'])[0]

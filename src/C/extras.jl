@@ -12,19 +12,12 @@ const _FT_TYPE_REPLACEMENTS = Dict{Symbol,Symbol}(
     :PyJuliaValueObject => :PyJuliaValueObjectFT,
 )
 
-_ft_replace(sym::Symbol) = get(_FT_TYPE_REPLACEMENTS, sym, sym)
-
 function _ft_transform(ex)
     if ex isa Symbol
-        return _ft_replace(ex)
+        return get(_FT_TYPE_REPLACEMENTS, ex, ex)
     elseif ex isa QuoteNode
-        v = ex.value
-        return v isa Symbol ? QuoteNode(_ft_replace(v)) : ex
+        return QuoteNode(_ft_transform(ex.value))
     elseif ex isa Expr
-        # Handle dotted refs like `C.PyObject` (Expr(:., ...)).
-        if ex.head === :. && length(ex.args) == 2 && ex.args[2] isa QuoteNode && ex.args[2].value isa Symbol
-            return Expr(:., _ft_transform(ex.args[1]), QuoteNode(_ft_replace(ex.args[2].value)))
-        end
         return Expr(ex.head, map(_ft_transform, ex.args)...)
     else
         return ex
@@ -43,12 +36,8 @@ CTX.is_free_threaded` throughout the code.
 """
 macro ft(ex)
     ex_ft = _ft_transform(ex)
-    ctx = GlobalRef(@__MODULE__, :CTX)
-    return esc(:(if $ctx.is_free_threaded
-        $ex_ft
-    else
-        $ex
-    end))
+    m = @__MODULE__
+    return esc(:($m.CTX.is_free_threaded ? $ex_ft : $ex))
 end
 
 Py_Type(x) = Base.GC.@preserve x @ft PyPtr(UnsafePtr{PyObject}(asptr(x)).type[!])

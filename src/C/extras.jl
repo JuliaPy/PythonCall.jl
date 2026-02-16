@@ -63,6 +63,8 @@ PyObject_GetBuffer(_o, b, flags) = Base.GC.@preserve _o begin
     o = asptr(_o)
     getbuf = PyType_GetSlot(Py_Type(o), Py_bf_getbuffer)
     if getbuf == C_NULL
+        # TODO: we can drop this branch and just use PyType_GetName once we stop
+        # supporting python 3.10
         msg = if CTX.is_free_threaded
             "a bytes-like object is required"
         else

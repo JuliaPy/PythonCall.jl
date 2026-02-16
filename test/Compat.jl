@@ -50,10 +50,11 @@ end
 end
 
 @testitem "PyCall.jl" begin
-    if (get(ENV, "CI", "") != "") && (ENV["JULIA_PYTHONCALL_EXE"] == "python")
+    if (get(ENV, "CI", "") != "") && (ENV["JULIA_PYTHONCALL_EXE"] == "python") && !PythonCall.C.CTX.is_free_threaded
         # Only run this test when we can guarantee PyCall and PythonCall are using the
         # same Python. Currently this only runs in CI, and if PythonCall is using the
-        # system Python installation.
+        # system Python installation. Also PyCall is not compatible with free-threaded
+        # python so we skip this too.
         using PyCall
         # Check they are indeed using the same Python.
         @test Base.get_extension(PythonCall, :PyCallExt).SAME[]

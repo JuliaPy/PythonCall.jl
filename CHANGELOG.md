@@ -5,6 +5,7 @@
   to the corresponding NumPy dtype, like `numpy.dtype(jl.Int)`.
 * JuliaCall now launches Julia with 1 thread by default.
 * Added options `trace_compile` and `trace_compile_timing` to JuliaCall.
+* Initial experimental support for free-threaded Python 3.14.
 * Bug fixes.
 
 ## 0.9.31 (2025-12-17)

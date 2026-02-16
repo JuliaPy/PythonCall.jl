@@ -9,11 +9,10 @@ on:
     - main
     tags:
     - '*'
-  workflow_dispatch:
 
 jobs:
   julia:
-    name: Julia (${{ matrix.jlversion }}, ${{ matrix.os }}, ${{ matrix.pythonexe }})
+    name: Julia (${{ matrix.jlversion }}, ${{ matrix.os }}, ${{ matrix.pythonexe }} ${{ matrix.pyversion}})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -22,11 +21,18 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         jlversion: ['1','1.10']
         pythonexe: ['@CondaPkg']
+        pyversion: ['3']
         include:
         - arch: x64
           os: ubuntu-latest
           jlversion: '1'
           pythonexe: python
+          pyversion: '3'
+        - arch: x64
+          os: ubuntu-latest
+          jlversion: '1'
+          pythonexe: python
+          pyversion: '3.14t'
 
     steps:
       - uses: actions/checkout@v6
@@ -44,19 +50,26 @@ jobs:
         env:
           PYTHON: python
       
+      - name: Install Python
+        id: setup-python
+        uses: actions/setup-python@v6
+        if: ${{ matrix.pythonexe == 'python' }}
+        with:
+          python-version: ${{ matrix.pyversion }}
+      
       - name: Build PyCall
         if: ${{ matrix.pythonexe == 'python' }}
         run: |
           julia --project=test -e 'import Pkg; Pkg.build("PyCall")'
         env:
-          PYTHON: python
+          PYTHON: ${{ steps.setup-python.outputs.python-path }}
 
       - name: Run tests
         uses: julia-actions/julia-runtest@v1
         env:
           JULIA_DEBUG: PythonCall
           JULIA_NUM_THREADS: '2'
-          PYTHON: python
+          PYTHON: ${{ steps.setup-python.outputs.python-path }}
           JULIA_PYTHONCALL_EXE: ${{ matrix.pythonexe }}
 
       - name: Process coverage
@@ -66,43 +79,6 @@ jobs:
         uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-  julia-ft:
-    name: Julia (1, ubuntu-latest, python3.14t)
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Julia 1
-        uses: julia-actions/setup-julia@v2
-        with:
-          version: '1'
-          arch: x64
-
-      - uses: julia-actions/cache@v2
-
-      - name: Set up micromamba (python3.14t)
-        id: micromamba
-        uses: mamba-org/setup-micromamba@v2
-        with:
-          environment-name: py314t
-          create-args: >-
-            -c conda-forge python=3.14.*=*cp314t*
-          cache-environment: true
-
-      - name: Build package
-        uses: julia-actions/julia-buildpkg@v1
-        env:
-          PYTHON: ${{ steps.micromamba.outputs.environment-path }}/bin/python
-
-      - name: Run tests
-        uses: julia-actions/julia-runtest@v1
-        env:
-          JULIA_DEBUG: PythonCall
-          JULIA_NUM_THREADS: '2'
-          PYTHON: ${{ steps.micromamba.outputs.environment-path }}/bin/python
-          JULIA_PYTHONCALL_EXE: ${{ steps.micromamba.outputs.environment-path }}/bin/python
 
   python:
     name: Python (${{ matrix.pyversion }}, ${{ matrix.os }}, ${{ matrix.juliaexe }})
@@ -117,6 +93,9 @@ jobs:
         - os: ubuntu-latest
           pyversion: '3'
           juliaexe: julia
+        - os: ubuntu-latest
+          pyversion: '3.14t'
+          juliaexe: '@JuliaPkg'
     env:
       MANUAL_TEST_PROJECT: /tmp/juliacall-test-project
       PYTHON_JULIACALL_THREADS: '2'

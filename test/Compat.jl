@@ -71,7 +71,7 @@ end
 @testitem "Serialization.jl" begin
     using Serialization
     @testset "Py" begin
-        for x in Py[
+        @testset for x in Py[
             Py(123),
             Py(1.23),
             Py("hello"),

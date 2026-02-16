@@ -26,13 +26,7 @@ for k in [
     :pyjlbinaryiotype,
     :pyjltextiotype,
     :pyjldicttype,
-    :pyjlmoduletype,
-    :pyjlintegertype,
-    :pyjlrationaltype,
-    :pyjlrealtype,
-    :pyjlcomplextype,
     :pyjlsettype,
-    :pyjltypetype,
 ]
     @eval using .JlWrap: $k
 end

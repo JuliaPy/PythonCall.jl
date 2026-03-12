@@ -102,6 +102,16 @@ Execute `f()` on the main thread.
 """
 on_main_thread
 
+# CondaPkg is a rather heavy dependency so we go to some effort to load it lazily
+const CondaPkg_pkgid = Base.PkgId(Base.UUID("992eb4ea-22a4-4c89-a5bb-47a3300528ab"), "CondaPkg")
+
+function load_CondaPkg(f::Function)
+    if !haskey(Base.loaded_modules, CondaPkg_pkgid)
+        Base.require(@__MODULE__, :CondaPkg)
+    end
+
+    @invokelatest f(Base.loaded_modules[CondaPkg_pkgid])
+end
 
 function init_context()
 
@@ -125,22 +135,24 @@ function init_context()
         # Find Python executable
         exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
         if exe_path == "" || exe_path == "@CondaPkg"
-            if CondaPkg.backend() == :Null
-                exe_path = Sys.which("python")
-                if exe_path === nothing
-                    error("CondaPkg is using the Null backend but Python is not installed")
+            load_CondaPkg() do CondaPkg
+                if CondaPkg.backend() == :Null
+                    exe_path = Sys.which("python")
+                    if exe_path === nothing
+                        error("CondaPkg is using the Null backend but Python is not installed")
+                    end
+                    exe_path::String
+                else
+                    # By default, we use Python installed by CondaPkg.
+                    exe_path =
+                        Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") :
+                        joinpath(CondaPkg.envdir(), "bin", "python")
+                    # It's not sufficient to only activate the env while Python is initialising,
+                    # it must also be active when loading extension modules (e.g. numpy). So we
+                    # activate the environment globally.
+                    # TODO: is this really necessary?
+                    CondaPkg.activate!(ENV)
                 end
-                exe_path::String
-            else
-                # By default, we use Python installed by CondaPkg.
-                exe_path =
-                    Sys.iswindows() ? joinpath(CondaPkg.envdir(), "python.exe") :
-                    joinpath(CondaPkg.envdir(), "bin", "python")
-                # It's not sufficient to only activate the env while Python is initialising,
-                # it must also be active when loading extension modules (e.g. numpy). So we
-                # activate the environment globally.
-                # TODO: is this really necessary?
-                CondaPkg.activate!(ENV)
             end
             CTX.which = :CondaPkg
         elseif exe_path == "@PyCall"

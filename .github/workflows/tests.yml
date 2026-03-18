@@ -43,7 +43,7 @@ jobs:
           version: ${{ matrix.jlversion }}
           arch: ${{ matrix.arch }}
 
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
 
       - name: Build package
         uses: julia-actions/julia-buildpkg@v1

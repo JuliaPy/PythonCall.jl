@@ -55,6 +55,7 @@ pyhasitem
 pyhash
 pyhelp
 pyimport
+@pyimport_str
 pyin
 pyis
 pyisinstance

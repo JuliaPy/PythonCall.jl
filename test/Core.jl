@@ -428,6 +428,79 @@ end
     @test pyis(verpath[2], path)
 end
 
+@testset "pyimport_str" begin
+    parse = PythonCall.Core._pyimport_parse
+
+    # Import a module
+    @test parse("import sys") == :(const sys = pyimport("sys"))
+
+    # Import module as an alias
+    @test parse("import sys as system") == :(const system = pyimport("sys"))
+
+    # Importing a submodule binds the top-level package
+    ex = parse("import os.path") |> Base.remove_linenums!
+    @test ex == :(const os = begin
+                      pyimport("os.path")
+                      pyimport("os")
+                  end) |> Base.remove_linenums!
+
+    # Importing a submodule as an alias binds the submodule
+    @test parse("import os.path as osp") == :(const osp = pyimport("os.path"))
+
+    # import multiple modules
+    ex = parse("import sys, os") |> Base.remove_linenums!
+    @test ex == quote
+        const sys = pyimport("sys")
+        const os = pyimport("os")
+    end |> Base.remove_linenums!
+
+    # from module import name
+    @test parse("from sys import path") == :(const path = pyimport("sys" => "path"))
+
+    # from module import name as alias
+    @test parse("from sys import path as p") == :(const p = pyimport("sys" => "path"))
+
+    # from module import multiple names
+    ex = parse("from sys import path, version") |> Base.remove_linenums!
+    @test ex == quote
+        const path = pyimport("sys" => "path")
+        const version = pyimport("sys" => "version")
+    end |> Base.remove_linenums!
+
+    # from module import multiple names with aliases
+    ex = parse("from sys import path as p, version as v") |> Base.remove_linenums!
+    @test ex == quote
+        const p = pyimport("sys" => "path")
+        const v = pyimport("sys" => "version")
+    end |> Base.remove_linenums!
+
+    # from dotted module import name
+    @test parse("from os.path import join") == :(const join = pyimport("os.path" => "join"))
+
+    # Multiple lines, with extra whitespace
+    ex = parse("import sys \n from    os   import  getcwd  ") |> Base.remove_linenums!
+    @test ex == quote
+        const sys = pyimport("sys")
+        const getcwd = pyimport("os" => "getcwd")
+    end |> Base.remove_linenums!
+
+    # Error cases
+    @test_throws ArgumentError parse("")
+    @test_throws ArgumentError parse("not an import")
+    @test_throws ArgumentError parse("from os import *")
+    @test_throws ArgumentError parse("import")
+
+    # Line continuations are not supported
+    @test_throws ArgumentError parse("from os import \\\n    path, getcwd")
+    @test_throws ArgumentError parse("from os import (\n    path, getcwd\n)")
+
+    # smoke test: actually run the macro
+    m = Module()
+    @eval m using PythonCall
+    @eval m pyimport"import sys"
+    @test pyeq(Bool, m.sys.__name__, "sys")
+end
+
 @testitem "consts" begin
     @test pybuiltins.None isa Py
     @test pystr(String, pybuiltins.None) == "None"

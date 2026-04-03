@@ -14,7 +14,7 @@ using Libdl:
 
 import ..PythonCall:
     python_executable_path, python_library_path, python_library_handle, python_version
-
+using ..Utils: getpref_exe, getpref_lib
 
 include("consts.jl")
 include("pointers.jl")

@@ -2,7 +2,7 @@
 #
 # We use pickle to serialise Python objects to bytes.
 
-_pickle_module() = pyimport(get(ENV, "JULIA_PYTHONCALL_PICKLE", "pickle"))
+_pickle_module() = pyimport(Utils.getpref_pickle())
 
 function serialize_py(s, x::Py)
     if pyisnull(x)

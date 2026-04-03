@@ -115,7 +115,7 @@ function init_context()
         Py_IsInitialized() == 0 && error("Python is not already initialized.")
         CTX.is_initialized = true
         CTX.which = :embedded
-        exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
+        exe_path = getpref_exe()
         if exe_path != ""
             CTX.exe_path = exe_path
             # this ensures PyCall uses the same Python interpreter
@@ -123,7 +123,7 @@ function init_context()
         end
     else
         # Find Python executable
-        exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
+        exe_path = getpref_exe()
         if exe_path == "" || exe_path == "@CondaPkg"
             if CondaPkg.backend() == :Null
                 exe_path = Sys.which("python")
@@ -158,7 +158,7 @@ function init_context()
                 exe_path = abspath(exe_path, "bin", "python")::String
             end
         elseif startswith(exe_path, "@")
-            error("invalid JULIA_PYTHONCALL_EXE=$exe_path")
+            error("invalid exe: $exe_path")
         else
             # Otherwise we use the Python specified
             CTX.which = :unknown
@@ -199,7 +199,7 @@ function init_context()
         # Find and open Python library
         lib_path = something(
             CTX.lib_path === missing ? nothing : CTX.lib_path,
-            get(ENV, "JULIA_PYTHONCALL_LIB", nothing),
+            getpref_lib(),
             Some(nothing),
         )
         if lib_path !== nothing
@@ -226,7 +226,7 @@ function init_context()
             CTX.lib_path === missing && error("""
                 Could not find Python library for Python executable $(repr(CTX.exe_path)).
 
-                If you know where the library is, set environment variable 'JULIA_PYTHONCALL_LIB' to its path.
+                If you know where the library is, set the 'lib' preference or 'JULIA_PYTHONCALL_LIB' environment variable to its path.
                 """)
         end
 

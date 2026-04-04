@@ -34,6 +34,7 @@ import ..PythonCall:
     @pyconst,
     @pyeval,
     @pyexec,
+    @pyimport_str,
     getptr,
     ispy,
     Py,

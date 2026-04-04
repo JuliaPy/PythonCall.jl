@@ -50,6 +50,7 @@ export pyilshift
 export pyimatmul
 export pyimod
 export pyimport
+export @pyimport_str
 export pyimul
 export pyin
 export pyindex

@@ -1454,12 +1454,152 @@ end
 Import a module `m`, or an attribute `k`, or a tuple of attributes.
 
 If several arguments are given, return the results of importing each one in a tuple.
+
+See also: [`@pyimport_str`](@ref).
 """
 pyimport(m) = pynew(errcheck(@autopy m C.PyImport_Import(m_)))
 pyimport((m, k)::Pair) = (m_ = pyimport(m); k_ = pygetattr(m_, k); pydel!(m_); k_)
 pyimport((m, ks)::Pair{<:Any,<:Tuple}) =
     (m_ = pyimport(m); ks_ = map(k -> pygetattr(m_, k), ks); pydel!(m_); ks_)
 pyimport(m1, m2, ms...) = map(pyimport, (m1, m2, ms...))
+
+"""
+    pyimport"import numpy"
+    pyimport"import numpy as np"
+    pyimport"from numpy import array"
+    pyimport"from numpy import array as arr"
+    pyimport"from numpy import array, zeros"
+    pyimport"from numpy import array as arr, zeros as z"
+    pyimport"import numpy, scipy"
+
+String macro that parses Python import syntax and generates equivalent Julia
+code using [`pyimport()`](@ref). Each form generates `const` bindings in the
+caller's scope.
+
+Multiple lines are supported:
+```julia
+pyimport\"\"\"
+import numpy as np
+from scipy import linalg, optimize
+from os.path import join as pathjoin
+\"\"\"
+
+# Converted to:
+const np = pyimport("numpy")
+const linalg = pyimport("scipy" => "linalg")
+const optimize = pyimport("scipy" => "optimize")
+const pathjoin = pyimport("os.path" => "join")
+```
+
+But multiline or grouped import statements are not supported:
+```julia
+# These will throw an error
+pyimport\"\"\"
+from sys import (path,
+                 version)
+from sys import path, \
+                version
+\"\"\"
+```
+
+Relative imports are also not currently supported.
+"""
+macro pyimport_str(s)
+    esc(_pyimport_parse(s))
+end
+
+function _pyimport_parse(s::AbstractString)
+    lines = filter(!isempty, strip.(split(s, "\n")))
+    isempty(lines) && throw(ArgumentError("pyimport: empty import string"))
+
+    # Check for line continuations
+    for line in lines
+        if contains(line, '\\') || contains(line, '(')
+            throw(ArgumentError("pyimport: line continuation with '\\' or '(' is not supported: $line"))
+        end
+    end
+
+    if length(lines) == 1
+        _pyimport_parse_line(lines[1])
+    else
+        Expr(:block, [_pyimport_parse_line(line) for line in lines]...)
+    end
+end
+
+function _pyimport_parse_line(s::AbstractString)
+    if startswith(s, "from ")
+        _pyimport_parse_from(s)
+    elseif startswith(s, "import ")
+        _pyimport_parse_import(s)
+    else
+        throw(ArgumentError("pyimport: expected 'import ...' or 'from ... import ...', got: $s"))
+    end
+end
+
+function _pyimport_parse_import(s::AbstractString)
+    rest = strip(chopprefix(s, "import"))
+    if isempty(rest)
+        throw(ArgumentError("pyimport: missing module name after 'import'"))
+    end
+
+    parts = split(rest, ","; keepempty=false)
+    exprs = Expr[]
+    for part in parts
+        part = strip(part)
+
+        # Check if there's an `as` clause
+        m = match(r"^(\S+)\s+as\s+(\S+)$", part)
+        if !isnothing(m)
+            # `import numpy.linalg as la` binds la to the linalg submodule
+            modname = m[1]
+            alias = Symbol(m[2])
+            push!(exprs, :(const $alias = pyimport($modname)))
+        else
+            modname = part
+            # `import numpy.linalg` binds numpy (top-level package)
+            # but first imports the submodule to ensure it's loaded
+            dotparts = split(modname, ".")
+            alias = Symbol(dotparts[1])
+            if length(dotparts) == 1
+                push!(exprs, :(const $alias = pyimport($modname)))
+            else
+                toplevel = dotparts[1]
+                push!(exprs, :(const $alias = (pyimport($modname); pyimport($toplevel))))
+            end
+        end
+    end
+
+    length(exprs) == 1 ? exprs[1] : Expr(:block, exprs...)
+end
+
+function _pyimport_parse_from(s::AbstractString)
+    m = match(r"^from\s+(\S+)\s+import\s+(.+)$", s)
+    if isnothing(m)
+        throw(ArgumentError("pyimport: invalid from-import syntax: $s"))
+    end
+
+    modname = m[1]
+    rest = strip(m[2])
+    if rest == "*"
+        throw(ArgumentError("pyimport: wildcard import 'from $modname import *' is not supported"))
+    end
+
+    parts = split(rest, ","; keepempty=false)
+    exprs = Expr[]
+    for part in parts
+        part = strip(part)
+        m2 = match(r"^(\S+)\s+as\s+(\S+)$", part)
+        name, alias = if !isnothing(m2)
+            m2[1], Symbol(m2[2])
+        else
+            part, Symbol(part)
+        end
+
+        push!(exprs, :(const $alias = pyimport($modname => $name)))
+    end
+
+    length(exprs) == 1 ? exprs[1] : Expr(:block, exprs...)
+end
 
 ### builtins not covered elsewhere
 

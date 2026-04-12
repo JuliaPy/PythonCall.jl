@@ -25,6 +25,8 @@ const PyJuliaBase_Type = Ref(C.PyNULL)
 const PYJLVALUES = []
 # unused indices in PYJLVALUES
 const PYJLFREEVALUES = Int[]
+# lock protecting PYJLVALUES and PYJLFREEVALUES from concurrent modification
+const PYJL_LOCK = Threads.SpinLock()
 
 function _pyjl_new(t::C.PyPtr, ::C.PyPtr, ::C.PyPtr)
     alloc = C.PyType_GetSlot(t, C.Py_tp_alloc)
@@ -39,8 +41,16 @@ end
 function _pyjl_dealloc(o::C.PyPtr)
     idx = C.@ft UnsafePtr{PyJuliaValueObject}(o).value[]
     if idx != 0
+        # Disable GC to prevent push! from triggering a GC that runs finalizers
+        # re-entrantly (the finalizer chain: push! → alloc → GC → py_finalizer →
+        # enqueue → Py_DecRef → _pyjl_dealloc → push! on same vector →
+        # ConcurrencyViolationError). The lock guards against true multi-thread races.
+        prev = Base.GC.enable(false)
+        lock(PYJL_LOCK)
         PYJLVALUES[idx] = nothing
         push!(PYJLFREEVALUES, idx)
+        unlock(PYJL_LOCK)
+        Base.GC.enable(prev)
     end
     (C.@ft UnsafePtr{PyJuliaValueObject}(o).weaklist[!]) == C.PyNULL || C.PyObject_ClearWeakRefs(o)
     freeptr = C.PyType_GetSlot(C.Py_Type(o), C.Py_tp_free)
@@ -375,6 +385,10 @@ PyJuliaValue_SetValue(_o, @nospecialize(v)) = Base.GC.@preserve _o begin
     o = C.asptr(_o)
     idx = C.@ft UnsafePtr{PyJuliaValueObject}(o).value[]
     if idx == 0
+        # Disable GC to prevent push!/pop! from triggering a GC whose finalizers
+        # re-entrantly resize the same vectors (see _pyjl_dealloc comment).
+        prev = Base.GC.enable(false)
+        lock(PYJL_LOCK)
         if isempty(PYJLFREEVALUES)
             push!(PYJLVALUES, v)
             idx = length(PYJLVALUES)
@@ -382,6 +396,8 @@ PyJuliaValue_SetValue(_o, @nospecialize(v)) = Base.GC.@preserve _o begin
             idx = pop!(PYJLFREEVALUES)
             PYJLVALUES[idx] = v
         end
+        unlock(PYJL_LOCK)
+        Base.GC.enable(prev)
         C.@ft UnsafePtr{PyJuliaValueObject}(o).value[] = idx
     else
         PYJLVALUES[idx] = v

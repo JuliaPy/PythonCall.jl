@@ -37,6 +37,7 @@ From Python, the arguments to a Julia function will be converted according to th
 | `None`                                                                                                       | `Missing`                                                   |
 | `bytes`                                                                                                      | `Vector{UInt8}`, `Vector{Int8}`, `String`                   |
 | `str`                                                                                                        | `String`, `Symbol`, `Char`, `Vector{UInt8}`, `Vector{Int8}` |
+| `str`                                                                                                        | `PyString`                                                 |
 | `range`                                                                                                      | `UnitRange`                                                 |
 | `collections.abc.Mapping`                                                                                    | `Dict`                                                      |
 | `collections.abc.Iterable`                                                                                   | `Vector`, `Set`, `Tuple`, `NamedTuple`, `Pair`              |

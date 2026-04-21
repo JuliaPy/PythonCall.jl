@@ -249,10 +249,15 @@ def init():
     # including running finalizers for any objects that still exist
     @atexit.register
     def at_jl_exit():
-        jl_atexit_hook = lib.jl_atexit_hook
-        jl_atexit_hook.argtypes = [c.c_int]
-        jl_atexit_hook.restype = None
-        jl_atexit_hook(0)
+        jl_eval(b'''
+                try 
+                    Base._atexit(Int32(0))
+                    flush(Base.stdout)
+                    flush(Base.stderr)
+                catch e 
+                    @error "Error during Julia atexit" e
+                end;
+        ''')
 
     # initialise PythonCall
     jl_eval = lib.jl_eval_string

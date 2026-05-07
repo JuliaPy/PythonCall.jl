@@ -17,19 +17,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [x64] # x86 unsupported by MicroMamba
         os: [ubuntu-latest, windows-latest, macos-latest]
         jlversion: ['1','1.10']
         pythonexe: ['@CondaPkg']
         pyversion: ['3']
         include:
-        - arch: x64
-          os: ubuntu-latest
+        - os: ubuntu-latest
           jlversion: '1'
           pythonexe: python
           pyversion: '3'
-        - arch: x64
-          os: ubuntu-latest
+        - os: ubuntu-latest
           jlversion: '1'
           pythonexe: python
           pyversion: '3.14t'
@@ -41,7 +38,6 @@ jobs:
         uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.jlversion }}
-          arch: ${{ matrix.arch }}
 
       - uses: julia-actions/cache@v3
 

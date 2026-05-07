@@ -10,12 +10,11 @@ on:
 
 jobs:
   tests:
-    name: Test Julia (${{ matrix.jlversion }}, ${{ matrix.os }}-${{ matrix.arch }})
+    name: Test Julia (${{ matrix.jlversion }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        arch: [x64] # x86 unsupported by MicroMamba
         os: [ubuntu-latest, windows-latest, macos-latest]
         jlversion: ['~1.9.0-0', 'nightly']
     steps:
@@ -23,7 +22,6 @@ jobs:
       - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ inputs.jl_version }}
-          arch: ${{ matrix.arch }}
       - uses: actions/cache@v5
         env:
           cache-name: cache-artifacts

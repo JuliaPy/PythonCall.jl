@@ -9,10 +9,12 @@ using ..Utils
 
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
-using CondaPkg: CondaPkg
-using Pkg: Pkg
 using Libdl:
     dlpath, dlopen, dlopen_e, dlclose, dlsym, dlsym_e, RTLD_LAZY, RTLD_DEEPBIND, RTLD_GLOBAL
+
+if Utils.getpref_exe(; prefonly=true) == "@CondaPkg"
+    using CondaPkg: CondaPkg
+end
 
 import ..PythonCall:
     python_executable_path, python_library_path, python_library_handle, python_version

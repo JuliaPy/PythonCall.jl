@@ -282,7 +282,8 @@ to your current Julia project containing Python and any required Python packages
 
 You can configure PythonCall with the preferences listed below. These can be set either as
 [Julia preferences](https://github.com/JuliaPackaging/Preferences.jl) or as environment
-variables.
+variables. If an environment variable and preference are both set, the
+preference will take priority.
 
 | Preference | Environment Variable | Description |
 | ---------- | -------------------- | ----------- |

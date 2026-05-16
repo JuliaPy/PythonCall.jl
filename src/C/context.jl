@@ -124,7 +124,7 @@ function init_context()
     else
         # Find Python executable
         exe_path = Utils.getpref_exe()
-        if exe_path == "" || exe_path == "@CondaPkg"
+        if exe_path == "@CondaPkg"
             if CondaPkg.backend() == :Null
                 exe_path = Sys.which("python")
                 if exe_path === nothing

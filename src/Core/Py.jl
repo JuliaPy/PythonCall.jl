@@ -37,8 +37,6 @@ decref(x::Py) = Base.GC.@preserve x (decref(getptr(x)); x)
 
 Base.unsafe_convert(::Type{C.PyPtr}, x::Py) = getptr(x)
 
-const PYNULL_CACHE = Py[]
-
 """
     pynew([ptr])
 
@@ -50,12 +48,7 @@ points at, i.e. the new `Py` object owns a reference.
 Note that NULL Python objects are not safe in the sense that most API functions will probably
 crash your Julia session if you pass a NULL argument.
 """
-pynew() =
-    if isempty(PYNULL_CACHE)
-        Py(Val(:new), C.PyNULL)
-    else
-        pop!(PYNULL_CACHE)
-    end
+pynew() = Py(Val(:new), C.PyNULL)
 
 const PyNULL = pynew()
 
@@ -86,13 +79,10 @@ DANGER! Use this function ONLY IF the Julia object `x` could have been garbage-c
 anyway, i.e. was about to become unreachable. This means you MUST KNOW that no other part of
 the program has the Julia object `x`.
 
-This decrements the reference count, sets the pointer to NULL and appends `x` to a cache
-of unused objects (`PYNULL_CACHE`).
+This decrements the reference count, sets the pointer to NULL and finalizes `x`.
 
-This is an optimization to avoid excessive allocation and deallocation in Julia, which can
-be a significant source of slow-down in code which uses a lot of Python objects. It allows
-`pynew()` to pop an item from `PYNULL_CACHE` instead of allocating one, and avoids calling
-the relatively slow finalizer on `x`.
+Use this to eagerly de-allocate a Python object, rather than waiting for Julia's GC to
+finalize it at some indeterminate point in the future.
 """
 function pydel!(x::Py)
     ptr = getptr(x)
@@ -100,7 +90,7 @@ function pydel!(x::Py)
         C.Py_DecRef(ptr)
         setptr!(x, C.PyNULL)
     end
-    push!(PYNULL_CACHE, x)
+    finalize(x)
     return
 end
 

@@ -1,9 +1,10 @@
 # Changelog
 
 ## Unreleased
-
 * Add configuration via Preferences in addition to environment variables (e.g. `exe`
   rather than `JULIA_PYTHONCALL_EXE`.)
+* Internals: removed the cache of unused Python objects. This makes `pydel!` faster and
+  removes a race condition in free-threaded python.
 
 ## 0.9.32 (2026-05-14)
 * Added `juliacall.TypeValue.__numpy_dtype__` attribute to allow converting Julia types

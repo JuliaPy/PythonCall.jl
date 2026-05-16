@@ -10,7 +10,7 @@ function getpref(::Type{T}, prefname, envname, default = nothing) where {T}
     return default
 end
 
-checkpref(::Type{String}, x) = string(x)
+checkpref(::Type{String}, x) = error("invalid preference of type $(type(x)), expecting a string")
 checkpref(::Type{String}, x::AbstractString) = convert(String, x)
 
 # Specific preference functions

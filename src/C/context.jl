@@ -114,7 +114,7 @@ function init_context()
         Py_IsInitialized() == 0 && error("Python is not already initialized.")
         CTX.is_initialized = true
         CTX.which = :embedded
-        exe_path = getpref_exe()
+        exe_path = Utils.getpref_exe()
         if exe_path != ""
             CTX.exe_path = exe_path
             # this ensures PyCall uses the same Python interpreter
@@ -122,7 +122,7 @@ function init_context()
         end
     else
         # Find Python executable
-        exe_path = getpref_exe()
+        exe_path = Utils.getpref_exe()
         if exe_path == "" || exe_path == "@CondaPkg"
             if CondaPkg.backend() == :Null
                 exe_path = Sys.which("python")
@@ -198,7 +198,7 @@ function init_context()
         # Find and open Python library
         lib_path = something(
             CTX.lib_path === missing ? nothing : CTX.lib_path,
-            getpref_lib(),
+            Utils.getpref_lib(),
             Some(nothing),
         )
         if lib_path !== nothing

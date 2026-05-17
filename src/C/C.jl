@@ -9,7 +9,6 @@ using ..Utils
 
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
-using Pkg: Pkg
 using Libdl:
     dlpath, dlopen, dlopen_e, dlclose, dlsym, dlsym_e, RTLD_LAZY, RTLD_DEEPBIND, RTLD_GLOBAL
 using Preferences: @load_preference

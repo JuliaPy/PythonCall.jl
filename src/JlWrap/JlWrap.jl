@@ -30,7 +30,6 @@ import ..PythonCall:
     PyObjectMatrix,
     PyObjectArray
 
-using Pkg: Pkg
 using Base: @propagate_inbounds, allocatedinline
 
 import ..Core: Py
@@ -70,7 +69,6 @@ function __init__()
     jl.Core = Base.Core
     jl.Base = Base
     jl.Main = Main
-    jl.Pkg = Pkg
     jl.PythonCall = PythonCall
 end
 

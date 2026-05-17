@@ -1,7 +1,6 @@
 # Changelog
 
 ## Unreleased
-
 * Add configuration via Preferences in addition to environment variables (e.g. `exe`
   rather than `JULIA_PYTHONCALL_EXE`.)
 

@@ -79,10 +79,10 @@ DANGER! Use this function ONLY IF the Julia object `x` could have been garbage-c
 anyway, i.e. was about to become unreachable. This means you MUST KNOW that no other part of
 the program has the Julia object `x`.
 
-This decrements the reference count, sets the pointer to NULL and finalizes `x`.
+This decrements the reference count and sets the pointer to NULL.
 
-Use this to eagerly de-allocate a Python object, rather than waiting for Julia's GC to
-finalize it at some indeterminate point in the future.
+Use this to eagerly free a Python object, rather than waiting for Julia's GC to finalize
+it at some indeterminate point in the future.
 """
 function pydel!(x::Py)
     ptr = getptr(x)

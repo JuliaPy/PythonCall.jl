@@ -14,7 +14,7 @@ using Libdl:
 using Preferences: @load_preference
 
 # do not load CondaPkg if the exe preference is set to something else
-if @load_preference("exe", "") in ("", "@CondaPkg")
+if @load_preference("exe", "@CondaPkg") == "@CondaPkg"
     using CondaPkg: CondaPkg
 end
 

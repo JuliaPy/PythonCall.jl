@@ -122,6 +122,16 @@ end
     @testset "iterate keys" begin
         @test collect(keys(z)) == ["foo"]
     end
+    @testset "complete keys from another thread" begin
+        using REPL
+        task = Threads.@spawn begin
+            completions, _, _ = REPL.REPLCompletions.completions("y[", 2, @__MODULE__)
+            length(completions)
+        end
+        wait(task)
+        completion_count = fetch(task)
+        @test completion_count == 1
+    end
     @testset "getindex" begin
         @test z["foo"] === 12
         @test_throws KeyError z["bar"]

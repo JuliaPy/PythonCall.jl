@@ -220,6 +220,34 @@
         @test Base.Docs.getdoc(pybuiltins.int) isa Markdown.MD
         @test Base.Docs.getdoc(PythonCall.PyNULL) === nothing
     end
+    @testset "comparisons" begin
+        @testset "Py vs Py" begin
+            # ==
+            @test Py(1) == Py(1)
+            @test !(Py(1) == Py(2))
+            @test !(Py(1) == Py(0))
+            # !=
+            @test Py(2) != Py(1)
+            @test Py(2) != Py(3)
+            @test !(Py(2) != Py(2))
+            # <
+            @test Py(3) < Py(4)
+            @test !(Py(3) < Py(3))
+            @test !(Py(3) < Py(2))
+            # <=
+            @test Py(4) <= Py(5)
+            @test Py(4) <= Py(4)
+            @test !(Py(4) <= Py(3))
+            # >
+            @test Py(5) > Py(4)
+            @test !(Py(5) > Py(5))
+            @test !(Py(5) > Py(6))
+            # >=
+            @test Py(5) >= Py(4)
+            @test Py(5) >= Py(5)
+            @test !(Py(5) >= Py(6))
+        end
+    end
 end
 
 @testitem "iter" begin
@@ -785,13 +813,13 @@ end
 @testitem "Base.jl" begin
     @testset "broadcast" begin
         # Py always broadcasts as a scalar
-        x = [1 2; 3 4] .+ Py(1)
-        @test isequal(x, [Py(2) Py(3); Py(4) Py(5)])
-        x = Py("foo") .* [1 2; 3 4]
+        x = Py.([1 2; 3 4]) .+ Py(1)
+        @test isequal(x, Py.([2 3; 4 5]))
+        x = Py("foo") .* Py.([1 2; 3 4])
         @test isequal(x, [Py("foo") Py("foofoo"); Py("foofoofoo") Py("foofoofoofoo")])
         # this previously treated the list as a shape (2,) object
         # but now tries to do `1 + [1, 2]` which properly fails
-        @test_throws PyException [1 2; 3 4] .+ pylist([1, 2])
+        @test_throws PyException Py.([1 2; 3 4]) .+ pylist([1, 2])
     end
     @testset "showable" begin
         @test showable(MIME("text/plain"), Py(nothing))

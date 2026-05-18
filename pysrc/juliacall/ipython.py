@@ -16,9 +16,9 @@ from IPython.core.magic import Magics, magics_class, line_cell_magic
 from . import Main, PythonCall
 import __main__
 
-_set_var = Main.seval("(k, v) -> @eval $(Symbol(k)) = $v")
-_get_var = Main.seval("k -> hasproperty(Main, Symbol(k)) ? PythonCall.pyjlraw(getproperty(Main, Symbol(k))) : nothing")
-_egal = Main.seval("===")
+_set_var = Main.jl_eval("(k, v) -> @eval $(Symbol(k)) = $v")
+_get_var = Main.jl_eval("k -> hasproperty(Main, Symbol(k)) ? PythonCall.pyjlraw(getproperty(Main, Symbol(k))) : nothing")
+_egal = Main.jl_eval("===")
 
 @magics_class
 class JuliaMagics(Magics):
@@ -49,7 +49,7 @@ class JuliaMagics(Magics):
                 if k in syncvars:
                     cachevars[k] = _get_var(k)
         # run the code
-        ans = Main.seval('begin\n' + code + '\nend')
+        ans = Main.jl_eval('begin\n' + code + '\nend')
         # flush stderr/stdout
         PythonCall._ipython._flush_stdio()
         # copy variables back to Python
@@ -61,7 +61,7 @@ class JuliaMagics(Magics):
                 __main__.__dict__[k] = v1._jl_any()
         # return the value unless suppressed with trailing ";"
         if not code.strip().endswith(';'):
-            return ans
+            return ans.jl_to_py()
 
 def load_ipython_extension(ip):
     # register magics
@@ -69,7 +69,7 @@ def load_ipython_extension(ip):
     # redirect stdout/stderr
     if ip.__class__.__name__ == 'TerminalInteractiveShell':
         # no redirection in the terminal
-        PythonCall.seval("""module _ipython
+        PythonCall.jl_eval("""module _ipython
             function _flush_stdio()
             end
         end""")
@@ -77,7 +77,7 @@ def load_ipython_extension(ip):
         # In Julia 1.7+ redirect_stdout() returns a Pipe object. Earlier versions of Julia
         # just return a tuple of the two pipe ends. This is why we have [1] and [2] below.
         # They can be dropped on earlier versions.
-        PythonCall.seval("""module _ipython
+        PythonCall.jl_eval("""module _ipython
             using ..PythonCall
             const _redirected_stdout = redirect_stdout()
             const _redirected_stderr = redirect_stderr()
@@ -98,7 +98,7 @@ def load_ipython_extension(ip):
         end""")
     ip.events.register('post_execute', PythonCall._ipython._flush_stdio)
     # push displays
-    PythonCall.seval("""begin
+    PythonCall.jl_eval("""begin
         pushdisplay(Compat.PythonDisplay())
         pushdisplay(Compat.IPythonDisplay())
         nothing

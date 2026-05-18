@@ -10,19 +10,9 @@ def test_newmodule():
 
     jl = juliacall.Main
     m = juliacall.newmodule("TestModule")
-    assert isinstance(m, juliacall.ModuleValue)
+    assert isinstance(m, juliacall.Jl)
     assert jl.isa(m, jl.Module)
     assert str(jl.nameof(m)) == "TestModule"
-
-
-def test_convert():
-    import juliacall
-
-    jl = juliacall.Main
-    for x, t in [(None, jl.Nothing), (True, jl.Bool), ([1, 2, 3], jl.Vector)]:
-        y = juliacall.convert(t, x)
-        assert isinstance(y, juliacall.AnyValue)
-        assert jl.isa(y, t)
 
 
 def test_interactive():
@@ -60,15 +50,15 @@ def test_issue_394():
     f = lambda x: x + 1
     y = 5
     jl.x = x
-    assert jl.x is x
+    assert jl.x.jl_to_py() is x
     jl.f = f
-    assert jl.f is f
+    assert jl.f.jl_to_py() is f
     jl.y = y
-    assert jl.y is y
-    assert jl.x is x
-    assert jl.f is f
-    assert jl.y is y
-    assert jl.seval("f(x)") == 4
+    assert jl.y.jl_to_py() is y
+    assert jl.x.jl_to_py() is x
+    assert jl.f.jl_to_py() is f
+    assert jl.y.jl_to_py() is y
+    assert jl.jl_eval("f(x)").jl_to_py() == 4
 
 
 def test_issue_433():
@@ -76,11 +66,11 @@ def test_issue_433():
     from juliacall import Main as jl
 
     # Smoke test
-    jl.seval("x=1\nx=1")
+    jl.jl_eval("x=1\nx=1")
     assert jl.x == 1
 
     # Do multiple things
-    out = jl.seval(
+    out = jl.jl_eval(
         """
         function _issue_433_g(x)
             return x^2
@@ -94,7 +84,7 @@ def test_issue_433():
 def test_julia_gc():
     from juliacall import Main as jl
 
-    if jl.seval('v"1.11.0-" <= VERSION < v"1.11.3"'):
+    if jl.jl_eval('v"1.11.0-" <= VERSION < v"1.11.3"'):
         # Seems to be a Julia bug - hopefully fixed in 1.11.3
         pytest.skip("Test not yet supported on Julia 1.11+")
 
@@ -105,7 +95,7 @@ def test_julia_gc():
     # Debugging note: if you get segfaults, then run the tests with
     # `PYTHON_JULIACALL_HANDLE_SIGNALS=yes python3 -X faulthandler -m pytest -p no:faulthandler -s --nbval --cov=pysrc ./pytest/`
     # in order to recover a bit more information from the segfault.
-    jl.seval(
+    jl.jl_eval(
         """
         using PythonCall, Test
         let
@@ -120,10 +110,8 @@ def test_julia_gc():
     )
 
 
-@pytest.mark.parametrize(
-    ["yld", "raw"], [(yld, raw) for yld in [False, True] for raw in [False, True]]
-)
-def test_call_nogil(yld, raw):
+@pytest.mark.parametrize("yld", [True, False])
+def test_call_nogil(yld):
     """Tests that we can execute Julia code in parallel by releasing the GIL."""
     from concurrent.futures import ThreadPoolExecutor, wait
     from time import time
@@ -136,10 +124,7 @@ def test_call_nogil(yld, raw):
     else:
         # use Libc.systemsleep which does not yield
         jsleep = jl.Libc.systemsleep
-    if raw:
-        # test RawValue instead of AnyValue
-        jsleep = jsleep._jl_raw()
-    jsleep = jsleep._jl_call_nogil
+    jsleep = jsleep.jl_call_nogil
     jyield = getattr(jl, "yield")
     # precompile
     jsleep(0.01)

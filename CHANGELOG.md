@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.9.33 (2026-05-18)
 * Add configuration via Preferences in addition to environment variables (e.g. `exe`
   rather than `JULIA_PYTHONCALL_EXE`.)
 * Bug fixes.

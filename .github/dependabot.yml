@@ -13,3 +13,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  - package-ecosystem: julia
+    directory: /
+    schedule:
+      interval: weekly

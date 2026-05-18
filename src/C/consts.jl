@@ -124,6 +124,20 @@ end
     type::Ptr{Cvoid} = C_NULL # really is Ptr{PyObject} or Ptr{PyTypeObject} but Julia 1.3 and below get the layout incorrect when circular types are involved
 end
 
+@kwdef struct PyMutex
+    bits::Cuchar = 0
+end
+
+@kwdef struct PyObjectFT
+    tid::Csize_t = 0
+    flags::Cushort = 0
+    mutex::PyMutex = PyMutex()
+    gc_bits::Cuchar = 0
+    ref_local::Cuint = 0
+    ref_shared::Py_ssize_t = 0
+    type::Ptr{Cvoid} = C_NULL # really is Ptr{PyObject} or Ptr{PyTypeObject} but Julia 1.3 and below get the layout incorrect when circular types are involved
+end
+
 const PyPtr = Ptr{PyObject}
 const PyNULL = PyPtr(0)
 
@@ -136,6 +150,11 @@ Base.unsafe_convert(::Type{PyPtr}, o::PyObjectRef) = o.ptr
 
 @kwdef struct PyVarObject
     ob_base::PyObject = PyObject()
+    size::Py_ssize_t = 0
+end
+
+@kwdef struct PyVarObjectFT
+    ob_base::PyObjectFT = PyObjectFT()
     size::Py_ssize_t = 0
 end
 
@@ -249,6 +268,16 @@ end
     weakreflist::PyPtr = PyNULL
 end
 
+@kwdef struct PyMemoryViewObjectFT
+    ob_base::PyVarObjectFT = PyVarObjectFT()
+    mbuf::PyPtr = PyNULL
+    hash::Py_hash_t = 0
+    flags::Cint = 0
+    exports::Py_ssize_t = 0
+    view::Py_buffer = Py_buffer()
+    weakreflist::PyPtr = PyNULL
+end
+
 @kwdef struct PyTypeObject
     ob_base::PyVarObject = PyVarObject()
     name::Cstring = C_NULL
@@ -324,6 +353,11 @@ end
 
 @kwdef struct PySimpleObject{T}
     ob_base::PyObject = PyObject()
+    value::T
+end
+
+@kwdef struct PySimpleObjectFT{T}
+    ob_base::PyObjectFT = PyObjectFT()
     value::T
 end
 

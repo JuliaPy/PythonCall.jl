@@ -13,57 +13,67 @@ on:
 
 jobs:
   julia:
-    name: Julia (${{ matrix.jlversion }}, ${{ matrix.os }}, ${{ matrix.pythonexe }})
+    name: Julia (${{ matrix.jlversion }}, ${{ matrix.os }}, ${{ matrix.pythonexe }} ${{ matrix.pyversion}})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        arch: [x64] # x86 unsupported by MicroMamba
         os: [ubuntu-latest, windows-latest, macos-latest]
         jlversion: ['1','1.10']
         pythonexe: ['@CondaPkg']
+        pyversion: ['3']
         include:
-        - arch: x64
-          os: ubuntu-latest
+        - os: ubuntu-latest
           jlversion: '1'
           pythonexe: python
+          pyversion: '3'
+        - os: ubuntu-latest
+          jlversion: '1'
+          pythonexe: python
+          pyversion: '3.14t'
 
     steps:
       - uses: actions/checkout@v6
 
       - name: Set up Julia ${{ matrix.jlversion }}
-        uses: julia-actions/setup-julia@v2
+        uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.jlversion }}
-          arch: ${{ matrix.arch }}
 
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
 
       - name: Build package
         uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: python
       
+      - name: Install Python
+        id: setup-python
+        uses: actions/setup-python@v6
+        if: ${{ matrix.pythonexe == 'python' }}
+        with:
+          python-version: ${{ matrix.pyversion }}
+      
       - name: Build PyCall
         if: ${{ matrix.pythonexe == 'python' }}
         run: |
           julia --project=test -e 'import Pkg; Pkg.build("PyCall")'
         env:
-          PYTHON: python
+          PYTHON: ${{ steps.setup-python.outputs.python-path }}
 
       - name: Run tests
         uses: julia-actions/julia-runtest@v1
         env:
           JULIA_DEBUG: PythonCall
           JULIA_NUM_THREADS: '2'
-          PYTHON: python
-          JULIA_PYTHONCALL_EXE: ${{ matrix.pythonexe }}
+          PYTHON: ${{ steps.setup-python.outputs.python-path }}
+          JULIA_PYTHONCALL_EXE: ${{ case(matrix.pythonexe == 'python', steps.setup-python.outputs.python-path, matrix.pythonexe) }}
 
       - name: Process coverage
         uses: julia-actions/julia-processcoverage@v1
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -80,6 +90,9 @@ jobs:
         - os: ubuntu-latest
           pyversion: '3'
           juliaexe: julia
+        - os: ubuntu-latest
+          pyversion: '3.14t'
+          juliaexe: '@JuliaPkg'
     env:
       MANUAL_TEST_PROJECT: /tmp/juliacall-test-project
       PYTHON_JULIACALL_THREADS: '2'
@@ -106,7 +119,7 @@ jobs:
   
       - name: Set up Julia
         id: setup_julia
-        uses: julia-actions/setup-julia@v2
+        uses: julia-actions/setup-julia@v3
         with:
           # Python in the GitHub runners ships with OpenSSL 3.0. Julia 1.12 requires
           # OpenSSL 3.5. Therefore juliapkg requires Julia 1.11 or lower.
@@ -144,6 +157,6 @@ jobs:
           PYTHON_JULIACALL_PROJECT: ${{ env.MANUAL_TEST_PROJECT }}
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

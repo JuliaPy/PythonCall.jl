@@ -1,5 +1,23 @@
 module Utils
 
+using Preferences: @load_preference
+
+function getpref(::Type{T}, prefname, envname, default = nothing) where {T}
+    ans = @load_preference(prefname, nothing)
+    ans === nothing || return checkpref(T, ans)::T
+    ans = get(ENV, envname, "")
+    isempty(ans) || return checkpref(T, ans)::T
+    return default
+end
+
+checkpref(::Type{String}, x) = error("invalid preference of type $(type(x)), expecting a string")
+checkpref(::Type{String}, x::AbstractString) = convert(String, x)
+
+# Specific preference functions
+getpref_exe() = getpref(String, "exe", "JULIA_PYTHONCALL_EXE", "")
+getpref_lib() = getpref(String, "lib", "JULIA_PYTHONCALL_LIB", nothing)
+getpref_pickle() = getpref(String, "pickle", "JULIA_PYTHONCALL_PICKLE", "pickle")
+
 function explode_union(T)
     @nospecialize T
 

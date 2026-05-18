@@ -13,7 +13,7 @@ Whenever a Python exception is displayed by Julia, `sys.last_traceback` and frie
 
 Python objects can be serialised with the [`Serialization`](https://docs.julialang.org/en/v1/stdlib/Serialization/) stdlib.
 This uses [`pickle`](https://docs.python.org/3/library/pickle.html) library under the hood.
-You can opt into using [`dill`](https://pypi.org/project/dill/) instead by setting the environment variable `JULIA_PYTHONCALL_PICKLE="dill"`.
+You can opt into using [`dill`](https://pypi.org/project/dill/) instead by setting the `pickle` preference or the `JULIA_PYTHONCALL_PICKLE` environment variable to `"dill"`.
 
 ## Tabular data / Pandas
 

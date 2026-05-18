@@ -305,6 +305,19 @@ end
     @test_throws Exception pyconvert(Second, td(microseconds = 1000))
 end
 
+@testitem "pandas.DataFrame → PyPandasDataFrame" setup=[Setup] begin
+    if Setup.devdeps
+        pd = pyimport("pandas")
+        df = pd.DataFrame()
+        df2 = pyconvert(PyPandasDataFrame, df)
+        @test df2 isa PyPandasDataFrame
+        @test pyis(df2, df)
+        df3 = pyconvert(PyTable, df)
+        @test df3 isa PyPandasDataFrame
+        @test pyis(df3, df)
+    end
+end
+
 @testitem "pyconvert_add_rule (#364)" begin
     id = string(rand(UInt128), base = 16)
     pyexec(

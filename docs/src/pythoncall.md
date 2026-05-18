@@ -280,33 +280,78 @@ By default, PythonCall uses [CondaPkg.jl](https://github.com/JuliaPy/CondaPkg.jl
 its dependencies. This will install Conda and use it to create a Conda environment specific
 to your current Julia project containing Python and any required Python packages.
 
-#### If you already have Python and required Python packages installed
+You can configure PythonCall with the preferences listed below. These can be set either as
+[Julia preferences](https://github.com/JuliaPackaging/Preferences.jl) or as environment
+variables.
+
+| Preference | Environment Variable | Description |
+| ---------- | -------------------- | ----------- |
+| `exe` | `JULIA_PYTHONCALL_EXE` | Path to the Python executable, or special values (see below). |
+| `lib` | `JULIA_PYTHONCALL_LIB` | Path to the Python library (usually inferred automatically). |
+| `pickle` | `JULIA_PYTHONCALL_PICKLE` | Pickle module to use for serialization (`pickle` or `dill`). |
+
+The easiest way to set these preferences is with the
+[`PreferenceTools`](https://github.com/cjdoris/PreferenceTools.jl)
+package. For example:
+```
+julia> using PreferenceTools
+julia> # now press ] to enter the Pkg REPL
+pkg> preference add PythonCall exe=/path/to/python
+```
+
+For CondaPkg preferences (such as `backend`, `exe`, `env`), see the
+[CondaPkg documentation](https://github.com/JuliaPy/CondaPkg.jl#preferences).
+
+### Special `exe` values
+
+The `exe` preference (or `JULIA_PYTHONCALL_EXE` environment variable) supports the following
+special values:
+- `@CondaPkg`: Use Python from CondaPkg (the default).
+- `@PyCall`: Use the same Python as PyCall. [See here](@ref faq-pycall).
+- `@venv`: Use Python from a `.venv` virtual environment in the current active project.
+
+Otherwise, the value is interpreted as:
+- An absolute path to a Python executable.
+- A relative path (containing `/` or `\`) resolved relative to the current active project.
+- A command name to search for in `PATH`.
+
+### If you already have Python and required Python packages installed
 
 ```julia
 ENV["JULIA_CONDAPKG_BACKEND"] = "Null"
 ENV["JULIA_PYTHONCALL_EXE"] = "/path/to/python"  # optional
-ENV["JULIA_PYTHONCALL_EXE"] = "@PyCall"  # optional
-ENV["JULIA_PYTHONCALL_EXE"] = "@venv" # optional
+```
+
+Or using preferences:
+```
+pkg> preference add CondaPkg backend=Null
+pkg> preference add PythonCall exe=/path/to/python  # optional
 ```
 
 By setting the CondaPkg backend to Null, it will never install any Conda packages. In this
 case, PythonCall will use whichever Python is currently installed and in your `PATH`. You
 must have already installed any Python packages that you need.
 
-If `python` is not in your `PATH`, you will also need to set `JULIA_PYTHONCALL_EXE` to its
-path. Relative paths are resolved relative to the current active project.
+If `python` is not in your `PATH`, you will also need to set `exe` (or `JULIA_PYTHONCALL_EXE`)
+to its path. Relative paths are resolved relative to the current active project.
 
-If you also use PyCall, you can set `JULIA_PYTHONCALL_EXE=@PyCall` to use the same Python
-interpreter. [See here](@ref faq-pycall).
+If you also use PyCall, you can set `exe=@PyCall` to use the same Python interpreter.
+[See here](@ref faq-pycall).
 
 If you have a Python virtual environment at `.venv` in your current active project, you
-can set `JULIA_PYTHONCALL_EXE=@venv` to use it.
+can set `exe=@venv` to use it.
 
-#### If you already have a Conda environment
+### If you already have a Conda environment
 
 ```julia
 ENV["JULIA_CONDAPKG_BACKEND"] = "Current"
 ENV["JULIA_CONDAPKG_EXE"] = "/path/to/conda"  # optional
+```
+
+Or using preferences:
+```
+pkg> preference add CondaPkg backend=Current
+pkg> preference add CondaPkg exe=/path/to/conda  # optional
 ```
 
 The Current backend to CondaPkg will use the currently activated Conda environment instead
@@ -317,23 +362,29 @@ If you already have your dependencies installed and do not want the environment 
 modified, then see the previous section.
 
 If `conda`, `mamba` or `micromamba` is not in your `PATH` you will also need to set
-`JULIA_CONDAPKG_EXE` to its path.
+`JULIA_CONDAPKG_EXE` (or the CondaPkg `exe` preference) to its path.
 
-#### If you already have Conda, Mamba or MicroMamba
+### If you already have Conda, Mamba, MicroMamba or Pixi
 
 ```julia
-ENV["JULIA_CONDAPKG_BACKEND"] = "System"
+ENV["JULIA_CONDAPKG_BACKEND"] = "System"  # or "SystemPixi" for Pixi
 ENV["JULIA_CONDAPKG_EXE"] = "/path/to/conda"  # optional
 ```
 
-The System backend to CondaPkg will use your preinstalled Conda implementation instead of
-downloading one.
+Or using preferences:
+```
+pkg> preference add CondaPkg backend=System
+pkg> preference add CondaPkg exe=/path/to/conda  # optional
+```
+
+The System (or SystemPixi) backend to CondaPkg will use your preinstalled Conda (or
+Pixi) implementation instead of downloading one.
 
 Note that this will still create a new Conda environment and install any required packages
 into it. If you want to use a pre-existing Conda environment, see the previous section.
 
-If `conda`, `mamba` or `micromamba` is not in your `PATH` you will also need to set
-`JULIA_CONDAPKG_EXE` to its path.
+If `conda`, `mamba`, `micromamba` or `pixi` is not in your `PATH` you will also need to
+set `JULIA_CONDAPKG_EXE` (or the CondaPkg `exe` preference) to its path.
 
 ## [Installing Python packages](@id python-deps)
 

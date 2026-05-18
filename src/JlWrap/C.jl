@@ -14,6 +14,12 @@ using Serialization: serialize, deserialize
     weaklist::C.PyPtr = C_NULL
 end
 
+@kwdef struct PyJuliaValueObjectFT
+    ob_base::C.PyObjectFT = C.PyObjectFT()
+    value::Int = 0
+    weaklist::C.PyPtr = C_NULL
+end
+
 const PyJuliaBase_Type = Ref(C.PyNULL)
 const PyJuliaBase_New = Ref(C.PyNULL)
 
@@ -24,21 +30,24 @@ const PYJLVALUES = []
 const PYJLFREEVALUES = Int[]
 
 function _pyjl_new(t::C.PyPtr, ::C.PyPtr, ::C.PyPtr)
-    o = ccall(UnsafePtr{C.PyTypeObject}(t).alloc[!], C.PyPtr, (C.PyPtr, C.Py_ssize_t), t, 0)
+    alloc = C.PyType_GetSlot(t, C.Py_tp_alloc)
+    alloc == C_NULL && return C.PyNULL
+    o = ccall(alloc, C.PyPtr, (C.PyPtr, C.Py_ssize_t), t, 0)
     o == C.PyNULL && return C.PyNULL
-    UnsafePtr{PyJuliaValueObject}(o).weaklist[] = C.PyNULL
-    UnsafePtr{PyJuliaValueObject}(o).value[] = 0
+    C.@ft UnsafePtr{PyJuliaValueObject}(o).weaklist[] = C.PyNULL
+    C.@ft UnsafePtr{PyJuliaValueObject}(o).value[] = 0
     return o
 end
 
 function _pyjl_dealloc(o::C.PyPtr)
-    idx = UnsafePtr{PyJuliaValueObject}(o).value[]
+    idx = C.@ft UnsafePtr{PyJuliaValueObject}(o).value[]
     if idx >= 1
         PYJLVALUES[idx] = nothing
         push!(PYJLFREEVALUES, idx)
     end
-    UnsafePtr{PyJuliaValueObject}(o).weaklist[!] == C.PyNULL || C.PyObject_ClearWeakRefs(o)
-    ccall(UnsafePtr{C.PyTypeObject}(C.Py_Type(o)).free[!], Cvoid, (C.PyPtr,), o)
+    (C.@ft UnsafePtr{PyJuliaValueObject}(o).weaklist[!]) == C.PyNULL || C.PyObject_ClearWeakRefs(o)
+    freeptr = C.PyType_GetSlot(C.Py_Type(o), C.Py_tp_free)
+    freeptr == C_NULL || ccall(freeptr, Cvoid, (C.PyPtr,), o)
     nothing
 end
 
@@ -369,7 +378,7 @@ function init_c()
         C.PyMemberDef(
             name = pointer(_pyjlbase_weaklistoffset_name),
             typ = C.Py_T_PYSSIZET,
-            offset = fieldoffset(PyJuliaValueObject, 3),
+            offset = (C.@ft fieldoffset(PyJuliaValueObject, 3)),
             flags = C.Py_READONLY,
         ),
         C.PyMemberDef(), # NULL terminator
@@ -407,7 +416,7 @@ function init_c()
     # Create PyType_Spec
     _pyjlbase_spec[] = C.PyType_Spec(
         name = pointer(_pyjlbase_name),
-        basicsize = sizeof(PyJuliaValueObject),
+        basicsize = (C.@ft sizeof(PyJuliaValueObject)),
         flags = C.Py_TPFLAGS_BASETYPE | C.Py_TPFLAGS_HAVE_VERSION_TAG,
         slots = pointer(_pyjlbase_slots),
     )
@@ -434,7 +443,7 @@ PyJuliaValue_Check(o) =
     Base.GC.@preserve o C.PyObject_IsInstance(C.asptr(o), PyJuliaBase_Type[])
 
 PyJuliaValue_GetValue(o) = Base.GC.@preserve o begin
-    v = UnsafePtr{PyJuliaValueObject}(C.asptr(o)).value[]
+    v = C.@ft UnsafePtr{PyJuliaValueObject}(C.asptr(o)).value[]
     if v == 0
         nothing
     elseif v > 0
@@ -447,7 +456,7 @@ PyJuliaValue_GetValue(o) = Base.GC.@preserve o begin
 end
 
 PyJuliaValue_SetValue(o, v::Union{Nothing,Bool}) = Base.GC.@preserve o begin
-    optr = UnsafePtr{PyJuliaValueObject}(C.asptr(o))
+    optr = C.@ft UnsafePtr{PyJuliaValueObject}(C.asptr(o))
     idx = optr.value[]
     if idx >= 1
         PYJLVALUES[idx] = nothing
@@ -467,7 +476,7 @@ PyJuliaValue_SetValue(o, v::Union{Nothing,Bool}) = Base.GC.@preserve o begin
 end
 
 PyJuliaValue_SetValue(o, @nospecialize(v)) = Base.GC.@preserve o begin
-    optr = UnsafePtr{PyJuliaValueObject}(C.asptr(o))
+    optr = C.@ft UnsafePtr{PyJuliaValueObject}(C.asptr(o))
     idx = optr.value[]
     if idx >= 1
         PYJLVALUES[idx] = v

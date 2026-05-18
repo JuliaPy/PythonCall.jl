@@ -105,11 +105,36 @@ on_main_thread
 
 function init_context()
 
-    CTX.is_embedded = hasproperty(Base.Main, :__PythonCall_libptr)
+    # Normally PythonCall is embedded when Python (via juliacall) defines the
+    # global `Main.__PythonCall_libptr`, set by juliacall's bootstrap *after*
+    # `jl_init_with_image`. If PythonCall is baked into a juliacall system
+    # image, its `__init__` runs *during* `jl_init_with_image` — before that
+    # global exists — yet we are still embedded (Python is the running host).
+    # The opt-in `embedded` preference / `JULIA_PYTHONCALL_EMBEDDED` forces the
+    # embedded path in that case; libpython is obtained by path since it is
+    # already loaded in this process. Unset, behaviour is unchanged.
+    has_libptr = hasproperty(Base.Main, :__PythonCall_libptr)
+    CTX.is_embedded = has_libptr || Utils.getpref_embedded()
 
     if CTX.is_embedded
-        # In this case, getting a handle to libpython is easy
-        CTX.lib_ptr = Base.Main.__PythonCall_libptr::Ptr{Cvoid}
+        if has_libptr
+            # In this case, getting a handle to libpython is easy
+            CTX.lib_ptr = Base.Main.__PythonCall_libptr::Ptr{Cvoid}
+        else
+            # Baked into a sysimage: open libpython by path (the `lib`
+            # preference / JULIA_PYTHONCALL_LIB). dlopen of an
+            # already-loaded library just returns a handle to it.
+            lib_path = something(Utils.getpref_lib(), Some(nothing))
+            lib_path === nothing && error(
+                "JULIA_PYTHONCALL_EMBEDDED is set but libpython is unknown; " *
+                "set the `lib` preference or JULIA_PYTHONCALL_LIB to its path.",
+            )
+            lib_ptr = dlopen_e(lib_path, CTX.dlopen_flags)
+            lib_ptr == C_NULL &&
+                error("Python library $(repr(lib_path)) could not be opened.")
+            CTX.lib_path = lib_path
+            CTX.lib_ptr = lib_ptr
+        end
         init_pointers()
         # Check Python is initialized
         Py_IsInitialized() == 0 && error("Python is not already initialized.")

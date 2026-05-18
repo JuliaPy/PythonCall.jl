@@ -115,6 +115,26 @@ systems that may be readonly. Note that the project set in
 `PYTHON_JULIACALL_PROJECT` *must* already have PythonCall.jl installed and it
 *must* match the JuliaCall version, otherwise loading Julia will fail.
 
+### Baking PythonCall into a system image
+
+For the fastest possible startup you can compile `PythonCall` itself (alongside
+your own packages) into a system image with
+[PackageCompiler.jl](https://github.com/JuliaLang/PackageCompiler.jl), so that
+the `using PythonCall` performed at startup is a memory-map rather than a load.
+
+When `PythonCall` is baked into the system image its `__init__` runs *during*
+`jl_init_with_image`, before juliacall's bootstrap has defined the
+`Main.__PythonCall_libptr` global it normally uses to detect that it is
+embedded. To support this, set the `embedded` preference (or the
+`JULIA_PYTHONCALL_EMBEDDED=yes` environment variable) together with the `lib`
+preference / `JULIA_PYTHONCALL_LIB` pointing at the running interpreter's
+libpython. With `embedded` set, PythonCall takes the embedded path even without
+the global and opens libpython by path (it is already loaded in the process, so
+this is just a handle). The default is `no`, leaving normal behaviour
+unchanged. Use this together with `PYTHON_JULIACALL_SYSIMAGE` (below), and
+`PYTHON_JULIACALL_EXE` / `PYTHON_JULIACALL_PROJECT` so juliacall resolves the
+baked environment directly.
+
 ## [Configuration](@id julia-config)
 
 Some features of the Julia process, such as the optimization level or number of threads, may

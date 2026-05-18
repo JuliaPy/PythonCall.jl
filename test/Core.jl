@@ -832,12 +832,23 @@ end
 end
 
 @testitem "propertynames" begin
-    x = pyint(7)
-    task = Threads.@spawn propertynames(x)
-    properties = propertynames(x)
-    @test :__init__ in properties
-    prop_task = fetch(task)
-    @test properties == prop_task
+    @testset "basic" begin
+        x = pyint(7)
+        task = Threads.@spawn propertynames(x)
+        properties = propertynames(x)
+        @test :__init__ in properties
+        prop_task = fetch(task)
+        @test properties == prop_task
+    end
+    @testset "gil (#751)" begin
+        o = pyint(751)
+        t = Base.Threads.@spawn begin
+            PythonCall.GIL.@lock begin
+                propertynames(o)
+            end
+        end
+        PythonCall.GIL.@unlock wait(t)
+    end
 end
 
 @testitem "on_main_thread" begin

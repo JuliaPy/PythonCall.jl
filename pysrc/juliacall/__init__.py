@@ -205,10 +205,19 @@ def init():
     exepath = CONFIG['exepath']
     project = CONFIG['project']
 
-    # Find the Julia library
-    cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min',
-           '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")), "\\0", Sys.BINDIR)']
-    libpath, default_bindir = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout.split('\0')
+    # Find the Julia library.
+    #
+    # This normally starts a short-lived Julia process just to print libjulia's
+    # path and Sys.BINDIR. In deployment scenarios (e.g. a pre-built container
+    # or system image) these are static and known ahead of time, so they may be
+    # supplied directly via the `libpath` / `default_bindir` options to skip the
+    # extra process. Behaviour is unchanged unless both are set.
+    libpath = path_option('libpath', check_exists=True)[0]
+    default_bindir = path_option('default_bindir', check_exists=True)[0]
+    if libpath is None or default_bindir is None:
+        cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min',
+               '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")), "\\0", Sys.BINDIR)']
+        libpath, default_bindir = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout.split('\0')
     assert os.path.exists(libpath)
     assert os.path.exists(default_bindir)
     CONFIG['libpath'] = libpath

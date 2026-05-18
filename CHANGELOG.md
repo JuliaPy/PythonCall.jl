@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+* JuliaCall: added `libpath` / `default_bindir` options
+  (`PYTHON_JULIACALL_LIBPATH` / `PYTHON_JULIACALL_DEFAULT_BINDIR`) to supply
+  libjulia's path and `Sys.BINDIR` directly, skipping the discovery subprocess
+  at startup. Behaviour is unchanged unless both are set.
+
 ## 0.9.34 (2026-05-18)
 * Bug fixes.
 

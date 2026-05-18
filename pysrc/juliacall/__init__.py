@@ -276,7 +276,6 @@ def init():
     '''.format(
         hex(c.pythonapi._handle),
         jlstr(sys.executable or ''),
-        jlstr(project),
     )
     res = jl_eval(script.encode('utf8'))
     if res is None:

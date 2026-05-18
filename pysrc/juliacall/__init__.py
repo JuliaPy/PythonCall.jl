@@ -135,7 +135,7 @@ def init():
             raise ValueError(f'{s}: expecting an int'+(' or auto' if accept_auto else ""))
 
     def args_from_config(config):
-        argv = [config['exepath']]
+        argv = [config['exepath'], '--project='+config['project']]
         for opt, val in config.items():
             if opt.startswith('opt_'):
                 if val is None:
@@ -264,10 +264,8 @@ def init():
     script = '''
     try
         Base.require(Main, :CompilerSupportLibraries_jll)
-        import Pkg
         global __PythonCall_libptr = Ptr{{Cvoid}}(UInt({}))
         ENV["JULIA_PYTHONCALL_EXE"] = {}
-        Pkg.activate({}, io=devnull)
         using PythonCall
     catch err
         print(stderr, "ERROR: ")
@@ -278,7 +276,6 @@ def init():
     '''.format(
         hex(c.pythonapi._handle),
         jlstr(sys.executable or ''),
-        jlstr(project),
     )
     res = jl_eval(script.encode('utf8'))
     if res is None:

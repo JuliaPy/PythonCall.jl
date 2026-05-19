@@ -636,6 +636,17 @@ Base.strides(x::PyArray{T,N,M,L,R}) where {T,N,M,L,R} =
         error("strides are not a multiple of element size")
     end
 
+@static if isdefined(Base, :try_strides)
+    Base.try_strides(x::PyArray{T,N,M,L,T}) where {T,N,M,L} =
+        if all(mod.(x.strides, sizeof(T)) .== 0)
+            div.(x.strides, sizeof(T))
+        else
+            nothing
+        end
+    Base.is_ptr_loadable(x::PyArray{T,N,M,L,T}) where {T,N,M,L} = true
+    Base.is_ptr_storable(x::PyArray{T,N,M,L,T}) where {T,N,M,L} = Utils.ismutablearray(x)
+end
+
 function Base.showarg(io::IO, x::PyArray{T,N}, toplevel::Bool) where {T,N}
     toplevel || print(io, "::")
     print(io, "PyArray{")

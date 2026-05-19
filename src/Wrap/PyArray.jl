@@ -531,6 +531,8 @@ end
 function PyArraySource_Buffer(x::Py)
     memview = pybuiltins.memoryview(x)
     buf = C.UnsafePtr(C.PyMemoryView_GET_BUFFER(memview))
+    buf.suboffsets[] == C_NULL ||
+        error("PyArray does not support buffers with non-trivial suboffsets (PIL-style indirect layout)")
     PyArraySource_Buffer(x, memview, buf)
 end
 

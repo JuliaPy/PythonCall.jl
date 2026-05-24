@@ -142,6 +142,7 @@ be configured in two ways:
 | `-X juliacall-heap-size-hint=<N>` | `PYTHON_JULIACALL_HEAP_SIZE_HINT=<N>` | Hint for initial heap size in bytes. |
 | `-X juliacall-exe=<file>` | `PYTHON_JULIACALL_EXE=<file>` | Path to Julia binary to use (overrides JuliaPkg). |
 | `-X juliacall-project=<dir>` | `PYTHON_JULIACALL_PROJECT=<dir>` | Path to the Julia project to use (overrides JuliaPkg). |
+| `-X juliacall-lib=<file>` | `PYTHON_JULIACALL_LIB=<file>` | Path to libjulia. Set to skip the relatively slow discovery process. |
 | `-X juliacall-trace-compile=<stderr\|name>` | `PYTHON_JULIACALL_TRACE_COMPILE=<stderr\|name>` | Print precompile statements. |
 | `-X juliacall-trace-compile-timing` | `PYTHON_JULIACALL_TRACE_COMPILE_TIMING=<yes\|no>` | Include timings with precompile statements. |
 

@@ -179,39 +179,45 @@ def init():
     CONFIG['opt_handle_signals'] = choice('handle_signals', ['yes', 'no'])[0]
     CONFIG['opt_startup_file'] = choice('startup_file', ['yes', 'no'])[0]
     CONFIG['opt_heap_size_hint'] = option('heap_size_hint')[0]
-    CONFIG['project'] = path_option('project', check_exists=True)[0]
-    CONFIG['exepath'] = executable_option('exe')[0]
+    CONFIG['project'] = project = path_option('project', check_exists=True)[0]
+    CONFIG['libpath'] = libpath = path_option('lib', check_exists=True)[0]
+    CONFIG['exepath'] = exepath = executable_option('exe')[0]
 
     # Stop if we already initialised
     if CONFIG['inited']:
         return
 
-    have_exepath = CONFIG['exepath'] is not None
-    have_project = CONFIG['project'] is not None
-    if have_exepath and have_project:
+    if (exepath is None) and (bindir is not None):
+        # if bindir is set then set exepath={bindir}/julia
+        CONFIG['exepath'] = exepath = os.path.join(bindir, 'julia.exe' if os.name == 'nt' else 'julia')
+    if (exepath is not None) and (project is not None):
         pass
-    elif (not have_exepath) and (not have_project):
+    elif (exepath is None) and (project is None):
         # we don't import this at the top level because it is not required when
         # juliacall is loaded by PythonCall and won't be available, or if both
         # `exepath` and `project` are set by the user.
         import juliapkg
 
         # Find the Julia executable and project
-        CONFIG['exepath'] = juliapkg.executable()
-        CONFIG['project'] = juliapkg.project()
+        CONFIG['exepath'] = exepath = juliapkg.executable()
+        CONFIG['project'] = project = juliapkg.project()
     else:
         raise Exception("Both PYTHON_JULIACALL_PROJECT and PYTHON_JULIACALL_EXE must be set together, not only one of them.")
+    if (libpath is not None) and (exepath is None):
+        raise Exception("PYTHON_JULIACALL_EXE is required if PYTHON_JULIACALL_LIB is set.")
 
-    exepath = CONFIG['exepath']
-    project = CONFIG['project']
-
-    # Find the Julia library
-    cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min',
-           '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")), "\\0", Sys.BINDIR)']
-    libpath, default_bindir = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout.split('\0')
+    # Find the Julia library, if not specified.
+    if libpath is None:
+        cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min',
+               '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")), "\\0", Sys.BINDIR)']
+        libpath, found_bindir = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout.split('\0')
+        CONFIG['libpath'] = libpath
+        if bindir is None:
+            CONFIG['bindir'] = bindir = found_bindir
+    if bindir is None:
+        bindir = os.path.dirname(exepath)
     assert os.path.exists(libpath)
-    assert os.path.exists(default_bindir)
-    CONFIG['libpath'] = libpath
+    assert os.path.exists(bindir)
 
     # Add the Julia library directory to the PATH on Windows so Julia's system libraries can
     # be found. They are normally found because they are in the same directory as julia.exe,
@@ -242,7 +248,7 @@ def init():
     jl_init.argtypes = [c.c_char_p, c.c_char_p]
     jl_init.restype = None
     jl_init(
-        (default_bindir if bindir is None else bindir).encode('utf8'),
+        None if bindir is None else bindir.encode('utf8'),
         None if sysimg is None else sysimg.encode('utf8'),
     )
 

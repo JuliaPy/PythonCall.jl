@@ -89,6 +89,16 @@
         @test strides(y) == strides(y2)
         @test y == y2
     end
+    @testset "reject suboffsets (#775)" begin
+        tb = pyimport("_testbuffer")
+        nd = tb.ndarray(
+            pylist([1, 2, 3, 4, 5, 6]),
+            shape = pylist([2, 3]),
+            format = "i",
+            flags = tb.ND_PIL | tb.ND_WRITABLE,
+        )
+        @test_throws Exception PyArray(nd; array = false, buffer = true)
+    end
 end
 
 @testitem "PyDict" begin

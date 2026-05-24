@@ -63,7 +63,7 @@ jobs:
       - name: Run tests
         uses: julia-actions/julia-runtest@v1
         env:
-          JULIA_DEBUG: PythonCall
+          JULIA_DEBUG: ${{ runner.debug == '1' && 'PythonCall' || '' }}
           JULIA_NUM_THREADS: '2'
           PYTHON: ${{ steps.setup-python.outputs.python-path }}
           JULIA_PYTHONCALL_EXE: ${{ case(matrix.pythonexe == 'python', steps.setup-python.outputs.python-path, matrix.pythonexe) }}

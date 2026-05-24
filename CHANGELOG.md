@@ -2,6 +2,7 @@
 
 ## Unreleased
 * Added option `lib` to JuliaCall. Setting this will skip the discovery subprocess.
+* Bug fixes.
 
 ## 0.9.34 (2026-05-18)
 * Bug fixes.

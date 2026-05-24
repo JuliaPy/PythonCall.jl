@@ -210,9 +210,8 @@ def init():
     if libpath is None:
         cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min',
                '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")), "\\0", Sys.BINDIR)']
-        found_libpath, found_bindir = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout.split('\0')
-        if libpath is None:
-            CONFIG['libpath'] = libpath = found_libpath
+        libpath, found_bindir = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout.split('\0')
+        CONFIG['libpath'] = libpath
         if bindir is None:
             CONFIG['bindir'] = bindir = found_bindir
     if bindir is None:

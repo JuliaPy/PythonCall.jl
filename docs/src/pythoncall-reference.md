@@ -184,6 +184,7 @@ PyList
 PySet
 PyDict
 PyIterable
+PyString
 PyArray
 PyIO
 PyTable

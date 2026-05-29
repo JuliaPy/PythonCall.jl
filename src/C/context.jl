@@ -105,46 +105,57 @@ on_main_thread
 
 function init_context()
 
-    # Normally PythonCall is embedded when Python (via juliacall) defines the
-    # global `Main.__PythonCall_libptr`, set by juliacall's bootstrap *after*
-    # `jl_init_with_image`. If PythonCall is baked into a juliacall system
-    # image, its `__init__` runs *during* `jl_init_with_image` — before that
-    # global exists — yet we are still embedded (Python is the running host).
-    # The opt-in `embedded` preference / `JULIA_PYTHONCALL_EMBEDDED` forces the
-    # embedded path in that case; libpython is obtained by path since it is
-    # already loaded in this process. Unset, behaviour is unchanged.
+    # Embedded if juliacall set Main.__PythonCall_libptr or the sysimage baked
+    # `_is_embedded[]` to `true`.
     has_libptr = hasproperty(Base.Main, :__PythonCall_libptr)
-    CTX.is_embedded = has_libptr || Utils.getpref_embedded()
+    CTX.is_embedded = has_libptr || _is_embedded[]
 
     if CTX.is_embedded
+        # Locate libpython.
         if has_libptr
-            # In this case, getting a handle to libpython is easy
             CTX.lib_ptr = Base.Main.__PythonCall_libptr::Ptr{Cvoid}
         else
-            # Baked into a sysimage: open libpython by path (the `lib`
-            # preference / JULIA_PYTHONCALL_LIB). dlopen of an
-            # already-loaded library just returns a handle to it.
-            lib_path = something(Utils.getpref_lib(), Some(nothing))
-            lib_path === nothing && error(
-                "JULIA_PYTHONCALL_EMBEDDED is set but libpython is unknown; " *
-                "set the `lib` preference or JULIA_PYTHONCALL_LIB to its path.",
-            )
-            lib_ptr = dlopen_e(lib_path, CTX.dlopen_flags)
-            lib_ptr == C_NULL &&
-                error("Python library $(repr(lib_path)) could not be opened.")
-            CTX.lib_path = lib_path
-            CTX.lib_ptr = lib_ptr
+            lib_path = Utils.getpref_lib()
+            if lib_path !== nothing
+                lib_ptr = dlopen_e(lib_path, CTX.dlopen_flags)
+                if lib_ptr != C_NULL
+                    CTX.lib_path = lib_path
+                    CTX.lib_ptr = lib_ptr
+                end
+            end
         end
-        init_pointers()
-        # Check Python is initialized
-        Py_IsInitialized() == 0 && error("Python is not already initialized.")
-        CTX.is_initialized = true
-        CTX.which = :embedded
-        exe_path = Utils.getpref_exe()
-        if exe_path != ""
-            CTX.exe_path = exe_path
-            # this ensures PyCall uses the same Python interpreter
-            get!(ENV, "PYTHON", exe_path)
+
+        embedded_ok = false
+        if CTX.lib_ptr != C_NULL
+            init_pointers()
+            embedded_ok = Py_IsInitialized() != 0
+        end
+
+        if embedded_ok
+            CTX.is_initialized = true
+            CTX.which = :embedded
+            exe_pref = Utils.getpref_exe()
+            if exe_pref != ""
+                CTX.exe_path = exe_pref
+                get!(ENV, "PYTHON", exe_pref)
+            else
+                exe_path = _embedded_program_path()
+                if exe_path !== nothing
+                    CTX.exe_path = exe_path
+                    get!(ENV, "PYTHON", exe_path)
+                end
+            end
+        elseif has_libptr
+            error("PythonCall is in embedded mode but no Python interpreter is running in this process.")
+        else
+            # Either the `lib` preference is unset, or Python is not running
+            # in this process (e.g. a julia.exe child of `Base.compilecache`
+            # loaded a sysimage baked for the embedded path). Leave PythonCall
+            # inactive instead of erroring.
+            CTX.is_embedded = false
+            CTX.lib_ptr = C_NULL
+            CTX.lib_path = missing
+            return
         end
     else
         # Find Python executable
@@ -345,6 +356,46 @@ function init_context()
     @debug "Initialized PythonCall.jl" CTX.is_embedded CTX.is_initialized CTX.exe_path CTX.lib_path CTX.lib_ptr CTX.pyprogname CTX.pyhome CTX.version CTX.is_free_threaded
 
     return
+end
+
+# Return `sys.executable` as a String, or nothing. Requires init_pointers().
+function _embedded_program_path()
+    import_mod = dlsym_e(CTX.lib_ptr, :PyImport_ImportModule)
+    getattr    = dlsym_e(CTX.lib_ptr, :PyObject_GetAttrString)
+    asutf8     = dlsym_e(CTX.lib_ptr, :PyUnicode_AsUTF8AndSize)
+    decref     = dlsym_e(CTX.lib_ptr, :Py_DecRef)
+    errclear   = dlsym_e(CTX.lib_ptr, :PyErr_Clear)
+    (import_mod == C_NULL || getattr == C_NULL || asutf8 == C_NULL ||
+        decref == C_NULL || errclear == C_NULL) && return nothing
+
+    sys_mod = ccall(import_mod, Ptr{Cvoid}, (Ptr{Cchar},), "sys")
+    if sys_mod == C_NULL
+        ccall(errclear, Cvoid, ())
+        return nothing
+    end
+    result = nothing
+    try
+        exec_obj = ccall(getattr, Ptr{Cvoid}, (Ptr{Cvoid}, Ptr{Cchar}), sys_mod, "executable")
+        if exec_obj == C_NULL
+            ccall(errclear, Cvoid, ())
+            return nothing
+        end
+        try
+            size_ref = Ref{Cssize_t}(0)
+            cstr = ccall(asutf8, Ptr{Cchar}, (Ptr{Cvoid}, Ref{Cssize_t}), exec_obj, size_ref)
+            if cstr == C_NULL
+                ccall(errclear, Cvoid, ())
+                return nothing
+            end
+            size_ref[] == 0 && return nothing
+            result = unsafe_string(cstr, size_ref[])
+        finally
+            ccall(decref, Cvoid, (Ptr{Cvoid},), exec_obj)
+        end
+    finally
+        ccall(decref, Cvoid, (Ptr{Cvoid},), sys_mod)
+    end
+    return result
 end
 
 function Base.show(io::IO, ::MIME"text/plain", ctx::Context)

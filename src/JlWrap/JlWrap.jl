@@ -51,6 +51,7 @@ include("set.jl")
 include("callback.jl")
 
 function __init__()
+    C.CTX.is_initialized || return
     init_base()
     init_raw()
     init_any()

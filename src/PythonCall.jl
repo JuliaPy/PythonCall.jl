@@ -2,6 +2,14 @@ module PythonCall
 
 const ROOT_DIR = dirname(@__DIR__)
 
+"""
+    PythonCall._is_embedded
+
+Marks the running sysimage as embedded in a Python host. Set to `true` in a
+PackageCompiler `script=` to bake the embedded path into the sysimage.
+"""
+const _is_embedded = Ref(false)
+
 include("API/API.jl")
 include("Utils/Utils.jl")
 include("NumpyDates/NumpyDates.jl")

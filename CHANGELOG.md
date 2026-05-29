@@ -1,9 +1,8 @@
 # Changelog
 
 ## Unreleased
-* Support baking `PythonCall` into a juliacall system image via the new opt-in
-  `embedded` preference / `JULIA_PYTHONCALL_EMBEDDED` option, removing the
-  `using PythonCall` cost from cold start. No behaviour change unless opted in.
+* Support baking `PythonCall` into a juliacall system image via
+  `PythonCall._is_embedded[] = true` in a PackageCompiler `script=`.
 * Added option `lib` to JuliaCall. Setting this will skip the discovery subprocess.
 * Bug fixes.
 

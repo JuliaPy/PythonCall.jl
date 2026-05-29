@@ -32,6 +32,7 @@ include("PyTable.jl")
 include("PyPandasDataFrame.jl")
 
 function __init__()
+    C.CTX.is_initialized || return
     priority = PYCONVERT_PRIORITY_ARRAY
     pyconvert_add_rule("<arraystruct>", PyArray, pyconvert_rule_array_nocopy, priority)
     pyconvert_add_rule("<arrayinterface>", PyArray, pyconvert_rule_array_nocopy, priority)

@@ -19,7 +19,8 @@ if @load_preference("exe", "@CondaPkg") == "@CondaPkg"
 end
 
 import ..PythonCall:
-    python_executable_path, python_library_path, python_library_handle, python_version
+    python_executable_path, python_library_path, python_library_handle, python_version,
+    _is_embedded
 
 include("consts.jl")
 include("pointers.jl")

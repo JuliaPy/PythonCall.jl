@@ -17,7 +17,6 @@ checkpref(::Type{String}, x::AbstractString) = convert(String, x)
 getpref_exe() = getpref(String, "exe", "JULIA_PYTHONCALL_EXE", "")
 getpref_lib() = getpref(String, "lib", "JULIA_PYTHONCALL_LIB", nothing)
 getpref_pickle() = getpref(String, "pickle", "JULIA_PYTHONCALL_PICKLE", "pickle")
-getpref_embedded() = getpref(String, "embedded", "JULIA_PYTHONCALL_EMBEDDED", "no") == "yes"
 
 function explode_union(T)
     @nospecialize T

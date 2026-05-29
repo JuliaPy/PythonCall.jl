@@ -209,6 +209,9 @@ include("juliacall.jl")
 include("pyconst_macro.jl")
 
 function __init__()
+    # Skip if C bailed out (e.g. a julia.exe child of Base.compilecache
+    # loaded a sysimage baked for the embedded path).
+    C.CTX.is_initialized || return
     init_consts()
     init_datetime()
     init_stdlib()

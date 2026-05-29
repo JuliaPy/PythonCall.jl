@@ -23,6 +23,7 @@ include("serialization.jl")
 include("tables.jl")
 
 function __init__()
+    C.CTX.is_initialized || return
     init_gui()
     init_pyshow()
 end

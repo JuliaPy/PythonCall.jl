@@ -36,6 +36,7 @@ include("numpy.jl")
 include("pandas.jl")
 
 function __init__()
+    C.CTX.is_initialized || return
     init_pyconvert()
     init_ctypes()
     init_numpy()

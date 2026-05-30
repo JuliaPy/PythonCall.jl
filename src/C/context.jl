@@ -105,12 +105,12 @@ on_main_thread
 
 function init_context()
 
-    CTX.is_embedded = hasproperty(Base.Main, :__PythonCall_libptr)
+    CTX.is_embedded = hasproperty(Base.Main, :__PythonCall_embedded__)
 
     if CTX.is_embedded
         # In this case, getting a handle to libpython is easy
-        CTX.lib_ptr = Base.Main.__PythonCall_libptr::Ptr{Cvoid}
-        init_pointers()
+        CTX.lib_ptr = C_NULL
+        init_pointers(true)
         # Check Python is initialized
         Py_IsInitialized() == 0 && error("Python is not already initialized.")
         CTX.is_initialized = true
@@ -236,7 +236,7 @@ function init_context()
         end
 
         # Get function pointers from the library
-        init_pointers()
+        init_pointers(false)
 
         # Initialize the interpreter
         CTX.is_preinitialized = Py_IsInitialized() != 0

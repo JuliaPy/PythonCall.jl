@@ -103,14 +103,44 @@ Execute `f()` on the main thread.
 on_main_thread
 
 
+function find_lib_ptr()
+    # borrowed from PyCall.jl/src/startup.jl
+    @static if Sys.iswindows()
+        EnumProcessModules(hProcess, lphModule, cb, lpcbNeeded) =
+            ccall(:K32EnumProcessModules, stdcall, Bool,
+                (Ptr{Cvoid}, Ptr{Ptr{Cvoid}}, UInt32, Ptr{UInt32}),
+                hProcess, lphModule, cb, lpcbNeeded)
+
+        lpcbneeded = Ref{UInt32}()
+        proc_handle = ccall(:GetCurrentProcess, stdcall, Ptr{Cvoid}, ())
+        handles = Vector{Ptr{Cvoid}}(undef, 20)
+        if EnumProcessModules(proc_handle, handles, sizeof(handles), lpcbneeded) == 0
+            resize!(handles, div(lpcbneeded[],sizeof(Ptr{Cvoid})))
+            if EnumProcessModules(proc_handle, handles, sizeof(handles), lpcbneeded) == 0
+                error()
+            end
+        end
+        for handle in handles
+            if ccall(:GetProcAddress, stdcall, Ptr{Cvoid},
+                (Ptr{Cvoid}, Ptr{UInt8}), handle, "Py_GetVersion") != C_NULL
+                return handle
+            end
+        end
+        error("could not find libpython handle")
+    else
+        return unsafe_load(cglobal(:jl_exe_handle, Ptr{Cvoid}))
+    end
+end
+
+
 function init_context()
 
     CTX.is_embedded = hasproperty(Base.Main, :__PythonCall_embedded__)
 
     if CTX.is_embedded
         # In this case, getting a handle to libpython is easy
-        CTX.lib_ptr = C_NULL
-        init_pointers(true)
+        CTX.lib_ptr = find_lib_ptr()
+        init_pointers()
         # Check Python is initialized
         Py_IsInitialized() == 0 && error("Python is not already initialized.")
         CTX.is_initialized = true
@@ -236,7 +266,7 @@ function init_context()
         end
 
         # Get function pointers from the library
-        init_pointers(false)
+        init_pointers()
 
         # Initialize the interpreter
         CTX.is_preinitialized = Py_IsInitialized() != 0

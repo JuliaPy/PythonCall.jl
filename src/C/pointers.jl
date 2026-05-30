@@ -282,29 +282,19 @@ end
 
 const POINTERS = CAPIPointers()
 
-function _dlsym(lib::Ptr{Cvoid}, sym::Symbol)
-    if lib == C_NULL
-        # embedded case, python symbols available globally
-        cglobal(sym)::Ptr{Cvoid}
-    else
-        dlsym(lib, sym)::Ptr{Cvoid}
-    end
-end
-
-@eval function init_pointers(embedded::Bool, p::CAPIPointers = POINTERS, lib::Ptr = CTX.lib_ptr)
-    @assert (lib == C_NULL) == embedded
+@eval function init_pointers(p::CAPIPointers = POINTERS, lib::Ptr = CTX.lib_ptr)
     $([
-        :(p.$name = _dlsym(lib, $(QuoteNode(name))))
+        :(p.$name = dlsym(lib, $(QuoteNode(name))))
         for name in CAPI_FUNCS
     ]...)
     $(
         [
             :(p.$name =
-                    Base.unsafe_load(Ptr{PyPtr}(_dlsym(lib, $(QuoteNode(name)))::Ptr))) for name in CAPI_EXCEPTIONS
+                    Base.unsafe_load(Ptr{PyPtr}(dlsym(lib, $(QuoteNode(name)))::Ptr))) for name in CAPI_EXCEPTIONS
         ]...
     )
-    $([:(p.$name = _dlsym(lib, $(QuoteNode(name)))) for name in CAPI_OBJECTS]...)
-    p.PyOS_InputHookPtr = _dlsym(CTX.lib_ptr, :PyOS_InputHook)
+    $([:(p.$name = dlsym(lib, $(QuoteNode(name)))) for name in CAPI_OBJECTS]...)
+    p.PyOS_InputHookPtr = dlsym(CTX.lib_ptr, :PyOS_InputHook)
     nothing
 end
 

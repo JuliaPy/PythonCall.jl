@@ -201,6 +201,8 @@ def init():
         # Find the Julia executable and project
         CONFIG['exepath'] = exepath = juliapkg.executable()
         CONFIG['project'] = project = juliapkg.project()
+        if libpath is None:
+            CONFIG['libpath'] = libpath = juliapkg.libjulia()
     else:
         raise Exception("Both PYTHON_JULIACALL_PROJECT and PYTHON_JULIACALL_EXE must be set together, not only one of them.")
     if (libpath is not None) and (exepath is None):

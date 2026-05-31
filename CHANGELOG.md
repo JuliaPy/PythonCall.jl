@@ -1,7 +1,8 @@
 # Changelog
 
 ## Unreleased
-* Added option `lib` to JuliaCall. Setting this will skip the discovery subprocess.
+* Add method `pynext(x, d)` to return a default value `d` if there are no more elements.
+* Add option `lib` to JuliaCall. Setting this will skip the discovery subprocess.
 * Bug fixes.
 
 ## 0.9.34 (2026-05-18)

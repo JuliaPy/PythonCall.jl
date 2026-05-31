@@ -223,25 +223,45 @@
 end
 
 @testitem "iter" begin
-    @test_throws PyException pyiter(pybuiltins.None)
-    @test_throws PyException pyiter(pybuiltins.True)
-    # unsafe_pynext
-    it = pyiter(pyrange(2))
-    x = PythonCall.unsafe_pynext(it)
-    @test !PythonCall.pyisnull(x)
-    @test pyeq(Bool, x, 0)
-    x = PythonCall.unsafe_pynext(it)
-    @test !PythonCall.pyisnull(x)
-    @test pyeq(Bool, x, 1)
-    x = PythonCall.unsafe_pynext(it)
-    @test PythonCall.pyisnull(x)
-    # pynext
-    it = pyiter(pyrange(2))
-    x = pynext(it)
-    @test pyeq(Bool, x, 0)
-    x = pynext(it)
-    @test pyeq(Bool, x, 1)
-    @test_throws PyException pynext(it)
+    @testset "non-iterables" begin
+        @test_throws PyException pyiter(pybuiltins.None)
+        @test_throws PyException pyiter(pybuiltins.True)
+    end
+    @testset "unsafe_pynext" begin
+        it = pyiter(pyrange(2))
+        x = PythonCall.unsafe_pynext(it)
+        @test x isa Py
+        @test !PythonCall.pyisnull(x)
+        @test pyeq(Bool, x, 0)
+        x = PythonCall.unsafe_pynext(it)
+        @test x isa Py
+        @test !PythonCall.pyisnull(x)
+        @test pyeq(Bool, x, 1)
+        x = PythonCall.unsafe_pynext(it)
+        @test x isa Py
+        @test PythonCall.pyisnull(x)
+    end
+    @testset "pynext" begin
+        it = pyiter(pyrange(2))
+        x = pynext(it)
+        @test x isa Py
+        @test pyeq(Bool, x, 0)
+        x = pynext(it)
+        @test x isa Py
+        @test pyeq(Bool, x, 1)
+        @test_throws PyException pynext(it)
+    end
+    @testset "pynext with default" begin
+        it = pyiter(pyrange(2))
+        x = pynext(it, nothing)
+        @test x isa Py
+        @test pyeq(Bool, x, 0)
+        x = pynext(it, nothing)
+        @test x isa Py
+        @test pyeq(Bool, x, 1)
+        x = pynext(it, nothing)
+        @test x === nothing
+    end
 end
 
 @testitem "number" begin

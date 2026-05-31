@@ -507,11 +507,27 @@ Equivalent to `iter(x)` in Python.
 pyiter(x) = pynew(errcheck(@autopy x C.PyObject_GetIter(x_)))
 
 """
-    pynext(x)
+    pynext(x, [d])
 
-Equivalent to `next(x)` in Python.
+Equivalent to `next(x, d)` in Python.
+
+Returns the next item from the iterator `x`. If there are no more items, returns `d` if
+given, else raises `StopIteration`.
 """
-pynext(x) = pybuiltins.next(x)
+function pynext(x)
+    ptr = errcheck_ambig(C.PyIter_Next(x))
+    if ptr == C.PyNULL
+        errset(pybuiltins.StopIteration)
+        pythrow()
+    else
+        pynew(ptr)
+    end
+end
+
+function pynext(x, d)
+    ptr = errcheck_ambig(C.PyIter_Next(x))
+    ptr == C.PyNULL ? d : pynew(ptr)
+end
 
 """
     unsafe_pynext(x)

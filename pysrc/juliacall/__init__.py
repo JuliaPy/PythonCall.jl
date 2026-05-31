@@ -240,6 +240,11 @@ def init():
     jl_parse_opts(c.pointer(argc), c.pointer(argv))
     assert argc.value == 0
 
+    # override some environment variables
+    # we do this here because PythonCall is initialised during jl_init if it is in a sysimg
+    os.environ['JULIA_PYTHONCALL_EXECUTABLE'] = sys.executable or ''
+    os.environ['__JULIA_PYTHONCALL_EMBEDDED_LIBPTR__'] = hex(c.pythonapi._handle)
+
     # initialise julia
     try:
         jl_init = lib.jl_init_with_image__threading
@@ -269,9 +274,7 @@ def init():
         return 'raw"' + x + '"'
     script = '''
     try
-        Base.require(Main, :CompilerSupportLibraries_jll)
-        global __PythonCall_libptr = Ptr{{Cvoid}}(UInt({}))
-        ENV["JULIA_PYTHONCALL_EXE"] = {}
+        import CompilerSupportLibraries_jll as _
         using PythonCall
     catch err
         print(stderr, "ERROR: ")
@@ -279,13 +282,14 @@ def init():
         flush(stderr)
         rethrow()
     end
-    '''.format(
-        hex(c.pythonapi._handle),
-        jlstr(sys.executable or ''),
-    )
+    '''
     res = jl_eval(script.encode('utf8'))
     if res is None:
         raise Exception('PythonCall.jl did not start properly')
+    
+    # unset this env var so any other julia processes started do not think they are
+    # embedded in python
+    os.environ.pop('__JULIA_PYTHONCALL_EMBEDDED_LIBPTR__', None)
 
     CONFIG['inited'] = True
 

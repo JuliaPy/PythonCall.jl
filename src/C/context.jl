@@ -105,11 +105,14 @@ on_main_thread
 
 function init_context()
 
-    CTX.is_embedded = hasproperty(Base.Main, :__PythonCall_libptr)
+    CTX.is_embedded = haskey(ENV, "__JULIA_PYTHONCALL_EMBEDDED_LIBPTR__")
 
     if CTX.is_embedded
         # In this case, getting a handle to libpython is easy
-        CTX.lib_ptr = Base.Main.__PythonCall_libptr::Ptr{Cvoid}
+        CTX.lib_ptr = Ptr{Cvoid}(parse(UInt, ENV["__JULIA_PYTHONCALL_EMBEDDED_LIBPTR__"]))
+        # Delete the env var so subprocesses don't think they are embedded
+        delete!(ENV, "__JULIA_PYTHONCALL_EMBEDDED_LIBPTR__")
+        # Initialise pointers from libpython
         init_pointers()
         # Check Python is initialized
         Py_IsInitialized() == 0 && error("Python is not already initialized.")

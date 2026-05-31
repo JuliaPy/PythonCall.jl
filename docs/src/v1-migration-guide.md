@@ -4,17 +4,25 @@ Use this guide to help with migrating code from v0.9 to v1.
 
 ## Core functionality
 
-Comparisons (`==`, `<`, etc.) between Python objects `Py`, or between `Py` and `Number`,
+Comparisons (`==`, `<`, etc.) between Python objects `Py`,
 used to return `Py` but now return `Bool`. The old behaviour was a pun but broke the
 Base API behaviour of these functions. These comparisons will now raise an error if the
 underlying Python operation does not return `bool`.
 
 * Instead of `pytruth(Py(3) < Py(5))` use `Py(3) < Py(5)`.
 * Instead of `Py(3) < Py(5)` use `Py(Py(3) < Py(5))`.
-* Instead of `np.array([1,2,3]) < Py(3)` use `pylt(np.array([1,2,3]), Py(3))`. This is
+* Instead of `np.array([1,2,3]) < Py(3)` use `pylt(np.array([1,2,3]), 3)`. This is
   because comparisons on numpy arrays return arrays of `bool` rather than a single
   `bool`.
 * Instead of `pylt(Bool, Py(3), Py(5))` you can use `Py(3) < Py(5)`.
+
+Comparisons and arithmetic (`==`, `<`, `+`, `*`, etc.) between `Py` and `Number` have
+been removed. The old behaviour broke the PythonCall convention that the boundary
+between Python and Julia is explicit.
+
+* Instead of `Py(3) < 10` use `Py(3) < Py(10)` or `pylt(Py(3), 10)`.
+* Instead of `Py(5) * 6` use `Py(5) * Py(6)` or `pymul(Py(5), 6)`.
+* Instead of `np.array([1,2,3]) < 3` use `pylt(np.array([1,2,3]), 3)`.
 
 ## `PythonCall.GC`
 

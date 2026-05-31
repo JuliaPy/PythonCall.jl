@@ -3,7 +3,9 @@
 ## Unreleased (v1)
 * The vast majority of these changes are breaking, see the [v1 Migration Guide](@ref) for how to upgrade.
 * Changes to core functionality:
-  * Comparisons like `==(::Py, ::Py)`, `<(::Py, ::Number)`, `isless(::Number, ::Py)` now return `Bool` instead of `Py`.
+  * Comparisons like `==`, `<` and `isless` between `Py`s now return `Bool` instead of `Py`.
+  * Removed comparisons between `Py` and `Number` (like `Py(3) < 5`).
+  * Removed arithmetic between `Py` and `Number` (like `Py(2) * 10`).
 * Changes to `PythonCall.GC` (now more like `Base.GC`):
   * `enable(true)` replaces `enable()`.
   * `enable(false)` replaces `disable()`.

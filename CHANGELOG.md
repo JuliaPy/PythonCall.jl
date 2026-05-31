@@ -1,7 +1,8 @@
 # Changelog
 
 ## Unreleased
-* Added option `lib` to JuliaCall. Setting this will skip the discovery subprocess.
+* Add option `lib` to JuliaCall. Setting this will skip the discovery subprocess.
+* Add support for using a system image in `juliacall` that has `PythonCall` baked in.
 * Bug fixes.
 
 ## 0.9.34 (2026-05-18)

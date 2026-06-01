@@ -271,8 +271,8 @@ def init():
         return 'raw"' + x + '"'
     script = '''
     try
-        Base.require(Main, :CompilerSupportLibraries_jll)
-        global __PythonCall_libptr = Ptr{{Cvoid}}(UInt({}))
+        import CompilerSupportLibraries_jll as _
+        global __PythonCall_embedded__ = nothing
         ENV["JULIA_PYTHONCALL_EXE"] = {}
         using PythonCall
     catch err
@@ -282,7 +282,6 @@ def init():
         rethrow()
     end
     '''.format(
-        hex(c.pythonapi._handle),
         jlstr(sys.executable or ''),
     )
     res = jl_eval(script.encode('utf8'))

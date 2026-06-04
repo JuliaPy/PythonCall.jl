@@ -7,6 +7,7 @@
   * Removed comparisons between `Py` and `Number` (like `Py(3) < 5`).
   * Removed arithmetic between `Py` and `Number` (like `Py(2) * 10`).
   * Removed unsafe API: `getptr`, `pycopy!`, `pyisnull`, `pynew`, `PyNULL`, `unsafe_pynext`.
+  * Renamed `pydel!` to `unsafe_pydel` and exported.
     A `Py` is now always a valid, fixed, non-NULL Python object in the documented API.
   * Python errors no longer automatically set `sys.last_traceback` etc. when displayed from Julia.
   * Added [`fix_qt_plugin_path` preference](@ref pythoncall-config), replacing `CONFIG.auto_fix_qt_plugin_path`.

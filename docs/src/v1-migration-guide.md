@@ -24,7 +24,7 @@ between Python and Julia is explicit.
 * Instead of `Py(5) * 6` use `Py(5) * Py(6)` or `pymul(Py(5), 6)`.
 * Instead of `np.array([1,2,3]) < 3` use `pylt(np.array([1,2,3]), 3)`.
 
-The unsafe API has been removed: `getptr`, `pycopy!`, `pyisnull`, `pynew`, `PyNULL`,
+Most of the unsafe API has been removed: `getptr`, `pycopy!`, `pyisnull`, `pynew`, `PyNULL`,
 `unsafe_pynext`. This means that a `Py` is immutable and non-NULL in the documented API
 for PythonCall (mutability and NULLs are internal implementation details). These functions
 were primarily used in packages to have global `Py` objects with this pattern:
@@ -58,6 +58,11 @@ end
 * Instead of `PythonCall.pynew()` use `Ref{Py}()`.
 * Instead of `PythonCall.pycopy!(x, y)` use `x[] = y`.
 * Instead of `PythonCall.unsafe_pynext(x)` (and check for `pyisnull`) use `pynext(x, nothing)` (and check for `nothing`).
+
+`pydel!` has been renamed to `unsafe_pydel` to highlight that it is an unsafe function.
+It is now exported.
+
+* Instead of `PythonCall.pydel!(x)` use `unsafe_pydel(x)`.
 
 When a Python error is displayed in Julia, PythonCall no longer sets `sys.last_traceback`
 and friends. This means that the Python post-mortem debugger `pdb.pm()` will no longer

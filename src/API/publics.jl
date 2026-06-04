@@ -13,7 +13,6 @@ if Base.VERSION ≥ v"1.11"
 
             # Core
             CONFIG,
-            pydel!,
             
             # Compat
             event_loop_off,

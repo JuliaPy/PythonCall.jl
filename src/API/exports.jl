@@ -98,6 +98,7 @@ export pytuple
 export pytype
 export pywith
 export pyxor
+export unsafe_pydel
 
 # Convert
 export @pyconvert

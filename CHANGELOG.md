@@ -6,6 +6,8 @@
   * Comparisons like `==`, `<` and `isless` between `Py`s now return `Bool` instead of `Py`.
   * Removed comparisons between `Py` and `Number` (like `Py(3) < 5`).
   * Removed arithmetic between `Py` and `Number` (like `Py(2) * 10`).
+  * Removed unsafe API: `getptr`, `pycopy!`, `pyisnull`, `pynew`, `PyNULL`, `unsafe_pynext`.
+    A `Py` is now always a valid, fixed, non-NULL Python object in the documented API.
 * Changes to `PythonCall.GC` (now more like `Base.GC`):
   * `enable(true)` replaces `enable()`.
   * `enable(false)` replaces `disable()`.

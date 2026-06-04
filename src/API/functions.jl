@@ -5,7 +5,6 @@ function python_library_path end
 function python_version end
 
 # Core
-function getptr end
 function ispy end
 function pyabs end
 function pyadd end
@@ -21,7 +20,6 @@ function pycollist end
 function pycompile end
 function pycomplex end
 function pycontains end
-function pycopy! end
 function pydate end
 function pydatetime end
 function pydel! end
@@ -62,7 +60,6 @@ function pyipow end
 function pyirshift end
 function pyis end
 function pyisinstance end
-function pyisnull end
 function pyissubclass end
 function pyisub end
 function pyiter end
@@ -78,7 +75,6 @@ function pymod end
 function pymul end
 function pyne end
 function pyneg end
-function pynew end
 function pynext end
 function pynot end
 function pyor end
@@ -102,7 +98,6 @@ function pytuple end
 function pytype end
 function pywith end
 function pyxor end
-function unsafe_pynext end
 
 # Convert
 function pyconvert end

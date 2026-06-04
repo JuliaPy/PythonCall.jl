@@ -13,13 +13,7 @@ if Base.VERSION ≥ v"1.11"
 
             # Core
             CONFIG,
-            getptr,
-            pycopy!,
             pydel!,
-            pyisnull,
-            pynew,
-            PyNULL,
-            unsafe_pynext,
             
             # Compat
             event_loop_off,

@@ -34,7 +34,6 @@ import ..PythonCall:
     @pyconst,
     @pyeval,
     @pyexec,
-    getptr,
     ispy,
     Py,
     pyabs,
@@ -53,7 +52,6 @@ import ..PythonCall:
     pycomplex,
     pycontains,
     pyconvert,
-    pycopy!,
     pydate,
     pydatetime,
     pydel!,
@@ -95,7 +93,6 @@ import ..PythonCall:
     pyirshift,
     pyis,
     pyisinstance,
-    pyisnull,
     pyissubclass,
     pyisub,
     pyiter,
@@ -111,7 +108,6 @@ import ..PythonCall:
     pymul,
     pyne,
     pyneg,
-    pynew,
     pynext,
     pynot,
     pyor,
@@ -134,8 +130,7 @@ import ..PythonCall:
     pytuple,
     pytype,
     pywith,
-    pyxor,
-    unsafe_pynext
+    pyxor
     
 export
     _base_datetime,

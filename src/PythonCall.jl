@@ -16,7 +16,7 @@ include("JlWrap/JlWrap.jl")
 include("Compat/Compat.jl")
 
 # non-exported API
-using .Core: PyNULL, CONFIG
+using .Core: CONFIG
 
 # not API but used in tests
 for k in [

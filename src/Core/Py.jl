@@ -71,7 +71,7 @@ Assumes `dst` is NULL, otherwise a memory leak will occur.
 pycopy!(dst::Py, src) = Base.GC.@preserve src setptr!(dst, incref(getptr(src)))
 
 """
-    pydel!(x::Py)
+    unsafe_pydel(x::Py)
 
 Delete the Python object `x`.
 
@@ -84,7 +84,7 @@ This decrements the reference count and sets the pointer to NULL.
 Use this to eagerly free a Python object, rather than waiting for Julia's GC to finalize
 it at some indeterminate point in the future.
 """
-function pydel!(x::Py)
+function unsafe_pydel(x::Py)
     ptr = getptr(x)
     if ptr != C.PyNULL
         C.Py_DecRef(ptr)
@@ -101,7 +101,7 @@ macro autopy(args...)
     esc(quote
         # $([:($t = $ispy($v) ? $v : $Py($v)) for (t, v) in zip(ts, vs)]...)
         # $ans = $body
-        # $([:($ispy($v) || $pydel!($t)) for (t, v) in zip(ts, vs)]...)
+        # $([:($ispy($v) || $unsafe_pydel($t)) for (t, v) in zip(ts, vs)]...)
         # $ans
         $([:($t = $Py($v)) for (t, v) in zip(ts, vs)]...)
         $body
@@ -341,7 +341,7 @@ Base.IteratorSize(::Type{Py}) = Base.SizeUnknown()
 function Base.iterate(x::Py, it::Py = pyiter(x))
     v = unsafe_pynext(it)
     if pyisnull(v)
-        pydel!(it)
+        unsafe_pydel(it)
         nothing
     else
         (v, it)

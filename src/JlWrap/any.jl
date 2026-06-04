@@ -22,14 +22,14 @@ pyjl_attr_jl2py(k::String) = replace(k, r"!+$" => (x -> "_" * "b"^length(x)))
 
 function pyjlany_getattr(self, k_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))
-    pydel!(k_)
+    unsafe_pydel(k_)
     pyjl(getproperty(self, k))
 end
 pyjl_handle_error_type(::typeof(pyjlany_getattr), self, exc) = pybuiltins.AttributeError
 
 function pyjlany_setattr(self, k_::Py, v_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))
-    pydel!(k_)
+    unsafe_pydel(k_)
     v = pyconvert(Any, v_)
     if self isa Module && !isdefined(self, k)
         # Fix for https://github.com/JuliaLang/julia/pull/54678
@@ -65,8 +65,8 @@ function pyjlany_call(self, args_::Py, kwargs_::Py)
     else
         ans = pyjl(self())
     end
-    pydel!(args_)
-    pydel!(kwargs_)
+    unsafe_pydel(args_)
+    unsafe_pydel(kwargs_)
     ans
 end
 pyjl_handle_error_type(::typeof(pyjlany_call), self, exc) =
@@ -83,8 +83,8 @@ function pyjlany_callback(self, args_::Py, kwargs_::Py)
     else
         ans = Py(self())
     end
-    pydel!(args_)
-    pydel!(kwargs_)
+    unsafe_pydel(args_)
+    unsafe_pydel(kwargs_)
     ans
 end
 pyjl_handle_error_type(::typeof(pyjlany_callback), self, exc::MethodError) =
@@ -101,8 +101,8 @@ function pyjlany_call_nogil(self, args_::Py, kwargs_::Py)
     else
         ans = pyjl(GIL.@unlock self())
     end
-    pydel!(args_)
-    pydel!(kwargs_)
+    unsafe_pydel(args_)
+    unsafe_pydel(kwargs_)
     ans
 end
 pyjl_handle_error_type(::typeof(pyjlany_call_nogil), self, exc::MethodError) =
@@ -112,7 +112,7 @@ function pyjlany_getitem(self, k_::Py)
     if self isa Type
         if pyistuple(k_)
             k = pyconvert(Vector{Any}, k_)
-            pydel!(k_)
+            unsafe_pydel(k_)
             pyjl(self{k...})
         else
             k = pyconvert(Any, k_)
@@ -121,7 +121,7 @@ function pyjlany_getitem(self, k_::Py)
     else
         if pyistuple(k_)
             k = pyconvert(Vector{Any}, k_)
-            pydel!(k_)
+            unsafe_pydel(k_)
             pyjl(self[k...])
         else
             k = pyconvert(Any, k_)
@@ -137,7 +137,7 @@ function pyjlany_setitem(self, k_::Py, v_::Py)
     v = pyconvert(Any, v_)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
-        pydel!(k_)
+        unsafe_pydel(k_)
         self[k...] = v
     else
         k = pyconvert(Any, k_)
@@ -152,7 +152,7 @@ pyjl_handle_error_type(::typeof(pyjlany_setitem), self, exc) =
 function pyjlany_delitem(self, k_::Py)
     if pyistuple(k_)
         k = pyconvert(Vector{Any}, k_)
-        pydel!(k_)
+        unsafe_pydel(k_)
         delete!(self, k...)
     else
         k = pyconvert(Any, k_)
@@ -176,7 +176,7 @@ end
 function (op::pyjlany_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
-        pydel!(other_)
+        unsafe_pydel(other_)
     else
         other = pyconvert(Any, other_)
     end
@@ -185,13 +185,13 @@ end
 function (op::pyjlany_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
-        pydel!(other_)
+        unsafe_pydel(other_)
     else
         other = pyconvert(Any, other)
     end
     if pyisjl(other2_)
         other2 = pyjlvalue(other2_)
-        pydel!(other2_)
+        unsafe_pydel(other2_)
     end
     pyjl(op.op(self, other, other2))
 end
@@ -204,7 +204,7 @@ end
 function (op::pyjlany_rev_op)(self, other_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
-        pydel!(other_)
+        unsafe_pydel(other_)
     else
         other = pyconvert(Any, other_)
     end
@@ -213,13 +213,13 @@ end
 function (op::pyjlany_rev_op)(self, other_::Py, other2_::Py)
     if pyisjl(other_)
         other = pyjlvalue(other_)
-        pydel!(other_)
+        unsafe_pydel(other_)
     else
         other = pyconvert(Any, other)
     end
     if pyisjl(other2_)
         other2 = pyjlvalue(other2_)
-        pydel!(other2_)
+        unsafe_pydel(other2_)
     end
     pyjl(op.op(other, self, other2))
 end
@@ -270,7 +270,7 @@ function pyjlany_mimebundle(self, include::Py, exclude::Py)
             show(IOContext(io, :limit => true), MIME(m), self)
             v = take!(io)
             ans[m] = vo = istextmime(m) ? pystr(String(v)) : pybytes(v)
-            pydel!(vo)
+            unsafe_pydel(vo)
         catch err
             # silently skip anything that didn't work
         end
@@ -333,7 +333,7 @@ pyjl_handle_error_type(::typeof(pyjlany_ceil), self, exc::MethodError) =
 pyjlany_round(self) = pyint(round(Integer, self))
 function pyjlany_round(self, ndigits_::Py)
     ndigits = pyconvertarg(Int, ndigits_, "ndigits")
-    pydel!(ndigits_)
+    unsafe_pydel(ndigits_)
     pyjl(round(self; digits = ndigits))
 end
 pyjl_handle_error_type(::typeof(pyjlany_round), self, exc::MethodError) =

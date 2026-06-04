@@ -22,7 +22,6 @@ function pycomplex end
 function pycontains end
 function pydate end
 function pydatetime end
-function pydel! end
 function pydelattr end
 function pydelitem end
 function pydict end
@@ -98,6 +97,7 @@ function pytuple end
 function pytype end
 function pywith end
 function pyxor end
+function unsafe_pydel end
 
 # Convert
 function pyconvert end

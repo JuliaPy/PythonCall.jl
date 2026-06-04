@@ -250,7 +250,7 @@ The functions here are not exported. They are mostly unsafe in the sense that yo
 crash Julia by using them incorrectly.
 
 ```@docs
-PythonCall.pydel!
+PythonCall.unsafe_pydel
 ```
 
 ## NumpyDates

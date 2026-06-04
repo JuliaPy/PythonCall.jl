@@ -90,7 +90,7 @@ pyconvert_rule_int(::Type{T}, x::Py) where {T<:Number} = begin
             # try converting -> int -> str -> BigInt -> T
             x_int = pyint(x)
             x_str = pystr(String, x_int)
-            pydel!(x_int)
+            unsafe_pydel(x_int)
             v = parse(BigInt, x_str)
             return pyconvert_tryconvert(T, v)
         end
@@ -203,7 +203,7 @@ function _pyconvert_rule_iterable(ans::Vector{T0}, it::Py, ::Type{T1}) where {T0
     @label again
     x_ = unsafe_pynext(it)
     if pyisnull(x_)
-        pydel!(it)
+        unsafe_pydel(it)
         return pyconvert_return(ans)
     end
     x = @pyconvert(T1, x_)
@@ -234,7 +234,7 @@ function _pyconvert_rule_iterable(ans::Set{T0}, it::Py, ::Type{T1}) where {T0,T1
     @label again
     x_ = unsafe_pynext(it)
     if pyisnull(x_)
-        pydel!(it)
+        unsafe_pydel(it)
         return pyconvert_return(ans)
     end
     x = @pyconvert(T1, x_)
@@ -271,7 +271,7 @@ function _pyconvert_rule_mapping(
     @label again
     k_ = unsafe_pynext(it)
     if pyisnull(k_)
-        pydel!(it)
+        unsafe_pydel(it)
         return pyconvert_return(ans)
     end
     v_ = pygetitem(x, k_)
@@ -378,24 +378,24 @@ function pyconvert_rule_iterable(
     it = pyiter(x)
     k_ = unsafe_pynext(it)
     if pyisnull(k_)
-        pydel!(it)
-        pydel!(k_)
+        unsafe_pydel(it)
+        unsafe_pydel(k_)
         return pyconvert_unconverted()
     end
     k = @pyconvert(K1, k_)
     v_ = unsafe_pynext(it)
     if pyisnull(v_)
-        pydel!(it)
-        pydel!(v_)
+        unsafe_pydel(it)
+        unsafe_pydel(v_)
         return pyconvert_unconverted()
     end
     v = @pyconvert(V1, v_)
     z_ = unsafe_pynext(it)
-    pydel!(it)
+    unsafe_pydel(it)
     if pyisnull(z_)
-        pydel!(z_)
+        unsafe_pydel(z_)
     else
-        pydel!(z_)
+        unsafe_pydel(z_)
         return pyconvert_unconverted()
     end
     K2 = Utils._promote_type_bounded(K0, typeof(k), K1)
@@ -421,7 +421,7 @@ function pyconvert_rule_iterable(::Type{R}, x::Py) where {R<:NamedTuple}
     pyistuple(x) || return pyconvert_unconverted()
     names2_ = pygetattr(x, "_fields", pybuiltins.None)
     names2 = @pyconvert(names === nothing ? Tuple{Vararg{Symbol}} : typeof(names), names2_)
-    pydel!(names2_)
+    unsafe_pydel(names2_)
     names === nothing || names === names2 || return pyconvert_unconverted()
     types2 = types === nothing ? NTuple{length(names2),Any} : types
     vals = @pyconvert(types2, x)
@@ -461,7 +461,7 @@ function pyconvert_rule_datetime(::Type{DateTime}, x::Py)
     days = pyconvert(Int, d.days)
     seconds = pyconvert(Int, d.seconds)
     microseconds = pyconvert(Int, d.microseconds)
-    pydel!(d)
+    unsafe_pydel(d)
     iszero(mod(microseconds, 1000)) || return pyconvert_unconverted()
     return pyconvert_return(
         _base_datetime +

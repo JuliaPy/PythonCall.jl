@@ -26,8 +26,14 @@ const PyJuliaBase_New = Ref(C.PyNULL)
 # we store the actual julia values here
 # the `value` field of `PyJuliaValueObject` indexes into here
 const PYJLVALUES = []
-# unused indices in PYJLVALUES
+# unused indices in PYJLVALUES; kept the same length as PYJLVALUES (extra slots
+# are pushed alongside PYJLVALUES so the dealloc/finalizer path never has to
+# resize this vector). Only the first PYJLFREEVALUECOUNT[] entries are valid
+# free indices; the rest are placeholders.
 const PYJLFREEVALUES = Int[]
+const PYJLFREEVALUECOUNT = Ref(0)
+# lock protecting PYJLVALUES, PYJLFREEVALUES and PYJLFREEVALUECOUNT
+const PYJL_LOCK = Threads.SpinLock()
 
 function _pyjl_new(t::C.PyPtr, ::C.PyPtr, ::C.PyPtr)
     alloc = C.PyType_GetSlot(t, C.Py_tp_alloc)
@@ -41,9 +47,15 @@ end
 
 function _pyjl_dealloc(o::C.PyPtr)
     idx = C.@ft UnsafePtr{PyJuliaValueObject}(o).value[]
-    if idx >= 1
+    if idx > 0
+        # No allocation in this critical section: PYJLFREEVALUES has been pre-sized
+        # to match PYJLVALUES by PyJuliaValue_SetValue, so recording a free index is
+        # just a write to an existing slot plus a counter bump. This avoids the GC-triggered
+        lock(PYJL_LOCK)
         PYJLVALUES[idx] = nothing
-        push!(PYJLFREEVALUES, idx)
+        PYJLFREEVALUECOUNT[] += 1
+        PYJLFREEVALUES[PYJLFREEVALUECOUNT[]] = idx
+        unlock(PYJL_LOCK)
     end
     (C.@ft UnsafePtr{PyJuliaValueObject}(o).weaklist[!]) == C.PyNULL || C.PyObject_ClearWeakRefs(o)
     freeptr = C.PyType_GetSlot(C.Py_Type(o), C.Py_tp_free)
@@ -443,53 +455,68 @@ PyJuliaValue_Check(o) =
     Base.GC.@preserve o C.PyObject_IsInstance(C.asptr(o), PyJuliaBase_Type[])
 
 PyJuliaValue_GetValue(o) = Base.GC.@preserve o begin
-    v = C.@ft UnsafePtr{PyJuliaValueObject}(C.asptr(o)).value[]
-    if v == 0
+    idx = C.@ft UnsafePtr{PyJuliaValueObject}(C.asptr(o)).value[]
+    if idx == 0
         nothing
-    elseif v > 0
-        PYJLVALUES[v]
-    elseif v == -1
+    elseif idx > 0
+        PYJLVALUES[idx]
+    elseif idx == -1
         false
-    elseif v == -2
+    elseif idx == -2
         true
     end
 end
 
-PyJuliaValue_SetValue(o, v::Union{Nothing,Bool}) = Base.GC.@preserve o begin
-    optr = C.@ft UnsafePtr{PyJuliaValueObject}(C.asptr(o))
-    idx = optr.value[]
-    if idx >= 1
-        PYJLVALUES[idx] = nothing
-        push!(PYJLFREEVALUES, idx)
-    end
+PyJuliaValue_SetValue(_o, @nospecialize(v)) = Base.GC.@preserve _o begin
+    o = C.asptr(_o)
+    idx = C.@ft UnsafePtr{PyJuliaValueObject}(o).value[]
     if v === nothing
-        idx = 0
+        newidx = 0
     elseif v === false
-        idx = -1
+        newidx = -1
     elseif v === true
-        idx = -2
+        newidx = -2
     else
-        @assert false
+        newidx = 1
     end
-    optr.value[] = idx
-    nothing
-end
-
-PyJuliaValue_SetValue(o, @nospecialize(v)) = Base.GC.@preserve o begin
-    optr = C.@ft UnsafePtr{PyJuliaValueObject}(C.asptr(o))
-    idx = optr.value[]
-    if idx >= 1
-        PYJLVALUES[idx] = v
-    else
-        if isempty(PYJLFREEVALUES)
-            push!(PYJLVALUES, v)
-            idx = length(PYJLVALUES)
-        else
-            idx = pop!(PYJLFREEVALUES)
+    if newidx > 0
+        # new value is ordinary
+        if idx > 0
+            # old value is ordinary, reuse the same idx
+            lock(PYJL_LOCK)
             PYJLVALUES[idx] = v
+            unlock(PYJL_LOCK)
+            newidx = idx
+        else
+            # old value is special, need a new idx
+            lock(PYJL_LOCK)
+            if PYJLFREEVALUECOUNT[] == 0
+                # Grow both vectors together so length(PYJLFREEVALUES) == length(PYJLVALUES)
+                # is preserved. The 0 in PYJLFREEVALUES is just a placeholder
+                push!(PYJLVALUES, v)
+                push!(PYJLFREEVALUES, 0)
+                newidx = length(PYJLVALUES)
+            else
+                newidx = PYJLFREEVALUES[PYJLFREEVALUECOUNT[]]
+                PYJLFREEVALUECOUNT[] -= 1
+                PYJLVALUES[newidx] = v
+            end
+            unlock(PYJL_LOCK)
         end
-        optr.value[] = idx
+    else
+        # new value is special
+        if idx > 0
+            # old value is ordinary, need to free the idx
+            lock(PYJL_LOCK)
+            PYJLVALUES[idx] = nothing
+            PYJLFREEVALUECOUNT[] += 1
+            PYJLFREEVALUES[PYJLFREEVALUECOUNT[]] = idx
+            unlock(PYJL_LOCK)
+        else
+            # old value is special, nothing to do
+        end
     end
+    C.@ft UnsafePtr{PyJuliaValueObject}(o).value[] = newidx
     nothing
 end
 

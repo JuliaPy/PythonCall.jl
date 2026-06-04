@@ -196,7 +196,6 @@ export
 
 include("Py.jl")
 include("err.jl")
-include("config.jl")
 include("consts.jl")
 include("builtins.jl")
 include("stdlib.jl")

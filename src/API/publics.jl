@@ -12,7 +12,6 @@ if Base.VERSION ≥ v"1.11"
             python_version,
 
             # Core
-            CONFIG,
             pydel!,
             
             # Compat

@@ -2,7 +2,7 @@
     import Markdown
     @testset "pyis" begin
         x = pylist()
-        y = PythonCall.pynew(x)
+        y = PythonCall.Core.pynew(x)
         z = pylist()
         @test pyis(x, x)
         @test pyis(x, y)
@@ -218,7 +218,7 @@
         @test Base.Docs.getdoc(Py(nothing)) isa Markdown.MD
         @test Base.Docs.getdoc(Py(12)) isa Markdown.MD
         @test Base.Docs.getdoc(pybuiltins.int) isa Markdown.MD
-        @test Base.Docs.getdoc(PythonCall.PyNULL) === nothing
+        @test Base.Docs.getdoc(PythonCall.Core.PyNULL) === nothing
     end
     @testset "comparisons" begin
         @testset "Py vs Py" begin
@@ -255,14 +255,14 @@ end
     @test_throws PyException pyiter(pybuiltins.True)
     # unsafe_pynext
     it = pyiter(pyrange(2))
-    x = PythonCall.unsafe_pynext(it)
-    @test !PythonCall.pyisnull(x)
+    x = PythonCall.Core.unsafe_pynext(it)
+    @test !PythonCall.Core.pyisnull(x)
     @test pyeq(Bool, x, 0)
-    x = PythonCall.unsafe_pynext(it)
-    @test !PythonCall.pyisnull(x)
+    x = PythonCall.Core.unsafe_pynext(it)
+    @test !PythonCall.Core.pyisnull(x)
     @test pyeq(Bool, x, 1)
-    x = PythonCall.unsafe_pynext(it)
-    @test PythonCall.pyisnull(x)
+    x = PythonCall.Core.unsafe_pynext(it)
+    @test PythonCall.Core.pyisnull(x)
     # pynext
     it = pyiter(pyrange(2))
     x = pynext(it)
@@ -825,18 +825,18 @@ end
         @test showable(MIME("text/plain"), Py(nothing))
         @test showable(MIME("text/plain"), Py(12))
         # https://github.com/JuliaPy/PythonCall.jl/issues/522
-        @test showable(MIME("text/plain"), PythonCall.pynew())
-        @test !showable(MIME("text/html"), PythonCall.pynew())
+        @test showable(MIME("text/plain"), PythonCall.Core.pynew())
+        @test !showable(MIME("text/html"), PythonCall.Core.pynew())
     end
     @testset "show" begin
         @test sprint(show, MIME("text/plain"), Py(nothing)) == "Python: None"
         @test sprint(show, MIME("text/plain"), Py(12)) == "Python: 12"
         # https://github.com/JuliaPy/PythonCall.jl/issues/522
-        @test sprint(show, MIME("text/plain"), PythonCall.pynew()) == "Python: NULL"
+        @test sprint(show, MIME("text/plain"), PythonCall.Core.pynew()) == "Python: NULL"
         # test compact printing
         @test sprint(show, MIME("text/plain"), Py(String('A':'Z')), context=(:compact=>true, :displaysize=>(50, 20))) == "Py: 'ABCDE ... WXYZ'"
         @test sprint(show, MIME("text/plain"), Py(String('A':'Z')), context=(:compact=>true, :limit=>false, :displaysize=>(50, 20))) == "Py: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'"
-        @test_throws MethodError sprint(show, MIME("text/html"), PythonCall.pynew())
+        @test_throws MethodError sprint(show, MIME("text/html"), PythonCall.Core.pynew())
     end
 end
 

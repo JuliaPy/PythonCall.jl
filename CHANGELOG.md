@@ -6,6 +6,8 @@
   * Comparisons like `==`, `<` and `isless` between `Py`s now return `Bool` instead of `Py`.
   * Removed comparisons between `Py` and `Number` (like `Py(3) < 5`).
   * Removed arithmetic between `Py` and `Number` (like `Py(2) * 10`).
+  * Python errors no longer automatically set `sys.last_traceback` etc. when displayed from Julia.
+  * Removed `CONFIG.auto_sys_last_traceback`.
 * Changes to `PythonCall.GC` (now more like `Base.GC`):
   * `enable(true)` replaces `enable()`.
   * `enable(false)` replaces `disable()`.

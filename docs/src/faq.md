@@ -116,3 +116,9 @@ Each release of PythonCall and JuliaCall will support and require:
 - The current Julia LTS version and newer, [see here](https://julialang.org/downloads/#long_term_support_release). Currently 1.10+.
 
 Only the latest patch release within each minor version is supported.
+
+## Can I use the Python debugger `pdb` from Julia?
+
+Yes! If you are used to using the post-mortem debugger `pdb.pm()` in Python, then you
+can instead use `pdb.post_mortem(err[1].exception)` at the Julia REPL to debug the
+most recent Python error (a [`PyException`](@ref)).

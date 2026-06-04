@@ -24,6 +24,12 @@ between Python and Julia is explicit.
 * Instead of `Py(5) * 6` use `Py(5) * Py(6)` or `pymul(Py(5), 6)`.
 * Instead of `np.array([1,2,3]) < 3` use `pylt(np.array([1,2,3]), 3)`.
 
+When a Python error is displayed in Julia, PythonCall no longer sets `sys.last_traceback`
+and friends. This means that the Python post-mortem debugger `pdb.pm()` will no longer
+work.
+
+* Instead of `pdb.pm()` use `pdb.post_mortem(err[1].exception)`.
+
 ## `PythonCall.GC`
 
 This submodule has been changed to closer mimic the `Base.GC` API.

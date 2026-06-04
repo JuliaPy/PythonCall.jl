@@ -10,7 +10,8 @@
   * Renamed `pydel!` to `unsafe_pydel` and exported.
     A `Py` is now always a valid, fixed, non-NULL Python object in the documented API.
   * Python errors no longer automatically set `sys.last_traceback` etc. when displayed from Julia.
-  * Removed `CONFIG.auto_sys_last_traceback`.
+  * Added [`fix_qt_plugin_path` preference](@ref pythoncall-config), replacing `CONFIG.auto_fix_qt_plugin_path`.
+  * Removed `PythonCall.CONFIG`.
 * Changes to `PythonCall.GC` (now more like `Base.GC`):
   * `enable(true)` replaces `enable()`.
   * `enable(false)` replaces `disable()`.

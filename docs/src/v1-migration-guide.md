@@ -70,6 +70,13 @@ work.
 
 * Instead of `pdb.pm()` use `pdb.post_mortem(err[1].exception)`.
 
+The `PythonCall.CONFIG.auto_fix_qt_plugin_path` config has been replaced with the
+[`fix_qt_plugin_path` preference](@ref pythoncall-config).
+
+* Instead of `PythonCall.CONFIG.auto_fix_qt_plugin_path = false`, set preference
+  `pkg> preference add PythonCall fix_qt_plugin_path=false` or the env var
+  `JULIA_PYTHONCALL_FIX_QT_PLUGIN_PATH=0`.
+
 ## `PythonCall.GC`
 
 This submodule has been changed to closer mimic the `Base.GC` API.

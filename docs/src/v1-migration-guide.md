@@ -59,6 +59,12 @@ end
 * Instead of `PythonCall.pycopy!(x, y)` use `x[] = y`.
 * Instead of `PythonCall.unsafe_pynext(x)` (and check for `pyisnull`) use `pynext(x, nothing)` (and check for `nothing`).
 
+When a Python error is displayed in Julia, PythonCall no longer sets `sys.last_traceback`
+and friends. This means that the Python post-mortem debugger `pdb.pm()` will no longer
+work.
+
+* Instead of `pdb.pm()` use `pdb.post_mortem(err[1].exception)`.
+
 ## `PythonCall.GC`
 
 This submodule has been changed to closer mimic the `Base.GC` API.

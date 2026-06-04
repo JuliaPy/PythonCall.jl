@@ -8,6 +8,8 @@
   * Removed arithmetic between `Py` and `Number` (like `Py(2) * 10`).
   * Removed unsafe API: `getptr`, `pycopy!`, `pyisnull`, `pynew`, `PyNULL`, `unsafe_pynext`.
     A `Py` is now always a valid, fixed, non-NULL Python object in the documented API.
+  * Python errors no longer automatically set `sys.last_traceback` etc. when displayed from Julia.
+  * Removed `CONFIG.auto_sys_last_traceback`.
 * Changes to `PythonCall.GC` (now more like `Base.GC`):
   * `enable(true)` replaces `enable()`.
   * `enable(false)` replaces `disable()`.

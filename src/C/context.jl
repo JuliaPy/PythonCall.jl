@@ -291,6 +291,7 @@ function init_context()
         if Py_AtExit(@cfunction(_atpyexit, Cvoid, ())) == -1
             @warn "Py_AtExit() error"
         end
+        PyEval_SaveThread()
     end
 
     # HACK: If we are using CondaPkg, prevent child processes from using it by explicitly

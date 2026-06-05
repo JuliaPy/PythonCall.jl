@@ -260,9 +260,3 @@ function Base.show(io::IO, ::MIME"text/plain", ctx::Context)
         show(io, getfield(ctx, k))
     end
 end
-
-const PYTHONCALL_UUID = Base.UUID("6099a3de-0909-46bc-b1f4-468b9a2dfc0d")
-const PYTHONCALL_PKGID = Base.PkgId(PYTHONCALL_UUID, "PythonCall")
-
-const PYCALL_UUID = Base.UUID("438e738f-606a-5dbb-bf0a-cddfbfd45ab0")
-const PYCALL_PKGID = Base.PkgId(PYCALL_UUID, "PyCall")

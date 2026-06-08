@@ -18,6 +18,7 @@ A handle to a loaded instance of libpython, its interpreter, function pointers, 
     which::Symbol = :unknown # :CondaPkg, :PyCall, :embedded or :unknown
     version::Union{VersionNumber,Missing} = missing
     is_free_threaded::Bool = false
+    thread_state::Ptr{Cvoid} = C_NULL
 end
 
 const CTX = Context()
@@ -218,7 +219,7 @@ function init_context()
         if Py_AtExit(@cfunction(_atpyexit, Cvoid, ())) == -1
             @warn "Py_AtExit() error"
         end
-        PyEval_SaveThread()
+        CTX.thread_state = PyEval_SaveThread()
     end
 
     # HACK: If we are using CondaPkg, prevent child processes from using it by explicitly

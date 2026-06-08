@@ -23,6 +23,10 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     :PyGILState_Release => (PyGILState_STATE,) => Cvoid,
     :PyGILState_GetThisThreadState => () => Ptr{Cvoid},
     :PyGILState_Check => () => Cint,
+    :PyThreadState_Get => () => Ptr{Cvoid},
+    :PyThreadState_New => (Ptr{Cvoid},) => Ptr{Cvoid},
+    :PyThreadState_Swap => (Ptr{Cvoid},) => Ptr{Cvoid},
+    :PyInterpreterState_Main => () => Ptr{Cvoid},
     # IMPORT
     :PyImport_ImportModule => (Ptr{Cchar},) => PyPtr,
     :PyImport_Import => (PyPtr,) => PyPtr,

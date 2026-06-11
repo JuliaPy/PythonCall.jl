@@ -72,7 +72,7 @@ jobs:
         uses: julia-actions/julia-processcoverage@v1
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -156,6 +156,6 @@ jobs:
           PYTHON_JULIACALL_PROJECT: ${{ env.MANUAL_TEST_PROJECT }}
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

@@ -289,6 +289,7 @@ variables.
 | `exe` | `JULIA_PYTHONCALL_EXE` | Path to the Python executable, or special values (see below). |
 | `lib` | `JULIA_PYTHONCALL_LIB` | Path to the Python library (usually inferred automatically). |
 | `pickle` | `JULIA_PYTHONCALL_PICKLE` | Pickle module to use for serialization (`pickle` or `dill`). |
+| `repl_style` | `JULIA_PYTHONCALL_REPL_STYLE` | Style of the Python REPL in [`pyrepl`](@ref). |
 
 The easiest way to set these preferences is with the
 [`PreferenceTools`](https://github.com/cjdoris/PreferenceTools.jl)

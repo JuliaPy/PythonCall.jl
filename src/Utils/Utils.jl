@@ -17,6 +17,20 @@ checkpref(::Type{String}, x::AbstractString) = convert(String, x)
 getpref_exe() = getpref(String, "exe", "JULIA_PYTHONCALL_EXE", "")
 getpref_lib() = getpref(String, "lib", "JULIA_PYTHONCALL_LIB", nothing)
 getpref_pickle() = getpref(String, "pickle", "JULIA_PYTHONCALL_PICKLE", "pickle")
+function getpref_repl_style()
+    pref = getpref(String, "repl_style", "JULIA_PYTHONCALL_REPL_STYLE", "code")
+    if pref == "code"
+        :code
+    elseif pref == "ipython"
+        :ipython
+    elseif pref == "bpython"
+        :bpython
+    elseif pref == "ptpython"
+        :ptpython
+    else
+        error("invalid repl_style preference, expecting `code`, `ipython`, `bpython` or `ptpython`")
+    end
+end
 
 function explode_union(T)
     @nospecialize T

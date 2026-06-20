@@ -1428,7 +1428,7 @@ macro pyexec(arg)
 end
 
 """
-    pyrepl(locals; style=:code)
+    pyrepl(locals; style=nothing)
 
 Run a Python REPL, for interacting directly with Python.
 
@@ -1437,23 +1437,29 @@ then a persistent scope for that module is used. Otherwise you must pass a Pytho
 `dict`.
 
 The `style` keyword argument selects the REPL implementation:
-- `:code` (default): Standard library `code.interact()`
+- `:code` (default): Standard library `code.interact()`.
 - `:ipython`: IPython REPL via `IPython.embed()` (requires `IPython` to be installed).
 - `:bpython`: bpython REPL via `bpython.embed()` (requires `bpython` to be installed).
 - `:ptpython`: ptpython REPL via `ptpython.embed()` (requires `ptpython` to be installed).
+
+The default style is `:code`, which is always available. You can set
+[the `repl_style` preference](@ref pythoncall-config) to override this default.
 
 Examples:
 - `pyrepl(Main)` is usually sufficient at the Julia REPL.
 - `pyrepl(@__MODULE__)` to use the scope of the current module.
 - `pyrepl(pydict())` to use a temporary scope.
 """
-function pyrepl(locals; style=:code)
+function pyrepl(locals; style=nothing)
     if ispy(locals)
         locals = Py(locals)
     elseif locals isa Module
         locals = get!(pydict, MODULE_GLOBALS, locals)
     else
         error("locals must be a Module or a Python dict")
+    end
+    if style === nothing
+        style = Utils.getpref_repl_style()
     end
     sys = pyimport("sys")
     ps1 = pygetattr(sys, "ps1", nothing)

@@ -1428,15 +1428,26 @@ macro pyexec(arg)
 end
 
 """
-    pyrepl(locals)
+    pyrepl(locals; style=:code)
 
 Run a Python REPL, for interacting directly with Python.
 
 Runs in a scope defined by `locals`. As with [`pyeval`](@ref), if you pass a module,
 then a persistent scope for that module is used. Otherwise you must pass a Python
 `dict`.
+
+The `style` keyword argument selects the REPL implementation:
+- `:code` (default): Standard library `code.interact()`
+- `:ipython`: IPython REPL via `IPython.embed()` (requires `IPython` to be installed).
+- `:bpython`: bpython REPL via `bpython.embed()` (requires `bpython` to be installed).
+- `:ptpython`: ptpython REPL via `ptpython.embed()` (requires `ptpython` to be installed).
+
+Examples:
+- `pyrepl(Main)` is usually sufficient at the Julia REPL.
+- `pyrepl(@__MODULE__)` to use the scope of the current module.
+- `pyrepl(pydict())` to use a temporary scope.
 """
-function pyrepl(locals)
+function pyrepl(locals; style=:code)
     if ispy(locals)
         locals = Py(locals)
     elseif locals isa Module
@@ -1444,7 +1455,47 @@ function pyrepl(locals)
     else
         error("locals must be a Module or a Python dict")
     end
-    pyimport("code").interact(banner="", exitmsg="", var"local"=locals)
+    sys = pyimport("sys")
+    ps1 = pygetattr(sys, "ps1", nothing)
+    ps2 = pygetattr(sys, "ps2", nothing)
+    try
+        if style == :code
+            pyimport("code").interact(banner="", exitmsg="", var"local"=locals)
+        elseif style == :ipython
+            config = pyimport("traitlets.config").Config()
+            config.InteractiveShell.banner1 = ""
+            config.InteractiveShell.banner2 = ""
+            config.InteractiveShell.enable_tip = false
+            locid = "$(@__FILE__):$(@__LINE__)"
+            mod = pyimport("sys").__class__("temp")
+            pyimport("IPython.terminal.embed").InteractiveShellEmbed(
+                _init_location_id=locid,
+                config=config,
+            )(
+                user_ns=locals,
+                local_ns=locals,
+                var"module"=mod,
+                _call_location_id=locid,
+                compile_flags=0,
+            )
+        elseif style == :bpython
+            pyimport("bpython").embed(locals_=locals)
+        elseif style == :ptpython
+            pyimport("ptpython").embed(globals=locals)
+        else
+            error("Unknown REPL style: $style. Supported styles are :code, :ipython, :bpython, :ptpython")
+        end
+    finally
+        for (k, v) in (("ps1", ps1), ("ps2", ps2))
+            if v === nothing
+                if pyhasattr(sys, k)
+                    pydelattr(sys, k)
+                end
+            else
+                pysetattr(sys, k, v)
+            end
+        end
+    end
     return
 end
 

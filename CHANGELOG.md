@@ -1,7 +1,8 @@
 # Changelog
 
 ## Unreleased
-* Add `pyrepl` to launch a Python REPL.
+* Add `pyrepl` and `@pyrepl` to launch a Python REPL.
+* Add `repl_style` preference.
 
 ## 0.9.35 (2026-06-08)
 * Add option `lib` to JuliaCall. Setting this will skip the discovery subprocess.

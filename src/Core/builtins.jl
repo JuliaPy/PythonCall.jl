@@ -1522,7 +1522,30 @@ as for [`@pyeval`](@ref) and [`@pyexec`](@ref).
 
 Equivalent to `pyrepl(@__MODULE__; ...)`. Keyword arguments are as for [`pyrepl`](@ref).
 
-You can use `@pyeval "varname"` to retrieve a variable computed during the REPL session.
+# Examples
+
+Launch a REPL and use `@pyeval` to retrieve a value.
+
+```julia-repl
+julia> @pyrepl
+>>> x = 12
+>>> # press Ctrl-D to quit
+
+julia> @pyeval "x"
+Python: 12
+```
+
+Launch a REPL and directly set a value in the Main module.
+
+```julia-repl
+julia> @pyrepl
+>>> from juliacall import Main as jl
+>>> jl.x = 123
+>>> # press Ctrl-D to quit
+
+julia> x
+123
+```
 """
 macro pyrepl(args...)
     esc(:($pyrepl($__module__; $(args...))))

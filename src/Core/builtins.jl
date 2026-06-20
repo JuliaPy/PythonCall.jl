@@ -1435,6 +1435,8 @@ end
 
 Run a Python REPL, for interacting directly with Python.
 
+Press Ctrl-D to terminate the REPL and return to Julia.
+
 Runs in a scope defined by `locals`. As with [`pyeval`](@ref), if you pass a module,
 then a persistent scope for that module is used. Otherwise you must pass a Python
 `dict`.
@@ -1449,6 +1451,9 @@ The default style is `:code`, which is always available. You can set
 [the `repl_style` preference](@ref pythoncall-config) to override this default.
 
 For most uses, [`@pyrepl`](@ref) is preferred. It is equivalent to `pyrepl(@__MODULE__)`.
+
+You can use `pyeval("varname", locals)` to retrieve a variable computed during the REPL
+session.
 """
 function pyrepl(locals; style=nothing)
     if ispy(locals)
@@ -1508,10 +1513,16 @@ end
 """
     @pyrepl ...
 
-Shorthand for [`pyrepl(mod; ...)`](@ref `pyrepl`) where `mod` is the calling module.
+Run a Python REPL, for interacting directly with Python.
 
-This starts an interactive Python REPL, whose local scope is a persistent scope for the
-Julia module this is called from.
+Press Ctrl-D to terminate the REPL and return to Julia.
+
+Runs in a persistent scope tied to the Julia module that this was called from, the same
+as for [`@pyeval`](@ref) and [`@pyexec`](@ref).
+
+Equivalent to `pyrepl(@__MODULE__; ...)`. Keyword arguments are as for [`pyrepl`](@ref).
+
+You can use `@pyeval "varname"` to retrieve a variable computed during the REPL session.
 """
 macro pyrepl(args...)
     esc(:($pyrepl($__module__; $(args...))))

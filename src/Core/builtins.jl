@@ -1427,6 +1427,27 @@ macro pyexec(arg)
     end
 end
 
+"""
+    pyrepl(locals)
+
+Run a Python REPL, for interacting directly with Python.
+
+Runs in a scope defined by `locals`. As with [`pyeval`](@ref), if you pass a module,
+then a persistent scope for that module is used. Otherwise you must pass a Python
+`dict`.
+"""
+function pyrepl(locals)
+    if ispy(locals)
+        locals = Py(locals)
+    elseif locals isa Module
+        locals = get!(pydict, MODULE_GLOBALS, locals)
+    else
+        error("locals must be a Module or a Python dict")
+    end
+    pyimport("code").interact(banner="", exitmsg="", var"local"=locals)
+    return
+end
+
 ### with
 
 """

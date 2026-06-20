@@ -86,6 +86,7 @@ function pypos end
 function pypow end
 function pyprint end
 function pyrange end
+function pyrepl end
 function pyrepr end
 function pyrowlist end
 function pyrshift end

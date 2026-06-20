@@ -119,6 +119,7 @@ import ..PythonCall:
     pypow,
     pyprint,
     pyrange,
+    pyrepl,
     pyrepr,
     pyrowlist,
     pyrshift,

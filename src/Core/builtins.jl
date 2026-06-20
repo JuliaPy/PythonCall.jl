@@ -1199,7 +1199,10 @@ _pyexec_ans(::Type{Nothing}, globals, locals) = nothing
             :(
                 $v = pyconvert(
                     $(types.parameters[i]),
-                    pygetitem(locals, $(string(names[i]))),
+                    @something(
+                        pygetitem(locals, $(string(names[i])), nothing),
+                        pygetitem(globals, $(string(names[i]))),
+                    ),
                 )
             ),
         )

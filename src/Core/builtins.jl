@@ -1428,7 +1428,7 @@ macro pyexec(arg)
 end
 
 """
-    pyrepl(locals; style=nothing)
+    pyrepl(locals; [style=nothing])
 
 Run a Python REPL, for interacting directly with Python.
 
@@ -1445,10 +1445,7 @@ The `style` keyword argument selects the REPL implementation:
 The default style is `:code`, which is always available. You can set
 [the `repl_style` preference](@ref pythoncall-config) to override this default.
 
-Examples:
-- `pyrepl(Main)` is usually sufficient at the Julia REPL.
-- `pyrepl(@__MODULE__)` to use the scope of the current module.
-- `pyrepl(pydict())` to use a temporary scope.
+For most uses, [`@pyrepl`](@ref) is preferred. It is equivalent to `pyrepl(@__MODULE__)`.
 """
 function pyrepl(locals; style=nothing)
     if ispy(locals)
@@ -1503,6 +1500,18 @@ function pyrepl(locals; style=nothing)
         end
     end
     return
+end
+
+"""
+    @pyrepl ...
+
+Shorthand for [`pyrepl(mod; ...)`](@ref `pyrepl`) where `mod` is the calling module.
+
+This starts an interactive Python REPL, whose local scope is a persistent scope for the
+Julia module this is called from.
+"""
+macro pyrepl(args...)
+    esc(:($pyrepl($__module__; $(args...))))
 end
 
 ### with

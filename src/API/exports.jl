@@ -1,6 +1,7 @@
 # Core
 export @py
 export @pyconst
+export @pyrepl
 export @pyeval
 export @pyexec
 export ispy

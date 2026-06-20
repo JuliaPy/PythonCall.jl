@@ -32,6 +32,7 @@ using Markdown: Markdown
 
 import ..PythonCall:
     @pyconst,
+    @pyrepl,
     @pyeval,
     @pyexec,
     getptr,

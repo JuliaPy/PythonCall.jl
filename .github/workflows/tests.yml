@@ -32,7 +32,7 @@ jobs:
           pyversion: '3.14t'
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Julia ${{ matrix.jlversion }}
         uses: julia-actions/setup-julia@v3
@@ -98,7 +98,7 @@ jobs:
       PYTHON_JULIACALL_HANDLE_SIGNALS: 'yes'
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Python ${{ matrix.pyversion }}
         uses: actions/setup-python@v6

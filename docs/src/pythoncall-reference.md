@@ -211,11 +211,13 @@ ispy(x::MyType) = true
 Py(x::MyType) = x.py
 ```
 
-## `@py` and `@pyconst`
+## `@py`, `@pyconst`, `pyrepl` and `@pyrepl`
 
 ```@docs
 @py
 @pyconst
+pyrepl
+@pyrepl
 ```
 
 ## Multi-threading

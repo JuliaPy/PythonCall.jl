@@ -1,6 +1,7 @@
 # Core
 export @py
 export @pyconst
+export @pyrepl
 export @pyeval
 export @pyexec
 export ispy
@@ -82,6 +83,7 @@ export pypos
 export pypow
 export pyprint
 export pyrange
+export pyrepl
 export pyrepr
 export pyrowlist
 export pyrshift

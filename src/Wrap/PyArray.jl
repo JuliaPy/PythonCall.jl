@@ -627,24 +627,16 @@ Base.IndexStyle(::Type{PyArray{T,N,M,L,R}}) where {T,N,M,L,R} =
 
 Base.unsafe_convert(::Type{Ptr{T}}, x::PyArray{T,N,M,L,T}) where {T,N,M,L} = x.ptr
 
-Base.elsize(::Type{PyArray{T,N,M,L,T}}) where {T,N,M,L} = sizeof(T)
+# Setting this to 1 means strides will be interpreted as bytes not elements
+Base.elsize(::Type{PyArray{T,N,M,L,T}}) where {T,N,M,L} = 1
 
-Base.strides(x::PyArray{T,N,M,L,R}) where {T,N,M,L,R} =
-    if all(mod.(x.strides, sizeof(R)) .== 0)
-        div.(x.strides, sizeof(R))
-    else
-        error("strides are not a multiple of element size")
-    end
+Base.strides(x::PyArray{T,N,M,L,R}) where {T,N,M,L,R} = x.strides
 
-@static if isdefined(Base, :try_strides)
-    Base.try_strides(x::PyArray{T,N,M,L,T}) where {T,N,M,L} =
-        if all(mod.(x.strides, sizeof(T)) .== 0)
-            div.(x.strides, sizeof(T))
-        else
-            nothing
-        end
-    Base.is_ptr_loadable(x::PyArray{T,N,M,L,T}) where {T,N,M,L} = true
-    Base.is_ptr_storable(x::PyArray{T,N,M,L,T}) where {T,N,M,L} = Utils.ismutablearray(x)
+@static if isdefined(Base, :is_strided)
+    Base.is_strided(::Type{<:PyArray{T,N,M,L,T}}) where {T,N,M,L} = true
+    Base.is_vec_strided(::Type{<:PyArray{T,N,M,L,T}}) where {T,N,M,L} = L
+    Base.is_ptr_loadable(::Type{<:PyArray{T,N,M,L,T}}) where {T,N,M,L} = true
+    Base.is_ptr_storable(::Type{<:PyArray{T,N,M,L,T}}) where {T,N,M,L} = M
 end
 
 function Base.showarg(io::IO, x::PyArray{T,N}, toplevel::Bool) where {T,N}

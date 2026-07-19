@@ -77,6 +77,45 @@ The `PythonCall.CONFIG.auto_fix_qt_plugin_path` config has been replaced with th
   `pkg> preference add PythonCall fix_qt_plugin_path=false` or the env var
   `JULIA_PYTHONCALL_FIX_QT_PLUGIN_PATH=0`.
 
+## Python-to-Julia conversion rules
+
+`pyconvert_add_rule` now takes a Julia scope instead of a priority:
+
+```julia
+# v0.9
+pyconvert_add_rule(
+    "some_package:SomePythonType",
+    MyType,
+    pyconvert_rule_mytype,
+    PYCONVERT_PRIORITY_NORMAL,
+)
+
+# v1
+pyconvert_add_rule(
+    "some_package:SomePythonType",
+    MyType,
+    MyType,
+    pyconvert_rule_mytype,
+)
+```
+
+The target type must be a subtype of the scope. A rule is considered only when the
+requested Julia target is within that scope; for a union target, at least one component
+must be within it. Ordinary matching rules are tried in reverse insertion order, so the
+most recently registered rule is tried first.
+
+You may only add a rule when you own either its Python source type or its Julia scope.
+Use scope `Any` only when you own the Python type. This replaces canonical (or higher)
+priority: such a rule can affect `pyconvert(Any, x)` and therefore JuliaCall's default
+argument conversion. When converting a foreign Python type to a Julia type that you own,
+normally use that Julia type as the scope. The rule will then be used only when callers
+explicitly request your type and cannot change the default conversion merely because your
+package was loaded.
+
+The constants `PYCONVERT_PRIORITY_WRAP`, `PYCONVERT_PRIORITY_ARRAY`,
+`PYCONVERT_PRIORITY_CANONICAL`, `PYCONVERT_PRIORITY_NORMAL`, and
+`PYCONVERT_PRIORITY_FALLBACK` have been removed.
+
 ## `PythonCall.GC`
 
 This submodule has been changed to closer mimic the `Base.GC` API.

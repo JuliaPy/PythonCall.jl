@@ -112,49 +112,57 @@ function init_numpy()
         rule = pyconvert_rule_numpysimplevalue{T,false}()
         saferule = pyconvert_rule_numpysimplevalue{T,true}()
 
-        pyconvert_add_rule(name, T, saferule, PYCONVERT_PRIORITY_ARRAY)
-        isuint && pyconvert_add_rule(name, UInt, sizeof(T) ≤ sizeof(UInt) ? saferule : rule)
-        isuint && pyconvert_add_rule(name, Int, sizeof(T) < sizeof(Int) ? saferule : rule)
+        isuint && pyconvert_add_rule(name, UInt, UInt, sizeof(T) ≤ sizeof(UInt) ? saferule : rule)
+        isuint && pyconvert_add_rule(name, Int, Int, sizeof(T) < sizeof(Int) ? saferule : rule)
         isint &&
             !isuint &&
-            pyconvert_add_rule(name, Int, sizeof(T) ≤ sizeof(Int) ? saferule : rule)
-        isint && pyconvert_add_rule(name, Integer, rule)
-        isfloat && pyconvert_add_rule(name, Float64, saferule)
-        isreal && pyconvert_add_rule(name, Real, rule)
-        iscomplex && pyconvert_add_rule(name, ComplexF64, saferule)
-        iscomplex && pyconvert_add_rule(name, Complex, rule)
-        isnumber && pyconvert_add_rule(name, Number, rule)
+            pyconvert_add_rule(name, Int, Int, sizeof(T) ≤ sizeof(Int) ? saferule : rule)
+        isint && pyconvert_add_rule(name, Integer, Integer, rule)
+        isfloat && pyconvert_add_rule(name, Float64, Float64, saferule)
+        isreal && pyconvert_add_rule(name, Real, Real, rule)
+        iscomplex && pyconvert_add_rule(name, ComplexF64, ComplexF64, saferule)
+        iscomplex && pyconvert_add_rule(name, Complex, Complex, rule)
+        isnumber && pyconvert_add_rule(name, Number, Number, rule)
     end
 
     # datetime64
-    pyconvert_add_rule(
-        "numpy:datetime64",
-        DateTime64,
-        pyconvert_rule_datetime64,
-        PYCONVERT_PRIORITY_ARRAY,
-    )
-    pyconvert_add_rule("numpy:datetime64", InlineDateTime64, pyconvert_rule_datetime64)
-    pyconvert_add_rule(
-        "numpy:datetime64",
+    pyconvert_add_rule("numpy:datetime64", InlineDateTime64, InlineDateTime64, pyconvert_rule_datetime64)
+    pyconvert_add_rule("numpy:datetime64",
         NumpyDates.DatesInstant,
-        pyconvert_rule_datetime64,
-    )
-    pyconvert_add_rule("numpy:datetime64", Missing, pyconvert_rule_datetime64)
-    pyconvert_add_rule("numpy:datetime64", Nothing, pyconvert_rule_datetime64)
+        NumpyDates.DatesInstant,
+        pyconvert_rule_datetime64)
+    pyconvert_add_rule("numpy:datetime64", Missing, Missing, pyconvert_rule_datetime64)
+    pyconvert_add_rule("numpy:datetime64", Nothing, Nothing, pyconvert_rule_datetime64)
 
     # timedelta64
-    pyconvert_add_rule(
+    pyconvert_add_rule("numpy:timedelta64", InlineTimeDelta64, InlineTimeDelta64, pyconvert_rule_timedelta64)
+    pyconvert_add_rule("numpy:timedelta64",
+        NumpyDates.DatesPeriod,
+        NumpyDates.DatesPeriod,
+        pyconvert_rule_timedelta64)
+    pyconvert_add_rule("numpy:timedelta64", Missing, Missing, pyconvert_rule_timedelta64)
+    pyconvert_add_rule("numpy:timedelta64", Nothing, Nothing, pyconvert_rule_timedelta64)
+end
+
+function init_numpy_high_priority()
+    for (t, T) in NUMPY_SIMPLE_TYPES
+        pyconvert_add_rule_high_priority(
+            "numpy:$t",
+            T,
+            Any,
+            pyconvert_rule_numpysimplevalue{T,true}(),
+        )
+    end
+    pyconvert_add_rule_high_priority(
+        "numpy:datetime64",
+        DateTime64,
+        Any,
+        pyconvert_rule_datetime64,
+    )
+    pyconvert_add_rule_high_priority(
         "numpy:timedelta64",
         TimeDelta64,
-        pyconvert_rule_timedelta64,
-        PYCONVERT_PRIORITY_ARRAY,
-    )
-    pyconvert_add_rule("numpy:timedelta64", InlineTimeDelta64, pyconvert_rule_timedelta64)
-    pyconvert_add_rule(
-        "numpy:timedelta64",
-        NumpyDates.DatesPeriod,
+        Any,
         pyconvert_rule_timedelta64,
     )
-    pyconvert_add_rule("numpy:timedelta64", Missing, pyconvert_rule_timedelta64)
-    pyconvert_add_rule("numpy:timedelta64", Nothing, pyconvert_rule_timedelta64)
 end

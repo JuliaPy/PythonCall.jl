@@ -333,8 +333,22 @@ end
     PythonCall.pyconvert_add_rule(
         "$(t.__module__):$(t.__qualname__)",
         String,
+        String,
         (_, _) -> "Hello!!",
     )
     @test pyconvert(String, x) == "Hello!!"
-    @test pyconvert(Any, x) == "Hello!!" # Broken before PR #365
+    @test pyconvert(Any, x) === x
+    PythonCall.pyconvert_add_rule(
+        "$(t.__module__):$(t.__qualname__)",
+        String,
+        String,
+        (_, _) -> "Most recent rule",
+    )
+    @test pyconvert(String, x) == "Most recent rule"
+    @test_throws ArgumentError PythonCall.pyconvert_add_rule(
+        "$(t.__module__):$(t.__qualname__)",
+        Any,
+        String,
+        (_, _) -> "invalid",
+    )
 end

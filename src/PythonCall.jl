@@ -27,5 +27,11 @@ for k in [
 ]
     @eval using .JlWrap: $k
 end
+function __init__()
+    JlWrap.init_base_rule_high_priority()
+    Wrap.init_wrap_rules_high_priority()
+    Convert.init_numpy_high_priority()
+    Convert.init_pyconvert_canonical()
+end
 
 end

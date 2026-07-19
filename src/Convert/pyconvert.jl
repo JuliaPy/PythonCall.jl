@@ -1,11 +1,12 @@
 struct PyConvertRule
+    pytypename::String
     type::Type
     scope::Type
     func::Function
     order::Int
 end
 
-const PYCONVERT_RULES = Pair{String,PyConvertRule}[]
+const PYCONVERT_RULES = PyConvertRule[]
 
 """
     pyconvert_add_rule(tname::String, T::Type, S::Type, func::Function)
@@ -51,7 +52,7 @@ function pyconvert_add_rule(
     )
     push!(
         PYCONVERT_RULES,
-        pytypename => PyConvertRule(type, scope, func, length(PYCONVERT_RULES)),
+        PyConvertRule(pytypename, type, scope, func, length(PYCONVERT_RULES)),
     )
     empty!.(values(PYCONVERT_RULES_CACHE))
     return
@@ -69,7 +70,8 @@ function pyconvert_add_rule_high_priority(
     )
     push!(
         PYCONVERT_RULES,
-        pytypename => PyConvertRule(
+        PyConvertRule(
+            pytypename,
             type,
             scope,
             func,
@@ -172,7 +174,7 @@ end
 
 function _pyconvert_get_rules(pytype::Py)
     rules = PyConvertRule[
-        pair.second for pair in PYCONVERT_RULES if pyconvert_issubclass(pytype, pair.first)
+        rule for rule in PYCONVERT_RULES if pyconvert_issubclass(pytype, rule.pytypename)
     ]
 
     sort!(rules; by = rule -> rule.order, rev = true)
@@ -203,14 +205,20 @@ function pyconvert_get_rules(type::Type, pytype::Py)
 
     # intersect rules with type
     rules = PyConvertRule[
-        PyConvertRule(typeintersect(rule.type, type), rule.scope, rule.func, rule.order) for
+        PyConvertRule(
+            rule.pytypename,
+            typeintersect(rule.type, type),
+            rule.scope,
+            rule.func,
+            rule.order,
+        ) for
         rule in rules
     ]
 
     # explode out unions
     rules = [
-        PyConvertRule(type, rule.scope, rule.func, rule.order) for rule in rules for
-        type in Utils.explode_union(rule.type)
+        PyConvertRule(rule.pytypename, type, rule.scope, rule.func, rule.order) for
+        rule in rules for type in Utils.explode_union(rule.type)
     ]
 
     # filter out empty rules

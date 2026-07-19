@@ -43,18 +43,18 @@ function __init__()
         Any,
         pyconvert_rule_iterable)
     pyconvert_add_rule("io:IOBase", PyIO, Any, pyconvert_rule_io)
-    pyconvert_add_rule("_io:_IOBase", PyIO, Any, pyconvert_rule_io)
-    for typename in ["pandas.core.frame:DataFrame", "pandas:DataFrame"]
-        pyconvert_add_rule(
-            typename,
-            PyPandasDataFrame,
-            Any,
-            pyconvert_rule_pandasdataframe,
-        )
-    end
-    for typename in ["pandas.core.arrays.base:ExtensionArray", "pandas.api.extensions:ExtensionArray"]
-        pyconvert_add_rule(typename, PyList, Any, pyconvert_rule_sequence)
-    end
+    pyconvert_add_rule(
+        "pandas:DataFrame",
+        PyPandasDataFrame,
+        Any,
+        pyconvert_rule_pandasdataframe,
+    )
+    pyconvert_add_rule(
+        "pandas.api.extensions:ExtensionArray",
+        PyList,
+        Any,
+        pyconvert_rule_sequence,
+    )
 
     pyconvert_add_rule("<arraystruct>", Array, AbstractArray, pyconvert_rule_array)
     pyconvert_add_rule("<arrayinterface>", Array, AbstractArray, pyconvert_rule_array)

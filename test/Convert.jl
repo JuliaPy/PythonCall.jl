@@ -320,14 +320,11 @@ end
 
 @testitem "pyconvert_add_rule (#364)" begin
     id = string(rand(UInt128), base = 16)
-    pyexec(
-        """
- class Hello_364_$id:
-     pass
- """,
-        @__MODULE__
-    )
-    x = pyeval("Hello_364_$id()", @__MODULE__)
+    modname = "pythoncall_test_$id"
+    mod = pyimport("types").ModuleType(modname)
+    pyexec("class Hello: pass", mod.__dict__)
+    pyimport("sys").modules[modname] = mod
+    x = mod.Hello()
     @test pyconvert(Any, x) === x # This test has a side effect of influencing the rules cache
     t = pytype(x)
     PythonCall.pyconvert_add_rule(

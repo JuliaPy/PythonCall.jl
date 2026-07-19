@@ -6,7 +6,6 @@ struct PyConvertRule
 end
 
 const PYCONVERT_RULES = Pair{String,PyConvertRule}[]
-const PYCONVERT_EXTRATYPES = Py[]
 
 """
     pyconvert_add_rule(tname::String, T::Type, S::Type, func::Function)
@@ -16,7 +15,7 @@ Add a new conversion rule for `pyconvert`.
 ### Arguments
 
 - `tname` is a string of the form `"__module__:__qualname__"` identifying a Python type `t`,
-  such as `"builtins:dict"` or `"sympy.core.symbol:Symbol"`. This rule only applies to
+  such as `"builtins:dict"` or `"sympy:Symbol"`. This rule only applies to
   Python objects of this type.
 - `T` is a Julia type, such that this rule only applies when the target type intersects
   with `T`.
@@ -154,33 +153,31 @@ pyconvert_tryconvert(::Type{T}, x) where {T} =
         pyconvert_unconverted()
     end
 
-function pyconvert_typename(t::Py)
-    m = pygetattr(t, "__module__", "<unknown>")
-    n = pygetattr(t, "__name__", "<name>")
-    return "$m:$n"
+function pyconvert_issubclass(pytype::Py, pytypename::String)
+    pytypename == "<arraystruct>" && return pyhasattr(pytype, "__array_struct__")
+    pytypename == "<arrayinterface>" && return pyhasattr(pytype, "__array_interface__")
+    pytypename == "<array>" && return pyhasattr(pytype, "__array__")
+    pytypename == "<buffer>" && return C.PyType_CheckBuffer(pytype)
+
+    modname, typename = split(pytypename, ':'; limit = 2)
+    modules = pyimport("sys").modules
+    pyhasitem(modules, modname) || return false
+    type = pygetitem(modules, modname)
+    for name in split(typename, '.')
+        pyhasattr(type, name) || return false
+        type = pygetattr(type, name)
+    end
+    return pyissubclass(pytype, type)
 end
 
 function _pyconvert_get_rules(pytype::Py)
-    # Get the names of the actual base types, plus registered abstract base classes which
-    # may not occur in the MRO (for example collections.abc.Sequence).
-    omro = collect(pytype.__mro__)
-    typenames = String[pyconvert_typename(t) for t in omro]
-    for xtype in PYCONVERT_EXTRATYPES
-        pyissubclass(pytype, xtype) && push!(typenames, pyconvert_typename(xtype))
-    end
-
-    # Add special names corresponding to array interfaces.
-    any(t -> pyhasattr(t, "__array_struct__"), omro) && push!(typenames, "<arraystruct>")
-    any(t -> pyhasattr(t, "__array_interface__"), omro) && push!(typenames, "<arrayinterface>")
-    any(t -> pyhasattr(t, "__array__"), omro) && push!(typenames, "<array>")
-    any(C.PyType_CheckBuffer, omro) && push!(typenames, "<buffer>")
-
-    # get corresponding rules
-    rules = PyConvertRule[pair.second for pair in PYCONVERT_RULES if pair.first in typenames]
+    rules = PyConvertRule[
+        pair.second for pair in PYCONVERT_RULES if pyconvert_issubclass(pytype, pair.first)
+    ]
 
     sort!(rules; by = rule -> rule.order, rev = true)
 
-    @debug "pyconvert" pytype typenames = join(typenames, " ")
+    @debug "pyconvert" pytype rules
     return rules
 end
 
@@ -342,19 +339,14 @@ pyconvertarg(::Type{T}, x, name) where {T} = @autopy x @pyconvert T x_ begin
 end
 
 function init_pyconvert()
-    push!(PYCONVERT_EXTRATYPES, pyimport("io" => "IOBase"))
-    push!(
-        PYCONVERT_EXTRATYPES,
-        pyimport("numbers" => ("Number", "Complex", "Real", "Rational", "Integral"))...,
-    )
-    push!(
-        PYCONVERT_EXTRATYPES,
-        pyimport("collections.abc" => ("Iterable", "Sequence", "Set", "Mapping"))...,
-    )
+    pyimport("io")
+    pyimport("types")
+    pyimport("numbers")
+    pyimport("collections.abc")
 
     pyconvert_add_rule("builtins:object", Py, Any, pyconvert_rule_object)
 
-    pyconvert_add_rule("builtins:NoneType", Missing, Missing, pyconvert_rule_none)
+    pyconvert_add_rule("types:NoneType", Missing, Missing, pyconvert_rule_none)
     pyconvert_add_rule("builtins:bool", Number, Number, pyconvert_rule_bool)
     pyconvert_add_rule("numbers:Rational", Number, Number, pyconvert_rule_fraction)
     pyconvert_add_rule("numbers:Real", Number, Number, pyconvert_rule_float)
@@ -400,7 +392,7 @@ function init_pyconvert()
 end
 
 function init_pyconvert_canonical()
-    pyconvert_add_rule("builtins:NoneType", Nothing, Any, pyconvert_rule_none)
+    pyconvert_add_rule("types:NoneType", Nothing, Any, pyconvert_rule_none)
     pyconvert_add_rule("builtins:bool", Bool, Any, pyconvert_rule_bool)
     pyconvert_add_rule("builtins:float", Float64, Any, pyconvert_rule_float)
     pyconvert_add_rule(

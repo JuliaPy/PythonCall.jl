@@ -63,6 +63,7 @@ function pyconvert_add_rule_high_priority(
     type::Type,
     scope::Type,
     func::Function,
+    priority::Int,
 )
     @nospecialize type scope func
     type <: scope || throw(
@@ -75,7 +76,7 @@ function pyconvert_add_rule_high_priority(
             type,
             scope,
             func,
-            typemax(Int) - length(PYCONVERT_RULES),
+            typemax(Int) ÷ 2 + priority * (typemax(Int) ÷ 16) - length(PYCONVERT_RULES),
         ),
     )
     empty!.(values(PYCONVERT_RULES_CACHE))
@@ -400,50 +401,69 @@ function init_pyconvert()
 end
 
 function init_pyconvert_canonical()
-    pyconvert_add_rule("types:NoneType", Nothing, Any, pyconvert_rule_none)
-    pyconvert_add_rule("builtins:bool", Bool, Any, pyconvert_rule_bool)
-    pyconvert_add_rule("builtins:float", Float64, Any, pyconvert_rule_float)
-    pyconvert_add_rule(
+    priority = 0
+    pyconvert_add_rule_high_priority("types:NoneType", Nothing, Any, pyconvert_rule_none, priority)
+    pyconvert_add_rule_high_priority("builtins:bool", Bool, Any, pyconvert_rule_bool, priority)
+    pyconvert_add_rule_high_priority("builtins:float", Float64, Any, pyconvert_rule_float, priority)
+    pyconvert_add_rule_high_priority(
         "builtins:complex",
         Complex{Float64},
         Any,
         pyconvert_rule_complex,
+        priority,
     )
-    pyconvert_add_rule(
+    pyconvert_add_rule_high_priority("numbers:Integral", Integer, Any, pyconvert_rule_int, priority)
+    pyconvert_add_rule_high_priority(
         "numbers:Rational",
         Rational{<:Integer},
         Any,
         pyconvert_rule_fraction,
+        priority,
     )
-    pyconvert_add_rule("numbers:Integral", Integer, Any, pyconvert_rule_int)
-    pyconvert_add_rule("builtins:str", String, Any, pyconvert_rule_str)
-    pyconvert_add_rule(
+    pyconvert_add_rule_high_priority("builtins:str", String, Any, pyconvert_rule_str, priority)
+    pyconvert_add_rule_high_priority(
         "builtins:bytes",
         Base.CodeUnits{UInt8,String},
         Any,
         pyconvert_rule_bytes,
+        priority,
     )
-    pyconvert_add_rule(
+    pyconvert_add_rule_high_priority(
         "builtins:range",
         StepRange{<:Integer,<:Integer},
         Any,
         pyconvert_rule_range,
+        priority,
     )
-    pyconvert_add_rule("builtins:tuple", NamedTuple, Any, pyconvert_rule_iterable)
-    pyconvert_add_rule("builtins:tuple", Tuple, Any, pyconvert_rule_iterable)
-    pyconvert_add_rule("datetime:datetime", DateTime, Any, pyconvert_rule_datetime)
-    pyconvert_add_rule("datetime:date", Date, Any, pyconvert_rule_date)
-    pyconvert_add_rule("datetime:time", Time, Any, pyconvert_rule_time)
-    pyconvert_add_rule(
+    pyconvert_add_rule_high_priority(
+        "builtins:tuple",
+        NamedTuple,
+        Any,
+        pyconvert_rule_iterable,
+        priority,
+    )
+    pyconvert_add_rule_high_priority("builtins:tuple", Tuple, Any, pyconvert_rule_iterable, priority)
+    pyconvert_add_rule_high_priority(
+        "datetime:datetime",
+        DateTime,
+        Any,
+        pyconvert_rule_datetime,
+        priority,
+    )
+    pyconvert_add_rule_high_priority("datetime:date", Date, Any, pyconvert_rule_date, priority)
+    pyconvert_add_rule_high_priority("datetime:time", Time, Any, pyconvert_rule_time, priority)
+    pyconvert_add_rule_high_priority(
         "datetime:timedelta",
         Microsecond,
         Any,
         pyconvert_rule_timedelta,
+        priority,
     )
-    pyconvert_add_rule(
+    pyconvert_add_rule_high_priority(
         "builtins:BaseException",
         PyException,
         Any,
         pyconvert_rule_exception,
+        priority,
     )
 end

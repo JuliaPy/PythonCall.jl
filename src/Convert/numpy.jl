@@ -99,6 +99,7 @@ const NUMPY_SIMPLE_TYPES = [
 
 function init_numpy()
     # simple numeric scalar types
+    priority = 1
     for (t, T) in NUMPY_SIMPLE_TYPES
         isbool = occursin("bool", t)
         isint = occursin("int", t) || isbool
@@ -142,15 +143,13 @@ function init_numpy()
         pyconvert_rule_timedelta64)
     pyconvert_add_rule("numpy:timedelta64", Missing, Missing, pyconvert_rule_timedelta64)
     pyconvert_add_rule("numpy:timedelta64", Nothing, Nothing, pyconvert_rule_timedelta64)
-end
-
-function init_numpy_high_priority()
     for (t, T) in NUMPY_SIMPLE_TYPES
         pyconvert_add_rule_high_priority(
             "numpy:$t",
             T,
             Any,
             pyconvert_rule_numpysimplevalue{T,true}(),
+            priority,
         )
     end
     pyconvert_add_rule_high_priority(
@@ -158,11 +157,13 @@ function init_numpy_high_priority()
         DateTime64,
         Any,
         pyconvert_rule_datetime64,
+        priority,
     )
     pyconvert_add_rule_high_priority(
         "numpy:timedelta64",
         TimeDelta64,
         Any,
         pyconvert_rule_timedelta64,
+        priority,
     )
 end

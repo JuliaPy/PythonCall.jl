@@ -32,28 +32,55 @@ include("PyTable.jl")
 include("PyPandasDataFrame.jl")
 
 function __init__()
-    pyconvert_add_rule("collections.abc:Sequence",
+    priority = 0
+    Convert.pyconvert_add_rule_high_priority(
+        "collections.abc:Sequence",
         PyList,
         Any,
-        pyconvert_rule_sequence)
-    pyconvert_add_rule("collections.abc:Set", PySet, Any, pyconvert_rule_set)
-    pyconvert_add_rule("collections.abc:Mapping", PyDict, Any, pyconvert_rule_mapping)
-    pyconvert_add_rule("collections.abc:Iterable",
+        pyconvert_rule_sequence,
+        priority,
+    )
+    Convert.pyconvert_add_rule_high_priority(
+        "collections.abc:Set",
+        PySet,
+        Any,
+        pyconvert_rule_set,
+        priority,
+    )
+    Convert.pyconvert_add_rule_high_priority(
+        "collections.abc:Mapping",
+        PyDict,
+        Any,
+        pyconvert_rule_mapping,
+        priority,
+    )
+    Convert.pyconvert_add_rule_high_priority(
+        "collections.abc:Iterable",
         PyIterable,
         Any,
-        pyconvert_rule_iterable)
-    pyconvert_add_rule("io:IOBase", PyIO, Any, pyconvert_rule_io)
-    pyconvert_add_rule(
+        pyconvert_rule_iterable,
+        priority,
+    )
+    Convert.pyconvert_add_rule_high_priority(
+        "io:IOBase",
+        PyIO,
+        Any,
+        pyconvert_rule_io,
+        priority,
+    )
+    Convert.pyconvert_add_rule_high_priority(
         "pandas:DataFrame",
         PyPandasDataFrame,
         Any,
         pyconvert_rule_pandasdataframe,
+        priority,
     )
-    pyconvert_add_rule(
+    Convert.pyconvert_add_rule_high_priority(
         "pandas.api.extensions:ExtensionArray",
         PyList,
         Any,
         pyconvert_rule_sequence,
+        priority,
     )
 
     pyconvert_add_rule("<arraystruct>", Array, AbstractArray, pyconvert_rule_array)
@@ -64,13 +91,22 @@ function __init__()
     pyconvert_add_rule("<arrayinterface>", AbstractArray, AbstractArray, pyconvert_rule_array)
     pyconvert_add_rule("<array>", AbstractArray, AbstractArray, pyconvert_rule_array)
     pyconvert_add_rule("<buffer>", AbstractArray, AbstractArray, pyconvert_rule_array)
-end
-
-function init_wrap_rules_high_priority()
-    pyconvert_add_rule_high_priority("<arraystruct>", PyArray, Any, pyconvert_rule_array_nocopy)
-    pyconvert_add_rule_high_priority("<arrayinterface>", PyArray, Any, pyconvert_rule_array_nocopy)
-    pyconvert_add_rule_high_priority("<array>", PyArray, Any, pyconvert_rule_array_nocopy)
-    pyconvert_add_rule_high_priority("<buffer>", PyArray, Any, pyconvert_rule_array_nocopy)
+    Convert.pyconvert_add_rule_high_priority(
+        "<arraystruct>",
+        PyArray,
+        Any,
+        pyconvert_rule_array_nocopy,
+        1,
+    )
+    Convert.pyconvert_add_rule_high_priority(
+        "<arrayinterface>",
+        PyArray,
+        Any,
+        pyconvert_rule_array_nocopy,
+        1,
+    )
+    Convert.pyconvert_add_rule_high_priority("<array>", PyArray, Any, pyconvert_rule_array_nocopy, 1)
+    Convert.pyconvert_add_rule_high_priority("<buffer>", PyArray, Any, pyconvert_rule_array_nocopy, 1)
 end
 
 end

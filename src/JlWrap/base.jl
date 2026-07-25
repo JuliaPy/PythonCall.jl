@@ -23,10 +23,14 @@ pyjlvalue(x) = @autopy x _pyjl_getvalue(x_)
 function init_base()
     setptr!(pyjlbasetype, incref(Cjl.PyJuliaBase_Type[]))
     pyjuliacallmodule.JlBase = pyjlbasetype
+    Convert.pyconvert_add_rule_high_priority(
+        "juliacall:JlBase",
+        Any,
+        Any,
+        pyconvert_rule_jlvalue,
+        2,
+    )
 end
-
-init_base_rule_high_priority() =
-    Convert.pyconvert_add_rule_high_priority("juliacall:JlBase", Any, Any, pyconvert_rule_jlvalue)
 
 pyconvert_rule_jlvalue(::Type{T}, x::Py) where {T} =
     pyconvert_tryconvert(T, _pyjl_getvalue(x))

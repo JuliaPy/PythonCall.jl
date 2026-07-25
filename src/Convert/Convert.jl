@@ -21,7 +21,6 @@ import ..PythonCall:
     pyconvert
 
 export pyconvert_isunconverted,
-    pyconvert_add_rule_high_priority,
     pyconvert_result,
     pyconvert_result,
     pyconvert_tryconvert,
@@ -40,6 +39,7 @@ function __init__()
     init_ctypes()
     init_numpy()
     init_pandas()
+    init_pyconvert_canonical()
 end
 
 end

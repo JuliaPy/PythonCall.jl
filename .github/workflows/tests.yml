@@ -105,11 +105,11 @@ jobs:
         with:
           python-version: ${{ matrix.pyversion }}
       
-      - name: Check Python OpenSSL version (see setup_julia)
-        shell: python
-        run: |
-          import ssl
-          assert ssl.OPENSSL_VERSION_INFO < (3, 5)
+      # - name: Check Python OpenSSL version (see setup_julia)
+      #   shell: python
+      #   run: |
+      #     import ssl
+      #     assert ssl.OPENSSL_VERSION_INFO < (3, 5)
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
@@ -119,10 +119,6 @@ jobs:
       - name: Set up Julia
         id: setup_julia
         uses: julia-actions/setup-julia@v3
-        with:
-          # Python in the GitHub runners ships with OpenSSL 3.0. Julia 1.12 requires
-          # OpenSSL 3.5. Therefore juliapkg requires Julia 1.11 or lower.
-          version: '1.11'
 
       - name: Set up test Julia project
         if: ${{ matrix.juliaexe == 'julia' }}

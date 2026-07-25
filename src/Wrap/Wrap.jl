@@ -34,6 +34,20 @@ include("PyPandasDataFrame.jl")
 function __init__()
     priority = 0
     Convert.pyconvert_add_rule_high_priority(
+        "pandas:DataFrame",
+        PyPandasDataFrame,
+        Any,
+        pyconvert_rule_pandasdataframe,
+        priority,
+    )
+    Convert.pyconvert_add_rule_high_priority(
+        "pandas.api.extensions:ExtensionArray",
+        PyList,
+        Any,
+        pyconvert_rule_sequence,
+        priority,
+    )
+    Convert.pyconvert_add_rule_high_priority(
         "collections.abc:Sequence",
         PyList,
         Any,
@@ -68,25 +82,7 @@ function __init__()
         pyconvert_rule_io,
         priority,
     )
-    Convert.pyconvert_add_rule_high_priority(
-        "pandas:DataFrame",
-        PyPandasDataFrame,
-        Any,
-        pyconvert_rule_pandasdataframe,
-        priority,
-    )
-    Convert.pyconvert_add_rule_high_priority(
-        "pandas.api.extensions:ExtensionArray",
-        PyList,
-        Any,
-        pyconvert_rule_sequence,
-        priority,
-    )
 
-    pyconvert_add_rule("<arraystruct>", Array, AbstractArray, pyconvert_rule_array)
-    pyconvert_add_rule("<arrayinterface>", Array, AbstractArray, pyconvert_rule_array)
-    pyconvert_add_rule("<array>", Array, AbstractArray, pyconvert_rule_array)
-    pyconvert_add_rule("<buffer>", Array, AbstractArray, pyconvert_rule_array)
     pyconvert_add_rule("<arraystruct>", AbstractArray, AbstractArray, pyconvert_rule_array)
     pyconvert_add_rule("<arrayinterface>", AbstractArray, AbstractArray, pyconvert_rule_array)
     pyconvert_add_rule("<array>", AbstractArray, AbstractArray, pyconvert_rule_array)

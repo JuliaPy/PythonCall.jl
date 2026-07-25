@@ -37,28 +37,47 @@ const CTYPES_SIMPLE_TYPES = [
 function init_ctypes()
     for (t, T) in CTYPES_SIMPLE_TYPES
         isptr = endswith(t, "_p")
-        isreal = !isptr
-        isnumber = isreal
+        isnumber = !isptr
         isfloat = t in ("float", "double")
-        isint = isreal && !isfloat
+        isint = isnumber && !isfloat
         isuint = isint && (startswith(t, "u") || t == "size_t")
 
         name = "ctypes:c_$t"
         rule = pyconvert_rule_ctypessimplevalue{T,false}()
         saferule = pyconvert_rule_ctypessimplevalue{T,true}()
 
-        t == "char_p" && pyconvert_add_rule(name, Cstring, Cstring, saferule)
-        t == "wchar_p" && pyconvert_add_rule(name, Cwstring, Cwstring, saferule)
-        pyconvert_add_rule(name, T, T, saferule)
-        isuint && pyconvert_add_rule(name, UInt, UInt, sizeof(T) ≤ sizeof(UInt) ? saferule : rule)
-        isuint && pyconvert_add_rule(name, Int, Int, sizeof(T) < sizeof(Int) ? saferule : rule)
-        isint &&
-            !isuint &&
-            pyconvert_add_rule(name, Int, Int, sizeof(T) ≤ sizeof(Int) ? saferule : rule)
-        isint && pyconvert_add_rule(name, Integer, Integer, rule)
-        isfloat && pyconvert_add_rule(name, Float64, Float64, saferule)
-        isreal && pyconvert_add_rule(name, Real, Real, rule)
-        isnumber && pyconvert_add_rule(name, Number, Number, rule)
-        isptr && pyconvert_add_rule(name, Ptr, Ptr, saferule)
+        if isnumber
+            # Rules added later are tried first. Prefer the source's exact Julia type,
+            # followed by increasingly general lossless representations, before allowing
+            # conversion to floating-point and other number types.
+            pyconvert_add_rule(name, Number, Number, rule)
+            pyconvert_add_rule(name, Real, Number, rule)
+            pyconvert_add_rule(name, AbstractFloat, Number, rule)
+            if isint
+                pyconvert_add_rule(name, Integer, Number, rule)
+                pyconvert_add_rule(name, isuint ? Unsigned : Signed, Number, rule)
+                if isuint
+                    pyconvert_add_rule(
+                        name,
+                        UInt,
+                        Number,
+                        sizeof(T) ≤ sizeof(UInt) ? saferule : rule,
+                    )
+                else
+                    pyconvert_add_rule(
+                        name,
+                        Int,
+                        Number,
+                        sizeof(T) ≤ sizeof(Int) ? saferule : rule,
+                    )
+                end
+            elseif isfloat
+                pyconvert_add_rule(name, Float64, Number, saferule)
+            end
+            pyconvert_add_rule(name, T, Number, saferule)
+        elseif isptr
+            pyconvert_add_rule(name, Ptr, Ptr, saferule)
+            pyconvert_add_rule(name, T, Ptr, saferule)
+        end
     end
 end

@@ -365,11 +365,11 @@ function init_pyconvert()
     pyconvert_add_rule("numbers:Integral", Number, Number, pyconvert_rule_int)
     pyconvert_add_rule("builtins:str", Symbol, Symbol, pyconvert_rule_str)
     pyconvert_add_rule("builtins:str", Char, Char, pyconvert_rule_str)
-    pyconvert_add_rule("builtins:bytes", Vector{UInt8}, Vector{UInt8}, pyconvert_rule_bytes)
+    pyconvert_add_rule("builtins:bytes", Vector{UInt8}, AbstractVector, pyconvert_rule_bytes)
     pyconvert_add_rule(
         "builtins:range",
         UnitRange{<:Integer},
-        UnitRange{<:Integer},
+        AbstractRange,
         pyconvert_rule_range,
     )
     pyconvert_add_rule(
@@ -380,7 +380,7 @@ function init_pyconvert()
     )
     pyconvert_add_rule("collections.abc:Iterable", Tuple, Tuple, pyconvert_rule_iterable)
     pyconvert_add_rule("collections.abc:Iterable", Pair, Pair, pyconvert_rule_iterable)
-    pyconvert_add_rule("collections.abc:Iterable", Set, Set, pyconvert_rule_iterable)
+    pyconvert_add_rule("collections.abc:Iterable", Set, AbstractSet, pyconvert_rule_iterable)
     pyconvert_add_rule(
         "collections.abc:Sequence",
         Vector,
@@ -388,16 +388,16 @@ function init_pyconvert()
         pyconvert_rule_iterable,
     )
     pyconvert_add_rule("collections.abc:Sequence", Tuple, Tuple, pyconvert_rule_iterable)
-    pyconvert_add_rule("collections.abc:Set", Set, Set, pyconvert_rule_iterable)
-    pyconvert_add_rule("collections.abc:Mapping", Dict, Dict, pyconvert_rule_mapping)
+    pyconvert_add_rule("collections.abc:Set", Set, AbstractSet, pyconvert_rule_iterable)
+    pyconvert_add_rule("collections.abc:Mapping", Dict, AbstractDict, pyconvert_rule_mapping)
     pyconvert_add_rule(
         "datetime:timedelta",
         Millisecond,
-        Millisecond,
+        Period,
         pyconvert_rule_timedelta,
     )
-    pyconvert_add_rule("datetime:timedelta", Second, Second, pyconvert_rule_timedelta)
-    pyconvert_add_rule("datetime:timedelta", Nanosecond, Nanosecond, pyconvert_rule_timedelta)
+    pyconvert_add_rule("datetime:timedelta", Second, Period, pyconvert_rule_timedelta)
+    pyconvert_add_rule("datetime:timedelta", Nanosecond, Period, pyconvert_rule_timedelta)
 end
 
 function init_pyconvert_canonical()

@@ -11,7 +11,7 @@ using ..C
 using ..Core
 using ..NumpyDates
 
-using Dates: Date, Time, DateTime, Second, Millisecond, Microsecond, Nanosecond
+using Dates: Date, Time, DateTime, Period, Second, Millisecond, Microsecond, Nanosecond
 
 import ..PythonCall:
     @pyconvert,

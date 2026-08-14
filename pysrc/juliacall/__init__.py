@@ -198,6 +198,18 @@ def init():
         # `exepath` and `project` are set by the user.
         import juliapkg
 
+        # Explicitly resolve so we can pass through julia_args. This ensures that any
+        # precompilation done by juliapkg matches how we launch julia, avoiding
+        # cache misses.
+        julia_args = [
+            "--" + opt[4:].replace("_", "-") + "=" + CONFIG[opt]
+            for opt in [
+                "opt_check_bounds",
+            ]
+            if CONFIG[opt] is not None
+        ]
+        juliapkg.resolve(julia_args=julia_args)
+
         # Find the Julia executable and project
         CONFIG['exepath'] = exepath = juliapkg.executable()
         CONFIG['project'] = project = juliapkg.project()

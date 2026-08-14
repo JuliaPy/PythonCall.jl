@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+* Bug fix: avoid precompilation cache miss when `check_bounds` option set.
+
 ## 0.9.35 (2026-06-08)
 * Add option `lib` to JuliaCall. Setting this will skip the discovery subprocess.
 * Add support for using a system image in `juliacall` that has `PythonCall` baked in.

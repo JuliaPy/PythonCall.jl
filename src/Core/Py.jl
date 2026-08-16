@@ -125,10 +125,25 @@ Py(x::Date) = pydate(x)
 Py(x::Time) = pytime(x)
 Py(x::DateTime) = pydatetime(x)
 
+function _py_on_main_thread_if_needed(f)
+    if C.PyGILState_Check() == 1
+        f()
+    else
+        C.on_main_thread(f)
+    end
+end
+
 Base.string(x::Py) = pyisnull(x) ? "<py NULL>" : pystr(String, x)
 Base.print(io::IO, x::Py) = print(io, string(x))
 
 function Base.show(io::IO, x::Py)
+    _py_on_main_thread_if_needed() do
+        _show(io, x)
+        nothing
+    end
+end
+
+function _show(io::IO, x::Py)
     if get(io, :typeinfo, Any) == Py
         if pyisnull(x)
             print(io, "NULL")
@@ -292,13 +307,9 @@ function _propertynames(x::Py, private::Bool)
 end
 
 function Base.propertynames(x::Py, private::Bool = false)
-    if C.PyGILState_Check() == 1
+    _py_on_main_thread_if_needed() do
         _propertynames(x, private)
-    else
-        C.on_main_thread() do
-            _propertynames(x, private)
-        end::Vector{Symbol}
-    end
+    end::Vector{Symbol}
 end
 
 Base.Bool(x::Py) = pytruth(x)

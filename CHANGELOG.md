@@ -2,6 +2,7 @@
 
 ## Unreleased
 * Bug fix: avoid precompilation cache miss when `check_bounds` option set.
+* Add `sticky` flag in `GIL.lock` and `GIL.@lock` which sets the current task as sticky for the duration that the lock is held.
 
 ## 0.9.35 (2026-06-08)
 * Add option `lib` to JuliaCall. Setting this will skip the discovery subprocess.

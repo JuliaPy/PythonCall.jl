@@ -27,7 +27,7 @@ end
 
 
 """
-    lock(f)
+    lock(f; sticky::Bool=true)
 
 Lock the GIL, compute `f()`, unlock the GIL, then return the result of `f()`.
 
@@ -37,21 +37,32 @@ threads. Since the main Julia thread holds the GIL by default, you will need to
 
 See [`@lock`](@ref) for the macro form.
 
+The optional boolean argument `sticky` controls whether the calling task is marked as
+sticky.  The default behavior is to mark the current task as sticky, as Julia's scheduler
+may migrate non-sticky tasks to another OS thread; since the GIL is specific to the OS
+thread, holding the GIL on a non-sticky thread is potentially dangerous and can lead to
+undefined behavior like deadlocks and segfaults.
+
 !!! warning
 
     This function is experimental. Its semantics may be changed without notice.
 """
-function lock(f)
+function lock(f; sticky::Bool=true)
     state = C.PyGILState_Ensure()
+    was_sticky = current_task().sticky
     try
+        if sticky
+            current_task().sticky = true
+        end
         f()
     finally
         C.PyGILState_Release(state)
+        current_task().sticky = was_sticky
     end
 end
 
 """
-    @lock expr
+    @lock [sticky::Bool=true] expr
 
 Lock the GIL, compute `expr`, unlock the GIL, then return the result of `expr`.
 
@@ -61,17 +72,36 @@ threads. Since the main Julia thread holds the GIL by default, you will need to
 
 The macro equivalent of [`lock`](@ref).
 
+The optional boolean argument `sticky` controls whether the calling task is marked as
+sticky.  The default behavior is to mark the current task as sticky, as Julia's scheduler
+may migrate non-sticky tasks to another OS thread; since the GIL is specific to the OS
+thread, holding the GIL on a non-sticky thread is potentially dangerous and can lead to
+undefined behavior like deadlocks and segfaults.
+
 !!! warning
 
     This macro is experimental. Its semantics may be changed without notice.
 """
 macro lock(expr)
+    _lock_impl(true, expr)
+end
+
+macro lock(sticky, expr)
+    _lock_impl(sticky, expr)
+end
+
+function _lock_impl(sticky::Bool, expr)
     quote
         state = C.PyGILState_Ensure()
+        was_sticky = current_task().sticky
         try
+            if $sticky
+                current_task().sticky = true
+            end
             $(esc(expr))
         finally
             C.PyGILState_Release(state)
+            current_task().sticky = was_sticky
         end
     end
 end

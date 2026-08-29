@@ -9,7 +9,7 @@ pip install juliacall
 
 If you prefer Conda, there is a community effort to also release this on conda-forge:
 ```bash
-conda install conda-forge::pyjuliapkg
+conda install conda-forge::pyjuliacall
 ```
 
 Developers may wish to clone the repo (https://github.com/JuliaPy/PythonCall.jl) directly

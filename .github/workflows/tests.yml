@@ -33,7 +33,7 @@ jobs:
           pyversion: '3.14t'
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Julia ${{ matrix.jlversion }}
         uses: julia-actions/setup-julia@v3
@@ -49,7 +49,7 @@ jobs:
       
       - name: Install Python
         id: setup-python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         if: ${{ matrix.pythonexe == 'python' }}
         with:
           python-version: ${{ matrix.pyversion }}
@@ -73,7 +73,7 @@ jobs:
         uses: julia-actions/julia-processcoverage@v1
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -99,18 +99,18 @@ jobs:
       PYTHON_JULIACALL_HANDLE_SIGNALS: 'yes'
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Python ${{ matrix.pyversion }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.pyversion }}
       
-      - name: Check Python OpenSSL version (see setup_julia)
-        shell: python
-        run: |
-          import ssl
-          assert ssl.OPENSSL_VERSION_INFO < (3, 5)
+      # - name: Check Python OpenSSL version (see setup_julia)
+      #   shell: python
+      #   run: |
+      #     import ssl
+      #     assert ssl.OPENSSL_VERSION_INFO < (3, 5)
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
@@ -120,10 +120,6 @@ jobs:
       - name: Set up Julia
         id: setup_julia
         uses: julia-actions/setup-julia@v3
-        with:
-          # Python in the GitHub runners ships with OpenSSL 3.0. Julia 1.12 requires
-          # OpenSSL 3.5. Therefore juliapkg requires Julia 1.11 or lower.
-          version: '1.11'
 
       - name: Set up test Julia project
         if: ${{ matrix.juliaexe == 'julia' }}
@@ -157,6 +153,6 @@ jobs:
           PYTHON_JULIACALL_PROJECT: ${{ env.MANUAL_TEST_PROJECT }}
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

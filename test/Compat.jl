@@ -10,7 +10,9 @@
             if Setup.devdeps && g == :pyside6
                 # pyside6 is installed as a dev dependency
                 # AND it's a dependency of matplotlib, which is also a dev dependency
-                @test PythonCall.event_loop_on(g) isa Timer
+                # broken on mac - error "ModuleNotFoundError: No module named
+                # 'shiboken6.Shiboken'" when importing pyside6
+                @test PythonCall.event_loop_on(g) isa Timer skip=Sys.isapple()
             else
                 @test_throws PyException PythonCall.event_loop_on(g)
             end

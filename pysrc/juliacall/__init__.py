@@ -1,7 +1,7 @@
 # This module gets modified by PythonCall when it is loaded, e.g. to include Core, Base
 # and Main modules.
 
-__version__ = '0.9.34'
+__version__ = '0.9.35'
 
 _newmodule = None
 
@@ -188,6 +188,18 @@ def init():
         # juliacall is loaded by PythonCall and won't be available, or if both
         # `exepath` and `project` are set by the user.
         import juliapkg
+
+        # Explicitly resolve so we can pass through julia_args. This ensures that any
+        # precompilation done by juliapkg matches how we launch julia, avoiding
+        # cache misses.
+        julia_args = [
+            "--" + opt[4:].replace("_", "-") + "=" + CONFIG[opt]
+            for opt in [
+                "opt_check_bounds",
+            ]
+            if CONFIG[opt] is not None
+        ]
+        juliapkg.resolve(julia_args=julia_args)
 
         # Find the Julia executable and project
         CONFIG['exepath'] = exepath = juliapkg.executable()

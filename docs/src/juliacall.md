@@ -55,11 +55,11 @@ import juliacall
 jl = juliacall.newmodule("SomeName")
 ```
 
-Julia modules have a special method `seval` which will evaluate a given piece of code given
+Julia modules have a special method `jl_eval` which will evaluate a given piece of code given
 as a string in the module. This is most frequently used to import modules:
 ```python
 from array import array
-jl.seval("using Statistics")
+jl.jl_eval("using Statistics")
 x = array('i', [1, 2, 3])
 jl.mean(x)
 # 2.0
@@ -69,7 +69,7 @@ jl.cor(x, y)
 ```
 
 What to read next:
-- The main functionality of this package is in `AnyValue` objects, which represent Julia
+- The main functionality of this package is in `Jl` objects, which represent Julia
   objects, [documented here](@ref julia-wrappers).
 - If you need to install Julia packages, [read here](@ref julia-deps).
 - When you call a Julia function, such as `jl.rand(...)` in the above example, its

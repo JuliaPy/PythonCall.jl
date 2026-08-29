@@ -12,11 +12,14 @@ end
 
 checkpref(::Type{String}, x) = error("invalid preference of type $(type(x)), expecting a string")
 checkpref(::Type{String}, x::AbstractString) = convert(String, x)
+checkpref(::Type{Bool}, x::Bool) = x
+checkpref(::Type{Bool}, x::AbstractString) = x in ("1", "yes", "true") ? true : x in ("0", "no", "false") ? false : error("expecting '0', 'no', 'false', '1', 'yes' or 'true'")
 
 # Specific preference functions
 getpref_exe() = getpref(String, "exe", "JULIA_PYTHONCALL_EXE", "")
 getpref_lib() = getpref(String, "lib", "JULIA_PYTHONCALL_LIB", nothing)
 getpref_pickle() = getpref(String, "pickle", "JULIA_PYTHONCALL_PICKLE", "pickle")
+getpref_fix_qt_plugin_path() = getpref(Bool, "fix_qt_plugin_path", "JULIA_PYTHONCALL_FIX_QT_PLUGIN_PATH", true)
 
 function explode_union(T)
     @nospecialize T

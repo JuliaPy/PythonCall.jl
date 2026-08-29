@@ -7,7 +7,7 @@ This fixes the problem that Qt does not know where to find its `qt.conf` file, b
 always looks relative to `sys.executable`, which can be the Julia executable not the Python
 one when using this package.
 
-If `CONFIG.auto_fix_qt_plugin_path` is true, then this is run automatically before `PyQt4`, `PyQt5`, `PySide`, `PySide2` or `PySide6` are imported.
+If the `fix_qt_plugin_path` preference is true, then this is run automatically before `PyQt4`, `PyQt5`, `PySide`, `PySide2` or `PySide6` are imported.
 """
 function fix_qt_plugin_path()
     C.CTX.exe_path === nothing && return false
@@ -52,30 +52,6 @@ function fix_qt_plugin_path()
     
     return false
 end
-
-# """
-#     pyinteract(; force=false, sleep=0.1)
-
-# Some Python GUIs can work interactively, meaning the GUI is available but the interactive prompt is returned (e.g. after calling `matplotlib.pyplot.ion()`).
-# To use these from Julia, currently you must manually call `pyinteract()` each time you want to interact.
-
-# Internally, this is calling the `PyOS_InputHook` asynchronously. Only one copy is run at a time unless `force` is true.
-
-# The asynchronous task waits for `sleep` seconds before calling the hook function.
-# This gives time for the next prompt to be printed and waiting for input.
-# As a result, there will be a small delay before the GUI becomes interactive.
-# """
-# pyinteract(; force::Bool = false, sleep::Real = 0.1) =
-#     if !CONFIG.inputhookrunning || force
-#         CONFIG.inputhookrunning = true
-#         @async begin
-#             sleep > 0 && Base.sleep(sleep)
-#             C.PyOS_RunInputHook()
-#             CONFIG.inputhookrunning = false
-#         end
-#         nothing
-#     end
-# export pyinteract
 
 const EVENT_LOOPS = Dict{Symbol,Base.Timer}()
 
@@ -158,13 +134,14 @@ function init_gui()
         pycopy!(new_event_loop_callback, g["new_event_loop_callback"])
 
         # add a hook to automatically call fix_qt_plugin_path()
-        fixqthook =
-            Py(() -> (PythonCall.CONFIG.auto_fix_qt_plugin_path && fix_qt_plugin_path(); nothing))
-        pymodulehooks.add_hook("PyQt4", fixqthook)
-        pymodulehooks.add_hook("PyQt5", fixqthook)
-        pymodulehooks.add_hook("PySide", fixqthook)
-        pymodulehooks.add_hook("PySide2", fixqthook)
-        pymodulehooks.add_hook("PySide6", fixqthook)
+        if Utils.getpref_fix_qt_plugin_path()
+            fixqthook = Py(fix_qt_plugin_path)
+            pymodulehooks.add_hook("PyQt4", fixqthook)
+            pymodulehooks.add_hook("PyQt5", fixqthook)
+            pymodulehooks.add_hook("PySide", fixqthook)
+            pymodulehooks.add_hook("PySide2", fixqthook)
+            pymodulehooks.add_hook("PySide6", fixqthook)
+        end
     end
 end
 

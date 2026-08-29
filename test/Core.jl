@@ -2,7 +2,7 @@
     import Markdown
     @testset "pyis" begin
         x = pylist()
-        y = PythonCall.pynew(x)
+        y = PythonCall.Core.pynew(x)
         z = pylist()
         @test pyis(x, x)
         @test pyis(x, y)
@@ -218,7 +218,35 @@
         @test Base.Docs.getdoc(Py(nothing)) isa Markdown.MD
         @test Base.Docs.getdoc(Py(12)) isa Markdown.MD
         @test Base.Docs.getdoc(pybuiltins.int) isa Markdown.MD
-        @test Base.Docs.getdoc(PythonCall.PyNULL) === nothing
+        @test Base.Docs.getdoc(PythonCall.Core.PyNULL) === nothing
+    end
+    @testset "comparisons" begin
+        @testset "Py vs Py" begin
+            # ==
+            @test Py(1) == Py(1)
+            @test !(Py(1) == Py(2))
+            @test !(Py(1) == Py(0))
+            # !=
+            @test Py(2) != Py(1)
+            @test Py(2) != Py(3)
+            @test !(Py(2) != Py(2))
+            # <
+            @test Py(3) < Py(4)
+            @test !(Py(3) < Py(3))
+            @test !(Py(3) < Py(2))
+            # <=
+            @test Py(4) <= Py(5)
+            @test Py(4) <= Py(4)
+            @test !(Py(4) <= Py(3))
+            # >
+            @test Py(5) > Py(4)
+            @test !(Py(5) > Py(5))
+            @test !(Py(5) > Py(6))
+            # >=
+            @test Py(5) >= Py(4)
+            @test Py(5) >= Py(5)
+            @test !(Py(5) >= Py(6))
+        end
     end
 end
 
@@ -229,17 +257,17 @@ end
     end
     @testset "unsafe_pynext" begin
         it = pyiter(pyrange(2))
-        x = PythonCall.unsafe_pynext(it)
+        x = PythonCall.Core.unsafe_pynext(it)
         @test x isa Py
-        @test !PythonCall.pyisnull(x)
+        @test !PythonCall.Core.pyisnull(x)
         @test pyeq(Bool, x, 0)
-        x = PythonCall.unsafe_pynext(it)
+        x = PythonCall.Core.unsafe_pynext(it)
         @test x isa Py
-        @test !PythonCall.pyisnull(x)
+        @test !PythonCall.Core.pyisnull(x)
         @test pyeq(Bool, x, 1)
-        x = PythonCall.unsafe_pynext(it)
+        x = PythonCall.Core.unsafe_pynext(it)
         @test x isa Py
-        @test PythonCall.pyisnull(x)
+        @test PythonCall.Core.pyisnull(x)
     end
     @testset "pynext" begin
         it = pyiter(pyrange(2))
@@ -805,30 +833,30 @@ end
 @testitem "Base.jl" begin
     @testset "broadcast" begin
         # Py always broadcasts as a scalar
-        x = [1 2; 3 4] .+ Py(1)
-        @test isequal(x, [Py(2) Py(3); Py(4) Py(5)])
-        x = Py("foo") .* [1 2; 3 4]
+        x = Py.([1 2; 3 4]) .+ Py(1)
+        @test isequal(x, Py.([2 3; 4 5]))
+        x = Py("foo") .* Py.([1 2; 3 4])
         @test isequal(x, [Py("foo") Py("foofoo"); Py("foofoofoo") Py("foofoofoofoo")])
         # this previously treated the list as a shape (2,) object
         # but now tries to do `1 + [1, 2]` which properly fails
-        @test_throws PyException [1 2; 3 4] .+ pylist([1, 2])
+        @test_throws PyException Py.([1 2; 3 4]) .+ pylist([1, 2])
     end
     @testset "showable" begin
         @test showable(MIME("text/plain"), Py(nothing))
         @test showable(MIME("text/plain"), Py(12))
         # https://github.com/JuliaPy/PythonCall.jl/issues/522
-        @test showable(MIME("text/plain"), PythonCall.pynew())
-        @test !showable(MIME("text/html"), PythonCall.pynew())
+        @test showable(MIME("text/plain"), PythonCall.Core.pynew())
+        @test !showable(MIME("text/html"), PythonCall.Core.pynew())
     end
     @testset "show" begin
         @test sprint(show, MIME("text/plain"), Py(nothing)) == "Python: None"
         @test sprint(show, MIME("text/plain"), Py(12)) == "Python: 12"
         # https://github.com/JuliaPy/PythonCall.jl/issues/522
-        @test sprint(show, MIME("text/plain"), PythonCall.pynew()) == "Python: NULL"
+        @test sprint(show, MIME("text/plain"), PythonCall.Core.pynew()) == "Python: NULL"
         # test compact printing
         @test sprint(show, MIME("text/plain"), Py(String('A':'Z')), context=(:compact=>true, :displaysize=>(50, 20))) == "Py: 'ABCDE ... WXYZ'"
         @test sprint(show, MIME("text/plain"), Py(String('A':'Z')), context=(:compact=>true, :limit=>false, :displaysize=>(50, 20))) == "Py: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'"
-        @test_throws MethodError sprint(show, MIME("text/html"), PythonCall.pynew())
+        @test_throws MethodError sprint(show, MIME("text/html"), PythonCall.Core.pynew())
     end
 end
 

@@ -34,7 +34,6 @@ import ..PythonCall:
     @pyconst,
     @pyeval,
     @pyexec,
-    getptr,
     ispy,
     Py,
     pyabs,
@@ -53,10 +52,9 @@ import ..PythonCall:
     pycomplex,
     pycontains,
     pyconvert,
-    pycopy!,
     pydate,
     pydatetime,
-    pydel!,
+    unsafe_pydel,
     pydelattr,
     pydelitem,
     pydict,
@@ -95,7 +93,6 @@ import ..PythonCall:
     pyirshift,
     pyis,
     pyisinstance,
-    pyisnull,
     pyissubclass,
     pyisub,
     pyiter,
@@ -111,7 +108,6 @@ import ..PythonCall:
     pymul,
     pyne,
     pyneg,
-    pynew,
     pynext,
     pynot,
     pyor,
@@ -134,8 +130,7 @@ import ..PythonCall:
     pytuple,
     pytype,
     pywith,
-    pyxor,
-    unsafe_pynext
+    pyxor
     
 export
     _base_datetime,
@@ -158,7 +153,7 @@ export
     pycopy!,
     pydatetime_isaware,
     pydatetimetype,
-    pydel!,
+    unsafe_pydel,
     pydict_setitem,
     pyfloat_asdouble,
     pyisbytes,
@@ -201,7 +196,6 @@ export
 
 include("Py.jl")
 include("err.jl")
-include("config.jl")
 include("consts.jl")
 include("builtins.jl")
 include("stdlib.jl")

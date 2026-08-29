@@ -2,6 +2,8 @@ module Cjl
 
 using ...C: C
 using ...Utils: Utils
+using ...Core: incref, pynew
+using ...Convert: pyconvert
 using Base: @kwdef
 using UnsafePointers: UnsafePtr
 using Serialization: serialize, deserialize
@@ -19,6 +21,7 @@ end
 end
 
 const PyJuliaBase_Type = Ref(C.PyNULL)
+const PyJuliaBase_New = Ref(C.PyNULL)
 
 # we store the actual julia values here
 # the `value` field of `PyJuliaValueObject` indexes into here
@@ -44,7 +47,7 @@ end
 
 function _pyjl_dealloc(o::C.PyPtr)
     idx = C.@ft UnsafePtr{PyJuliaValueObject}(o).value[]
-    if idx != 0
+    if idx > 0
         # No allocation in this critical section: PYJLFREEVALUES has been pre-sized
         # to match PYJLVALUES by PyJuliaValue_SetValue, so recording a free index is
         # just a write to an existing slot plus a counter bump. This avoids the GC-triggered
@@ -60,18 +63,70 @@ function _pyjl_dealloc(o::C.PyPtr)
     nothing
 end
 
+function _getany(ptr::C.PyPtr)
+    if PyJuliaValue_Check(ptr) == 1
+        PyJuliaValue_GetValue(ptr)
+    else
+        pyconvert(Any, pynew(incref(ptr)))
+    end
+end
+
+function _getany(::Type{T}, ptr::C.PyPtr) where {T}
+    if PyJuliaValue_Check(ptr) == 1
+        convert(T, PyJuliaValue_GetValue(ptr))::T
+    else
+        pyconvert(T, pynew(incref(ptr)))::T
+    end
+end
+
+function _pyjl_init(xptr::C.PyPtr, argsptr::C.PyPtr, kwargsptr::C.PyPtr)
+    if kwargsptr != C.PyNULL && C.PyDict_Size(kwargsptr) != 0
+        errset(pybuiltins.TypeError, "keyword arguments not allowed")
+        return Cint(-1)
+    end
+    if argsptr == C.PyNULL
+        return Cint(0)
+    end
+    nargs = C.PyTuple_Size(argsptr)
+    if nargs == 0
+        return Cint(0)
+    elseif nargs > 2
+        errset(pybuiltins.TypeError, "__init__() takes up to 2 arguments ($nargs given)")
+        return Cint(-1)
+    end
+    vptr = C.PyTuple_GetItem(argsptr, 0)
+    try
+        if nargs == 1
+            v = _getany(vptr)
+        else
+            tptr = C.PyTuple_GetItem(argsptr, 1)
+            t = _getany(tptr)
+            if !isa(t, Type)
+                C.PyErr_SetString(
+                    C.POINTERS.PyExc_TypeError,
+                    "type argument must be a Julia 'Type', not '$(typeof(t))'",
+                )
+                return Cint(-1)
+            end
+            v = _getany(t, vptr)
+        end
+        PyJuliaValue_SetValue(xptr, v)
+        Cint(0)
+    catch exc
+        errtype =
+            exc isa MethodError ? C.POINTERS.PyExc_TypeError : C.POINTERS.PyExc_Exception
+        errmsg = sprint(showerror, exc)
+        C.PyErr_SetString(errtype, errmsg)
+        Cint(-1)
+    end
+end
+
 const PYJLMETHODS = Vector{Any}()
 
 function PyJulia_MethodNum(f)
     @nospecialize f
     push!(PYJLMETHODS, f)
     return length(PYJLMETHODS)
-end
-
-function _pyjl_isnull(o::C.PyPtr, ::C.PyPtr)
-    ans = PyJuliaValue_IsNull(o) ? C.POINTERS._Py_TrueStruct : C.POINTERS._Py_FalseStruct
-    C.Py_IncRef(ans)
-    ans
 end
 
 function _pyjl_callmethod(o::C.PyPtr, args::C.PyPtr)
@@ -289,8 +344,8 @@ function _pyjl_deserialize(t::C.PyPtr, v::C.PyPtr)
     end
 end
 
-const _pyjlbase_name = "juliacall.ValueBase"
-const _pyjlbase_isnull_name = "_jl_isnull"
+const _pyjlbase_name = "juliacall.JlBase"
+const _pyjlbase_type = fill(C.PyTypeObject())
 const _pyjlbase_callmethod_name = "_jl_callmethod"
 const _pyjlbase_reduce_name = "__reduce__"
 const _pyjlbase_serialize_name = "_jl_serialize"
@@ -311,11 +366,6 @@ function init_c()
             flags = C.Py_METH_VARARGS,
         ),
         C.PyMethodDef(
-            name = pointer(_pyjlbase_isnull_name),
-            meth = @cfunction(_pyjl_isnull, C.PyPtr, (C.PyPtr, C.PyPtr)),
-            flags = C.Py_METH_NOARGS,
-        ),
-        C.PyMethodDef(
             name = pointer(_pyjlbase_reduce_name),
             meth = @cfunction(_pyjl_reduce, C.PyPtr, (C.PyPtr, C.PyPtr)),
             flags = C.Py_METH_NOARGS,
@@ -332,7 +382,7 @@ function init_c()
         ),
         C.PyMethodDef(),
     )
-    
+
     # Create members for weakref support
     empty!(_pyjlbase_members)
     push!(
@@ -345,20 +395,36 @@ function init_c()
         ),
         C.PyMemberDef(), # NULL terminator
     )
-    
+
     # Create slots for PyType_Spec
     empty!(_pyjlbase_slots)
     push!(
         _pyjlbase_slots,
-        C.PyType_Slot(slot = C.Py_tp_new, pfunc = @cfunction(_pyjl_new, C.PyPtr, (C.PyPtr, C.PyPtr, C.PyPtr))),
-        C.PyType_Slot(slot = C.Py_tp_dealloc, pfunc = @cfunction(_pyjl_dealloc, Cvoid, (C.PyPtr,))),
+        C.PyType_Slot(
+            slot = C.Py_tp_new,
+            pfunc = @cfunction(_pyjl_new, C.PyPtr, (C.PyPtr, C.PyPtr, C.PyPtr))
+        ),
+        C.PyType_Slot(
+            slot = C.Py_tp_dealloc,
+            pfunc = @cfunction(_pyjl_dealloc, Cvoid, (C.PyPtr,))
+        ),
+        C.PyType_Slot(
+            slot = C.Py_tp_init,
+            pfunc = @cfunction(_pyjl_init, Cint, (C.PyPtr, C.PyPtr, C.PyPtr))
+        ),
         C.PyType_Slot(slot = C.Py_tp_methods, pfunc = pointer(_pyjlbase_methods)),
         C.PyType_Slot(slot = C.Py_tp_members, pfunc = pointer(_pyjlbase_members)),
-        C.PyType_Slot(slot = C.Py_bf_getbuffer, pfunc = @cfunction(_pyjl_get_buffer, Cint, (C.PyPtr, Ptr{C.Py_buffer}, Cint))),
-        C.PyType_Slot(slot = C.Py_bf_releasebuffer, pfunc = @cfunction(_pyjl_release_buffer, Cvoid, (C.PyPtr, Ptr{C.Py_buffer}))),
+        C.PyType_Slot(
+            slot = C.Py_bf_getbuffer,
+            pfunc = @cfunction(_pyjl_get_buffer, Cint, (C.PyPtr, Ptr{C.Py_buffer}, Cint))
+        ),
+        C.PyType_Slot(
+            slot = C.Py_bf_releasebuffer,
+            pfunc = @cfunction(_pyjl_release_buffer, Cvoid, (C.PyPtr, Ptr{C.Py_buffer}))
+        ),
         C.PyType_Slot(), # NULL terminator
     )
-    
+
     # Create PyType_Spec
     _pyjlbase_spec[] = C.PyType_Spec(
         name = pointer(_pyjlbase_name),
@@ -366,57 +432,115 @@ function init_c()
         flags = C.Py_TPFLAGS_BASETYPE | C.Py_TPFLAGS_HAVE_VERSION_TAG,
         slots = pointer(_pyjlbase_slots),
     )
-    
+
     # Create type using PyType_FromSpec
     o = PyJuliaBase_Type[] = C.PyType_FromSpec(pointer(_pyjlbase_spec))
     if o == C.PyNULL
         C.PyErr_Print()
-        error("Error initializing 'juliacall.ValueBase'")
+        error("Error initializing 'juliacall.JlBase'")
     end
+    n = PyJuliaBase_New[] = C.PyObject_GetAttrString(o, "__new__")
+    if n == C.PyNULL
+        C.PyErr_Print()
+        error("Error accessing 'juliacall.JlBase.__new__'")
+    end
+    nothing
 end
 
 function __init__()
     init_c()
 end
 
-PyJuliaValue_IsNull(o) = Base.GC.@preserve o (C.@ft UnsafePtr{PyJuliaValueObject}(C.asptr(o)).value[]) == 0
+PyJuliaValue_Check(o) =
+    Base.GC.@preserve o C.PyObject_IsInstance(C.asptr(o), PyJuliaBase_Type[])
 
-PyJuliaValue_GetValue(o) = Base.GC.@preserve o PYJLVALUES[(C.@ft UnsafePtr{PyJuliaValueObject}(C.asptr(o)).value[])]
+PyJuliaValue_GetValue(o) = Base.GC.@preserve o begin
+    idx = C.@ft UnsafePtr{PyJuliaValueObject}(C.asptr(o)).value[]
+    if idx == 0
+        nothing
+    elseif idx > 0
+        PYJLVALUES[idx]
+    elseif idx == -1
+        false
+    elseif idx == -2
+        true
+    end
+end
 
 PyJuliaValue_SetValue(_o, @nospecialize(v)) = Base.GC.@preserve _o begin
     o = C.asptr(_o)
     idx = C.@ft UnsafePtr{PyJuliaValueObject}(o).value[]
-    if idx == 0
-        lock(PYJL_LOCK)
-        if PYJLFREEVALUECOUNT[] == 0
-            # Grow both vectors together so length(PYJLFREEVALUES) == length(PYJLVALUES)
-            # is preserved. The 0 in PYJLFREEVALUES is just a placeholder
-            push!(PYJLVALUES, v)
-            push!(PYJLFREEVALUES, 0)
-            idx = length(PYJLVALUES)
-        else
-            idx = PYJLFREEVALUES[PYJLFREEVALUECOUNT[]]
-            PYJLFREEVALUECOUNT[] -= 1
-            PYJLVALUES[idx] = v
-        end
-        unlock(PYJL_LOCK)
-        C.@ft UnsafePtr{PyJuliaValueObject}(o).value[] = idx
+    if v === nothing
+        newidx = 0
+    elseif v === false
+        newidx = -1
+    elseif v === true
+        newidx = -2
     else
-        PYJLVALUES[idx] = v
+        newidx = 1
     end
+    if newidx > 0
+        # new value is ordinary
+        if idx > 0
+            # old value is ordinary, reuse the same idx
+            lock(PYJL_LOCK)
+            PYJLVALUES[idx] = v
+            unlock(PYJL_LOCK)
+            newidx = idx
+        else
+            # old value is special, need a new idx
+            lock(PYJL_LOCK)
+            if PYJLFREEVALUECOUNT[] == 0
+                # Grow both vectors together so length(PYJLFREEVALUES) == length(PYJLVALUES)
+                # is preserved. The 0 in PYJLFREEVALUES is just a placeholder
+                push!(PYJLVALUES, v)
+                push!(PYJLFREEVALUES, 0)
+                newidx = length(PYJLVALUES)
+            else
+                newidx = PYJLFREEVALUES[PYJLFREEVALUECOUNT[]]
+                PYJLFREEVALUECOUNT[] -= 1
+                PYJLVALUES[newidx] = v
+            end
+            unlock(PYJL_LOCK)
+        end
+    else
+        # new value is special
+        if idx > 0
+            # old value is ordinary, need to free the idx
+            lock(PYJL_LOCK)
+            PYJLVALUES[idx] = nothing
+            PYJLFREEVALUECOUNT[] += 1
+            PYJLFREEVALUES[PYJLFREEVALUECOUNT[]] = idx
+            unlock(PYJL_LOCK)
+        else
+            # old value is special, nothing to do
+        end
+    end
+    C.@ft UnsafePtr{PyJuliaValueObject}(o).value[] = newidx
     nothing
 end
 
-PyJuliaValue_New(_t, @nospecialize(v)) = Base.GC.@preserve _t begin
-    t = C.asptr(_t)
-    if C.PyType_IsSubtype(t, PyJuliaBase_Type[]) != 1
+PyJuliaValue_New(t, @nospecialize(v)) = Base.GC.@preserve t begin
+    tptr = C.asptr(t)
+    if C.PyType_IsSubtype(tptr, PyJuliaBase_Type[]) != 1
         C.PyErr_SetString(
             C.POINTERS.PyExc_TypeError,
-            "Expecting a subtype of 'juliacall.ValueBase'",
+            "Expecting a subtype of 'juliacall.JlBase'",
         )
         return C.PyNULL
     end
-    o = C.PyObject_CallObject(t, C.PyNULL)
+    # All of this just to do JuliaBase.__new__(t). We do this to avoid calling `__init__`
+    # which itself sets the value, and so duplicates work. Some classes such as `JlArray` do
+    # not allow calling `__init__` with no args.
+    # TODO: it could be replaced with PyObject_CallOneArg(PyJuliaBase_New[], t) when we drop
+    # support for Python 3.8.
+    args = C.PyTuple_New(1)
+    args == C.PyNULL && return C.PyNULL
+    C.Py_IncRef(tptr)
+    err = C.PyTuple_SetItem(args, 0, tptr)
+    err == -1 && (C.Py_DecRef(args); return C.PyNULL)
+    o = C.PyObject_CallObject(PyJuliaBase_New[], args)
+    C.Py_DecRef(args)
     o == C.PyNULL && return C.PyNULL
     PyJuliaValue_SetValue(o, v)
     return o

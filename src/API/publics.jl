@@ -10,16 +10,6 @@ if Base.VERSION ≥ v"1.11"
             python_library_handle,
             python_library_path,
             python_version,
-
-            # Core
-            CONFIG,
-            getptr,
-            pycopy!,
-            pydel!,
-            pyisnull,
-            pynew,
-            PyNULL,
-            unsafe_pynext,
             
             # Compat
             event_loop_off,

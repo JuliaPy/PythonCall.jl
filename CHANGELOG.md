@@ -12,6 +12,10 @@
   * Python errors no longer automatically set `sys.last_traceback` etc. when displayed from Julia.
   * Added [`fix_qt_plugin_path` preference](@ref pythoncall-config), replacing `CONFIG.auto_fix_qt_plugin_path`.
   * Removed `PythonCall.CONFIG`.
+  * `pyconvert_add_rule(tname, T, func, priority)` has been replaced by
+    `pyconvert_add_rule(tname, T, S, func)`, where `S` is the rule's Julia scope and
+    must be a supertype of `T`. Matching ordinary rules are tried newest-first; rules
+    with scope `Any` provide the default conversion for their Python type.
 * Changes to `PythonCall.GC` (now more like `Base.GC`):
   * `enable(true)` replaces `enable()`.
   * `enable(false)` replaces `disable()`.

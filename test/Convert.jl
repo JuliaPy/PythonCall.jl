@@ -58,6 +58,58 @@ end
     @test x4 == big(3)^1000
 end
 
+@testitem "ctypes number lattice" begin
+    ctypes = pyimport("ctypes")
+
+    x = ctypes.c_int32(12)
+    @test pyconvert(Cint, x) === Cint(12)
+    @test pyconvert(Int, x) === 12
+    @test pyconvert(Signed, x) === Cint(12)
+    @test pyconvert(Integer, x) === Cint(12)
+    @test pyconvert(AbstractFloat, x) === 12.0
+    @test pyconvert(Real, x) === Cint(12)
+    @test pyconvert(Number, x) === Cint(12)
+    @test pyconvert(Union{Int64,Float64}, x) === 12
+
+    y = ctypes.c_uint32(13)
+    @test pyconvert(Cuint, y) === Cuint(13)
+    @test pyconvert(UInt, y) === UInt(13)
+    @test pyconvert(Unsigned, y) === Cuint(13)
+    @test pyconvert(Integer, y) === Cuint(13)
+
+    z = ctypes.c_float(1.5)
+    @test pyconvert(Cfloat, z) === Cfloat(1.5)
+    @test pyconvert(Float64, z) === 1.5
+    @test pyconvert(AbstractFloat, z) === Cfloat(1.5)
+    @test pyconvert(Real, z) === Cfloat(1.5)
+    @test pyconvert(Number, z) === Cfloat(1.5)
+    @test pyconvert(Union{Int64,Float64}, z) === 1.5
+end
+
+@testitem "numpy number lattice" setup=[Setup] begin
+    if Setup.devdeps
+        np = pyimport("numpy")
+
+        x = np.int32(12)
+        @test pyconvert(Int32, x) === Int32(12)
+        @test pyconvert(Int, x) === 12
+        @test pyconvert(Signed, x) === Int32(12)
+        @test pyconvert(Integer, x) === Int32(12)
+        @test pyconvert(AbstractFloat, x) === 12.0
+        @test pyconvert(Real, x) === Int32(12)
+        @test pyconvert(Number, x) === Int32(12)
+        @test pyconvert(Union{Int64,Float64}, x) === 12
+
+        y = np.float32(1.5)
+        @test pyconvert(Float32, y) === Float32(1.5)
+        @test pyconvert(Float64, y) === 1.5
+        @test pyconvert(AbstractFloat, y) === Float32(1.5)
+        @test pyconvert(Real, y) === Float32(1.5)
+        @test pyconvert(Number, y) === Float32(1.5)
+        @test pyconvert(Union{Int64,Float64}, y) === 1.5
+    end
+end
+
 @testitem "None → Nothing" begin
     x1 = pyconvert(Nothing, pybuiltins.None)
     @test x1 === nothing
@@ -320,21 +372,32 @@ end
 
 @testitem "pyconvert_add_rule (#364)" begin
     id = string(rand(UInt128), base = 16)
-    pyexec(
-        """
- class Hello_364_$id:
-     pass
- """,
-        @__MODULE__
-    )
-    x = pyeval("Hello_364_$id()", @__MODULE__)
+    modname = "pythoncall_test_$id"
+    mod = pyimport("types").ModuleType(modname)
+    pyexec("class Hello: pass", mod.__dict__)
+    pyimport("sys").modules[modname] = mod
+    x = mod.Hello()
     @test pyconvert(Any, x) === x # This test has a side effect of influencing the rules cache
     t = pytype(x)
     PythonCall.pyconvert_add_rule(
         "$(t.__module__):$(t.__qualname__)",
         String,
+        String,
         (_, _) -> "Hello!!",
     )
     @test pyconvert(String, x) == "Hello!!"
-    @test pyconvert(Any, x) == "Hello!!" # Broken before PR #365
+    @test pyconvert(Any, x) === x
+    PythonCall.pyconvert_add_rule(
+        "$(t.__module__):$(t.__qualname__)",
+        String,
+        String,
+        (_, _) -> "Most recent rule",
+    )
+    @test pyconvert(String, x) == "Most recent rule"
+    @test_throws ArgumentError PythonCall.pyconvert_add_rule(
+        "$(t.__module__):$(t.__qualname__)",
+        Any,
+        String,
+        (_, _) -> "invalid",
+    )
 end

@@ -11,15 +11,14 @@ using ..C
 using ..Core
 using ..NumpyDates
 
-using Dates: Date, Time, DateTime, Second, Millisecond, Microsecond, Nanosecond
+using Dates: Date, Time, DateTime, Period, Second, Millisecond, Microsecond, Nanosecond
 
 import ..PythonCall:
     @pyconvert,
     pyconvert_add_rule,
     pyconvert_return,
     pyconvert_unconverted,
-    pyconvert,
-    PyConvertPriority
+    pyconvert
 
 export pyconvert_isunconverted,
     pyconvert_result,
@@ -40,6 +39,7 @@ function __init__()
     init_ctypes()
     init_numpy()
     init_pandas()
+    init_pyconvert_canonical()
 end
 
 end

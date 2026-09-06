@@ -31,5 +31,5 @@ function init_juliacall()
         @assert !pybool_asbool(jl.CONFIG["init"])
     end
     pycopy!(pyJuliaError, jl.JuliaError)
-    CPyExc_JuliaError[] = incref(getptr(pyJuliaError))
+    CPyExc_JuliaError[] = C.@withts incref(getptr(pyJuliaError))
 end

@@ -30,7 +30,7 @@ Free any Python objects waiting to be freed.
 """
 function gc()
     if C.CTX.is_initialized
-        C.@with_thread_state unsafe_free_queue()
+        C.@withts unsafe_free_queue()
     end
     nothing
 end

@@ -6,7 +6,7 @@ get_thread_state_lock() = CTX.is_free_threaded ? THREAD_STATE_LOCK_PER_THREAD() 
 get_thread_state() = THREAD_STATE()
 
 """
-    @with_thread_state ex
+    @withts ex
 
 Run the given expression `ex` with an attached CPython thread-state.
 
@@ -18,7 +18,7 @@ Limitations:
 Rather than using this macro directly, consider using the `_WithThreadState` functions
 instead, like `PyObject_GetAttr_WithThreadState`.
 """
-macro with_thread_state(ex)
+macro withts(ex)
     quote
         # task must be sticky to prevent the thread from changing during this block
         task = current_task()
@@ -50,11 +50,4 @@ macro with_thread_state(ex)
         # return the result of the expression
         ans
     end
-end
-
-# create function wrappers for CPython functions with a _WithThreadState suffix that are
-# called with an attached thread-state
-for (name, (argtypes, rettype)) in CAPI_FUNC_SIGS
-    args = [Symbol("x", i) for (i, _) in enumerate(argtypes)]
-    @eval $(Symbol(name, "_WithThreadState"))($(args...)) = @with_thread_state ccall(POINTERS.$name, $rettype, ($(argtypes...),), $(args...))
 end

@@ -10,7 +10,7 @@ include("GC/GC.jl")
 include("Core/Core.jl")
 include("Convert/Convert.jl")
 include("PyMacro/PyMacro.jl")
-# include("Wrap/Wrap.jl")
+include("Wrap/Wrap.jl")
 # include("JlWrap/JlWrap.jl")
 # include("Compat/Compat.jl")
 

@@ -287,18 +287,28 @@ end
 
 const POINTERS = CAPIPointers()
 
-@eval init_pointers(p::CAPIPointers = POINTERS, lib::Ptr = CTX.lib_ptr) = begin
+@eval function init_pointers(p::CAPIPointers = POINTERS, lib::Ptr = CTX.lib_ptr)
+    # get the function pointers
     $([
         :(p.$name = dlsym(lib, $(QuoteNode(name))))
         for name in CAPI_FUNCS
+        if name != :PyThreadState_GetUnchecked
     ]...)
+    # PyThreadState_GetUnchecked was called _PyThreadState_UncheckedGet on 3.5 - 3.12
+    p.PyThreadState_GetUnchecked = dlsym_e(lib, :PyThreadState_GetUnchecked)
+    if p.PyThreadState_GetUnchecked == C_NULL
+        p.PyThreadState_GetUnchecked = dlsym(lib, :_PyThreadState_UncheckedGet)
+    end
+    # get the exception pointers
     $(
         [
             :(p.$name =
                     Base.unsafe_load(Ptr{PyPtr}(dlsym(lib, $(QuoteNode(name)))::Ptr))) for name in CAPI_EXCEPTIONS
         ]...
     )
+    # get other object pointers
     $([:(p.$name = dlsym(lib, $(QuoteNode(name)))) for name in CAPI_OBJECTS]...)
+    # get the PyOS_InputHook pointer
     p.PyOS_InputHookPtr = dlsym(CTX.lib_ptr, :PyOS_InputHook)
 end
 

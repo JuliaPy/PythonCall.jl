@@ -12,7 +12,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-requires-python = ">=3.13, <4"
+requires-python = ">=3.10, <4"
 dependencies = ["juliapkg >=0.1.26, <0.2"]
 
 [dependency-groups]

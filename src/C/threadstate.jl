@@ -1,0 +1,55 @@
+const THREAD_STATE_LOCK = ReentrantLock()
+const THREAD_STATE_LOCK_PER_THREAD = OncePerThread{ReentrantLock}(ReentrantLock)
+const THREAD_STATE = OncePerThread{Ptr{Cvoid}}(() -> PyThreadState_New(PyInterpreterState_Main()))
+
+get_thread_state_lock() = CTX.is_free_threaded ? THREAD_STATE_LOCK_PER_THREAD() : THREAD_STATE_LOCK
+get_thread_state() = THREAD_STATE()
+
+"""
+    @withts ex
+
+Run the given expression `ex` with an attached CPython thread-state.
+
+Limitations:
+- This uses a `ReentrantLock` for co-operation with other Julia tasks so cannot be
+  called in finalizers.
+"""
+macro withts(ex)
+    quote
+        # task must be sticky to prevent the thread from changing during this block
+        task = current_task()
+        sticky = task.sticky
+        task.sticky = true
+        # acquire a re-entrant lock, so that no other task can set the thread state
+        thelock = get_thread_state_lock()
+        lock(thelock)
+        # attach the python thread state. this blocks the thread until the thread state
+        # is detached, hence the above lock, so that the blocking is co-operative with
+        # other julia tasks, rather than just hanging the thread. since the lock is
+        # re-entrant, the task might enter this locked area again while still locked
+        # (that is, nesting this macro is allowed) so we use PyThreadState_Swap, which
+        # will return NULL in the outermost invocation, and will return THREAD_STATE()
+        # in all the innermost ones.
+        tstate = get_thread_state()
+        tstate_prev = PyThreadState_Swap(tstate)
+        # run the desired expression
+        try
+            $(esc(ex))
+        finally
+            # swap the threadstate back to its prior value
+            PyThreadState_Swap(tstate_prev)
+            # reset the task stickiness, so that a previously non-sticky task remains non-
+            # sticky and can be migrated outside of this block
+            task.sticky = sticky
+            # unlock, to allow another task to call into python
+            unlock(thelock)
+        end
+    end
+end
+
+function _atjlexit()
+    CTX.is_initialized = false
+    if @withts Py_FinalizeEx() == -1
+        @warn "Py_FinalizeEx() error"
+    end
+end

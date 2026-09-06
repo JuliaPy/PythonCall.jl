@@ -24,55 +24,13 @@ const QUEUE = (; items = C.PyPtr[], lock = Threads.SpinLock())
 const HOOK = Ref{WeakRef}()
 
 """
-    PythonCall.GC.disable()
-
-Do nothing.
-
-!!! note
-
-    Historically this would disable the PythonCall garbage collector. This was required
-    for safety in multi-threaded code but is no longer needed, so this is now a no-op.
-"""
-function disable()
-    Base.depwarn(
-        "disabling the PythonCall GC is no longer needed for thread-safety",
-        :disable,
-    )
-    nothing
-end
-
-"""
-    PythonCall.GC.enable()
-
-Do nothing.
-
-!!! note
-
-    Historically this would enable the PythonCall garbage collector. This was required
-    for safety in multi-threaded code but is no longer needed, so this is now a no-op.
-"""
-function enable()
-    Base.depwarn(
-        "disabling the PythonCall GC is no longer needed for thread-safety",
-        :enable,
-    )
-    nothing
-end
-
-"""
     PythonCall.GC.gc()
 
 Free any Python objects waiting to be freed.
-
-These are objects that were finalized from a thread that was not holding the Python
-GIL at the time.
-
-Like most PythonCall functions, this must only be called from the main thread (i.e. the
-thread currently holding the Python GIL.)
 """
 function gc()
     if C.CTX.is_initialized
-        unsafe_free_queue()
+        C.@withts unsafe_free_queue()
     end
     nothing
 end
@@ -94,8 +52,8 @@ function enqueue(ptr::C.PyPtr)
     # If C.CTX.is_initialized is false then the Python interpreter hasn't started yet
     # or has been finalized; either way attempting to free will cause an error.
     if ptr != C.PyNULL && C.CTX.is_initialized
-        if C.PyGILState_Check() == 1
-            # If the current thread holds the GIL, then we can immediately free.
+        if C.PyThreadState_GetUnchecked() != C_NULL
+            # If there is an attached thread-state, then we can immediately free.
             C.Py_DecRef(ptr)
             # We may as well also free any other enqueued objects.
             if !isempty(QUEUE.items)
@@ -115,7 +73,7 @@ end
 
 function enqueue_all(ptrs)
     if any(!=(C.PyNULL), ptrs) && C.CTX.is_initialized
-        if C.PyGILState_Check() == 1
+        if C.PyThreadState_GetUnchecked() != C_NULL
             for ptr in ptrs
                 if ptr != C.PyNULL
                     C.Py_DecRef(ptr)
@@ -150,7 +108,7 @@ end
 function _gchook_finalizer(x)
     if C.CTX.is_initialized
         finalizer(_gchook_finalizer, x)
-        if !isempty(QUEUE.items) && C.PyGILState_Check() == 1
+        if !isempty(QUEUE.items) && C.PyThreadState_GetUnchecked() != C_NULL
             unsafe_free_queue()
         end
     end

@@ -64,19 +64,21 @@ end
 
 function Base.getproperty(exc::PyException, k::Symbol)
     if k in (:t, :v, :b) && !exc._isnormalized
-        errnormalize!(exc._t, exc._v, exc._b)
-        pyisnull(exc._t) && pycopy!(exc._t, pybuiltins.None)
-        pyisnull(exc._v) && pycopy!(exc._v, pybuiltins.None)
-        pyisnull(exc._b) && pycopy!(exc._b, pybuiltins.None)
-        pyisnone(exc._v) || (exc._v.__traceback__ = exc._b)
-        exc._isnormalized = true
+        C.@withts begin
+            errnormalize!(exc._t, exc._v, exc._b)
+            pyisnull(exc._t) && pycopy!(exc._t, pybuiltins.None)
+            pyisnull(exc._v) && pycopy!(exc._v, pybuiltins.None)
+            pyisnull(exc._b) && pycopy!(exc._b, pybuiltins.None)
+            pyisnone(exc._v) || (exc._v.__traceback__ = exc._b)
+            exc._isnormalized = true
+        end
     end
     k == :t ? exc._t : k == :v ? exc._v : k == :b ? exc._b : getfield(exc, k)
 end
 
 pythrow() = throw(PyException(errget()..., false))
 
-file_to_pymodule(fname::String) = begin
+function file_to_pymodule(fname::String)
     isfile(fname) || return nothing
     modules = pyimport("sys").modules
     for (n, m) in modules.items()

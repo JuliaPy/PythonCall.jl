@@ -230,7 +230,7 @@ function _pyconvert_get_rules(pytype::Py)
         end
     end
     for (t, x) in reverse(collect(zip(mro, xmro)))
-        if C.PyType_CheckBuffer(t)
+        if C.@withts C.PyType_CheckBuffer(t)
             push!(x, "<buffer>")
             break
         end
@@ -345,7 +345,7 @@ function pytryconvert(::Type{T}, x_) where {T}
     tptr = C.Py_Type(x)
     trules = pyconvert_rules_cache(T)
     rules = get!(trules, tptr) do
-        t = pynew(incref(tptr))
+        t = C.@withts pynew(incref(tptr))
         ans = pyconvert_get_rules(T, t)::Vector{Function}
         unsafe_pydel(t)
         ans

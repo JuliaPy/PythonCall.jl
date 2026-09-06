@@ -52,7 +52,7 @@ function pyarray_make(
             @debug "failed to make PyArray from __array_interface__" exc = exc
         end
     end
-    if buffer && C.PyObject_CheckBuffer(x)
+    if buffer && C.@withts C.PyObject_CheckBuffer(x)
         try
             return pyarray_make(A, x, PyArraySource_Buffer(x))
         catch exc
@@ -166,7 +166,7 @@ function PyArraySource_ArrayInterface(x::Py, d::Py = x.__array_interface__)
     else
         memview = @py memoryview(data === None ? x : data)
         unsafe_pydel(data)
-        buf = UnsafePtr(C.PyMemoryView_GET_BUFFER(memview))
+        buf = UnsafePtr(C.@withts C.PyMemoryView_GET_BUFFER(memview))
         ptr = buf.buf[!]
         readonly = buf.readonly[] != 0
         handle = Py((x, memview))
@@ -361,8 +361,8 @@ struct PyArraySource_ArrayStruct <: PyArraySource
     info::C.PyArrayInterface
 end
 function PyArraySource_ArrayStruct(x::Py, capsule::Py = x.__array_struct__)
-    name = C.PyCapsule_GetName(capsule)
-    ptr = C.PyCapsule_GetPointer(capsule, name)
+    name = C.@withts C.PyCapsule_GetName(capsule)
+    ptr = C.@withts C.PyCapsule_GetPointer(capsule, name)
     info = unsafe_load(Ptr{C.PyArrayInterface}(ptr))
     @assert info.two == 2
     return PyArraySource_ArrayStruct(x, capsule, info)
@@ -439,7 +439,7 @@ function pyarray_get_R(src::PyArraySource_ArrayStruct)
         return Utils.StaticString{UInt32,div(size, 4)}
     elseif kind == 86  # V = void (should have descr)
         hasdescr || error("not supported: void dtype with no descr")
-        descr = pynew(incref(src.info.descr))
+        descr = C.@withts pynew(incref(src.info.descr))
         T = pyarray_descr_to_type(descr)
         sizeof(T) == size ||
             error("size mismatch: itemsize=$size but sizeof(descr)=$(sizeof(T))")
@@ -490,7 +490,7 @@ struct PyArraySource_Buffer <: PyArraySource
 end
 function PyArraySource_Buffer(x::Py)
     memview = pybuiltins.memoryview(x)
-    buf = C.UnsafePtr(C.PyMemoryView_GET_BUFFER(memview))
+    buf = C.UnsafePtr(C.@withts C.PyMemoryView_GET_BUFFER(memview))
     buf.suboffsets[] == C_NULL ||
         error("PyArray does not support buffers with non-trivial suboffsets (PIL-style indirect layout)")
     PyArraySource_Buffer(x, memview, buf)
@@ -647,7 +647,7 @@ function pyarray_load(::Type{T}, p::Ptr{R}) where {T,R}
         unsafe_load(p)
     elseif R == C.PyPtr
         u = unsafe_load(p)
-        o = u == C_NULL ? pynew(Py(nothing)) : pynew(incref(u))
+        o = C.@withts u == C_NULL ? pynew(Py(nothing)) : pynew(incref(u))
         T == Py ? o : pyconvert(T, o)
     else
         convert(T, unsafe_load(p))
@@ -658,7 +658,7 @@ function pyarray_store!(::Type{T}, p::Ptr{R}, x::T) where {R,T}
     if R == T
         unsafe_store!(p, x)
     elseif R == C.PyPtr
-        @autopy x begin
+        C.@withts @autopy x begin
             decref(unsafe_load(p).ptr)
             unsafe_store!(p, getptr(incref(x_)))
         end

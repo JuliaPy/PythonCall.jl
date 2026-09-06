@@ -26,6 +26,7 @@ include("pointers.jl")
 include("extras.jl")
 include("context.jl")
 include("api.jl")
+include("threadstate.jl")
 
 function __init__()
     init_context()

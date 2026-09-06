@@ -13,10 +13,6 @@ Run the given expression `ex` with an attached CPython thread-state.
 Limitations:
 - This uses a `ReentrantLock` for co-operation with other Julia tasks so cannot be
   called in finalizers.
-- The expression must not throw (this macro does not use try-finally).
-
-Rather than using this macro directly, consider using the `_WithThreadState` functions
-instead, like `PyObject_GetAttr_WithThreadState`.
 """
 macro withts(ex)
     quote
@@ -37,17 +33,18 @@ macro withts(ex)
         tstate = get_thread_state()
         tstate0 = PyThreadState_Swap(tstate)
         # run the desired expression
-        ans = $(esc(ex))
-        # swap the threadstate back to its prior value
-        tstate2 = PyThreadState_Swap(tstate0)
-        # check the thread state didn't change
-        @assert tstate2 == tstate
-        # reset the task stickiness, so that a previously non-sticky task remains non-
-        # sticky and can be migrated outside of this block
-        task.sticky = sticky
-        # unlock, to allow another task to call into python
-        unlock(thelock)
-        # return the result of the expression
-        ans
+        try
+            $(esc(ex))
+        finally
+            # swap the threadstate back to its prior value
+            tstate2 = PyThreadState_Swap(tstate0)
+            # check the thread state didn't change
+            @assert tstate2 == tstate
+            # reset the task stickiness, so that a previously non-sticky task remains non-
+            # sticky and can be migrated outside of this block
+            task.sticky = sticky
+            # unlock, to allow another task to call into python
+            unlock(thelock)
+        end
     end
 end

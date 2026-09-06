@@ -208,12 +208,7 @@ function init_context()
 
             # Start the interpreter and register exit hooks
             Py_InitializeEx(0)
-            atexit() do
-                CTX.is_initialized = false
-                if Py_FinalizeEx() == -1
-                    @warn "Py_FinalizeEx() error"
-                end
-            end
+            atexit(_atjlexit)
         end
         CTX.is_initialized = true
         if Py_AtExit(@cfunction(_atpyexit, Cvoid, ())) == -1

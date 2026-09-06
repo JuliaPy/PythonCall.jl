@@ -31,20 +31,25 @@ macro withts(ex)
         # will return NULL in the outermost invocation, and will return THREAD_STATE()
         # in all the innermost ones.
         tstate = get_thread_state()
-        tstate0 = PyThreadState_Swap(tstate)
+        tstate_prev = PyThreadState_Swap(tstate)
         # run the desired expression
         try
             $(esc(ex))
         finally
             # swap the threadstate back to its prior value
-            tstate2 = PyThreadState_Swap(tstate0)
-            # check the thread state didn't change
-            @assert tstate2 == tstate
+            PyThreadState_Swap(tstate_prev)
             # reset the task stickiness, so that a previously non-sticky task remains non-
             # sticky and can be migrated outside of this block
             task.sticky = sticky
             # unlock, to allow another task to call into python
             unlock(thelock)
         end
+    end
+end
+
+function _atjlexit()
+    CTX.is_initialized = false
+    if @withts Py_FinalizeEx() == -1
+        @warn "Py_FinalizeEx() error"
     end
 end

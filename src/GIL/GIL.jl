@@ -25,6 +25,12 @@ if Base.VERSION ≥ v"1.11"
     )
 end
 
+const LOCK = ReentrantLock()
+
+function __init__()
+    Base.lock(LOCK)
+    return nothing
+end
 
 """
     lock(f)
@@ -42,11 +48,16 @@ See [`@lock`](@ref) for the macro form.
     This function is experimental. Its semantics may be changed without notice.
 """
 function lock(f)
+    Base.lock(LOCK)
+    task = current_task()
+    sticky, task.sticky = task.sticky, true
     state = C.PyGILState_Ensure()
     try
         f()
     finally
         C.PyGILState_Release(state)
+        task.sticky = sticky
+        Base.unlock(LOCK)
     end
 end
 
@@ -67,11 +78,16 @@ The macro equivalent of [`lock`](@ref).
 """
 macro lock(expr)
     quote
+        Base.lock($LOCK)
+        task = current_task()
+        sticky, task.sticky = task.sticky, true
         state = C.PyGILState_Ensure()
         try
             $(esc(expr))
         finally
             C.PyGILState_Release(state)
+            task.sticky = sticky
+            Base.unlock($LOCK)
         end
     end
 end
@@ -92,11 +108,17 @@ See [`@unlock`](@ref) for the macro form.
     This function is experimental. Its semantics may be changed without notice.
 """
 function unlock(f)
+    if !islocked(LOCK)
+        error("GIL is not held")
+    end
+
+    Base.unlock(LOCK)
     state = C.PyEval_SaveThread()
     try
         f()
     finally
         C.PyEval_RestoreThread(state)
+        Base.lock(LOCK)
     end
 end
 
@@ -117,11 +139,17 @@ The macro equivalent of [`unlock`](@ref).
 """
 macro unlock(expr)
     quote
+        if !islocked($LOCK)
+            error("GIL is not held")
+        end
+
+        Base.unlock($LOCK)
         state = C.PyEval_SaveThread()
         try
             $(esc(expr))
         finally
             C.PyEval_RestoreThread(state)
+            Base.lock($LOCK)
         end
     end
 end

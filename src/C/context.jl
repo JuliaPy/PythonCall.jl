@@ -118,11 +118,20 @@ function init_context()
         Py_IsInitialized() == 0 && error("Python is not already initialized.")
         CTX.is_initialized = true
         CTX.which = :embedded
-        exe_path = Utils.getpref_exe()
-        if exe_path != ""
-            CTX.exe_path = exe_path
-            # this ensures PyCall uses the same Python interpreter
-            get!(ENV, "PYTHON", exe_path)
+        # The running interpreter is the source of truth, so ignore the exe preference
+        exe_ptr = PySys_GetObject("executable")
+        if exe_ptr != C_NULL
+            str_ptr = PyUnicode_AsUTF8AndSize(exe_ptr, C_NULL)
+            if str_ptr == C_NULL
+                PyErr_Clear()
+            else
+                exe_path = Base.unsafe_string(str_ptr)
+                if exe_path != ""
+                    CTX.exe_path = exe_path
+                    # this ensures PyCall uses the same Python interpreter
+                    get!(ENV, "PYTHON", exe_path)
+                end
+            end
         end
     else
         # Find Python executable

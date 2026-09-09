@@ -36,6 +36,14 @@ print(pyconvert(String, output.decode()))
     assert result.stdout == "6"
 
 
+def test_python_executable_path():
+    import sys
+    import juliacall
+
+    jl = juliacall.Main
+    assert str(jl.PythonCall.python_executable_path()) == sys.executable
+
+
 def test_newmodule():
     import juliacall
 

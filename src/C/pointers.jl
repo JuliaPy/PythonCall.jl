@@ -28,6 +28,8 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     :PyImport_Import => (PyPtr,) => PyPtr,
     :PyImport_ImportModuleLevelObject => (PyPtr, PyPtr, PyPtr, PyPtr, Cint) => PyPtr,
     :PyImport_GetModuleDict => () => PyPtr, # borrowed
+    # SYS
+    :PySys_GetObject => (Ptr{Cchar},) => PyPtr, # borrowed
     # MODULE
     :PyModule_GetDict => (PyPtr,) => PyPtr, # borrowed
     # ERRORS
@@ -142,6 +144,7 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     # STR
     :PyUnicode_DecodeUTF8 => (Ptr{Cchar}, Py_ssize_t, Ptr{Cchar}) => PyPtr,
     :PyUnicode_AsUTF8String => (PyPtr,) => PyPtr,
+    :PyUnicode_AsUTF8AndSize => (PyPtr, Ptr{Py_ssize_t}) => Ptr{Cchar}, # borrowed
     :PyUnicode_InternInPlace => (Ptr{PyPtr},) => Cvoid,
     # BYTES
     :PyBytes_FromStringAndSize => (Ptr{Cchar}, Py_ssize_t) => PyPtr,

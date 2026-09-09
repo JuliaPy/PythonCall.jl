@@ -53,12 +53,15 @@ jobs:
         with:
           python-version: ${{ matrix.pyversion }}
       
+      # Always build PyCall (and hence Conda) so that Conda's root env directory exists;
+      # otherwise Conda fails to precompile on cached runners, which can cause errors.
+      # Use a temporary environment because `--project=test` has no manifest on Julia
+      # versions without workspace support (< 1.12).
       - name: Build PyCall
-        if: ${{ matrix.pythonexe == 'python' }}
         run: |
-          julia --project=test -e 'import Pkg; Pkg.build("PyCall")'
+          julia -e 'import Pkg; Pkg.activate(temp=true); Pkg.add("PyCall"); Pkg.build("PyCall")'
         env:
-          PYTHON: ${{ steps.setup-python.outputs.python-path }}
+          PYTHON: ${{ case(matrix.pythonexe == 'python', steps.setup-python.outputs.python-path, 'python') }}
 
       - name: Run tests
         uses: julia-actions/julia-runtest@v1

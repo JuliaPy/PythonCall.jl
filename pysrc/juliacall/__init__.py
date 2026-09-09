@@ -256,7 +256,6 @@ def init():
 
     # override some environment variables
     # we do this here because PythonCall is initialised during jl_init if it is in a sysimg
-    os.environ['JULIA_PYTHONCALL_EXE'] = sys.executable or ''
     os.environ['__JULIA_PYTHONCALL_EMBEDDED_LIBPTR__'] = hex(c.pythonapi._handle)
 
     # initialise julia

@@ -169,9 +169,16 @@ function init_context()
             else
                 exe_path = abspath(exe_path, "bin", "python")::String
             end
-        elseif startswith(exe_path, "@")
+        elseif startswith(exe_path, "@") && exe_path != "@ENV"
             error("invalid exe: $exe_path")
         else
+            if exe_path == "@ENV"
+                exe_path = get(ENV, "JULIA_PYTHONCALL_EXE", "")
+                if isempty(exe_path)
+                    error("PythonCall's `exe` preference is set to `@ENV`, but JULIA_PYTHONCALL_EXE is not set.")
+                end
+            end
+
             # Otherwise we use the Python specified
             CTX.which = :unknown
             if isabspath(exe_path)

@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+* Bug fix: JuliaCall initialization when the Julia executable is a symlink or
+  wrapper outside its installation directory.
 * Bug fix: avoid precompilation cache miss when `check_bounds` option set.
 * Bug fix: `juliacall` set the environment variable `JULIA_PYTHONCALL_EXECUTABLE`
   instead of `JULIA_PYTHONCALL_EXE`, so child Julia processes resolved a new

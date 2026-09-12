@@ -15,6 +15,9 @@ classifiers = [
 requires-python = ">=3.10, <4"
 dependencies = ["juliapkg >=0.1.26, <0.2"]
 
+[project.entry-points.pytest11]
+juliacall = "juliacall_pytest"
+
 [dependency-groups]
 dev = [
     "flake8>=5.0",
@@ -25,4 +28,4 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["pysrc/juliacall"]
+packages = ["pysrc/juliacall", "pysrc/juliacall_pytest"]

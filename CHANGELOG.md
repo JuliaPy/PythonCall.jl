@@ -1,7 +1,7 @@
 # Changelog
 
 ## Unreleased
-* Fix: on Linux, coordinate pytest's diagnostic plugin with explicitly enabled Julia signal handling to prevent shutdown crashes.
+* Bug fix: on Linux, coordinate pytest's diagnostic plugin with explicitly enabled Julia signal handling to prevent shutdown crashes.
 * Bug fix: avoid precompilation cache miss when `check_bounds` option set.
 * Bug fix: `juliacall` set the environment variable `JULIA_PYTHONCALL_EXECUTABLE`
   instead of `JULIA_PYTHONCALL_EXE`, so child Julia processes resolved a new

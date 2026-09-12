@@ -225,3 +225,22 @@ Ctrl-C will not raise `KeyboardInterrupt`.
 
 Future versions of JuliaCall may make this the default behaviour when using multiple
 threads.
+
+On Linux, the JuliaCall pytest plugin disables pytest's `faulthandler` plugin when
+Julia signal handling is explicitly enabled before pytest starts. The
+`-X juliacall-handle-signals` option takes precedence over
+`PYTHON_JULIACALL_HANDLE_SIGNALS`. This prevents pytest teardown from replacing
+Julia's signal handlers, which can cause GC safepoints to crash during shutdown.
+The plugin does not initialize Julia.
+
+This policy disables pytest-managed Python fatal-error and timeout tracebacks;
+Julia's fatal diagnostics remain available. A configured
+`faulthandler_exit_on_timeout` with a positive timeout raises a configuration
+error instead of silently removing timeout enforcement. Use an external process
+timeout in that case. To opt out, pass `-p no:juliacall` to pytest. When pytest
+plugin autoloading is disabled, load it with `-p juliacall_pytest` or use pytest
+directly with `-p no:faulthandler`.
+
+This integration only coordinates pytest's diagnostic plugin. Calling
+`faulthandler.disable()` or replacing native signal handlers while Julia is
+running can still disrupt Julia's signal handling.

@@ -101,6 +101,114 @@
     end
 end
 
+@testitem "PyDenseArray" setup=[Setup] begin
+    using LinearAlgebra
+    x = pyimport("array").array("d", pylist(0:5))
+    y = PyDenseArray(x)
+
+    # Helper function to create a row-major Float64 array
+    function rowmajor(vals, shape)
+        arr = pyimport("array").array("d", pylist(vals))
+        bytearr = pybuiltins.bytearray(arr.tobytes())
+
+        pybuiltins.memoryview(bytearr).cast("d", pylist(shape))
+    end
+
+    @testset "construct" begin
+        @test y isa PyDenseArray{Float64,1,true}
+        @test y isa StridedVector{Float64}
+        @test Py(y) === x
+        @test PyDenseArray{Float64,1,true}(x) isa PyDenseArray{Float64,1,true}
+        @test PyDenseArray(PyArray(x)) isa PyDenseArray{Float64,1,true}
+        @test PyDenseArray(pybytes(b"abc")) isa PyDenseArray{UInt8,1,false}
+
+        @test pyconvert(PyDenseArray, x) isa PyDenseArray{Float64,1,true}
+        @test pyconvert(PyDenseArray{Float64,1}, x) isa PyDenseArray{Float64,1,true}
+        # Defaults are unchanged
+        @test pyconvert(Any, x) isa PyArray
+        @test pyconvert(DenseArray, x) isa Array
+
+        @test_throws Exception PyDenseArray{Int}(x)
+        @test_throws Exception PyDenseArray{Float64,1,false}(x)
+        # Non-contiguous
+        strided = pybuiltins.memoryview(x)[pyslice(nothing, nothing, 2)]
+        @test_throws Exception PyDenseArray(strided)
+        @test_throws Exception pyconvert(PyDenseArray, strided)
+
+        if Setup.devdeps
+            np = pyimport("numpy")
+            # Object arrays have eltype Py, which is not the buffer eltype
+            @test_throws Exception PyDenseArray(np.array(pylist([1, "a"]), dtype = np.object_))
+        end
+    end
+
+    @testset "shape" begin
+        # Row-major data is reversed
+        c = PyDenseArray(rowmajor(0:5, [2, 3]))
+        @test size(c) == (3, 2)
+        @test strides(c) == (1, 3)
+        @test c == transpose(PyArray(Py(c)))
+
+        # Arrays with dimensions of size 1 are not
+        @test size(PyDenseArray(rowmajor(0:3, [1, 4]))) == (1, 4)
+
+        # Nor is column-major data
+        if Setup.devdeps
+            np = pyimport("numpy")
+            f = PyDenseArray(np.asfortranarray(np.arange(6.0).reshape(2, 3)))
+            @test size(f) == (2, 3)
+            @test f == PyArray(Py(f))
+        end
+    end
+
+    @testset "indexing" begin
+        @test Base.IndexStyle(y) === Base.IndexLinear()
+        @test length(y) == 6
+        @test pointer(y) == pointer(PyArray(x))
+        @test pointer(y, 2) == pointer(y) + sizeof(Float64)  # requires elsize()
+        @test y[2] == 1.0
+        @test_throws BoundsError y[7]
+
+        y[2] = 42
+        @test pyeq(Bool, x[1], 42.0)
+        @test_throws Exception PyDenseArray(pybytes(b"abc"))[1] = 0x00
+    end
+
+    @testset "strided dispatch" begin
+        # dot() has a BLAS method for StridedVector{Float64}
+        @test which(dot, (typeof(y), typeof(y))) ==
+              which(dot, (Vector{Float64}, Vector{Float64}))
+        @test which(dot, (typeof(y), typeof(y))) !=
+              which(dot, (typeof(PyArray(x)), typeof(PyArray(x))))
+
+        a = PyDenseArray(rowmajor(0:5, [2, 3]))  # 3×2
+        b = PyDenseArray(rowmajor(0:5, [3, 2]))  # 2×3
+        @test mul!(zeros(3, 3), a, b) ≈ Matrix(a) * Matrix(b)
+        @test view(a, :, 1:2) isa StridedArray
+        @test copy(a) isa Matrix{Float64}
+    end
+
+    @testset "serialize" begin
+        using Serialization: serialize, deserialize
+        arrays = Any[x]
+
+        if Setup.devdeps
+            np = pyimport("numpy")
+            push!(arrays, np.arange(6.0).reshape(2, 3))
+        end
+
+        for a in arrays
+            c = PyDenseArray(a)
+            io = IOBuffer()
+            serialize(io, c)
+            seekstart(io)
+            c2 = deserialize(io)
+            @test typeof(c2) == typeof(c)
+            @test c2 == c
+        end
+    end
+end
+
 @testitem "PyDict" begin
     x = pydict(["foo" => 12])
     y = PyDict(x)

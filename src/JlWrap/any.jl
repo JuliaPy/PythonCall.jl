@@ -233,6 +233,7 @@ function init_any()
 $("\n"^(@__LINE__()-1))
 class AnyValue(ValueBase):
     __slots__ = ()
+    __test__ = False  # make pytest not try looking for tests in here
     def __repr__(self):
         if self._jl_isnull():
             return "<jl NULL>"

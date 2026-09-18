@@ -93,7 +93,7 @@ functionality.
 
 ## Executing Python scripts
 
-A common use case is calling multiple blocks of Python code from Julia interactively. This can be accomplished in PythonCall via the [@pyexec](@ref) macro. For example, the sentence parsing application in the [Getting started](@ref py_getting_started) section could be rewritten as:
+A common use case is calling multiple blocks of Python code from Julia interactively. This can be accomplished in PythonCall via the [`@pyexec`](@ref) macro. For example, the sentence parsing application in the [Getting started](@ref py_getting_started) section could be rewritten as:
 
 ```julia-repl
 julia> @pyexec """
@@ -135,7 +135,7 @@ julia> plusone
 11.0
 ```
 
-Here we demonstrate passing a named variable, `num`, via the use of the `=>` syntax again, and returning named output, with the last element, `plusone`, being cast to a Julia object via the `::` syntax. See [@pyexec](@ref), [@pyeval](@ref), and their functional forms [pyexec](@ref) and [pyeval](@ref), for more.
+Here we demonstrate passing a named variable, `num`, via the use of the `=>` syntax again, and returning named output, with the last element, `plusone`, being cast to a Julia object via the `::` syntax. See [`@pyexec`](@ref), [`@pyeval`](@ref), and their functional forms [`pyexec`](@ref) and [`pyeval`](@ref), for more.
 
 ## Conversion between Julia and Python
 

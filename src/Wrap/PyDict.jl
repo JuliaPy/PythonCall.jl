@@ -24,7 +24,19 @@ function Base.iterate(x::PyDict{K,V}, it::Py = pyiter(x)) where {K,V}
     return (k => v, it)
 end
 
-function Base.iterate(x::Base.KeySet{K,PyDict{K,V}}, it::Py = pyiter(x.dict)) where {K,V}
+function Base.iterate(x::Base.KeySet{K,<:PyDict{K}})::Union{Nothing,Tuple{K,Py}} where {K}
+    _py_on_main_thread_if_needed() do
+        _iterate(x, pyiter(x.dict))
+    end
+end
+
+function Base.iterate(x::Base.KeySet{K,<:PyDict{K}}, it::Py)::Union{Nothing,Tuple{K,Py}} where {K}
+    _py_on_main_thread_if_needed() do
+        _iterate(x, it)
+    end
+end
+
+function _iterate(x::Base.KeySet{K,<:PyDict{K}}, it::Py) where {K}
     k_ = unsafe_pynext(it)
     pyisnull(k_) && return nothing
     k = pyconvert(K, k_)

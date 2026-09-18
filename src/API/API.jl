@@ -1,5 +1,5 @@
 "The version of PythonCall."
-const VERSION = v"0.9.35"
+const VERSION = v"0.9.36"
 
 include("types.jl")
 include("functions.jl")

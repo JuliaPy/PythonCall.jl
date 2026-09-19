@@ -19,6 +19,8 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     # GIL & THREADS
     :PyEval_SaveThread => () => Ptr{Cvoid},
     :PyEval_RestoreThread => (Ptr{Cvoid},) => Cvoid,
+    :PyThreadState_New => (Ptr{Cvoid},) => Ptr{Cvoid},
+    :PyThreadState_GetInterpreter => (Ptr{Cvoid},) => Ptr{Cvoid},
     :PyGILState_Ensure => () => PyGILState_STATE,
     :PyGILState_Release => (PyGILState_STATE,) => Cvoid,
     :PyGILState_GetThisThreadState => () => Ptr{Cvoid},
@@ -278,6 +280,7 @@ const CAPI_OBJECTS = Set([
     $([:($name::PyPtr = C_NULL) for name in CAPI_EXCEPTIONS]...)
     $([:($name::PyPtr = C_NULL) for name in CAPI_OBJECTS]...)
     PyOS_InputHookPtr::Ptr{Ptr{Cvoid}} = C_NULL
+    PyThreadState_GetUnchecked::Ptr{Cvoid} = C_NULL
 end
 
 const POINTERS = CAPIPointers()
@@ -295,7 +298,13 @@ const POINTERS = CAPIPointers()
     )
     $([:(p.$name = dlsym(lib, $(QuoteNode(name)))) for name in CAPI_OBJECTS]...)
     p.PyOS_InputHookPtr = dlsym(CTX.lib_ptr, :PyOS_InputHook)
+    p.PyThreadState_GetUnchecked = let q = dlsym_e(lib, :PyThreadState_GetUnchecked)
+        q == C_NULL ? dlsym(lib, :_PyThreadState_UncheckedGet) : q
+    end
 end
+
+PyThreadState_GetUnchecked() =
+    ccall(POINTERS.PyThreadState_GetUnchecked, Ptr{Cvoid}, ())
 
 for (name, (argtypes, rettype)) in CAPI_FUNC_SIGS
     args = [Symbol("x", i) for (i, _) in enumerate(argtypes)]

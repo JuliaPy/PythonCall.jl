@@ -515,7 +515,7 @@ Returns the next item from the iterator `x`. If there are no more items, returns
 given, else raises `StopIteration`.
 """
 function pynext(x)
-    ptr = errcheck_ambig(C.PyIter_Next(x))
+    ptr = @pyregion errcheck_ambig(C.PyIter_Next(x))
     if ptr == C.PyNULL
         errset(pybuiltins.StopIteration)
         pythrow()
@@ -525,7 +525,7 @@ function pynext(x)
 end
 
 function pynext(x, d)
-    ptr = errcheck_ambig(C.PyIter_Next(x))
+    ptr = @pyregion errcheck_ambig(C.PyIter_Next(x))
     ptr == C.PyNULL ? d : pynew(ptr)
 end
 
@@ -534,7 +534,8 @@ end
 
 Return the next item in the iterator `x`. When there are no more items, return NULL.
 """
-unsafe_pynext(x::Py) = Base.GC.@preserve x pynew(errcheck_ambig(C.PyIter_Next(x)))
+unsafe_pynext(x::Py) =
+    @pyregion Base.GC.@preserve x pynew(errcheck_ambig(C.PyIter_Next(x)))
 
 ### None
 
@@ -567,7 +568,8 @@ end
 
 ### str
 
-pystr_fromUTF8(x::Ptr, n::Integer) = pynew(errcheck(C.PyUnicode_DecodeUTF8(x, n, C_NULL)))
+pystr_fromUTF8(x::Ptr, n::Integer) =
+    @pyregion pynew(errcheck(C.PyUnicode_DecodeUTF8(x, n, C_NULL)))
 pystr_fromUTF8(x) = pystr_fromUTF8(pointer(x), sizeof(x))
 
 """
@@ -583,23 +585,26 @@ pystr(x::AbstractString) = pystr(convert(String, x)::String)
 pystr(x::AbstractChar) = pystr(convert(Char, x)::Char)
 pystr(::Type{String}, x) = (s = pystr(x); ans = pystr_asstring(s); unsafe_pydel(s); ans)
 
-pystr_asUTF8bytes(x::Py) = pynew(errcheck(C.PyUnicode_AsUTF8String(x)))
+pystr_asUTF8bytes(x::Py) = @pyregion pynew(errcheck(C.PyUnicode_AsUTF8String(x)))
 pystr_asUTF8vector(x::Py) =
     (b = pystr_asUTF8bytes(x); ans = pybytes_asvector(b); unsafe_pydel(b); ans)
 pystr_asstring(x::Py) =
     (b = pystr_asUTF8bytes(x); ans = pybytes_asUTF8string(b); unsafe_pydel(b); ans)
 
 function pystr_intern!(x::Py)
-    ptr = Ref(getptr(x))
-    C.PyUnicode_InternInPlace(ptr)
-    setptr!(x, ptr[])
+    @pyregion begin
+        ptr = Ref(getptr(x))
+        C.PyUnicode_InternInPlace(ptr)
+        setptr!(x, ptr[])
+    end
 end
 
 pyisstr(x) = pytypecheckfast(x, C.Py_TPFLAGS_UNICODE_SUBCLASS)
 
 ### bytes
 
-pybytes_fromdata(x::Ptr, n::Integer) = pynew(errcheck(C.PyBytes_FromStringAndSize(x, n)))
+pybytes_fromdata(x::Ptr, n::Integer) =
+    @pyregion pynew(errcheck(C.PyBytes_FromStringAndSize(x, n)))
 pybytes_fromdata(x) = pybytes_fromdata(pointer(x), sizeof(x))
 
 """
@@ -619,10 +624,12 @@ pybytes(::Type{T}, x) where {Base.CodeUnits{UInt8,String} <: T <: Base.CodeUnits
 pyisbytes(x) = pytypecheckfast(x, C.Py_TPFLAGS_BYTES_SUBCLASS)
 
 function pybytes_asdata(x::Py)
-    ptr = Ref(Ptr{Cchar}(0))
-    len = Ref(C.Py_ssize_t(0))
-    errcheck(C.PyBytes_AsStringAndSize(x, ptr, len))
-    ptr[], len[]
+    @pyregion begin
+        ptr = Ref(Ptr{Cchar}(0))
+        len = Ref(C.Py_ssize_t(0))
+        errcheck(C.PyBytes_AsStringAndSize(x, ptr, len))
+        ptr[], len[]
+    end
 end
 
 function pybytes_asvector(x::Py)
@@ -648,19 +655,23 @@ pyint_fallback(x::Integer) = pyint_fallback(BigInt(x))
 Convert `x` to a Python `int`.
 """
 function pyint(x::Integer = 0)
-    y = mod(x, Clonglong)
-    if x == y
-        pynew(errcheck(C.PyLong_FromLongLong(y)))
-    else
-        pyint_fallback(x)
+    @pyregion begin
+        y = mod(x, Clonglong)
+        if x == y
+            pynew(errcheck(C.PyLong_FromLongLong(y)))
+        else
+            pyint_fallback(x)
+        end
     end
 end
 function pyint(x::Unsigned)
-    y = mod(x, Culonglong)
-    if x == y
-        pynew(errcheck(C.PyLong_FromUnsignedLongLong(y)))
-    else
-        pyint_fallback(x)
+    @pyregion begin
+        y = mod(x, Culonglong)
+        if x == y
+            pynew(errcheck(C.PyLong_FromUnsignedLongLong(y)))
+        else
+            pyint_fallback(x)
+        end
     end
 end
 pyint(x) = @autopy x pynew(errcheck(C.PyNumber_Long(x_)))
@@ -674,7 +685,7 @@ pyisint(x) = pytypecheckfast(x, C.Py_TPFLAGS_LONG_SUBCLASS)
 
 Convert `x` to a Python `float`.
 """
-pyfloat(x::Real = 0.0) = pynew(errcheck(C.PyFloat_FromDouble(x)))
+pyfloat(x::Real = 0.0) = @pyregion pynew(errcheck(C.PyFloat_FromDouble(x)))
 pyfloat(x) = @autopy x pynew(errcheck(C.PyNumber_Float(x_)))
 
 pyisfloat(x) = pytypecheck(x, pybuiltins.float)
@@ -689,7 +700,8 @@ pyfloat_asdouble(x) = errcheck_ambig(@autopy x C.PyFloat_AsDouble(x_))
 
 Convert `x` to a Python `complex`, or create one from given real and imaginary parts.
 """
-pycomplex(x::Real = 0.0, y::Real = 0.0) = pynew(errcheck(C.PyComplex_FromDoubles(x, y)))
+pycomplex(x::Real = 0.0, y::Real = 0.0) =
+    @pyregion pynew(errcheck(C.PyComplex_FromDoubles(x, y)))
 pycomplex(x::Complex) = pycomplex(real(x), imag(x))
 pycomplex(x) = pybuiltins.complex(x)
 pycomplex(x, y) = pybuiltins.complex(x, y)
@@ -819,15 +831,15 @@ pyisrange(x) = pytypecheck(x, pybuiltins.range)
 
 ### tuple
 
-pynulltuple(len) = pynew(errcheck(C.PyTuple_New(len)))
+pynulltuple(len) = @pyregion pynew(errcheck(C.PyTuple_New(len)))
 
 function pytuple_setitem(xs::Py, i, x)
-    errcheck(C.PyTuple_SetItem(xs, i, incref(Py(x))))
+    @pyregion errcheck(C.PyTuple_SetItem(xs, i, incref(Py(x))))
     return xs
 end
 
 function pytuple_getitem(xs::Py, i)
-    Base.GC.@preserve xs pynew(incref(errcheck(C.PyTuple_GetItem(xs, i))))
+    @pyregion Base.GC.@preserve xs pynew(incref(errcheck(C.PyTuple_GetItem(xs, i))))
 end
 
 function pytuple_fromiter(xs)
@@ -874,10 +886,10 @@ pyistuple(x) = pytypecheckfast(x, C.Py_TPFLAGS_TUPLE_SUBCLASS)
 
 ### list
 
-pynulllist(len) = pynew(errcheck(C.PyList_New(len)))
+pynulllist(len) = @pyregion pynew(errcheck(C.PyList_New(len)))
 
 function pylist_setitem(xs::Py, i, x)
-    errcheck(C.PyList_SetItem(xs, i, incref(Py(x))))
+    @pyregion errcheck(C.PyList_SetItem(xs, i, incref(Py(x))))
     return xs
 end
 
@@ -972,7 +984,7 @@ Convert `x` to a Python `set`.
 If `x` is a Python object, this is equivalent to `set(x)` in Python.
 Otherwise `x` must be iterable.
 """
-pyset() = pynew(errcheck(C.PySet_New(C.PyNULL)))
+pyset() = @pyregion pynew(errcheck(C.PySet_New(C.PyNULL)))
 pyset(x) = ispy(x) ? pybuiltins.set(x) : pyset_fromiter(x)
 
 """
@@ -983,7 +995,7 @@ Convert `x` to a Python `frozenset`.
 If `x` is a Python object, this is equivalent to `frozenset(x)` in Python.
 Otherwise `x` must be iterable.
 """
-pyfrozenset() = pynew(errcheck(C.PyFrozenSet_New(C.PyNULL)))
+pyfrozenset() = @pyregion pynew(errcheck(C.PyFrozenSet_New(C.PyNULL)))
 pyfrozenset(x) = ispy(x) ? pybuiltins.frozenset(x) : pyfrozenset_fromiter(x)
 
 ### dict
@@ -1017,7 +1029,7 @@ If `x` is a Python object, this is equivalent to `dict(x)` in Python.
 Otherwise `x` must iterate over key-value pairs.
 """
 pydict(; kwargs...) =
-    isempty(kwargs) ? pynew(errcheck(C.PyDict_New())) : pystrdict_fromiter(kwargs)
+    isempty(kwargs) ? (@pyregion pynew(errcheck(C.PyDict_New()))) : pystrdict_fromiter(kwargs)
 pydict(x) = ispy(x) ? pybuiltins.dict(x) : pydict_fromiter(x)
 pydict(x::NamedTuple) = pydict(; x...)
 pydict(pair::Pair, pairs::Pair...) = pydict((pair, pairs...))

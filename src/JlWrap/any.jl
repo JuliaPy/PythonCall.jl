@@ -94,12 +94,12 @@ function pyjlany_call_nogil(self, args_::Py, kwargs_::Py)
     if pylen(kwargs_) > 0
         args = pyconvert(Vector{Any}, args_)
         kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
-        ans = pyjl(GIL.@unlock self(args...; kwargs...))
+        ans = pyjl(self(args...; kwargs...))
     elseif pylen(args_) > 0
         args = pyconvert(Vector{Any}, args_)
-        ans = pyjl(GIL.@unlock self(args...))
+        ans = pyjl(self(args...))
     else
-        ans = pyjl(GIL.@unlock self())
+        ans = pyjl(self())
     end
     unsafe_pydel(args_)
     unsafe_pydel(kwargs_)
@@ -608,11 +608,8 @@ class Jl(JlBase2):
     def jl_callback(self, *args, **kwargs):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_callback)), args, kwargs)
     def jl_call_nogil(self, *args, **kwargs):
-        '''Call this with the given arguments but with the GIL disabled.
-        
-        WARNING: This function must not interact with Python at all without re-acquiring
-        the GIL.
-        '''
+        '''Compatibility alias for calling this Julia object. Python resources are
+        relinquished automatically while Julia code runs.'''
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_call_nogil)), args, kwargs)
     def _repr_mimebundle_(self, include=None, exclude=None):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)

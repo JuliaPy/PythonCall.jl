@@ -157,13 +157,11 @@ caveats.
 
 Most importantly, you can only call Python code while Python's
 [Global Interpreter Lock (GIL)](https://docs.python.org/3/glossary.html#term-global-interpreter-lock)
-is locked by the current thread. You can use JuliaCall from any Python thread, and the GIL
-will be locked whenever any JuliaCall function is used. However, to leverage the benefits
-of multi-threading, you can unlock the GIL while executing any Julia code that does not
-interact with Python.
+JuliaCall borrows the Python thread state which entered Julia and automatically detaches it
+while arbitrary Julia code runs. Nested Python interaction from that Julia code temporarily
+reattaches the same state, and the borrowed state is restored before returning to Python.
 
-The simplest way to do this is using the `_jl_call_nogil` method on Julia functions to
-call the function with the GIL unlocked.
+The historical `_jl_call_nogil` spelling remains available as a compatibility alias:
 
 ```python
 from concurrent.futures import ThreadPoolExecutor, wait
@@ -173,16 +171,9 @@ fs = [pool.submit(jl.Libc.systemsleep._jl_call_nogil, 5) for _ in range(4)]
 wait(fs)
 ```
 
-In the above example, we call `Libc.systemsleep(5)` on four threads. Because we
-called it with `_jl_call_nogil`, the GIL was unlocked, allowing the threads to run in
-parallel, taking about 5 seconds in total.
-
-If we did not use `_jl_call_nogil` (i.e. if we did `pool.submit(jl.Libc.systemsleep, 5)`)
-then the above code will take 20 seconds because the sleeps run one after another.
-
-It is very important that any function called with `_jl_call_nogil` does not interact
-with Python at all unless it re-locks the GIL first, such as by using
-[PythonCall.GIL.@lock](@ref).
+Ordinary calls provide the same automatic resource management, so
+`pool.submit(jl.Libc.systemsleep, 5)` is preferred. PythonCall operations nested inside
+Julia callbacks are safe without explicit region or lock calls.
 
 You can also use [multi-threading from Julia](@ref jl-multi-threading).
 

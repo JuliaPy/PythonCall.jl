@@ -87,14 +87,16 @@ PyObject_GetBuffer(_o, b, flags) = Base.GC.@preserve _o begin
     o = asptr(_o)
     getbuf = PyType_GetSlot(Py_Type(o), Py_bf_getbuffer)
     if getbuf == C_NULL
-        # TODO: we can drop this branch and just use PyType_GetName once we stop
-        # supporting python 3.10
-        msg = if CTX.is_free_threaded
-            "a bytes-like object is required"
-        else
-            "a bytes-like object is required, not '$(String(UnsafePtr{PyTypeObject}(Py_Type(o)).name[]))'"
+        name = PyType_GetName(Py_Type(o))
+        name == C_NULL && return Cint(-1)
+        try
+            name_utf8 = PyUnicode_AsUTF8(name)
+            name_utf8 == C_NULL && return Cint(-1)
+            msg = "a bytes-like object is required, not '$(Base.unsafe_string(name_utf8))'"
+            PyErr_SetString(POINTERS.PyExc_TypeError, msg)
+        finally
+            Py_DecRef(name)
         end
-        PyErr_SetString(POINTERS.PyExc_TypeError, msg)
         return Cint(-1)
     end
     return ccall(getbuf, Cint, (PyPtr, Ptr{Py_buffer}, Cint), o, b, flags)

@@ -3,6 +3,8 @@ export @py
 export @pyconst
 export @pyeval
 export @pyexec
+export @pyregion
+export @pyregionbreak
 export ispy
 export Py
 export pyabs

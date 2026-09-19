@@ -471,22 +471,15 @@ See [Installing Python packages](@ref python-deps).
 
     Multi-threading support is experimental and can change without notice.
 
-From v0.9.22, PythonCall supports multi-threading in Julia and/or Python, with some
-caveats.
-
-Most importantly, you can only call Python code while Python's
-[Global Interpreter Lock (GIL)](https://docs.python.org/3/glossary.html#term-global-interpreter-lock)
-is locked by the current thread. Ordinarily, the GIL is locked by the main thread in Julia,
-so if you want to run Python code on any other thread, you must unlock the GIL from the
-main thread and then re-lock it while running any Python code on other threads.
-
-This is made possible by the macros [`PythonCall.GIL.@unlock`](@ref) and
-[`PythonCall.GIL.@lock`](@ref) or the functions [`PythonCall.GIL.unlock`](@ref) and
-[`PythonCall.GIL.lock`](@ref) with this pattern:
+PythonCall APIs automatically establish the Python thread state they need, so ordinary
+operations can be called from any Julia task or thread without explicit locking. The
+optional [`@pyregion`](@ref) macro amortizes those transitions across straight-line,
+Python-heavy work. Use [`@pyregionbreak`](@ref) around Julia-heavy code which deliberately
+yields, waits, or blocks cooperatively:
 
 ```julia
-PythonCall.GIL.@unlock Threads.@threads for i in 1:4
-  PythonCall.GIL.@lock pyimport("time").sleep(5)
+Threads.@threads for i in 1:4
+  @pyregion pyimport("time").sleep(5)
 end
 ```
 
@@ -494,9 +487,10 @@ In the above example, we call `time.sleep(5)` four times in parallel. If Julia w
 started with at least four threads (`julia -t4`) then the above code will take about
 5 seconds.
 
-Both `@unlock` and `@lock` are important. If the GIL were not unlocked, then a deadlock
-would occur when attempting to lock the already-locked GIL from the threads. If the GIL
-were not re-locked, then Python would crash when interacting with it.
+Both region macros nest arbitrarily, and neither is required for correctness. A nested
+PythonCall operation inside `@pyregionbreak` temporarily re-enters Python automatically.
+On a GIL-enabled Python, attaching a state can block that Julia worker while CPython
+arbitrates access; free-threaded Python uses the same state-management machinery.
 
 With multiple Julia threads you need exactly one interactive thread, see the [FAQ](@ref faq-multi-threading).
 
@@ -504,9 +498,8 @@ You can also use [multi-threading from Python](@ref py-multi-threading).
 
 ### Caveat: Garbage collection
 
-If Julia's GC collects any Python objects from a thread where the GIL is not currently
-locked, then those Python objects will not immediately be deleted. Instead they will be
-queued to be deleted in a later GC pass.
+If Julia's GC collects Python objects while no Python thread state is already attached,
+those objects are queued rather than making a finalizer block while attaching a state.
 
 If you find you have many Python objects not being deleted, you can call
-[`PythonCall.GC.gc()`](@ref) or `GC.gc()` while the GIL is locked to clear the queue.
+[`PythonCall.GC.gc()`](@ref) or `GC.gc()` to clear the queue.

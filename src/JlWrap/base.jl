@@ -39,25 +39,25 @@ function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssi
     try
         if nargs == 1
             in_f = true
-            ans = f(self)::Py
+            ans = @pyregionbreak(f(self))::Py
             in_f = false
         elseif nargs == 2
             arg1 = pynew(incref(C.PyTuple_GetItem(args_, 1)))
             in_f = true
-            ans = f(self, arg1)::Py
+            ans = @pyregionbreak(f(self, arg1))::Py
             in_f = false
         elseif nargs == 3
             arg1 = pynew(incref(C.PyTuple_GetItem(args_, 1)))
             arg2 = pynew(incref(C.PyTuple_GetItem(args_, 2)))
             in_f = true
-            ans = f(self, arg1, arg2)::Py
+            ans = @pyregionbreak(f(self, arg1, arg2))::Py
             in_f = false
         elseif nargs == 4
             arg1 = pynew(incref(C.PyTuple_GetItem(args_, 1)))
             arg2 = pynew(incref(C.PyTuple_GetItem(args_, 2)))
             arg3 = pynew(incref(C.PyTuple_GetItem(args_, 3)))
             in_f = true
-            ans = f(self, arg1, arg2, arg3)::Py
+            ans = @pyregionbreak(f(self, arg1, arg2, arg3))::Py
             in_f = false
         else
             errset(

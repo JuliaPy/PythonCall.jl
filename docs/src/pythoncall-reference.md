@@ -222,8 +222,15 @@ Py(x::MyType) = x.py
 
 ## Multi-threading
 
-These functions are not exported. They support multi-threading of Python and/or Julia.
-See also [`juliacall.AnyValue._jl_call_nogil`](@ref julia-wrappers).
+PythonCall manages Python thread state automatically. These exported macros are optional
+performance and concurrency hints; users normally do not need them for correctness.
+
+```@docs
+@pyregion
+@pyregionbreak
+```
+
+The older `PythonCall.GIL` names remain as compatibility aliases.
 
 ```@docs
 PythonCall.GIL.lock

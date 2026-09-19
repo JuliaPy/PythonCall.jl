@@ -1,7 +1,7 @@
 """
     module PythonCall.GIL
 
-Handling the Python Global Interpreter Lock.
+Compatibility API for Python interaction regions.
 
 See [`lock`](@ref), [`@lock`](@ref), [`unlock`](@ref) and [`@unlock`](@ref).
 
@@ -11,7 +11,7 @@ See [`lock`](@ref), [`@lock`](@ref), [`unlock`](@ref) and [`@unlock`](@ref).
 """
 module GIL
 
-using ..C: C
+using ..Region
 
 if Base.VERSION ≥ v"1.11"
     eval(
@@ -29,11 +29,10 @@ end
 """
     lock(f)
 
-Lock the GIL, compute `f()`, unlock the GIL, then return the result of `f()`.
+Compute `f()` in a Python-heavy region and return its result.
 
-Use this to run Python code from threads that do not currently hold the GIL, such as new
-threads. Since the main Julia thread holds the GIL by default, you will need to
-[`unlock`](@ref) the GIL before using this function.
+PythonCall APIs already establish the required Python thread state automatically. This
+compatibility function can amortize transitions across several operations.
 
 See [`@lock`](@ref) for the macro form.
 
@@ -42,22 +41,18 @@ See [`@lock`](@ref) for the macro form.
     This function is experimental. Its semantics may be changed without notice.
 """
 function lock(f)
-    state = C.PyGILState_Ensure()
+    token = Region.enter_region()
     try
         f()
     finally
-        C.PyGILState_Release(state)
+        Region.exit_region(token)
     end
 end
 
 """
     @lock expr
 
-Lock the GIL, compute `expr`, unlock the GIL, then return the result of `expr`.
-
-Use this to run Python code from threads that do not currently hold the GIL, such as new
-threads. Since the main Julia thread holds the GIL by default, you will need to
-[`@unlock`](@ref) the GIL before using this function.
+Compute `expr` in a Python-heavy region and return its result.
 
 The macro equivalent of [`lock`](@ref).
 
@@ -67,11 +62,11 @@ The macro equivalent of [`lock`](@ref).
 """
 macro lock(expr)
     quote
-        state = C.PyGILState_Ensure()
+        token = $Region.enter_region()
         try
             $(esc(expr))
         finally
-            C.PyGILState_Release(state)
+            $Region.exit_region(token)
         end
     end
 end
@@ -79,11 +74,8 @@ end
 """
     unlock(f)
 
-Unlock the GIL, compute `f()`, re-lock the GIL, then return the result of `f()`.
-
-Use this to run non-Python code with the GIL unlocked, so allowing another thread to run
-Python code. That other thread can be a Julia thread, which must lock the GIL using
-[`lock`](@ref).
+Temporarily relinquish Python-related resources, compute `f()`, restore them, and return
+the result. Prefer [`PythonCall.@pyregionbreak`](@ref) in new code.
 
 See [`@unlock`](@ref) for the macro form.
 
@@ -92,22 +84,19 @@ See [`@unlock`](@ref) for the macro form.
     This function is experimental. Its semantics may be changed without notice.
 """
 function unlock(f)
-    state = C.PyEval_SaveThread()
+    token = Region.enter_break()
     try
         f()
     finally
-        C.PyEval_RestoreThread(state)
+        Region.exit_break(token)
     end
 end
 
 """
     @unlock expr
 
-Unlock the GIL, compute `expr`, re-lock the GIL, then return the result of `expr`.
-
-Use this to run non-Python code with the GIL unlocked, so allowing another thread to run
-Python code. That other thread can be a Julia thread, which must lock the GIL using
-[`@lock`](@ref).
+Temporarily relinquish Python-related resources, compute `expr`, restore them, and return
+the result. Prefer [`PythonCall.@pyregionbreak`](@ref) in new code.
 
 The macro equivalent of [`unlock`](@ref).
 
@@ -117,11 +106,11 @@ The macro equivalent of [`unlock`](@ref).
 """
 macro unlock(expr)
     quote
-        state = C.PyEval_SaveThread()
+        token = $Region.enter_break()
         try
             $(esc(expr))
         finally
-            C.PyEval_RestoreThread(state)
+            $Region.exit_break(token)
         end
     end
 end

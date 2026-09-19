@@ -81,40 +81,6 @@ PyType_CheckBuffer(t) = Base.GC.@preserve t begin
     return getbuf != C_NULL
 end
 
-PyObject_CheckBuffer(o) = Base.GC.@preserve o PyType_CheckBuffer(Py_Type(asptr(o)))
-
-PyObject_GetBuffer(_o, b, flags) = Base.GC.@preserve _o begin
-    o = asptr(_o)
-    getbuf = PyType_GetSlot(Py_Type(o), Py_bf_getbuffer)
-    if getbuf == C_NULL
-        name = PyType_GetName(Py_Type(o))
-        name == C_NULL && return Cint(-1)
-        try
-            name_utf8 = PyUnicode_AsUTF8(name)
-            name_utf8 == C_NULL && return Cint(-1)
-            msg = "a bytes-like object is required, not '$(Base.unsafe_string(name_utf8))'"
-            PyErr_SetString(POINTERS.PyExc_TypeError, msg)
-        finally
-            Py_DecRef(name)
-        end
-        return Cint(-1)
-    end
-    return ccall(getbuf, Cint, (PyPtr, Ptr{Py_buffer}, Cint), o, b, flags)
-end
-
-PyBuffer_Release(_b) = begin
-    b = UnsafePtr(Base.unsafe_convert(Ptr{Py_buffer}, _b))
-    o = b.obj[]
-    o == C_NULL && return
-    releasebuf = PyType_GetSlot(Py_Type(o), Py_bf_releasebuffer)
-    if releasebuf != C_NULL
-        ccall(releasebuf, Cvoid, (PyPtr, Ptr{Py_buffer}), o, b)
-    end
-    b.obj[] = C_NULL
-    Py_DecRef(o)
-    return
-end
-
 function PyOS_SetInputHook(hook::Ptr{Cvoid})
     Base.unsafe_store!(POINTERS.PyOS_InputHookPtr, hook)
     return

@@ -78,7 +78,6 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     :PyType_GenericNew => (PyPtr, PyPtr, PyPtr) => PyPtr,
     :PyType_FromSpec => (Ptr{Cvoid},) => PyPtr,
     :PyType_GetFlags => (PyPtr,) => Culong,
-    :PyType_GetName => (PyPtr,) => PyPtr,
     :PyType_GetSlot => (PyPtr, Cint) => Ptr{Cvoid},
     # MAPPING
     :PyMapping_HasKeyString => (PyPtr, Ptr{Cchar}) => Cint,
@@ -143,11 +142,14 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     # STR
     :PyUnicode_DecodeUTF8 => (Ptr{Cchar}, Py_ssize_t, Ptr{Cchar}) => PyPtr,
     :PyUnicode_AsUTF8String => (PyPtr,) => PyPtr,
-    :PyUnicode_AsUTF8 => (PyPtr,) => Ptr{Cchar},
     :PyUnicode_InternInPlace => (Ptr{PyPtr},) => Cvoid,
     # BYTES
     :PyBytes_FromStringAndSize => (Ptr{Cchar}, Py_ssize_t) => PyPtr,
     :PyBytes_AsStringAndSize => (PyPtr, Ptr{Ptr{Cchar}}, Ptr{Py_ssize_t}) => Cint,
+    # BUFFER
+    :PyObject_CheckBuffer => (PyPtr,) => Cint,
+    :PyObject_GetBuffer => (PyPtr, Ptr{Py_buffer}, Cint) => Cint,
+    :PyBuffer_Release => (Ptr{Py_buffer},) => Cvoid,
     # TUPLE
     :PyTuple_New => (Py_ssize_t,) => PyPtr,
     :PyTuple_Size => (PyPtr,) => Py_ssize_t,

@@ -2,6 +2,7 @@
 module Region
 
 using ..C: C
+using ..Utils
 import ..PythonCall: @pyregion, @pyregionbreak
 
 const PyThreadStatePtr = Ptr{Cvoid}
@@ -21,8 +22,8 @@ mutable struct TaskState
 end
 TaskState() = TaskState(C_NULL, nothing, false, 0, false)
 
-const THREAD_STATE = Base.OncePerThread(ThreadState)
-const TASK_STATE = Base.OncePerTask(TaskState)
+const THREAD_STATE = Utils.OncePerThread{ThreadState}(ThreadState)
+const TASK_STATE = Utils.OncePerTask{TaskState}(TaskState)
 const INTERP = Ref{Ptr{Cvoid}}(C_NULL)
 
 current_tstate() = C.PyThreadState_GetUnchecked()

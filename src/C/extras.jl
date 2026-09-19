@@ -1,5 +1,29 @@
 asptr(x) = Base.unsafe_convert(PyPtr, x)
 
+"""
+    Py_IsFreeThreaded()
+
+Return whether `sysconfig.get_config_var("Py_GIL_DISABLED") == 1`.
+Uses only the C API so it can run during initialization, before object layouts are known.
+"""
+function Py_IsFreeThreaded()
+    sysconfig = code = result = PyPtr(C_NULL)
+    try
+        sysconfig = PyImport_ImportModule("sysconfig")
+        sysconfig == C_NULL && error("Could not import sysconfig")
+        code = Py_CompileString("get_config_var('Py_GIL_DISABLED') == 1", "<PythonCall>", Py_eval_input)
+        code == C_NULL && error("Could not compile free-threading check")
+        globals = PyModule_GetDict(sysconfig) # borrowed
+        result = PyEval_EvalCode(code, globals, globals)
+        result == C_NULL && error("Could not query Py_GIL_DISABLED")
+        return PyObject_IsTrue(result) == 1
+    finally
+        Py_DecRef(result)
+        Py_DecRef(code)
+        Py_DecRef(sysconfig)
+    end
+end
+
 # Free-threaded CPython builds ("3.14t") currently have different C struct layouts,
 # but there is no stable ABI yet. To keep the code manageable, we centralize the
 # branching in a single macro that rewrites type names in the expression.

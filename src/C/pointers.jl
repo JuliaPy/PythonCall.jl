@@ -278,6 +278,7 @@ const CAPI_OBJECTS = Set([
     $([:($name::PyPtr = C_NULL) for name in CAPI_EXCEPTIONS]...)
     $([:($name::PyPtr = C_NULL) for name in CAPI_OBJECTS]...)
     PyOS_InputHookPtr::Ptr{Ptr{Cvoid}} = C_NULL
+    Py_Version::Culong = 0
 end
 
 const POINTERS = CAPIPointers()
@@ -295,6 +296,7 @@ const POINTERS = CAPIPointers()
     )
     $([:(p.$name = dlsym(lib, $(QuoteNode(name)))) for name in CAPI_OBJECTS]...)
     p.PyOS_InputHookPtr = dlsym(CTX.lib_ptr, :PyOS_InputHook)
+    p.Py_Version = Base.unsafe_load(Ptr{Culong}(dlsym(lib, :Py_Version)))
 end
 
 for (name, (argtypes, rettype)) in CAPI_FUNC_SIGS

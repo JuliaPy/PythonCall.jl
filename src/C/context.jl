@@ -307,16 +307,12 @@ function init_context()
     end
 
     # Get the python version
-    verstr = Base.unsafe_string(Py_GetVersion())
-    vermatch = match(r"^[0-9.]+", verstr)
-    if vermatch === nothing
-        error("Cannot parse version from version string: $(repr(verstr))")
-    end
-    CTX.version = VersionNumber(vermatch.match)
+    ver = POINTERS.Py_Version
+    CTX.version = VersionNumber((ver >> 24) & 0xff, (ver >> 16) & 0xff, (ver >> 8) & 0xff)
     v"3.11" ≤ CTX.version < v"4" || error(
         "Only Python 3.11+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
     )
-    CTX.is_free_threaded = occursin("free-threading build", verstr)
+    CTX.is_free_threaded = Py_IsFreeThreaded()
 
     launch_on_main_thread(Threads.threadid()) # makes on_main_thread usable
 

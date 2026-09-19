@@ -278,16 +278,6 @@ function init_context()
             CTX.pyprogname_w = Base.cconvert(Cwstring, CTX.pyprogname)
             Py_SetProgramName(pointer(CTX.pyprogname_w))
 
-            # Python 3.10 on Windows ignores program_name when resolving the executable.
-            if Sys.iswindows() && startswith(Base.unsafe_string(Py_GetVersion()), "3.10.")
-                ccall(
-                    dlsym(CTX.lib_ptr, :_Py_SetProgramFullPath),
-                    Cvoid,
-                    (Ptr{Cwchar_t},),
-                    pointer(CTX.pyprogname_w),
-                )
-            end
-
             # Start the interpreter and register exit hooks
             Py_InitializeEx(0)
             atexit() do
@@ -323,8 +313,8 @@ function init_context()
         error("Cannot parse version from version string: $(repr(verstr))")
     end
     CTX.version = VersionNumber(vermatch.match)
-    v"3.10" ≤ CTX.version < v"4" || error(
-        "Only Python 3.10+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
+    v"3.11" ≤ CTX.version < v"4" || error(
+        "Only Python 3.11+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
     )
     CTX.is_free_threaded = occursin("free-threading build", verstr)
 

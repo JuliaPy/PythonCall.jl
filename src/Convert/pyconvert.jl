@@ -230,6 +230,8 @@ function _pyconvert_get_rules(pytype::Py)
         end
     end
     for (t, x) in reverse(collect(zip(mro, xmro)))
+        # TODO: Once Python 3.12 is required, use issubclass(t, collections.abc.Buffer)
+        # and remove C.PyType_CheckBuffer.
         if C.PyType_CheckBuffer(t)
             push!(x, "<buffer>")
             break

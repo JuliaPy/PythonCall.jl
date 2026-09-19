@@ -1,6 +1,24 @@
 asptr(x) = Base.unsafe_convert(PyPtr, x)
 
 """
+    PyObject_WithBuffer(f, obj, flags = PyBUF_FULL_RO; onerror = () -> PyNULL)
+
+Acquire a buffer and call `f` with the buffer reference. On acquisition failure,
+return `onerror()` without clearing the Python error or calling `f`.
+Release the buffer when `f` exits; the view and pointers into its metadata must
+not escape `f`.
+"""
+function PyObject_WithBuffer(f, obj, flags = PyBUF_FULL_RO; onerror = () -> PyNULL)
+    view = Ref(Py_buffer())
+    PyObject_GetBuffer(obj, view, flags) == -1 && return onerror()
+    try
+        return f(view)
+    finally
+        PyBuffer_Release(view)
+    end
+end
+
+"""
     Py_IsFreeThreaded()
 
 Return whether `sysconfig.get_config_var("Py_GIL_DISABLED") == 1`.
@@ -30,7 +48,6 @@ end
 const _FT_TYPE_REPLACEMENTS = Dict{Symbol,Symbol}(
     :PyObject => :PyObjectFT,
     :PyVarObject => :PyVarObjectFT,
-    :PyMemoryViewObject => :PyMemoryViewObjectFT,
     :PySimpleObject => :PySimpleObjectFT,
     # Used from JlWrap/C.jl via `C.@ft`.
     :PyJuliaValueObject => :PyJuliaValueObjectFT,
@@ -73,8 +90,6 @@ Py_TypeCheckFast(o, f::Integer) = Base.GC.@preserve o PyType_IsSubtypeFast(Py_Ty
 
 PyType_IsSubtypeFast(t, f::Integer) =
     Base.GC.@preserve t Cint(!iszero(PyType_GetFlags(asptr(t)) & f))
-
-PyMemoryView_GET_BUFFER(m) = Base.GC.@preserve m @ft Ptr{Py_buffer}(UnsafePtr{PyMemoryViewObject}(asptr(m)).view)
 
 PyType_CheckBuffer(t) = Base.GC.@preserve t begin
     getbuf = PyType_GetSlot(asptr(t), Py_bf_getbuffer)

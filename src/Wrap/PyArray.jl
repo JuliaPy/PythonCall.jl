@@ -85,7 +85,7 @@ function pyarray_make(
     end
     if buffer && C.PyObject_CheckBuffer(x) != 0
         try
-            return pyarray_make(A, x, PyArraySource_Buffer(x))
+            return pyarray_make_buffer(A, x)
         catch exc
             @debug "failed to make PyArray from buffer" exc = exc
         end
@@ -206,9 +206,10 @@ function PyArraySource_ArrayInterface(x::Py, d::Py = x.__array_interface__)
     else
         memview = @py memoryview(data === None ? x : data)
         pydel!(data)
-        buf = UnsafePtr(C.PyMemoryView_GET_BUFFER(memview))
-        ptr = buf.buf[!]
-        readonly = buf.readonly[] != 0
+        ptr, readonly = C.PyObject_WithBuffer(memview; onerror = pythrow) do view
+            buf = view[]
+            (buf.buf, buf.readonly != 0)
+        end
         handle = Py((x, memview))
     end
     PyArraySource_ArrayInterface(x, d, ptr, readonly, handle)
@@ -528,12 +529,16 @@ struct PyArraySource_Buffer <: PyArraySource
     memview::Py
     buf::C.UnsafePtr{C.Py_buffer}
 end
-function PyArraySource_Buffer(x::Py)
+function pyarray_make_buffer(::Type{A}, x::Py) where {A<:PyArray}
     memview = pybuiltins.memoryview(x)
-    buf = C.UnsafePtr(C.PyMemoryView_GET_BUFFER(memview))
-    buf.suboffsets[] == C_NULL ||
-        error("PyArray does not support buffers with non-trivial suboffsets (PIL-style indirect layout)")
-    PyArraySource_Buffer(x, memview, buf)
+    C.PyObject_WithBuffer(memview; onerror = pythrow) do view
+        Base.GC.@preserve view begin
+            buf = C.UnsafePtr(Base.unsafe_convert(Ptr{C.Py_buffer}, view))
+            buf.suboffsets[] == C_NULL ||
+                error("PyArray does not support buffers with non-trivial suboffsets (PIL-style indirect layout)")
+            pyarray_make(A, x, PyArraySource_Buffer(x, memview, buf))
+        end
+    end
 end
 
 const PYARRAY_BUFFERFORMAT_TO_TYPE = let c = Utils.islittleendian() ? '<' : '>'

@@ -147,6 +147,7 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     :PyBytes_FromStringAndSize => (Ptr{Cchar}, Py_ssize_t) => PyPtr,
     :PyBytes_AsStringAndSize => (PyPtr, Ptr{Ptr{Cchar}}, Ptr{Py_ssize_t}) => Cint,
     # BUFFER
+    :PyBuffer_IsContiguous => (Ptr{Py_buffer}, Cchar) => Cint,
     :PyObject_CheckBuffer => (PyPtr,) => Cint,
     :PyObject_GetBuffer => (PyPtr, Ptr{Py_buffer}, Cint) => Cint,
     :PyBuffer_Release => (Ptr{Py_buffer},) => Cvoid,

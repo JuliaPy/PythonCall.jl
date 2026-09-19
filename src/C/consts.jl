@@ -121,7 +121,7 @@ end
 @kwdef struct PyObject
     # assumes _PyObject_HEAD_EXTRA is empty
     refcnt::Py_ssize_t = 0
-    type::Ptr{Cvoid} = C_NULL # really is Ptr{PyObject} or Ptr{PyTypeObject} but Julia 1.3 and below get the layout incorrect when circular types are involved
+    type::Ptr{Cvoid} = C_NULL # opaque type pointer
 end
 
 @kwdef struct PyMutex
@@ -135,7 +135,7 @@ end
     gc_bits::Cuchar = 0
     ref_local::Cuint = 0
     ref_shared::Py_ssize_t = 0
-    type::Ptr{Cvoid} = C_NULL # really is Ptr{PyObject} or Ptr{PyTypeObject} but Julia 1.3 and below get the layout incorrect when circular types are involved
+    type::Ptr{Cvoid} = C_NULL # opaque type pointer
 end
 
 const PyPtr = Ptr{PyObject}
@@ -181,69 +181,7 @@ end
     doc::Cstring = C_NULL
 end
 
-@kwdef struct PyNumberMethods
-    add::Ptr{Cvoid} = C_NULL # (o,o)->o
-    subtract::Ptr{Cvoid} = C_NULL # (o,o)->o
-    multiply::Ptr{Cvoid} = C_NULL # (o,o)->o
-    remainder::Ptr{Cvoid} = C_NULL # (o,o)->o
-    divmod::Ptr{Cvoid} = C_NULL # (o,o)->o
-    power::Ptr{Cvoid} = C_NULL # (o,o,o)->o
-    negative::Ptr{Cvoid} = C_NULL # (o)->o
-    positive::Ptr{Cvoid} = C_NULL # (o)->o
-    absolute::Ptr{Cvoid} = C_NULL # (o)->o
-    bool::Ptr{Cvoid} = C_NULL # (o)->Cint
-    invert::Ptr{Cvoid} = C_NULL # (o)->o
-    lshift::Ptr{Cvoid} = C_NULL # (o,o)->o
-    rshift::Ptr{Cvoid} = C_NULL # (o,o)->o
-    and::Ptr{Cvoid} = C_NULL # (o,o)->o
-    xor::Ptr{Cvoid} = C_NULL # (o,o)->o
-    or::Ptr{Cvoid} = C_NULL # (o,o)->o
-    int::Ptr{Cvoid} = C_NULL # (o)->o
-    _reserved::Ptr{Cvoid} = C_NULL
-    float::Ptr{Cvoid} = C_NULL # (o)->o
-    inplace_add::Ptr{Cvoid} = C_NULL # (o,o)->o
-    inplace_subtract::Ptr{Cvoid} = C_NULL # (o,o)->o
-    inplace_multiply::Ptr{Cvoid} = C_NULL # (o,o)->o
-    inplace_remainder::Ptr{Cvoid} = C_NULL # (o,o)->o
-    inplace_power::Ptr{Cvoid} = C_NULL # (o,o,o)->o
-    inplace_lshift::Ptr{Cvoid} = C_NULL # (o,o)->o
-    inplace_rshift::Ptr{Cvoid} = C_NULL # (o,o)->o
-    inplace_and::Ptr{Cvoid} = C_NULL # (o,o)->o
-    inplace_xor::Ptr{Cvoid} = C_NULL # (o,o)->o
-    inplace_or::Ptr{Cvoid} = C_NULL # (o,o)->o
-    floordivide::Ptr{Cvoid} = C_NULL # (o,o)->o
-    truedivide::Ptr{Cvoid} = C_NULL # (o,o)->o
-    inplace_floordivide::Ptr{Cvoid} = C_NULL # (o,o)->o
-    inplace_truedivide::Ptr{Cvoid} = C_NULL # (o,o)->o
-    index::Ptr{Cvoid} = C_NULL # (o)->o
-    matrixmultiply::Ptr{Cvoid} = C_NULL # (o,o)->o
-    inplace_matrixmultiply::Ptr{Cvoid} = C_NULL # (o,o)->o
-end
-
-@kwdef struct PySequenceMethods
-    length::Ptr{Cvoid} = C_NULL # (o)->Py_ssize_t
-    concat::Ptr{Cvoid} = C_NULL # (o,o)->o
-    repeat::Ptr{Cvoid} = C_NULL # (o,Py_ssize_t)->o
-    item::Ptr{Cvoid} = C_NULL # (o,Py_ssize_t)->o
-    _was_item::Ptr{Cvoid} = C_NULL
-    ass_item::Ptr{Cvoid} = C_NULL # (o,Py_ssize_t,o)->Cint
-    _was_ass_slice::Ptr{Cvoid} = C_NULL
-    contains::Ptr{Cvoid} = C_NULL # (o,o)->Cint
-    inplace_concat::Ptr{Cvoid} = C_NULL # (o,o)->o
-    inplace_repeat::Ptr{Cvoid} = C_NULL # (o,Py_ssize_t)->o
-end
-
-@kwdef struct PyMappingMethods
-    length::Ptr{Cvoid} = C_NULL # (o)->Py_ssize_t
-    subscript::Ptr{Cvoid} = C_NULL # (o,o)->o
-    ass_subscript::Ptr{Cvoid} = C_NULL # (o,o,o)->Cint
-end
-
-@kwdef struct PyBufferProcs
-    get::Ptr{Cvoid} = C_NULL # (o, Ptr{Py_buffer}, Cint) -> Cint
-    release::Ptr{Cvoid} = C_NULL # (o, Ptr{Py_buffer}) -> Cvoid
-end
-
+# Stable ABI, including all members, since Python 3.11.
 @kwdef struct Py_buffer
     buf::Ptr{Cvoid} = C_NULL
     obj::Ptr{Cvoid} = C_NULL
@@ -256,99 +194,6 @@ end
     strides::Ptr{Py_ssize_t} = C_NULL
     suboffsets::Ptr{Py_ssize_t} = C_NULL
     internal::Ptr{Cvoid} = C_NULL
-end
-
-@kwdef struct PyMemoryViewObject
-    ob_base::PyVarObject = PyVarObject()
-    mbuf::PyPtr = PyNULL
-    hash::Py_hash_t = 0
-    flags::Cint = 0
-    exports::Py_ssize_t = 0
-    view::Py_buffer = Py_buffer()
-    weakreflist::PyPtr = PyNULL
-end
-
-@kwdef struct PyMemoryViewObjectFT
-    ob_base::PyVarObjectFT = PyVarObjectFT()
-    mbuf::PyPtr = PyNULL
-    hash::Py_hash_t = 0
-    flags::Cint = 0
-    exports::Py_ssize_t = 0
-    view::Py_buffer = Py_buffer()
-    weakreflist::PyPtr = PyNULL
-end
-
-@kwdef struct PyTypeObject
-    ob_base::PyVarObject = PyVarObject()
-    name::Cstring = C_NULL
-
-    basicsize::Py_ssize_t = 0
-    itemsize::Py_ssize_t = 0
-
-    dealloc::Ptr{Cvoid} = C_NULL
-    vectorcall_offset::Py_ssize_t = 0
-    getattr::Ptr{Cvoid} = C_NULL
-    setattr::Ptr{Cvoid} = C_NULL
-    as_async::Ptr{Cvoid} = C_NULL
-    repr::Ptr{Cvoid} = C_NULL
-
-    as_number::Ptr{PyNumberMethods} = C_NULL
-    as_sequence::Ptr{PySequenceMethods} = C_NULL
-    as_mapping::Ptr{PyMappingMethods} = C_NULL
-
-    hash::Ptr{Cvoid} = C_NULL
-    call::Ptr{Cvoid} = C_NULL
-    str::Ptr{Cvoid} = C_NULL
-    getattro::Ptr{Cvoid} = C_NULL
-    setattro::Ptr{Cvoid} = C_NULL
-
-    as_buffer::Ptr{PyBufferProcs} = C_NULL
-
-    flags::Culong = 0
-
-    doc::Cstring = C_NULL
-
-    traverse::Ptr{Cvoid} = C_NULL
-
-    clear::Ptr{Cvoid} = C_NULL
-
-    richcompare::Ptr{Cvoid} = C_NULL
-
-    weaklistoffset::Py_ssize_t = 0
-
-    iter::Ptr{Cvoid} = C_NULL
-    iternext::Ptr{Cvoid} = C_NULL
-
-    methods::Ptr{PyMethodDef} = C_NULL
-    members::Ptr{PyMemberDef} = C_NULL
-    getset::Ptr{PyGetSetDef} = C_NULL
-    base::PyPtr = C_NULL
-    dict::PyPtr = C_NULL
-    descr_get::Ptr{Cvoid} = C_NULL
-    descr_set::Ptr{Cvoid} = C_NULL
-    dictoffset::Py_ssize_t = 0
-    init::Ptr{Cvoid} = C_NULL
-    alloc::Ptr{Cvoid} = C_NULL
-    new::Ptr{Cvoid} = C_NULL
-    free::Ptr{Cvoid} = C_NULL
-    is_gc::Ptr{Cvoid} = C_NULL
-    bases::PyPtr = C_NULL
-    mro::PyPtr = C_NULL
-    cache::PyPtr = C_NULL
-    subclasses::PyPtr = C_NULL
-    weaklist::PyPtr = C_NULL
-    del::Ptr{Cvoid} = C_NULL
-
-    version_tag::Cuint = 0
-
-    finalize::Ptr{Cvoid} = C_NULL
-    vectorcall::Ptr{Cvoid} = C_NULL
-
-    # Python 3.12+ fields
-    watched::Cuchar = 0
-    
-    # Python 3.13+ fields  
-    versions_used::UInt16 = 0
 end
 
 @kwdef struct PySimpleObject{T}

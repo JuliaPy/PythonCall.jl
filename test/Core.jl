@@ -461,6 +461,22 @@ end
     @test pystr(String, pybuiltins.None) === "None"
     @test pystr(String, pyint(123)) === "123"
     @test pystr(String, pystr("foo")) === "foo"
+    for s in ("", "a\0b", "α🙂")
+        x = pystr(s)
+        @test PythonCall.Core.pystr_asstring(x) == s
+        bytes = PythonCall.Core.pystr_asUTF8vector(x)
+        @test bytes == collect(codeunits(s))
+        if !isempty(bytes)
+            bytes[1] = 0xff
+            @test PythonCall.Core.pystr_asstring(x) == s
+        end
+        PythonCall.pydel!(x)
+        GC.gc()
+        @test length(bytes) == sizeof(s)
+    end
+    surrogate = pybuiltins.chr(0xd800)
+    @test_throws PyException PythonCall.Core.pystr_asstring(surrogate)
+    @test_throws PyException PythonCall.Core.pystr_asUTF8vector(surrogate)
 end
 
 @testitem "bytes" begin

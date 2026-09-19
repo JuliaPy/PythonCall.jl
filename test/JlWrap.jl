@@ -377,6 +377,24 @@ end
         @test pyeq(Bool, m.strides, (4, 8))
         @test pyeq(Bool, m.suboffsets, ())
         @test pyeq(Bool, m.tolist(), pylist([pylist([1, 2, 3]), pylist([4, 5, 6])]))
+        # Empty arrays and singleton dimensions allow noncanonical strides.
+        for a in (zeros(Float32, 0, 3), view(zeros(Float32, 3, 3), :, 1:2:1))
+            x = pyjl(a)
+            for flags in (PythonCall.C.PyBUF_C_CONTIGUOUS,
+                          PythonCall.C.PyBUF_F_CONTIGUOUS,
+                          PythonCall.C.PyBUF_ANY_CONTIGUOUS,
+                          PythonCall.C.PyBUF_SIMPLE)
+                PythonCall.C.PyObject_WithBuffer(x, flags; onerror = PythonCall.Core.pythrow) do view
+                    @test view[].len == sizeof(a)
+                end
+            end
+        end
+        @test_throws PyException PythonCall.C.PyObject_WithBuffer(
+            pyjl(Float32[1 2 3; 4 5 6]), PythonCall.C.PyBUF_C_CONTIGUOUS;
+            onerror = PythonCall.Core.pythrow,
+        ) do view
+            error("non-C-contiguous buffer should be rejected")
+        end
     end
 end
 

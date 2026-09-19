@@ -102,6 +102,24 @@ end
 _pyjl_get_buffer_impl(obj::C.PyPtr, buf::Ptr{C.Py_buffer}, flags::Cint, x, f) =
     _pyjl_get_buffer_impl(obj, buf, flags, f(x)::PyBufferInfo)
 
+function _pyjl_buffer_iscontiguous(info::PyBufferInfo{N}, order::Cchar) where {N}
+    shape = Ref(info.shape)
+    strides = Ref(info.strides)
+    suboffsets = Ref(info.suboffsets)
+    Base.GC.@preserve shape strides suboffsets begin
+        full = Ref(C.Py_buffer(
+            len = info.itemsize * prod(info.shape),
+            itemsize = info.itemsize,
+            ndim = N,
+            shape = Ptr{C.Py_ssize_t}(Base.unsafe_convert(Ptr{NTuple{N,Int}}, shape)),
+            strides = Ptr{C.Py_ssize_t}(Base.unsafe_convert(Ptr{NTuple{N,Int}}, strides)),
+            suboffsets = all(==(-1), info.suboffsets) ? C_NULL :
+                Ptr{C.Py_ssize_t}(Base.unsafe_convert(Ptr{NTuple{N,Int}}, suboffsets)),
+        ))
+        return C.PyBuffer_IsContiguous(full, order) != 0
+    end
+end
+
 function _pyjl_get_buffer_impl(
     obj::C.PyPtr,
     buf::Ptr{C.Py_buffer},
@@ -150,7 +168,7 @@ function _pyjl_get_buffer_impl(
         strides = C.Py_ssize_t[info.strides...]
         push!(c, strides)
         b.strides[] = pointer(strides)
-    elseif Utils.size_to_cstrides(info.itemsize, info.shape) == info.strides
+    elseif _pyjl_buffer_iscontiguous(info, Cchar('C'))
         b.strides[] = C_NULL
     else
         C.PyErr_SetString(
@@ -177,20 +195,19 @@ function _pyjl_get_buffer_impl(
 
     # check contiguity
     if Utils.isflagset(flags, C.PyBUF_C_CONTIGUOUS)
-        if Utils.size_to_cstrides(info.itemsize, info.shape) != info.strides
+        if !_pyjl_buffer_iscontiguous(info, Cchar('C'))
             C.PyErr_SetString(C.POINTERS.PyExc_BufferError, "not C contiguous")
             return Cint(-1)
         end
     end
     if Utils.isflagset(flags, C.PyBUF_F_CONTIGUOUS)
-        if Utils.size_to_fstrides(info.itemsize, info.shape) != info.strides
+        if !_pyjl_buffer_iscontiguous(info, Cchar('F'))
             C.PyErr_SetString(C.POINTERS.PyExc_BufferError, "not Fortran contiguous")
             return Cint(-1)
         end
     end
     if Utils.isflagset(flags, C.PyBUF_ANY_CONTIGUOUS)
-        if Utils.size_to_cstrides(info.itemsize, info.shape) != info.strides &&
-           Utils.size_to_fstrides(info.itemsize, info.shape) != info.strides
+        if !_pyjl_buffer_iscontiguous(info, Cchar('A'))
             C.PyErr_SetString(C.POINTERS.PyExc_BufferError, "not contiguous")
             return Cint(-1)
         end

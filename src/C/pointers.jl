@@ -43,6 +43,7 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     :PyErr_NormalizeException => (Ptr{PyPtr}, Ptr{PyPtr}, Ptr{PyPtr}) => Cvoid,
     :PyErr_Restore => (PyPtr, PyPtr, PyPtr) => Cvoid, # steals
     # OBJECT
+    :PyObject_Type => (PyPtr,) => PyPtr,
     :_PyObject_New => (PyPtr,) => PyPtr,
     :PyObject_ClearWeakRefs => (PyPtr,) => Cvoid,
     :PyObject_HasAttrString => (PyPtr, Ptr{Cchar}) => Cint,
@@ -142,6 +143,7 @@ const CAPI_FUNC_SIGS = Dict{Symbol,Pair{Tuple,Type}}(
     # STR
     :PyUnicode_DecodeUTF8 => (Ptr{Cchar}, Py_ssize_t, Ptr{Cchar}) => PyPtr,
     :PyUnicode_AsUTF8String => (PyPtr,) => PyPtr,
+    :PyUnicode_AsUTF8AndSize => (PyPtr, Ptr{Py_ssize_t}) => Ptr{Cchar},
     :PyUnicode_InternInPlace => (Ptr{PyPtr},) => Cvoid,
     # BYTES
     :PyBytes_FromStringAndSize => (Ptr{Cchar}, Py_ssize_t) => PyPtr,

@@ -47,7 +47,6 @@ end
 # branching in a single macro that rewrites type names in the expression.
 const _FT_TYPE_REPLACEMENTS = Dict{Symbol,Symbol}(
     :PyObject => :PyObjectFT,
-    :PyVarObject => :PyVarObjectFT,
     :PySimpleObject => :PySimpleObjectFT,
     # Used from JlWrap/C.jl via `C.@ft`.
     :PyJuliaValueObject => :PyJuliaValueObjectFT,
@@ -82,8 +81,6 @@ macro ft(ex)
 end
 
 Py_Type(x) = Base.GC.@preserve x @ft PyPtr(UnsafePtr{PyObject}(asptr(x)).type[!])
-
-PyObject_Type(x) = Base.GC.@preserve x (t = Py_Type(asptr(x)); Py_IncRef(t); t)
 
 Py_TypeCheck(o, t) = Base.GC.@preserve o t PyType_IsSubtype(Py_Type(asptr(o)), asptr(t))
 Py_TypeCheckFast(o, f::Integer) = Base.GC.@preserve o PyType_IsSubtypeFast(Py_Type(asptr(o)), f)

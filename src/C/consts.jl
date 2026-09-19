@@ -148,16 +148,6 @@ ispyreftype(::Type{PyObjectRef}) = true
 pyptr(o::PyObjectRef) = o.ptr
 Base.unsafe_convert(::Type{PyPtr}, o::PyObjectRef) = o.ptr
 
-@kwdef struct PyVarObject
-    ob_base::PyObject = PyObject()
-    size::Py_ssize_t = 0
-end
-
-@kwdef struct PyVarObjectFT
-    ob_base::PyObjectFT = PyObjectFT()
-    size::Py_ssize_t = 0
-end
-
 @kwdef struct PyMethodDef
     name::Cstring = C_NULL
     meth::Ptr{Cvoid} = C_NULL

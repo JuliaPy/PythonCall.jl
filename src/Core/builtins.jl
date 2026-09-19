@@ -584,10 +584,23 @@ pystr(x::AbstractChar) = pystr(convert(Char, x)::Char)
 pystr(::Type{String}, x) = (s = pystr(x); ans = pystr_asstring(s); pydel!(s); ans)
 
 pystr_asUTF8bytes(x::Py) = pynew(errcheck(C.PyUnicode_AsUTF8String(x)))
-pystr_asUTF8vector(x::Py) =
-    (b = pystr_asUTF8bytes(x); ans = pybytes_asvector(b); pydel!(b); ans)
-pystr_asstring(x::Py) =
-    (b = pystr_asUTF8bytes(x); ans = pybytes_asUTF8string(b); pydel!(b); ans)
+function pystr_asUTF8vector(x::Py)
+    len = Ref{C.Py_ssize_t}()
+    Base.GC.@preserve x begin
+        ptr = C.PyUnicode_AsUTF8AndSize(x, len)
+        ptr == C_NULL && pythrow()
+        return copy(unsafe_wrap(Vector{UInt8}, Ptr{UInt8}(ptr), len[]))
+    end
+end
+
+function pystr_asstring(x::Py)
+    len = Ref{C.Py_ssize_t}()
+    Base.GC.@preserve x begin
+        ptr = C.PyUnicode_AsUTF8AndSize(x, len)
+        ptr == C_NULL && pythrow()
+        return unsafe_string(ptr, len[])
+    end
+end
 
 function pystr_intern!(x::Py)
     ptr = Ref(getptr(x))

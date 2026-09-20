@@ -288,6 +288,10 @@ function init_context()
                 )
             end
 
+            # Ensure Python has a usable set of CA certificates.
+            # See https://github.com/JuliaPy/PythonCall.jl/issues/651
+            get!(ENV, "SSL_CERT_FILE", NetworkOptions.ca_roots_path())
+
             # Start the interpreter and register exit hooks
             Py_InitializeEx(0)
             atexit() do

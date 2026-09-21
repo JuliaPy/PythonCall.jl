@@ -298,7 +298,7 @@ function pyjlany_index(self)
     if self isa Integer
         pyint(self)
     else
-        errset(
+        @pyregion errset(
             pybuiltins.TypeError,
             "Only Julia 'Integer' values can be used as Python indices, not '$(typeof(self))'",
         )
@@ -310,7 +310,7 @@ function pyjlany_bool(self)
     if self isa Bool
         pybool(self)
     else
-        errset(
+        @pyregion errset(
             pybuiltins.TypeError,
             "Only Julia 'Bool' values can be tested for truthyness, not '$(typeof(self))'",
         )
@@ -370,7 +370,7 @@ end
 function pyjlany_next(self)
     s = iterate(self)
     if s === nothing
-        errset(pybuiltins.StopIteration)
+        @pyregion errset(pybuiltins.StopIteration)
         PyNULL
     else
         pyjl(s[1])
@@ -380,7 +380,7 @@ end
 function pyjliter_next(self)
     s = iterate(self)
     if s === nothing
-        errset(pybuiltins.StopIteration)
+        @pyregion errset(pybuiltins.StopIteration)
         PyNULL
     else
         Py(s[1])
@@ -427,7 +427,7 @@ function pyjlany_numpy_dtype(self::Type)
         )
     end
     if pyisnull(ans)
-        errset(pybuiltins.AttributeError, "__numpy_dtype__")
+        @pyregion errset(pybuiltins.AttributeError, "__numpy_dtype__")
     end
     return ans
 end

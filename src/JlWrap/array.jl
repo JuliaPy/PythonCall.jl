@@ -3,16 +3,16 @@ const pyjlarraytype = pynew()
 function pyjl_getaxisindex(x::AbstractUnitRange{<:Integer}, k::Py)
     if pyisslice(k)
         a = @pyconvert Union{Int,Nothing} k.start begin
-            errset(pybuiltins.TypeError, "slice components must be integers")
-            pythrow()
+            @pyregion errset(pybuiltins.TypeError, "slice components must be integers")
+            @pyregion pythrow()
         end
         b = @pyconvert Union{Int,Nothing} k.step begin
-            errset(pybuiltins.TypeError, "slice components must be integers")
-            pythrow()
+            @pyregion errset(pybuiltins.TypeError, "slice components must be integers")
+            @pyregion pythrow()
         end
         c = @pyconvert Union{Int,Nothing} k.stop begin
-            errset(pybuiltins.TypeError, "slice components must be integers")
-            pythrow()
+            @pyregion errset(pybuiltins.TypeError, "slice components must be integers")
+            @pyregion pythrow()
         end
         # step defaults to 1
         b′ = b === nothing ? 1 : b
@@ -26,8 +26,8 @@ function pyjl_getaxisindex(x::AbstractUnitRange{<:Integer}, k::Py)
                 a′ = Int(last(x))
                 c′ = Int(first(x))
             else
-                errset(pybuiltins.ValueError, "step must be non-zero")
-                pythrow()
+                @pyregion errset(pybuiltins.ValueError, "step must be non-zero")
+                @pyregion pythrow()
             end
         else
             # start defaults
@@ -41,23 +41,23 @@ function pyjl_getaxisindex(x::AbstractUnitRange{<:Integer}, k::Py)
         if checkbounds(Bool, x, r)
             return r
         else
-            errset(pybuiltins.IndexError, "array index out of bounds")
-            pythrow()
+            @pyregion errset(pybuiltins.IndexError, "array index out of bounds")
+            @pyregion pythrow()
         end
     else
         j = @pyconvert Int k begin
-            errset(
+            @pyregion errset(
                 pybuiltins.TypeError,
                 "index must be slice or integer, got '$(pytype(k).__name__)'",
             )
-            pythrow()
+            @pyregion pythrow()
         end
         r = Int(j < 0 ? (last(x) + j + 1) : (first(x) + j))
         if checkbounds(Bool, x, r)
             return r
         else
-            errset(pybuiltins.IndexError, "array index out of bounds")
-            pythrow()
+            @pyregion errset(pybuiltins.IndexError, "array index out of bounds")
+            @pyregion pythrow()
         end
     end
 end
@@ -72,13 +72,13 @@ function pyjl_getarrayindices(x::AbstractArray{T,N}, ks::Py) where {T,N}
                 return ans
             end
         else
-            errset(pybuiltins.TypeError, "expecting $N indices, got $(pylen(ks))")
-            pythrow()
+            @pyregion errset(pybuiltins.TypeError, "expecting $N indices, got $(pylen(ks))")
+            @pyregion pythrow()
         end
     elseif N == 1
         return (pyjl_getaxisindex(axes(x, 1), ks),)
     else
-        errset(pybuiltins.TypeError, "expecting $N indices, got 1")
+        @pyregion errset(pybuiltins.TypeError, "expecting $N indices, got 1")
     end
 end
 
@@ -111,8 +111,8 @@ function pyjlarray_delitem(x::AbstractArray{T,N}, k_::Py) where {T,N}
         unsafe_pydel(k_)
         deleteat!(x, k...)
     else
-        errset(pybuiltins.TypeError, "can only delete from 1D arrays")
-        pythrow()
+        @pyregion errset(pybuiltins.TypeError, "can only delete from 1D arrays")
+        @pyregion pythrow()
     end
     return Py(nothing)
 end
@@ -320,7 +320,7 @@ function pyjlarray_array_interface(x::AbstractArray{T,N}) where {T,N}
             return d
         end
     end
-    errset(pybuiltins.AttributeError, "__array_interface__")
+    @pyregion errset(pybuiltins.AttributeError, "__array_interface__")
     return PyNULL
 end
 pyjl_handle_error_type(::typeof(pyjlarray_array_interface), x, exc) =

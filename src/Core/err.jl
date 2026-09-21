@@ -3,7 +3,7 @@ errval(::T) where {T<:Number} = zero(T) - one(T)
 
 iserrval(val) = val == errval(val)
 
-iserrset() = @pyregion C.PyErr_Occurred() != C.PyNULL
+iserrset() = C.PyErr_Occurred() != C.PyNULL
 iserrset(val) = val == errval(val)
 
 errcheck() = iserrset() ? pythrow() : nothing
@@ -13,35 +13,31 @@ iserrset_ambig(val) = iserrset(val) && iserrset()
 
 errcheck_ambig(val) = iserrset_ambig(val) ? pythrow() : val
 
-errclear() = @pyregion C.PyErr_Clear()
+errclear() = C.PyErr_Clear()
 
-errmatches(t) = (@autopy t C.PyErr_ExceptionMatches(t_)) == 1
+errmatches(t) = C.PyErr_ExceptionMatches(Py(t)) == 1
 
 function errget()
-    @pyregion begin
-        t = Ref(C.PyNULL)
-        v = Ref(C.PyNULL)
-        b = Ref(C.PyNULL)
-        C.PyErr_Fetch(t, v, b)
-        (pynew(t[]), pynew(v[]), pynew(b[]))
-    end
+    t = Ref(C.PyNULL)
+    v = Ref(C.PyNULL)
+    b = Ref(C.PyNULL)
+    C.PyErr_Fetch(t, v, b)
+    (pynew(t[]), pynew(v[]), pynew(b[]))
 end
 
-errset(t::Py) = @pyregion C.PyErr_SetNone(t)
-errset(t::Py, v::Py) = @pyregion C.PyErr_SetObject(t, v)
-errset(t::Py, v::String) = @pyregion C.PyErr_SetString(t, v)
+errset(t::Py) = C.PyErr_SetNone(t)
+errset(t::Py, v::Py) = C.PyErr_SetObject(t, v)
+errset(t::Py, v::String) = C.PyErr_SetString(t, v)
 
 function errnormalize!(t::Py, v::Py, b::Py)
-    @pyregion begin
-        tref = Ref(getptr(t))
-        vref = Ref(getptr(v))
-        bref = Ref(getptr(b))
-        C.PyErr_NormalizeException(tref, vref, bref)
-        setptr!(t, tref[])
-        setptr!(v, vref[])
-        setptr!(b, bref[])
-        (t, v, b)
-    end
+    tref = Ref(getptr(t))
+    vref = Ref(getptr(v))
+    bref = Ref(getptr(b))
+    C.PyErr_NormalizeException(tref, vref, bref)
+    setptr!(t, tref[])
+    setptr!(v, vref[])
+    setptr!(b, bref[])
+    (t, v, b)
 end
 
 function PyException(v::Py = pybuiltins.None)
@@ -67,15 +63,17 @@ function Base.show(io::IO, x::PyException)
 end
 
 function Base.getproperty(exc::PyException, k::Symbol)
-    if k in (:t, :v, :b) && !exc._isnormalized
-        errnormalize!(exc._t, exc._v, exc._b)
-        pyisnull(exc._t) && pycopy!(exc._t, pybuiltins.None)
-        pyisnull(exc._v) && pycopy!(exc._v, pybuiltins.None)
-        pyisnull(exc._b) && pycopy!(exc._b, pybuiltins.None)
-        pyisnone(exc._v) || (exc._v.__traceback__ = exc._b)
-        exc._isnormalized = true
+    @pyregion begin
+        if k in (:t, :v, :b) && !exc._isnormalized
+            errnormalize!(exc._t, exc._v, exc._b)
+            pyisnull(exc._t) && pycopy!(exc._t, pybuiltins.None)
+            pyisnull(exc._v) && pycopy!(exc._v, pybuiltins.None)
+            pyisnull(exc._b) && pycopy!(exc._b, pybuiltins.None)
+            pyisnone(exc._v) || (exc._v.__traceback__ = exc._b)
+            exc._isnormalized = true
+        end
+        k == :t ? exc._t : k == :v ? exc._v : k == :b ? exc._b : getfield(exc, k)
     end
-    k == :t ? exc._t : k == :v ? exc._v : k == :b ? exc._b : getfield(exc, k)
 end
 
 pythrow() = throw(PyException(errget()..., false))

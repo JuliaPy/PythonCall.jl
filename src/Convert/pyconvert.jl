@@ -369,13 +369,15 @@ On failure, evaluates to `onfail`, which defaults to `return pyconvert_unconvert
 """
 macro pyconvert(T, x, onfail = :(return $pyconvert_unconverted()))
     quote
-        T = $(esc(T))
-        x = $(esc(x))
-        ans = pytryconvert(T, x)
-        if pyconvert_isunconverted(ans)
-            $(esc(onfail))
-        else
-            pyconvert_result(T, ans)
+        @pyregion begin
+            T = $(esc(T))
+            x = $(esc(x))
+            ans = pytryconvert(T, x)
+            if pyconvert_isunconverted(ans)
+                $(esc(onfail))
+            else
+                pyconvert_result(T, ans)
+            end
         end
     end
 end
@@ -387,10 +389,19 @@ Convert the Python object `x` to a `T`.
 
 If `d` is specified, it is returned on failure instead of throwing an error.
 """
-pyconvert(::Type{T}, x) where {T} = @autopy x @pyconvert T x_ error(
-    "cannot convert this Python '$(pytype(x_).__name__)' to a Julia '$T'",
-)
-pyconvert(::Type{T}, x, d) where {T} = @autopy x @pyconvert T x_ d
+function pyconvert(::Type{T}, x) where {T}
+    @pyregion begin
+        @autopy x @pyconvert T x_ error(
+            "cannot convert this Python '$(pytype(x_).__name__)' to a Julia '$T'",
+        )
+    end
+end
+
+function pyconvert(::Type{T}, x, d) where {T}
+    @pyregion begin
+        @autopy x @pyconvert T x_ d
+    end
+end
 
 """
     pyconvertarg(T, x, name)
@@ -399,12 +410,16 @@ Convert the Python object `x` to a `T`.
 
 On failure, throws a Python `TypeError` saying that the argument `name` could not be converted.
 """
-pyconvertarg(::Type{T}, x, name) where {T} = @autopy x @pyconvert T x_ begin
-    errset(
-        pybuiltins.TypeError,
-        "Cannot convert argument '$name' to a Julia '$T', got a '$(pytype(x_).__name__)'",
-    )
-    pythrow()
+function pyconvertarg(::Type{T}, x, name) where {T}
+    @pyregion begin
+        @autopy x @pyconvert T x_ begin
+            errset(
+                pybuiltins.TypeError,
+                "Cannot convert argument '$name' to a Julia '$T', got a '$(pytype(x_).__name__)'",
+            )
+            pythrow()
+        end
+    end
 end
 
 function init_pyconvert()

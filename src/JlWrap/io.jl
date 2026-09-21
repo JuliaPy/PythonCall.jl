@@ -35,7 +35,7 @@ function pyjlio_seek(io::IO, offset_::Py, whence_::Py)
         seekend(io)
         pos = position(io) + offset
     else
-        errset(pybuiltins.ValueError, "Argument 'whence' must be 0, 1 or 2")
+        @pyregion errset(pybuiltins.ValueError, "Argument 'whence' must be 0, 1 or 2")
         return PyNULL
     end
     seek(io, pos)
@@ -98,14 +98,14 @@ function pyjlbinaryio_readinto(io::IO, b::Py)
     c = m.c_contiguous
     if !pytruth(c)
         unsafe_pydel(c)
-        errset(pybuiltins.ValueError, "input buffer is not contiguous")
+        @pyregion errset(pybuiltins.ValueError, "input buffer is not contiguous")
         return PyNULL
     end
     unsafe_pydel(c)
     buf = unsafe_load(C.PyMemoryView_GET_BUFFER(m))
     if buf.readonly != 0
         unsafe_pydel(m)
-        errset(pybuiltins.ValueError, "output buffer is read-only")
+        @pyregion errset(pybuiltins.ValueError, "output buffer is read-only")
         return PyNULL
     end
     data = unsafe_wrap(Array, Ptr{UInt8}(buf.buf), buf.len)
@@ -121,7 +121,7 @@ function pyjlbinaryio_write(io::IO, b::Py)
     c = m.c_contiguous
     if !pytruth(c)
         unsafe_pydel(c)
-        errset(pybuiltins.ValueError, "input buffer is not contiguous")
+        @pyregion errset(pybuiltins.ValueError, "input buffer is not contiguous")
         return PyNULL
     end
     unsafe_pydel(c)
@@ -212,7 +212,7 @@ function pyjltextio_write(io::IO, s_::Py)
         # TODO: is this the number of source characters, or the number of output characters?
         Py(length(s))
     else
-        errset(
+        @pyregion errset(
             pybuiltins.TypeError,
             "Argument 's' must be a 'str', got a '$(pytype(s_).__name__)'",
         )

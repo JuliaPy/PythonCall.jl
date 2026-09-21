@@ -11,7 +11,7 @@ end
 
 function pyjlset_pop(x::AbstractSet)
     if isempty(x)
-        errset(pybuiltins.KeyError, "pop from an empty set")
+        @pyregion errset(pybuiltins.KeyError, "pop from an empty set")
         PyNULL
     else
         Py(pop!(x))
@@ -20,14 +20,14 @@ end
 
 function pyjlset_remove(x::AbstractSet, v_::Py)
     v = @pyconvert eltype(x) v_ begin
-        errset(pybuiltins.KeyError, v_)
+        @pyregion errset(pybuiltins.KeyError, v_)
         return PyNULL
     end
     if v in x
         delete!(x, v)
         return Py(nothing)
     else
-        errset(pybuiltins.KeyError, v_)
+        @pyregion errset(pybuiltins.KeyError, v_)
         return PyNULL
     end
 end

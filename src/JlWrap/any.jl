@@ -94,12 +94,12 @@ function pyjlany_call_nogil(self, args_::Py, kwargs_::Py)
     if pylen(kwargs_) > 0
         args = pyconvert(Vector{Any}, args_)
         kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
-        ans = pyjl(GIL.@unlock self(args...; kwargs...))
+        ans = pyjl(self(args...; kwargs...))
     elseif pylen(args_) > 0
         args = pyconvert(Vector{Any}, args_)
-        ans = pyjl(GIL.@unlock self(args...))
+        ans = pyjl(self(args...))
     else
-        ans = pyjl(GIL.@unlock self())
+        ans = pyjl(self())
     end
     unsafe_pydel(args_)
     unsafe_pydel(kwargs_)
@@ -298,7 +298,7 @@ function pyjlany_index(self)
     if self isa Integer
         pyint(self)
     else
-        errset(
+        @pyregion errset(
             pybuiltins.TypeError,
             "Only Julia 'Integer' values can be used as Python indices, not '$(typeof(self))'",
         )
@@ -310,7 +310,7 @@ function pyjlany_bool(self)
     if self isa Bool
         pybool(self)
     else
-        errset(
+        @pyregion errset(
             pybuiltins.TypeError,
             "Only Julia 'Bool' values can be tested for truthyness, not '$(typeof(self))'",
         )
@@ -370,7 +370,7 @@ end
 function pyjlany_next(self)
     s = iterate(self)
     if s === nothing
-        errset(pybuiltins.StopIteration)
+        @pyregion errset(pybuiltins.StopIteration)
         PyNULL
     else
         pyjl(s[1])
@@ -380,7 +380,7 @@ end
 function pyjliter_next(self)
     s = iterate(self)
     if s === nothing
-        errset(pybuiltins.StopIteration)
+        @pyregion errset(pybuiltins.StopIteration)
         PyNULL
     else
         Py(s[1])
@@ -427,7 +427,7 @@ function pyjlany_numpy_dtype(self::Type)
         )
     end
     if pyisnull(ans)
-        errset(pybuiltins.AttributeError, "__numpy_dtype__")
+        @pyregion errset(pybuiltins.AttributeError, "__numpy_dtype__")
     end
     return ans
 end
@@ -608,11 +608,8 @@ class Jl(JlBase2):
     def jl_callback(self, *args, **kwargs):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_callback)), args, kwargs)
     def jl_call_nogil(self, *args, **kwargs):
-        '''Call this with the given arguments but with the GIL disabled.
-        
-        WARNING: This function must not interact with Python at all without re-acquiring
-        the GIL.
-        '''
+        '''Compatibility alias for calling this Julia object. Python resources are
+        relinquished automatically while Julia code runs.'''
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_call_nogil)), args, kwargs)
     def _repr_mimebundle_(self, include=None, exclude=None):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)

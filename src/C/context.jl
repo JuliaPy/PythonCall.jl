@@ -21,6 +21,11 @@ A handle to a loaded instance of libpython, its interpreter, function pointers, 
 end
 
 const CTX = Context()
+const FINALIZE_HOOK = Ref{Function}(() -> begin
+    if Py_FinalizeEx() == -1
+        @warn "Py_FinalizeEx() error"
+    end
+end)
 
 function _atpyexit()
     if CTX.is_initialized && !CTX.is_preinitialized
@@ -282,9 +287,7 @@ function init_context()
             Py_InitializeEx(0)
             atexit() do
                 CTX.is_initialized = false
-                if Py_FinalizeEx() == -1
-                    @warn "Py_FinalizeEx() error"
-                end
+                FINALIZE_HOOK[]()
             end
         end
         CTX.is_initialized = true

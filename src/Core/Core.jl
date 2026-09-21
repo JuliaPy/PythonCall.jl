@@ -32,6 +32,8 @@ using Markdown: Markdown
 
 import ..PythonCall:
     @pyconst,
+    @pyregion,
+    @pyregionbreak,
     @pyeval,
     @pyexec,
     ispy,

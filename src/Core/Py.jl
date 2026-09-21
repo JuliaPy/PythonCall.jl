@@ -1,5 +1,5 @@
-incref(x::C.PyPtr) = (C.Py_IncRef(x); x)
-decref(x::C.PyPtr) = (C.Py_DecRef(x); x)
+incref(x::C.PyPtr) = @pyregion (C.Py_IncRef(x); x)
+decref(x::C.PyPtr) = @pyregion (C.Py_DecRef(x); x)
 
 """
     ispy(x)
@@ -85,10 +85,12 @@ Use this to eagerly free a Python object, rather than waiting for Julia's GC to 
 it at some indeterminate point in the future.
 """
 function unsafe_pydel(x::Py)
-    ptr = getptr(x)
-    if ptr != C.PyNULL
-        C.Py_DecRef(ptr)
-        setptr!(x, C.PyNULL)
+    @pyregion begin
+        ptr = getptr(x)
+        if ptr != C.PyNULL
+            C.Py_DecRef(ptr)
+            setptr!(x, C.PyNULL)
+        end
     end
     return
 end
@@ -99,12 +101,14 @@ macro autopy(args...)
     body = args[end]
     # ans = gensym("ans")
     esc(quote
+        @pyregion begin
         # $([:($t = $ispy($v) ? $v : $Py($v)) for (t, v) in zip(ts, vs)]...)
         # $ans = $body
         # $([:($ispy($v) || $unsafe_pydel($t)) for (t, v) in zip(ts, vs)]...)
         # $ans
         $([:($t = $Py($v)) for (t, v) in zip(ts, vs)]...)
         $body
+        end
     end)
 end
 
@@ -291,15 +295,7 @@ function _propertynames(x::Py, private::Bool)
     return Symbol[Symbol(pystr_asstring(word)) for word in words]
 end
 
-function Base.propertynames(x::Py, private::Bool = false)
-    if C.PyGILState_Check() == 1
-        _propertynames(x, private)
-    else
-        C.on_main_thread() do
-            _propertynames(x, private)
-        end::Vector{Symbol}
-    end
-end
+Base.propertynames(x::Py, private::Bool = false) = @pyregion _propertynames(x, private)
 
 Base.Bool(x::Py) = pytruth(x)
 

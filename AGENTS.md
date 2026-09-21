@@ -5,7 +5,7 @@
 - **Python tests**:
   - Copy `pysrc/juliacall/juliapkg-dev.json` to `pysrc/juliacall/juliapkg.json` before running (do **not** commit this copy).
   - Execute with `uv run pytest -s --nbval ./pytest` (add `--cov=pysrc` when coverage is needed).
-  - Sometimes `juliapkg` requires Julia 1.10–1.11; `juliaup` already provides 1.11.7 in this environment.
+- Sometimes `juliapkg` requires Julia 1.10–1.11; `juliaup` already provides 1.11.7 in this environment.
 
 The majority of tests live in the Julia package; Python tests cover functionality that cannot be exercised from Julia (e.g., JuliaCall-specific behavior). Run both suites—typically Julia first—in whichever order makes sense.
 

@@ -1,19 +1,21 @@
+[deps]
+conda = "=26.7.2"
 
-[deps.openssl]
-version = "<=julia"
+    [deps.openssl]
+    version = "<=julia"
 
-[deps.libstdcxx]
-version = "<=julia"
+    [deps.libstdcxx]
+    version = "<=julia"
 
-[deps.libstdcxx-ng]
-version = "<=julia"
+    [deps.libstdcxx-ng]
+    version = "<=julia"
 
-[deps.python]
-build = "**cpython**"
-version = ">=3.10,!=3.14.0,!=3.14.1,<4"
+    [deps.python]
+    build = "**cpython**"
+    version = ">=3.10,!=3.14.0,!=3.14.1,<4"
 
 [dev.deps]
-matplotlib = ""
 numpy = ""
-pyside6 = ""
 pandas = ""
+pyside6 = ""
+matplotlib = ""

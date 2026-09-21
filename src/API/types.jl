@@ -91,6 +91,43 @@ struct PyArray{T,N,M,L,R} <: AbstractArray{T,N}
 end
 
 """
+    PyDenseArray{T,N,M}(x; copy=true, array=true, buffer=true) <: DenseArray
+
+Wrap the Python array `x` as a Julia `DenseArray{T,N}`.
+
+This is like [`PyArray`](@ref) but requires the data to be contiguous in memory, so that the
+result can be used wherever a `DenseArray` or `StridedArray` is expected, such as BLAS
+routines.
+
+Julia arrays are column-major but most Python arrays (including `numpy.ndarray` by default)
+are row-major. If the data is row-major then the dimensions are reversed, so a numpy array
+of shape `(2, 3)` becomes a `PyDenseArray` of size `(3, 2)`. Column-major arrays
+keep their shape.
+
+The type parameters are all optional, and are identical to the `T`, `N` and `M`
+parameters of `PyArray`. The element type `T` is always the element type of the
+underlying buffer.
+"""
+struct PyDenseArray{T,N,M} <: DenseArray{T,N}
+    ptr::Ptr{T}             # pointer to the data
+    size::NTuple{N,Int}     # size of the array (reversed if the data is row-major)
+    py::Py                  # underlying python object
+    handle::Py              # the data in this array is valid as long as this handle is alive
+    function PyDenseArray{T,N,M}(
+        ::Val{:new},
+        ptr::Ptr{T},
+        size::NTuple{N,Int},
+        py::Py,
+        handle::Py,
+    ) where {T,N,M}
+        T isa DataType || error("T must be a DataType")
+        N isa Int || error("N must be an Int")
+        M isa Bool || error("M must be a Bool")
+        new{T,N,M}(ptr, size, py, handle)
+    end
+end
+
+"""
     PyDict{K=Py,V=Py}([x])
 
 Wraps the Python dict `x` (or anything satisfying the mapping interface) as an `AbstractDict{K,V}`.

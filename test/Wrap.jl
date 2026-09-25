@@ -23,14 +23,14 @@
         @test Base.IndexStyle(z) === Base.IndexCartesian()
     end
     @testset "strides" begin
-        @test strides(y) === (1,)
-        @test strides(z) === (1,)
+        @test strides(y) === (4,)
+        @test strides(z) === (4,)
     end
     @testset "elsize" begin
-        @test Base.elsize(y) === sizeof(Cint)
-        @test Base.elsize(z) === sizeof(Cint)
-        @test Base.elsize(PyArray{Cint,1,true,true,Cint}) === sizeof(Cint)
-        @test Base.elsize(PyArray{Cint,1,false,false,Cint}) === sizeof(Cint)
+        @test Base.elsize(y) === 1
+        @test Base.elsize(z) === 1
+        @test Base.elsize(PyArray{Cint,1,true,true,Cint}) === 1
+        @test Base.elsize(PyArray{Cint,1,false,false,Cint}) === 1
         @test_throws Exception elsize(PyArray{Cint,1,true,false,Cchar})
     end
     @testset "getindex" begin

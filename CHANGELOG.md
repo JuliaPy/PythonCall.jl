@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+* Set `SSL_CERT_FILE` from `NetworkOptions.ca_roots_path()` before starting the
+  interpreter, unless it is already set. Python's `ssl` can otherwise bind to Julia's
+  `libssl`, whose compiled-in certificate paths do not exist outside the build
+  container, so every HTTPS request from Python fails with
+  `CERTIFICATE_VERIFY_FAILED` ([#651](https://github.com/JuliaPy/PythonCall.jl/issues/651)).
 * Bug fixes.
 
 ## 0.9.36 (2026-09-18)

@@ -12,6 +12,7 @@ using UnsafePointers: UnsafePtr
 using Libdl:
     dlpath, dlopen, dlopen_e, dlclose, dlsym, dlsym_e, RTLD_LAZY, RTLD_DEEPBIND, RTLD_GLOBAL
 using Preferences: @load_preference
+using NetworkOptions: NetworkOptions
 
 # do not load CondaPkg if the exe preference is set to something else
 if @load_preference("exe", "@CondaPkg") == "@CondaPkg"

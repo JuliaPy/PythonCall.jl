@@ -113,6 +113,7 @@ export pyconvert_unconverted
 
 # Wrap
 export PyArray
+export PyDenseArray
 export PyDict
 export PyIO
 export PyIterable

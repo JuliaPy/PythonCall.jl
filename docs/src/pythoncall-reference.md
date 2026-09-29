@@ -185,6 +185,7 @@ PySet
 PyDict
 PyIterable
 PyArray
+PyDenseArray
 PyIO
 PyTable
 PyPandasDataFrame

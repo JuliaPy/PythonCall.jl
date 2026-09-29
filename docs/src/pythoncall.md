@@ -254,6 +254,24 @@ Python: array('i', [0, 4, 5])
 It directly wraps the underlying data buffer, so array operations such as indexing are about
 as fast as for an ordinary `Array`.
 
+If the data is contiguous in memory then [`PyDenseArray`](@ref) can wrap it as a
+`DenseArray` instead, so that it works with code specialised for dense or strided arrays,
+such as BLAS. Julia arrays are column-major whereas numpy arrays are row-major by default, so
+the dimensions are reversed when the data is row-major:
+
+```julia-repl
+julia> x = pyimport("numpy").arange(6.0).reshape(2, 3)
+Python:
+array([[0., 1., 2.],
+       [3., 4., 5.]])
+
+julia> PyDenseArray(x)
+3×2 PyDenseArray{Float64, 2}:
+ 0.0  3.0
+ 1.0  4.0
+ 2.0  5.0
+```
+
 The [`PyIO`](@ref) wrapper type views a Python file object as a Julia IO object:
 
 ```julia-repl

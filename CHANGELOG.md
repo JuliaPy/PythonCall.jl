@@ -22,6 +22,7 @@
     to relinquish Python resources around yielding or blocking Julia code.
   * JuliaCall now relinquishes and restores Python resources automatically while running
     Julia code, including Python-to-Julia callbacks.
+  * Removed JuliaCall's `jl_call_nogil` method; ordinary calls now provide its behavior.
   * Python-object finalizers no longer attach a Python thread state. Pending decrefs are
     queued until a state is already attached or `PythonCall.GC.gc()` drains the queue.
 * Changes to `PythonCall.GC` (now more like `Base.GC`):

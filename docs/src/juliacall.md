@@ -171,6 +171,24 @@ PythonCall operations nested inside Julia callbacks are safe without explicit re
 
 You can also use [multi-threading from Julia](@ref jl-multi-threading).
 
+### Caveat: Julia's task scheduler
+
+If you use a Julia function which yields to the task scheduler, such as `sleep` instead of
+`Libc.systemsleep` in the example above, the Python thread waiting for the futures must
+periodically yield to Julia so that the Julia tasks can finish:
+
+```python
+jl_yield = getattr(jl, "yield")
+while True:
+  jl_yield()
+  state = wait(fs, timeout=0.1)
+  if not state.not_done:
+    break
+```
+
+This scheduler requirement is independent of Python thread-state management; ordinary
+JuliaCall calls still relinquish and restore Python resources automatically.
+
 ### [Caveat: Signal handling](@id py-multi-threading-signal-handling)
 
 We recommend setting [`PYTHON_JULIACALL_HANDLE_SIGNALS=yes`](@ref julia-config)

@@ -90,24 +90,6 @@ end
 pyjl_handle_error_type(::typeof(pyjlany_callback), self, exc::MethodError) =
     exc.f === self ? pybuiltins.TypeError : PyNULL
 
-function pyjlany_call_nogil(self, args_::Py, kwargs_::Py)
-    if pylen(kwargs_) > 0
-        args = pyconvert(Vector{Any}, args_)
-        kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
-        ans = pyjl(self(args...; kwargs...))
-    elseif pylen(args_) > 0
-        args = pyconvert(Vector{Any}, args_)
-        ans = pyjl(self(args...))
-    else
-        ans = pyjl(self())
-    end
-    unsafe_pydel(args_)
-    unsafe_pydel(kwargs_)
-    ans
-end
-pyjl_handle_error_type(::typeof(pyjlany_call_nogil), self, exc::MethodError) =
-    exc.f === self ? pybuiltins.TypeError : PyNULL
-
 function pyjlany_getitem(self, k_::Py)
     if self isa Type
         if pyistuple(k_)
@@ -607,10 +589,6 @@ class Jl(JlBase2):
         return self._jl_callmethod($(pyjl_methodnum(Py)))
     def jl_callback(self, *args, **kwargs):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_callback)), args, kwargs)
-    def jl_call_nogil(self, *args, **kwargs):
-        '''Compatibility alias for calling this Julia object. Python resources are
-        relinquished automatically while Julia code runs.'''
-        return self._jl_callmethod($(pyjl_methodnum(pyjlany_call_nogil)), args, kwargs)
     def _repr_mimebundle_(self, include=None, exclude=None):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)
     @property

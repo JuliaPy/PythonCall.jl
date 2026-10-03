@@ -113,20 +113,20 @@ def test_julia_gc():
 
 
 @pytest.mark.parametrize("yld", [True, False])
-def test_call_nogil(yld):
-    """Tests that we can execute Julia code in parallel by releasing the GIL."""
+def test_parallel_call(yld):
+    """Tests that ordinary calls execute Julia code in parallel."""
     from concurrent.futures import ThreadPoolExecutor, wait
     from time import time
     from juliacall import Main as jl
 
-    # julia implementation of sleep which unlocks the GIL
+    # Julia implementations of sleep which do and do not yield.
     if yld:
         # use sleep, which yields
         jsleep = jl.sleep
     else:
         # use Libc.systemsleep which does not yield
         jsleep = jl.Libc.systemsleep
-    jsleep = jsleep.jl_call_nogil
+    assert not hasattr(jsleep, "jl_call_nogil")
     jyield = getattr(jl, "yield")
     # precompile
     jsleep(0.01)

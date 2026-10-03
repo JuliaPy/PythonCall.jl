@@ -117,9 +117,8 @@ The outer `@pyregion` can also be omitted; the PythonCall operations remain corr
 `wait(event)` then needs no annotation. Both macros nest safely.
 
 JuliaCall similarly relinquishes Python resources automatically while arbitrary Julia code
-runs. Ordinary calls should be used instead of the old `_jl_call_nogil` spelling. The v1
-`jl_call_nogil` method remains available for compatibility but behaves like an ordinary
-call.
+runs. The `_jl_call_nogil` and `jl_call_nogil` methods have been removed; use an ordinary
+call instead.
 
 Finalizers no longer attach a Python thread state and block waiting for Python. If prompt
 cleanup matters, call `PythonCall.GC.gc()` at a suitable point to drain queued decrefs.

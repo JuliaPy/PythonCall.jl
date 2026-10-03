@@ -93,6 +93,28 @@ end
     @test x2 === "αβγℵ√"
 end
 
+@testitem "str → PyString" begin
+    x = pystr("aβℵ\0🙂")
+    s = pyconvert(PyString, x)
+    @test s isa PyString
+    @test Py(s) === s.py
+    @test String(s) == "aβℵ\0🙂"
+    @test ncodeunits(s) == 11
+    @test codeunit(s) === UInt8
+    @test collect(s) == ['a', 'β', 'ℵ', '\0', '🙂']
+    @test isvalid(s, 1)
+    @test !isvalid(s, 3)
+    @test codeunit(s, 3) == 0xb2
+    @test_throws StringIndexError s[3]
+    @test_throws BoundsError codeunit(s, 12)
+
+    t = PyString("hello")
+    @test String(t) == "hello"
+    @test isempty(PyString(""))
+    @test_throws PyException PyString(pyint(1))
+    @test pyconvert(Any, x) isa String
+end
+
 @testitem "str → Symbol" begin
     x1 = pyconvert(Symbol, pystr("hello"))
     @test x1 === :hello

@@ -119,6 +119,7 @@ export PyIterable
 export PyList
 export PyPandasDataFrame
 export PySet
+export PyString
 export PyTable
 
 # JlWrap

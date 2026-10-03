@@ -560,7 +560,7 @@ function py_macro_lower(st, body, ans, ex; flavour = :expr)
         # @jl x
     elseif @capture(ex, @jl ax_)
         y = py_macro_lower_jl(st, ax)
-        py_macro_assign(body, ans, :(@pyregionbreak $y))
+        py_macro_assign(body, ans, y)
         return false
 
         # @compile code mode=mode ...
@@ -918,21 +918,7 @@ Py({'y': 2})
     This macro is experimental. It may be modified or removed in a future release.
 """
 macro py(ex)
-    lowered = py_macro(ex, __module__, __source__)
-    assigned = Symbol[]
-    function find_assigned(x)
-        x isa Expr || return
-        if x.head === :(=) && x.args[1] isa Symbol
-            push!(assigned, x.args[1])
-        end
-        foreach(find_assigned, x.args)
-    end
-    find_assigned(lowered)
-    locals = unique(assigned)
-    esc(quote
-        $(isempty(locals) ? nothing : Expr(:local, locals...))
-        @pyregion $lowered
-    end)
+    esc(py_macro(ex, __module__, __source__))
 end
 
 end

@@ -230,13 +230,7 @@ performance and concurrency hints; users normally do not need them for correctne
 @pyregionbreak
 ```
 
-The older `PythonCall.GIL` names remain as compatibility aliases.
-
 ```@docs
-PythonCall.GIL.lock
-PythonCall.GIL.@lock
-PythonCall.GIL.unlock
-PythonCall.GIL.@unlock
 PythonCall.GC.gc
 ```
 

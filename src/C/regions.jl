@@ -1,10 +1,3 @@
-"""Internal task-safe management of CPython thread states."""
-module Region
-
-using ..C: C
-using ..Utils
-import ..PythonCall: @pyregion, @pyregionbreak
-
 const PyThreadStatePtr = Ptr{Cvoid}
 
 mutable struct ThreadState
@@ -24,10 +17,9 @@ TaskState() = TaskState(C_NULL, nothing, false, 0, false)
 
 const THREAD_STATE = Utils.OncePerThread{ThreadState}(ThreadState)
 const TASK_STATE = Utils.OncePerTask{TaskState}(TaskState)
-const INTERP = Ref{Ptr{Cvoid}}(C_NULL)
 
-current_tstate() = C.PyThreadState_GetUnchecked()
-has_tstate() = C.CTX.is_initialized && current_tstate() != C_NULL
+current_tstate() = PyThreadState_GetUnchecked()
+has_tstate() = CTX.is_initialized && current_tstate() != C_NULL
 
 function reset!(s::TaskState)
     s.tstate = C_NULL
@@ -37,8 +29,7 @@ function reset!(s::TaskState)
     return
 end
 
-function start_session!(s::TaskState)
-    task = current_task()
+function start_session!(task::Task, s::TaskState)
     s.oldsticky = task.sticky
     task.sticky = true
     s.tid = Threads.threadid()
@@ -47,18 +38,20 @@ function start_session!(s::TaskState)
     return ts
 end
 
-check_thread(s::TaskState) = (@assert current_task().sticky && Threads.threadid() == s.tid)
+function check_thread(task::Task, s::TaskState)
+    @assert task.sticky
+    @assert Threads.threadid() == s.tid
+end
 
-function enter_region()
-    s = TASK_STATE()
+function enter_region(task::Task, s::TaskState)
     if s.tstate != C_NULL
-        check_thread(s)
+        check_thread(task, s)
         if s.attached
             return :noop
         end
         Base.acquire(s.sem::Base.Semaphore)
         try
-            C.PyEval_RestoreThread(s.tstate)
+            PyEval_RestoreThread(s.tstate)
             s.attached = true
         catch
             Base.release(s.sem::Base.Semaphore)
@@ -67,9 +60,8 @@ function enter_region()
         return :detach
     end
 
-    task = current_task()
     ts = try
-        start_session!(s)
+        start_session!(task, s)
     catch
         task.sticky = s.oldsticky
         reset!(s)
@@ -86,11 +78,11 @@ function enter_region()
             return :root_borrowed
         end
         if ts.tstate == C_NULL
-            ts.tstate = C.PyThreadState_New(INTERP[])
+            ts.tstate = PyThreadState_New(CTX.interp)
             ts.tstate == C_NULL && error("PyThreadState_New failed")
         end
         s.tstate = ts.tstate
-        C.PyEval_RestoreThread(s.tstate)
+        PyEval_RestoreThread(s.tstate)
         s.attached = true
         return :root_owned
     catch
@@ -101,40 +93,38 @@ function enter_region()
     end
 end
 
-function exit_region(token)
+function exit_region(task::Task, s::TaskState, token)
     token === :noop && return
-    s = TASK_STATE()
-    check_thread(s)
+    check_thread(task, s)
     if token === :detach
-        saved = C.PyEval_SaveThread()
+        saved = PyEval_SaveThread()
         @assert saved == s.tstate
         s.attached = false
         Base.release(s.sem::Base.Semaphore)
     elseif token === :root_owned
-        saved = C.PyEval_SaveThread()
+        saved = PyEval_SaveThread()
         @assert saved == s.tstate
         sem, oldsticky = s.sem::Base.Semaphore, s.oldsticky
         reset!(s)
         Base.release(sem)
-        current_task().sticky = oldsticky
+        task.sticky = oldsticky
     elseif token === :root_borrowed
         @assert current_tstate() == s.tstate
         sem, oldsticky = s.sem::Base.Semaphore, s.oldsticky
         reset!(s)
         Base.release(sem)
-        current_task().sticky = oldsticky
+        task.sticky = oldsticky
     else
         error("invalid Python region token")
     end
     return
 end
 
-function enter_break()
-    s = TASK_STATE()
+function enter_break(task::Task, s::TaskState)
     if s.tstate != C_NULL
-        check_thread(s)
+        check_thread(task, s)
         !s.attached && return :noop
-        saved = C.PyEval_SaveThread()
+        saved = PyEval_SaveThread()
         @assert saved == s.tstate
         s.attached = false
         Base.release(s.sem::Base.Semaphore)
@@ -142,9 +132,8 @@ function enter_break()
     end
     current_tstate() == C_NULL && return :noop
 
-    task = current_task()
     ts = try
-        start_session!(s)
+        start_session!(task, s)
     catch
         task.sticky = s.oldsticky
         reset!(s)
@@ -162,7 +151,7 @@ function enter_break()
             return :noop
         end
         s.tstate = current
-        saved = C.PyEval_SaveThread()
+        saved = PyEval_SaveThread()
         @assert saved == current
         s.attached = false
         Base.release(ts.sem)
@@ -175,18 +164,17 @@ function enter_break()
     end
 end
 
-function exit_break(token)
+function exit_break(task::Task, s::TaskState, token)
     token === :noop && return
-    s = TASK_STATE()
-    check_thread(s)
+    check_thread(task, s)
     Base.acquire(s.sem::Base.Semaphore)
-    C.PyEval_RestoreThread(s.tstate)
+    PyEval_RestoreThread(s.tstate)
     s.attached = true
     if token === :root_restore
         sem, oldsticky = s.sem::Base.Semaphore, s.oldsticky
         reset!(s)
         Base.release(sem)
-        current_task().sticky = oldsticky
+        task.sticky = oldsticky
     elseif token !== :restore
         error("invalid Python region-break token")
     end
@@ -203,11 +191,13 @@ blocks cooperatively in [`@pyregionbreak`](@ref).
 """
 macro pyregion(ex)
     quote
-        local token = $enter_region()
+        local task = current_task()
+        local state = $TASK_STATE()
+        local token = $enter_region(task, state)
         try
             $(esc(ex))
         finally
-            $exit_region(token)
+            $exit_region(task, state, token)
         end
     end
 end
@@ -221,34 +211,13 @@ PythonCall operations still work automatically, and both kinds of region nest fr
 """
 macro pyregionbreak(ex)
     quote
-        local token = $enter_break()
+        local task = current_task()
+        local state = $TASK_STATE()
+        local token = $enter_break(task, state)
         try
             $(esc(ex))
         finally
-            $exit_break(token)
+            $exit_break(task, state, token)
         end
     end
-end
-
-function __init__()
-    current = current_tstate()
-    current == C_NULL && error("Python initialization did not leave an attached thread state")
-    INTERP[] = C.PyThreadState_GetInterpreter(current)
-    INTERP[] == C_NULL && error("could not determine the Python interpreter")
-    return
-end
-
-function start_runtime()
-    if !C.CTX.is_embedded && !C.CTX.is_preinitialized
-        C.PyEval_SaveThread()
-        C.FINALIZE_HOOK[] = function ()
-            ts = THREAD_STATE()
-            ts.tstate == C_NULL && (ts.tstate = C.PyThreadState_New(INTERP[]))
-            C.PyEval_RestoreThread(ts.tstate)
-            C.Py_FinalizeEx() == -1 && @warn "Py_FinalizeEx() error"
-        end
-    end
-    return
-end
-
 end

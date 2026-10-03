@@ -155,25 +155,19 @@ be configured in two ways:
 From v0.9.22, JuliaCall supports multi-threading in Julia and/or Python, with some
 caveats.
 
-Most importantly, you can only call Python code while Python's
-[Global Interpreter Lock (GIL)](https://docs.python.org/3/glossary.html#term-global-interpreter-lock)
 JuliaCall borrows the Python thread state which entered Julia and automatically detaches it
 while arbitrary Julia code runs. Nested Python interaction from that Julia code temporarily
 reattaches the same state, and the borrowed state is restored before returning to Python.
-
-The historical `_jl_call_nogil` spelling remains available as a compatibility alias:
 
 ```python
 from concurrent.futures import ThreadPoolExecutor, wait
 from juliacall import Main as jl
 pool = ThreadPoolExecutor(4)
-fs = [pool.submit(jl.Libc.systemsleep._jl_call_nogil, 5) for _ in range(4)]
+fs = [pool.submit(jl.Libc.systemsleep, 5) for _ in range(4)]
 wait(fs)
 ```
 
-Ordinary calls provide the same automatic resource management, so
-`pool.submit(jl.Libc.systemsleep, 5)` is preferred. PythonCall operations nested inside
-Julia callbacks are safe without explicit region or lock calls.
+PythonCall operations nested inside Julia callbacks are safe without explicit region calls.
 
 You can also use [multi-threading from Julia](@ref jl-multi-threading).
 

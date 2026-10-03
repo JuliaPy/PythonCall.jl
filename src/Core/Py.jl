@@ -1,5 +1,5 @@
-incref(x::C.PyPtr) = @pyregion (C.Py_IncRef(x); x)
-decref(x::C.PyPtr) = @pyregion (C.Py_DecRef(x); x)
+incref(x::C.PyPtr) = (C.Py_IncRef(x); x)
+decref(x::C.PyPtr) = (C.Py_DecRef(x); x)
 
 """
     ispy(x)
@@ -85,12 +85,10 @@ Use this to eagerly free a Python object, rather than waiting for Julia's GC to 
 it at some indeterminate point in the future.
 """
 function unsafe_pydel(x::Py)
-    @pyregion begin
-        ptr = getptr(x)
-        if ptr != C.PyNULL
-            C.Py_DecRef(ptr)
-            setptr!(x, C.PyNULL)
-        end
+    ptr = getptr(x)
+    if ptr != C.PyNULL
+        @pyregion C.Py_DecRef(ptr)
+        setptr!(x, C.PyNULL)
     end
     return
 end
@@ -274,7 +272,7 @@ Base.hasproperty(x::Py, k::String) = pyhasattr(x, k)
 Base.setproperty!(x::Py, k::Symbol, v) = pysetattr(x, string(k), v)
 Base.setproperty!(x::Py, k::String, v) = pysetattr(x, k, v)
 
-function _propertynames(x::Py, private::Bool)
+function Base.propertynames(x::Py, private::Bool = false)
     # this follows the logic of rlcompleter.py
     function classmembers(c)
         r = pydir(c)
@@ -294,8 +292,6 @@ function _propertynames(x::Py, private::Bool)
     end
     return Symbol[Symbol(pystr_asstring(word)) for word in words]
 end
-
-Base.propertynames(x::Py, private::Bool = false) = @pyregion _propertynames(x, private)
 
 Base.Bool(x::Py) = pytruth(x)
 

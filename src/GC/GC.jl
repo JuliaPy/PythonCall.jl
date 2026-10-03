@@ -8,7 +8,6 @@ See [`gc`](@ref).
 module GC
 
 using ..C: C
-using ..Region
 import ..PythonCall: @pyregion
 
 if Base.VERSION ≥ v"1.11"
@@ -93,7 +92,7 @@ function enqueue(ptr::C.PyPtr)
     # If C.CTX.is_initialized is false then the Python interpreter hasn't started yet
     # or has been finalized; either way attempting to free will cause an error.
     if ptr != C.PyNULL && C.CTX.is_initialized
-        if Region.has_tstate()
+        if C.has_tstate()
             # An attached state lets us immediately free without blocking a finalizer.
             C.Py_DecRef(ptr)
             # We may as well also free any other enqueued objects.
@@ -114,7 +113,7 @@ end
 
 function enqueue_all(ptrs)
     if any(!=(C.PyNULL), ptrs) && C.CTX.is_initialized
-        if Region.has_tstate()
+        if C.has_tstate()
             for ptr in ptrs
                 if ptr != C.PyNULL
                     C.Py_DecRef(ptr)
@@ -149,7 +148,7 @@ end
 function _gchook_finalizer(x)
     if C.CTX.is_initialized
         finalizer(_gchook_finalizer, x)
-        if !isempty(QUEUE.items) && Region.has_tstate()
+        if !isempty(QUEUE.items) && C.has_tstate()
             unsafe_free_queue()
         end
     end

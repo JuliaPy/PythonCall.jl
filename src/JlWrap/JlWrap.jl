@@ -12,7 +12,6 @@ using ..C
 using ..Core
 using ..Convert
 using ..GC: GC
-using ..GIL
 
 import ..PythonCall:
     pyfunc,

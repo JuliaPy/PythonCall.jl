@@ -58,11 +58,10 @@ pyconvert_rule_bytes(::Type{Base.CodeUnits{UInt8,String}}, x::Py) =
 
 ### int
 
-pyconvert_rule_int(::Type{T}, x::Py) where {T<:Number} = begin
-    # first try to convert to Clonglong (or Culonglong if unsigned)
-    v =
-        T <: Unsigned ? C.PyLong_AsUnsignedLongLong(x) :
-        C.PyLong_AsLongLong(x)
+pyconvert_rule_int(::Type{T}, x::Py) where {T<:Number} = @pyregion begin
+    # First try to convert to Clonglong (or Culonglong if unsigned). Conversion rules
+    # run outside their caller's region because user-defined rules may yield.
+    v = T <: Unsigned ? C.PyLong_AsUnsignedLongLong(x) : C.PyLong_AsLongLong(x)
     if !iserrset_ambig(v)
         # success
         return pyconvert_tryconvert(T, v)

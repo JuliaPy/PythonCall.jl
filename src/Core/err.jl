@@ -63,8 +63,8 @@ function Base.show(io::IO, x::PyException)
 end
 
 function Base.getproperty(exc::PyException, k::Symbol)
-    @pyregion begin
-        if k in (:t, :v, :b) && !exc._isnormalized
+    if k in (:t, :v, :b) && !exc._isnormalized
+        @pyregion begin
             errnormalize!(exc._t, exc._v, exc._b)
             pyisnull(exc._t) && pycopy!(exc._t, pybuiltins.None)
             pyisnull(exc._v) && pycopy!(exc._v, pybuiltins.None)
@@ -72,8 +72,8 @@ function Base.getproperty(exc::PyException, k::Symbol)
             pyisnone(exc._v) || (exc._v.__traceback__ = exc._b)
             exc._isnormalized = true
         end
-        k == :t ? exc._t : k == :v ? exc._v : k == :b ? exc._b : getfield(exc, k)
     end
+    k == :t ? exc._t : k == :v ? exc._v : k == :b ? exc._b : getfield(exc, k)
 end
 
 pythrow() = throw(PyException(errget()..., false))

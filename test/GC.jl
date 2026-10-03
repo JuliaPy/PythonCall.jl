@@ -1,7 +1,7 @@
 @testitem "GC.gc()" begin
     let
         pyobjs = map(pylist, 1:100)
-        PythonCall.GIL.@unlock begin
+        @pyregionbreak begin
             Threads.@threads for obj in pyobjs
                 finalize(obj)
             end
@@ -18,7 +18,7 @@ end
 @testitem "GC.GCHook" begin
     let
         pyobjs = map(pylist, 1:100)
-        PythonCall.GIL.@unlock begin
+        @pyregionbreak begin
             Threads.@threads for obj in pyobjs
                 finalize(obj)
             end

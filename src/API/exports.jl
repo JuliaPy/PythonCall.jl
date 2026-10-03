@@ -120,6 +120,7 @@ export PyList
 export PyPandasDataFrame
 export PySet
 export PyTable
+export PyTuple
 
 # JlWrap
 export pybinaryio

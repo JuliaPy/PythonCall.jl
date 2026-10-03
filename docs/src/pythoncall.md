@@ -502,4 +502,5 @@ If Julia's GC collects Python objects while no Python thread state is already at
 those objects are queued rather than making a finalizer block while attaching a state.
 
 If you find you have many Python objects not being deleted, you can call
-[`PythonCall.GC.gc()`](@ref) or `GC.gc()` to clear the queue.
+[`PythonCall.GC.gc()`](@ref) to clear the queue. An ordinary `GC.gc()` may also clear it
+when a Python thread state is already attached, such as inside `@pyregion`.

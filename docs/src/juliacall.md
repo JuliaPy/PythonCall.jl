@@ -171,29 +171,6 @@ PythonCall operations nested inside Julia callbacks are safe without explicit re
 
 You can also use [multi-threading from Julia](@ref jl-multi-threading).
 
-### Caveat: Julia's task scheduler
-
-If you try the above example with a Julia function that yields to the task scheduler,
-such as `sleep` instead of `Libc.systemsleep`, then you will likely experience a hang.
-
-In this case, you need to yield back to Julia's scheduler periodically to allow the task
-to continue. You can use the following pattern instead of `wait(fs)`:
-```python
-jl_yield = getattr(jl, "yield")
-while True:
-  # yield to Julia's task scheduler
-  jl_yield()
-  # wait for up to 0.1 seconds for the threads to finish
-  state = wait(fs, timeout=0.1)
-  # if they finished then stop otherwise try again
-  if not state.not_done:
-    break
-```
-
-Set the `timeout` parameter smaller to let Julia's scheduler cycle more frequently.
-
-Future versions of JuliaCall may provide tooling to make this simpler.
-
 ### [Caveat: Signal handling](@id py-multi-threading-signal-handling)
 
 We recommend setting [`PYTHON_JULIACALL_HANDLE_SIGNALS=yes`](@ref julia-config)

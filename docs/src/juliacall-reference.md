@@ -70,7 +70,8 @@ and ending with `__` (since these are Python special methods) or starting with `
 - `jl_callback(*args, **kwargs)`: Calls the Julia object with the given arguments.
   Unlike ordinary calling syntax, the arguments are passed as `Py` objects instead of
   being converted.
-- `jl_call_nogil(*args, **kwargs)`: Call this with the GIL disabled.
+- `jl_call_nogil(*args, **kwargs)`: Compatibility spelling for an ordinary call. Python
+  resources are relinquished automatically while Julia code runs.
 - `jl_display()`: Display the object using Julia's display mechanism.
 - `jl_eval(expr)`: If the object is a Julia `Module`, evaluates the given expression.
 - `jl_help()`: Display help for the object.

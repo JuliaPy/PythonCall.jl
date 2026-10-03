@@ -48,6 +48,7 @@ pyconvert_rule_str(::Type{Char}, x::Py) = begin
         pyconvert_unconverted()
     end
 end
+pyconvert_rule_str(::Type{PyString}, x::Py) = pyconvert_return(PyString(x))
 
 ### bytes
 

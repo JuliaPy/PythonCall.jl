@@ -227,6 +227,9 @@ Python: [3, 4, 5, None, 1, 2]
 
 There are wrappers for other container types, such as [`PyDict`](@ref) and [`PySet`](@ref).
 
+`PyString` is a zero-copy wrapper around a Python `str`, exposing it as a Julia
+`AbstractString` backed by the UTF-8 pointer cached by Python.
+
 The wrapper [`PyArray`](@ref) provides a Julia array view of any Python array, i.e. anything
 satisfying either the buffer protocol or the numpy array interface. This includes things
 like `bytes`, `bytearray`, `array.array` and `numpy.ndarray`:

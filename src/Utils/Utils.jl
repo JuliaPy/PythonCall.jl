@@ -2,40 +2,43 @@ module Utils
 
 using Preferences: @load_preference
 
-# Minimal package-local equivalents of Base.OncePerThread and Base.OncePerTask. The Base
-# implementations are only available on newer Julia releases, while PythonCall supports
-# Julia 1.10. These intentionally provide only the callable interface needed internally.
-mutable struct OncePerThread{T,F}
-    initializer::F
-    values::Dict{Int,T}
-    lock::ReentrantLock
-end
-
-OncePerThread{T}(initializer::F) where {T,F} =
-    OncePerThread{T,F}(initializer, Dict{Int,T}(), ReentrantLock())
-
-function (once::OncePerThread{T})() where {T}
-    tid = Threads.threadid()
-    lock(once.lock)
-    try
-        return get!(once.values, tid) do
-            once.initializer()::T
-        end
-    finally
-        unlock(once.lock)
+@static if isdefined(Base, :OncePerThread)
+    const OncePerThread = Base.OncePerThread
+    const OncePerTask = Base.OncePerTask
+else
+    # Minimal package-local equivalents for Julia versions where Base does not provide them.
+    mutable struct OncePerThread{T,F}
+        initializer::F
+        values::Dict{Int,T}
+        lock::ReentrantLock
     end
-end
 
-mutable struct OncePerTask{T,F}
-    initializer::F
-end
+    OncePerThread{T}(initializer::F) where {T,F} =
+        OncePerThread{T,F}(initializer, Dict{Int,T}(), ReentrantLock())
 
-OncePerTask{T}(initializer::F) where {T,F} = OncePerTask{T,F}(initializer)
+    function (once::OncePerThread{T})() where {T}
+        tid = Threads.threadid()
+        lock(once.lock)
+        try
+            return get!(once.values, tid) do
+                once.initializer()::T
+            end
+        finally
+            unlock(once.lock)
+        end
+    end
 
-function (once::OncePerTask{T})() where {T}
-    get!(task_local_storage(), once) do
-        once.initializer()::T
-    end::T
+    mutable struct OncePerTask{T,F}
+        initializer::F
+    end
+
+    OncePerTask{T}(initializer::F) where {T,F} = OncePerTask{T,F}(initializer)
+
+    function (once::OncePerTask{T})() where {T}
+        get!(task_local_storage(), once) do
+            once.initializer()::T
+        end::T
+    end
 end
 
 function getpref(::Type{T}, prefname, envname, default = nothing) where {T}

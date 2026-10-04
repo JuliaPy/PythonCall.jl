@@ -34,59 +34,57 @@ pyconvert_rule_jlvalue(::Type{T}, x::Py) where {T} =
 
 function Cjl._pyjl_callmethod(f, self_::C.PyPtr, args_::C.PyPtr, nargs::C.Py_ssize_t)
     @nospecialize f
-    @pyregion begin
-        in_f = false
-        self = Cjl.PyJuliaValue_GetValue(self_)
-        try
-            if nargs == 1
-                in_f = true
-                ans = @pyregionbreak(f(self))::Py
-                in_f = false
-            elseif nargs == 2
-                arg1 = pynew(incref(C.PyTuple_GetItem(args_, 1)))
-                in_f = true
-                ans = @pyregionbreak(f(self, arg1))::Py
-                in_f = false
-            elseif nargs == 3
-                arg1 = pynew(incref(C.PyTuple_GetItem(args_, 1)))
-                arg2 = pynew(incref(C.PyTuple_GetItem(args_, 2)))
-                in_f = true
-                ans = @pyregionbreak(f(self, arg1, arg2))::Py
-                in_f = false
-            elseif nargs == 4
-                arg1 = pynew(incref(C.PyTuple_GetItem(args_, 1)))
-                arg2 = pynew(incref(C.PyTuple_GetItem(args_, 2)))
-                arg3 = pynew(incref(C.PyTuple_GetItem(args_, 3)))
-                in_f = true
-                ans = @pyregionbreak(f(self, arg1, arg2, arg3))::Py
-                in_f = false
-            else
-                @pyregion errset(
-                    pybuiltins.NotImplementedError,
-                    "__jl_callmethod not implemented for this many arguments",
-                )
-            end
-            return getptr(incref(ans))
-        catch exc
-            if exc isa PyException
-                Base.GC.@preserve exc C.PyErr_Restore(
-                    incref(exc._t),
-                    incref(exc._v),
-                    incref(exc._b),
-                )
-                return C.PyNULL
-            else
-                try
-                    if in_f
-                        return pyjl_handle_error(f, self, exc)
-                    else
-                        @pyregion errset(pyJuliaError, pytuple((pyjl(exc), pyjl(catch_backtrace()))))
-                        return C.PyNULL
-                    end
-                catch
-                    @pyregion errset(pyJuliaError, "an error occurred while setting an error")
+    in_f = false
+    self = Cjl.PyJuliaValue_GetValue(self_)
+    try
+        if nargs == 1
+            in_f = true
+            ans = @pyregionbreak(f(self))::Py
+            in_f = false
+        elseif nargs == 2
+            arg1 = pynew(incref(C.PyTuple_GetItem(args_, 1)))
+            in_f = true
+            ans = @pyregionbreak(f(self, arg1))::Py
+            in_f = false
+        elseif nargs == 3
+            arg1 = pynew(incref(C.PyTuple_GetItem(args_, 1)))
+            arg2 = pynew(incref(C.PyTuple_GetItem(args_, 2)))
+            in_f = true
+            ans = @pyregionbreak(f(self, arg1, arg2))::Py
+            in_f = false
+        elseif nargs == 4
+            arg1 = pynew(incref(C.PyTuple_GetItem(args_, 1)))
+            arg2 = pynew(incref(C.PyTuple_GetItem(args_, 2)))
+            arg3 = pynew(incref(C.PyTuple_GetItem(args_, 3)))
+            in_f = true
+            ans = @pyregionbreak(f(self, arg1, arg2, arg3))::Py
+            in_f = false
+        else
+            @pyregion errset(
+                pybuiltins.NotImplementedError,
+                "__jl_callmethod not implemented for this many arguments",
+            )
+        end
+        return getptr(incref(ans))
+    catch exc
+        if exc isa PyException
+            Base.GC.@preserve exc C.PyErr_Restore(
+                incref(exc._t),
+                incref(exc._v),
+                incref(exc._b),
+            )
+            return C.PyNULL
+        else
+            try
+                if in_f
+                    return pyjl_handle_error(f, self, exc)
+                else
+                    @pyregion errset(pyJuliaError, pytuple((pyjl(exc), pyjl(catch_backtrace()))))
                     return C.PyNULL
                 end
+            catch
+                @pyregion errset(pyJuliaError, "an error occurred while setting an error")
+                return C.PyNULL
             end
         end
     end

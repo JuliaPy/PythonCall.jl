@@ -353,7 +353,8 @@ function pytryconvert(::Type{T}, x_) where {T}
 
     # apply the rules
     for rule in rules
-        ans2 = rule(x)::pyconvert_returntype(T)
+        # Conversion rules are user-extensible Julia code and may yield.
+        ans2 = @pyregionbreak(rule(x))::pyconvert_returntype(T)
         pyconvert_isunconverted(ans2) || return ans2
     end
 
@@ -389,19 +390,10 @@ Convert the Python object `x` to a `T`.
 
 If `d` is specified, it is returned on failure instead of throwing an error.
 """
-function pyconvert(::Type{T}, x) where {T}
-    @pyregion begin
-        @autopy x @pyconvert T x_ error(
-            "cannot convert this Python '$(pytype(x_).__name__)' to a Julia '$T'",
-        )
-    end
-end
-
-function pyconvert(::Type{T}, x, d) where {T}
-    @pyregion begin
-        @autopy x @pyconvert T x_ d
-    end
-end
+pyconvert(::Type{T}, x) where {T} = @autopy x @pyconvert T x_ error(
+    "cannot convert this Python '$(pytype(x_).__name__)' to a Julia '$T'",
+)
+pyconvert(::Type{T}, x, d) where {T} = @autopy x @pyconvert T x_ d
 
 """
     pyconvertarg(T, x, name)
@@ -410,16 +402,12 @@ Convert the Python object `x` to a `T`.
 
 On failure, throws a Python `TypeError` saying that the argument `name` could not be converted.
 """
-function pyconvertarg(::Type{T}, x, name) where {T}
-    @pyregion begin
-        @autopy x @pyconvert T x_ begin
-            errset(
-                pybuiltins.TypeError,
-                "Cannot convert argument '$name' to a Julia '$T', got a '$(pytype(x_).__name__)'",
-            )
-            pythrow()
-        end
-    end
+pyconvertarg(::Type{T}, x, name) where {T} = @autopy x @pyconvert T x_ begin
+    errset(
+        pybuiltins.TypeError,
+        "Cannot convert argument '$name' to a Julia '$T', got a '$(pytype(x_).__name__)'",
+    )
+    pythrow()
 end
 
 function init_pyconvert()

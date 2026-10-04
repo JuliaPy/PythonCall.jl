@@ -448,7 +448,7 @@ function init_c()
 end
 
 function __init__()
-    init_c()
+    C.@pyregion init_c()
 end
 
 PyJuliaValue_Check(o) =

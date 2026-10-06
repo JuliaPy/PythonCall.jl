@@ -99,6 +99,23 @@
         )
         @test_throws Exception PyArray(nd; array = false, buffer = true)
     end
+    @testset "linear with unit and non-unit first stride" begin
+        tb = pyimport("_testbuffer")
+        nd = tb.ndarray(
+            pylist(1:24),
+            shape = pylist([4, 6]),
+            format = "i",
+            flags = tb.ND_FORTRAN,
+        )
+        e = reshape(1:24, 4, 6)
+        for (v, ev) in
+            ((nd, e), (nd[pyslice(nothing, nothing, 2), pyslice(nothing)], e[1:2:end, :]))
+            a = PyArray(v; array = false)
+            @test a isa PyArray{Cint,2,false,true,Cint}
+            @test [a[i, j] for i in axes(a, 1), j in axes(a, 2)] == ev
+            @test [a[i] for i in eachindex(IndexLinear(), a)] == vec(ev)
+        end
+    end
 end
 
 @testitem "PyDict" begin

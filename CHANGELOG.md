@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+* Faster indexing into contiguous `PyArray`s.
 * Bug fixes.
 
 ## 0.9.36 (2026-09-18)

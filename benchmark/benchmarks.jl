@@ -1,6 +1,6 @@
 using BenchmarkTools
 using PythonCall
-using PythonCall: pydel!, pyimport, pydict, pystr, pyrange
+using PythonCall: unsafe_pydel, pyimport, pydict, pystr, pyrange
 
 const SUITE = BenchmarkGroup()
 
@@ -23,10 +23,10 @@ function test_pydict_pydel()
         r = random()
         v = i + r
         x[k] = v
-        pydel!(k)
-        pydel!(r)
-        pydel!(v)
-        pydel!(i)
+        unsafe_pydel(k)
+        unsafe_pydel(r)
+        unsafe_pydel(v)
+        unsafe_pydel(i)
     end
     return x
 end
@@ -40,7 +40,7 @@ SUITE["basic"]["julia"]["pydict"]["pydel"] = @benchmarkable test_pydict_pydel()
             x = {}
             for i in range(1000)
                 x[str(i)] = i + random()
-                $(use_pydel ? :(@jl PythonCall.pydel!(i)) : :(nothing))
+                $(use_pydel ? :(@jl PythonCall.unsafe_pydel(i)) : :(nothing))
             end
             x
         end

@@ -68,7 +68,7 @@ function pyjl_getarrayindices(x::AbstractArray{T,N}, ks::Py) where {T,N}
             return ntuple(N) do i
                 k = pytuple_getitem(ks, i - 1)
                 ans = pyjl_getaxisindex(axes(x, i), k)
-                pydel!(k)
+                unsafe_pydel(k)
                 return ans
             end
         else
@@ -84,7 +84,7 @@ end
 
 function pyjlarray_getitem(x::AbstractArray{T,N}, k_::Py) where {T,N}
     k = pyjl_getarrayindices(x, k_)
-    pydel!(k_)
+    unsafe_pydel(k_)
     if k isa NTuple{N,Int}
         return Py(x[k...])
     else
@@ -94,7 +94,7 @@ end
 
 function pyjlarray_setitem(x::AbstractArray{T,N}, k_::Py, v_::Py) where {T,N}
     k = pyjl_getarrayindices(x, k_)
-    pydel!(k_)
+    unsafe_pydel(k_)
     if k isa NTuple{N,Int}
         v = pyconvertarg(T, v_, "value")
         x[k...] = v
@@ -108,7 +108,7 @@ end
 function pyjlarray_delitem(x::AbstractArray{T,N}, k_::Py) where {T,N}
     if N == 1
         k = pyjl_getarrayindices(x, k_)
-        pydel!(k_)
+        unsafe_pydel(k_)
         deleteat!(x, k...)
     else
         errset(pybuiltins.TypeError, "can only delete from 1D arrays")
@@ -121,7 +121,7 @@ pyjl_handle_error_type(::typeof(pyjlarray_delitem), x, exc::MethodError) =
 
 function pyjlarray_reshape(x::AbstractArray, shape_::Py)
     shape = pyconvertarg(Union{Int,Vector{Int}}, shape_, "shape")
-    pydel!(shape_)
+    unsafe_pydel(shape_)
     return Py(reshape(x, shape...))
 end
 
@@ -300,8 +300,8 @@ function pytypestrdescr(::Type{T}) where {T}
     end
 end
 
-pyjlarray_array__array(x::AbstractArray) = x isa Array ? Py(nothing) : pyjl(Array(x))
-pyjlarray_array__pyobjectarray(x::AbstractArray) = pyjl(PyObjectArray(x))
+pyjlarray_array__array(x::AbstractArray) = x isa Array ? Py(nothing) : pyjlarray(Array(x))
+pyjlarray_array__pyobjectarray(x::AbstractArray) = pyjlarray(PyObjectArray(x))
 
 function pyjlarray_array_interface(x::AbstractArray{T,N}) where {T,N}
     if pyjlarray_isarrayabletype(eltype(x))
@@ -331,55 +331,65 @@ function init_array()
     pybuiltins.exec(
         pybuiltins.compile(
             """
-$("\n"^(@__LINE__()-1))
-class ArrayValue(AnyValue):
-    __slots__ = ()
-    _jl_buffer_info = $(pyjl_methodnum(pyjlarray_buffer_info))
-    @property
-    def ndim(self):
-        return self._jl_callmethod($(pyjl_methodnum(Py ∘ ndims)))
-    @property
-    def shape(self):
-        return self._jl_callmethod($(pyjl_methodnum(Py ∘ size)))
-    def copy(self):
-        return self._jl_callmethod($(pyjl_methodnum(Py ∘ copy)))
-    def reshape(self, shape):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlarray_reshape)), shape)
-    def __bool__(self):
-        return bool(len(self))
-    def __getitem__(self, k):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlarray_getitem)), k)
-    def __setitem__(self, k, v):
-        self._jl_callmethod($(pyjl_methodnum(pyjlarray_setitem)), k, v)
-    def __delitem__(self, k):
-        self._jl_callmethod($(pyjl_methodnum(pyjlarray_delitem)), k)
-    @property
-    def __array_interface__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlarray_array_interface)))
-    def __array__(self, dtype=None, copy=None):
-        import numpy
-        # convert to an array-like object
-        arr = self
-        if not (hasattr(arr, "__array_interface__") or hasattr(arr, "__array_struct__")):
-            if copy is False:
-                raise ValueError("copy=False is not supported when collecting ArrayValue data")
-            # the first attempt collects into an Array
-            arr = self._jl_callmethod($(pyjl_methodnum(pyjlarray_array__array)))
-            if not (hasattr(arr, "__array_interface__") or hasattr(arr, "__array_struct__")):
-                # the second attempt collects into a PyObjectArray
-                arr = self._jl_callmethod($(pyjl_methodnum(pyjlarray_array__pyobjectarray)))
-        # convert to a numpy array if numpy is available
-        return numpy.array(arr, dtype=dtype, copy=copy)
-    def to_numpy(self, dtype=None, copy=True, order="K"):
-        import numpy
-        return numpy.array(self, dtype=dtype, copy=copy, order=order)
-""",
+            $("\n"^(@__LINE__()-1))
+            class JlArray(JlCollection):
+                __slots__ = ()
+                _jl_buffer_info = $(pyjl_methodnum(pyjlarray_buffer_info))
+                def __init__(self, value):
+                    JlBase.__init__(self, value, Base.AbstractArray)
+                @property
+                def ndim(self):
+                    return self._jl_callmethod($(pyjl_methodnum(Py ∘ ndims)))
+                @property
+                def shape(self):
+                    return self._jl_callmethod($(pyjl_methodnum(Py ∘ size)))
+                def reshape(self, shape):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlarray_reshape)), shape)
+                def __getitem__(self, k):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlarray_getitem)), k)
+                def __setitem__(self, k, v):
+                    self._jl_callmethod($(pyjl_methodnum(pyjlarray_setitem)), k, v)
+                def __delitem__(self, k):
+                    self._jl_callmethod($(pyjl_methodnum(pyjlarray_delitem)), k)
+                @property
+                def __array_interface__(self):
+                    return self._jl_callmethod($(pyjl_methodnum(pyjlarray_array_interface)))
+                def __array__(self, dtype=None, copy=None):
+                    import numpy
+                    # convert to an array-like object
+                    arr = self
+                    if not (hasattr(arr, "__array_interface__") or hasattr(arr, "__array_struct__")):
+                        if copy is False:
+                            raise ValueError("copy=False is not supported when collecting ArrayValue data")
+                        # the first attempt collects into an Array
+                        arr = self._jl_callmethod($(pyjl_methodnum(pyjlarray_array__array)))
+                        if not (hasattr(arr, "__array_interface__") or hasattr(arr, "__array_struct__")):
+                            # the second attempt collects into a PyObjectArray
+                            arr = self._jl_callmethod($(pyjl_methodnum(pyjlarray_array__pyobjectarray)))
+                    # convert to a numpy array if numpy is available
+                    return numpy.array(arr, dtype=dtype, copy=copy)
+                def to_numpy(self, dtype=None, copy=True, order="K"):
+                    import numpy
+                    return numpy.array(self, dtype=dtype, copy=copy, order=order)
+            """,
             @__FILE__(),
             "exec",
         ),
         jl.__dict__,
     )
-    pycopy!(pyjlarraytype, jl.ArrayValue)
+    pycopy!(pyjlarraytype, jl.JlArray)
 end
 
-pyjltype(::AbstractArray) = pyjlarraytype
+"""
+    pyjlarray(x::AbstractArray)
+
+Wrap `x` as a Python array-like object.
+
+This object can be converted to a Numpy array with `numpy.array(v)`, `v.to_numpy()` or
+`v.__array__()` and supports these Numpy attributes: `ndim`, `shape`, `copy`, `reshape`.
+
+If `x` is one-dimensional (an `AbstractVector`) then it also behaves as a `list`.
+"""
+pyjlarray(x::AbstractArray) = pyjl(pyjlarraytype, x)
+
+Py(x::AbstractArray) = pyjlarray(x)

@@ -15,9 +15,6 @@ include("Wrap/Wrap.jl")
 include("JlWrap/JlWrap.jl")
 include("Compat/Compat.jl")
 
-# non-exported API
-using .Core: PyNULL, CONFIG
-
 # not API but used in tests
 for k in [
     :pyjlanytype,
@@ -26,13 +23,7 @@ for k in [
     :pyjlbinaryiotype,
     :pyjltextiotype,
     :pyjldicttype,
-    :pyjlmoduletype,
-    :pyjlintegertype,
-    :pyjlrationaltype,
-    :pyjlrealtype,
-    :pyjlcomplextype,
     :pyjlsettype,
-    :pyjltypetype,
 ]
     @eval using .JlWrap: $k
 end

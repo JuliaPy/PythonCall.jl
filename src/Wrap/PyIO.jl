@@ -27,7 +27,7 @@ function PyIO(f::Function, o; opts...)
     try
         return f(io)
     finally
-        pydel!(io.py)
+        unsafe_pydel(io.py)
     end
 end
 
@@ -66,8 +66,8 @@ function putobuf(io::PyIO)
             else
                 data = pystr_fromUTF8(view(io.obuf, 1:(n-nskip)))
             end
-            pydel!(@py io.write(data))
-            pydel!(data)
+            unsafe_pydel(@py io.write(data))
+            unsafe_pydel(data)
             if nskip == 0
                 empty!(io.obuf)
             else
@@ -75,8 +75,8 @@ function putobuf(io::PyIO)
             end
         else
             data = pybytes(io.obuf)
-            pydel!(@py io.write(data))
-            pydel!(data)
+            unsafe_pydel(@py io.write(data))
+            unsafe_pydel(data)
             empty!(io.obuf)
         end
     end
@@ -94,20 +94,20 @@ function getibuf(io::PyIO)
         else
             append!(io.ibuf, pybytes_asvector(data))
         end
-        pydel!(data)
+        unsafe_pydel(data)
     end
     return
 end
 
 function Base.flush(io::PyIO)
     putobuf(io)
-    pydel!(@py io.flush())
+    unsafe_pydel(@py io.flush())
     return
 end
 
 function Base.close(io::PyIO)
     flush(io)
-    pydel!(@py io.close())
+    unsafe_pydel(@py io.close())
     return
 end
 
@@ -195,13 +195,13 @@ function Base.seek(io::PyIO, pos::Integer)
     putobuf(io)
     empty!(io.ibuf)
     io.eof = false
-    pydel!(@py io.seek(pos))
+    unsafe_pydel(@py io.seek(pos))
     return io
 end
 
 function Base.truncate(io::PyIO, pos::Integer)
     seek(io, position(io))
-    pydel!(@py io.truncate(pos))
+    unsafe_pydel(@py io.truncate(pos))
     return io
 end
 
@@ -209,7 +209,7 @@ function Base.seekstart(io::PyIO)
     putobuf(io)
     empty!(io.ibuf)
     io.eof = false
-    pydel!(@py io.seek(0))
+    unsafe_pydel(@py io.seek(0))
     return io
 end
 
@@ -217,7 +217,7 @@ function Base.seekend(io::PyIO)
     putobuf(io)
     empty!(io.ibuf)
     io.eof = false
-    pydel!(@py io.seek(0, 2))
+    unsafe_pydel(@py io.seek(0, 2))
     return io
 end
 
@@ -233,7 +233,7 @@ function Base.skip(io::PyIO, n::Integer)
         if 0 ≤ n ≤ io.ibuflen
             read(io, n)
         else
-            pydel!(@py io.seek(@jl(n - length(io.ibuf)), 1))
+            unsafe_pydel(@py io.seek(@jl(n - length(io.ibuf)), 1))
             empty!(io.ibuf)
             io.eof = false
         end

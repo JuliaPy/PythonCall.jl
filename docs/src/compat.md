@@ -5,10 +5,6 @@ Some packages require a little extra help to work nicely with PythonCall.
 Some of these are "fixes" that are silently applied for you, and some are just extra
 functions to bridge a gap. We aim to keep these as minimal as possible.
 
-## Python standard library
-
-Whenever a Python exception is displayed by Julia, `sys.last_traceback` and friends are set. This allows the post-mortem debugger `pdb.pm()` to work. Disable by setting `PythonCall.CONFIG.auto_sys_last_traceback = false`.
-
 ## Julia standard library
 
 Python objects can be serialised with the [`Serialization`](https://docs.julialang.org/en/v1/stdlib/Serialization/) stdlib.

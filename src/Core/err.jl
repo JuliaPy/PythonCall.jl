@@ -105,17 +105,6 @@ function _showerror(io::IO, e::PyException, bt; backtrace = true)
         return
     end
 
-    if CONFIG.auto_sys_last_traceback
-        try
-            sys = pyimport("sys")
-            sys.last_type = e.t
-            sys.last_value = e.v
-            sys.last_traceback = e.b
-        catch err
-            print(io, "<error while setting 'sys.last_traceback': $err>")
-        end
-    end
-
     if !pyisnull(pyJuliaError) && pyissubclass(e.t, pyJuliaError)
         # handle Julia exceptions specially
         try

@@ -20,7 +20,7 @@ using Base: @propagate_inbounds
 using Tables: Tables
 using UnsafePointers: UnsafePtr
 
-import ..Core: Py, ispy
+import ..Core: Py, ispy, _py_on_main_thread_if_needed
 
 include("PyIterable.jl")
 include("PyDict.jl")

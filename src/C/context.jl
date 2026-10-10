@@ -18,6 +18,7 @@ A handle to a loaded instance of libpython, its interpreter, function pointers, 
     which::Symbol = :unknown # :CondaPkg, :PyCall, :embedded or :unknown
     version::Union{VersionNumber,Missing} = missing
     is_free_threaded::Bool = false
+    interp::Ptr{Cvoid} = C_NULL
 end
 
 const CTX = Context()
@@ -282,9 +283,12 @@ function init_context()
             Py_InitializeEx(0)
             atexit() do
                 CTX.is_initialized = false
-                if Py_FinalizeEx() == -1
-                    @warn "Py_FinalizeEx() error"
+                if !tstate_attached()
+                    ts = THREAD_STATE()
+                    ts.tstate == C_NULL && (ts.tstate = PyThreadState_New(CTX.interp))
+                    PyEval_RestoreThread(ts.tstate)
                 end
+                Py_FinalizeEx() == -1 && @warn "Py_FinalizeEx() error"
             end
         end
         CTX.is_initialized = true
@@ -317,6 +321,14 @@ function init_context()
         "Only Python 3.10+ is supported, this is Python $(CTX.version) at $(CTX.exe_path===missing ? "unknown location" : CTX.exe_path).",
     )
     CTX.is_free_threaded = occursin("free-threading build", verstr)
+
+    current = current_tstate()
+    current == C_NULL && error("Python initialization did not leave an attached thread state")
+    CTX.interp = PyThreadState_GetInterpreter(current)
+    CTX.interp == C_NULL && error("could not determine the Python interpreter")
+    if !CTX.is_embedded && !CTX.is_preinitialized
+        PyEval_SaveThread()
+    end
 
     launch_on_main_thread(Threads.threadid()) # makes on_main_thread usable
 

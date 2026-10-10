@@ -19,11 +19,17 @@ if @load_preference("exe", "@CondaPkg") == "@CondaPkg"
 end
 
 import ..PythonCall:
-    python_executable_path, python_library_path, python_library_handle, python_version
+    @pyregion,
+    @pyregionbreak,
+    python_executable_path,
+    python_library_path,
+    python_library_handle,
+    python_version
 
 include("consts.jl")
 include("pointers.jl")
 include("extras.jl")
+include("regions.jl")
 include("context.jl")
 include("api.jl")
 

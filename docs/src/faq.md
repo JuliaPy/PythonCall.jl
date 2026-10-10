@@ -12,7 +12,9 @@ Alternatively, to force PyCall to use the same interpreter as PythonCall, set th
 
 ## [Is PythonCall/JuliaCall thread safe?](@id faq-multi-threading)
 
-Yes, as of v0.9.22, provided you handle the GIL correctly. See the guides for
+Yes. PythonCall and JuliaCall manage the required Python thread states automatically, so
+PythonCall operations can be used from any Julia task or thread without explicit GIL
+handling. See the guides for
 [PythonCall](@ref jl-multi-threading) and [JuliaCall](@ref py-multi-threading).
 
 Before, tricks such as disabling the garbage collector were required. See the

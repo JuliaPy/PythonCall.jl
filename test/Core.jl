@@ -891,11 +891,11 @@ end
     @testset "gil (#751)" begin
         o = pyint(751)
         t = Base.Threads.@spawn begin
-            PythonCall.GIL.@lock begin
+            @pyregion begin
                 propertynames(o)
             end
         end
-        PythonCall.GIL.@unlock wait(t)
+        @pyregionbreak wait(t)
     end
 end
 

@@ -87,7 +87,7 @@ it at some indeterminate point in the future.
 function unsafe_pydel(x::Py)
     ptr = getptr(x)
     if ptr != C.PyNULL
-        C.Py_DecRef(ptr)
+        @pyregion C.Py_DecRef(ptr)
         setptr!(x, C.PyNULL)
     end
     return
@@ -99,12 +99,14 @@ macro autopy(args...)
     body = args[end]
     # ans = gensym("ans")
     esc(quote
+        @pyregion begin
         # $([:($t = $ispy($v) ? $v : $Py($v)) for (t, v) in zip(ts, vs)]...)
         # $ans = $body
         # $([:($ispy($v) || $unsafe_pydel($t)) for (t, v) in zip(ts, vs)]...)
         # $ans
         $([:($t = $Py($v)) for (t, v) in zip(ts, vs)]...)
         $body
+        end
     end)
 end
 
@@ -270,7 +272,7 @@ Base.hasproperty(x::Py, k::String) = pyhasattr(x, k)
 Base.setproperty!(x::Py, k::Symbol, v) = pysetattr(x, string(k), v)
 Base.setproperty!(x::Py, k::String, v) = pysetattr(x, k, v)
 
-function _propertynames(x::Py, private::Bool)
+function Base.propertynames(x::Py, private::Bool = false)
     # this follows the logic of rlcompleter.py
     function classmembers(c)
         r = pydir(c)
@@ -289,16 +291,6 @@ function _propertynames(x::Py, private::Bool)
         words.update(classmembers(x.__class__))
     end
     return Symbol[Symbol(pystr_asstring(word)) for word in words]
-end
-
-function Base.propertynames(x::Py, private::Bool = false)
-    if C.PyGILState_Check() == 1
-        _propertynames(x, private)
-    else
-        C.on_main_thread() do
-            _propertynames(x, private)
-        end::Vector{Symbol}
-    end
 end
 
 Base.Bool(x::Py) = pytruth(x)

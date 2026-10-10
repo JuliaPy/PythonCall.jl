@@ -105,26 +105,28 @@ def test_julia_gc():
             end
         end
         GC.gc()
+        @test !isempty(PythonCall.GC.QUEUE.items)
+        PythonCall.GC.gc()
         @test isempty(PythonCall.GC.QUEUE.items)
         """
     )
 
 
 @pytest.mark.parametrize("yld", [True, False])
-def test_call_nogil(yld):
-    """Tests that we can execute Julia code in parallel by releasing the GIL."""
+def test_parallel_call(yld):
+    """Tests that ordinary calls execute Julia code in parallel."""
     from concurrent.futures import ThreadPoolExecutor, wait
     from time import time
     from juliacall import Main as jl
 
-    # julia implementation of sleep which unlocks the GIL
+    # Julia implementations of sleep which do and do not yield.
     if yld:
         # use sleep, which yields
         jsleep = jl.sleep
     else:
         # use Libc.systemsleep which does not yield
         jsleep = jl.Libc.systemsleep
-    jsleep = jsleep.jl_call_nogil
+    assert not hasattr(jsleep, "jl_call_nogil")
     jyield = getattr(jl, "yield")
     # precompile
     jsleep(0.01)
@@ -153,3 +155,53 @@ def test_call_nogil(yld):
         t2 = time() - t0
     # executing the tasks should take about 1 second because they happen in parallel
     assert 0.9 < t2 < 1.5
+
+
+def test_concurrent_callback_roundtrips():
+    """Python threads can yield in Julia and repeatedly call back into Python."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier, get_ident
+    from juliacall import Main as jl
+
+    # Each worker crosses Python -> Julia -> Python -> Julia repeatedly. Checking
+    # the OS thread in the Python callback catches restoring another worker's
+    # borrowed thread state, while the start barrier makes state races likely on
+    # both GIL and free-threaded builds without assuming how Julia schedules them.
+    jl.jl_eval(
+        """
+        function _callback_roundtrip(callback, python_tid, start)
+            total = 0
+            for value in start:(start + 19)
+                yield()
+                @assert !PythonCall.C.has_tstate()
+                total += pyconvert(Int, callback(python_tid, value))
+            end
+            return total
+        end
+        """
+    )
+
+    def callback(expected_tid, value):
+        assert get_ident() == expected_tid
+        return 2 * int(jl.identity(value))
+
+    # Compile every Julia/Python/Julia path before entering Julia concurrently from
+    # foreign Python threads. This keeps the test focused on runtime state handoff.
+    warmup_start = 100
+    assert jl._callback_roundtrip(callback, get_ident(), warmup_start) == 2 * sum(
+        range(warmup_start, warmup_start + 20)
+    )
+
+    participants = 2
+    start_barrier = Barrier(participants)
+
+    def worker(start):
+        python_tid = get_ident()
+        start_barrier.wait()
+        return jl._callback_roundtrip(callback, python_tid, start)
+
+    with ThreadPoolExecutor(participants) as pool:
+        results = list(pool.map(worker, range(participants)))
+
+    for start, total in enumerate(results):
+        assert total == 2 * sum(range(start, start + 20))

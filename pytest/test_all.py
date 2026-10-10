@@ -155,3 +155,45 @@ def test_parallel_call(yld):
         t2 = time() - t0
     # executing the tasks should take about 1 second because they happen in parallel
     assert 0.9 < t2 < 1.5
+
+
+def test_concurrent_callback_roundtrips():
+    """Python threads can yield in Julia and repeatedly call back into Python."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier, get_ident
+    from juliacall import Main as jl
+
+    # Each worker crosses Python -> Julia -> Python -> Julia repeatedly. Checking
+    # the OS thread in the Python callback catches restoring another worker's
+    # borrowed thread state, while the start barrier makes state races likely on
+    # both GIL and free-threaded builds without assuming how Julia schedules them.
+    jl.jl_eval(
+        """
+        function _callback_roundtrip(callback, python_tid, start)
+            total = 0
+            for value in start:(start + 19)
+                yield()
+                total += pyconvert(Int, callback(python_tid, value))
+            end
+            return total
+        end
+        """
+    )
+
+    def callback(expected_tid, value):
+        assert get_ident() == expected_tid
+        return 2 * int(jl.identity(value))
+
+    participants = 2
+    start_barrier = Barrier(participants)
+
+    def worker(start):
+        python_tid = get_ident()
+        start_barrier.wait()
+        return jl._callback_roundtrip(callback, python_tid, start)
+
+    with ThreadPoolExecutor(participants) as pool:
+        results = list(pool.map(worker, range(participants)))
+
+    for start, total in enumerate(results):
+        assert total == 2 * sum(range(start, start + 20))

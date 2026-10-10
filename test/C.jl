@@ -25,20 +25,28 @@ end
     @test PythonCall.C.PyThreadState_GetUnchecked() == C_NULL
 
     # Nested regions reuse the state cached by the owning Julia thread. A break
-    # must relinquish that cache while yielding and restore it on return.
+    # must relinquish that cache while yielding, keep the task on the same Julia
+    # thread, and restore both the cache and the task's original stickiness.
+    test_task = current_task()
+    oldsticky = test_task.sticky
     @pyregion begin
         local state = PythonCall.C.TASK_STATE()
         local thread_state = PythonCall.C.THREAD_STATE()
-        @test thread_state.task === current_task()
+        local tid = threadid()
+        @test test_task.sticky
+        @test thread_state.task === test_task
         @test thread_state.task_state === state
-        @pyregion @test PythonCall.C.current_task_state(current_task()) === state
+        @pyregion @test PythonCall.C.current_task_state(test_task) === state
         @pyregionbreak begin
+            @test test_task.sticky
             @test thread_state.task === nothing
             yield()
+            @test threadid() == tid
         end
-        @test thread_state.task === current_task()
+        @test thread_state.task === test_task
         @test thread_state.task_state === state
     end
+    @test test_task.sticky == oldsticky
     @test PythonCall.C.THREAD_STATE().task === nothing
 
     @test @pyregion begin
@@ -50,6 +58,30 @@ end
         end
         pyconvert(Int, pyint(3)) == 3
     end
+
+    # A task waiting in ordinary Julia code must release its Python state so that
+    # another task on the same Julia thread can use Python. The bounded wait makes
+    # a missing break fail promptly instead of leaving the test suite deadlocked.
+    started = Channel{Nothing}(1)
+    ready = Ref(false)
+    break_status = Ref(:not_started)
+    values = Ref((0, 0))
+    @sync begin
+        @async @pyregion begin
+            put!(started, nothing)
+            first = pyconvert(Int, pybuiltins.sum([1, 2, 3]))
+            break_status[] = @pyregionbreak timedwait(() -> ready[], 2; pollint=0.001)
+            second = pyconvert(Int, pybuiltins.sum([4, 5, 6]))
+            values[] = (first, second)
+        end
+        @async begin
+            take!(started)
+            @test pyconvert(Int, pybuiltins.sum([7, 8, 9])) == 24
+            ready[] = true
+        end
+    end
+    @test break_status[] == :ok
+    @test values[] == (6, 15)
 
     @test_throws ErrorException @pyregion @pyregionbreak error("region exception")
     @test PythonCall.C.PyThreadState_GetUnchecked() == C_NULL

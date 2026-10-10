@@ -283,7 +283,7 @@ function init_context()
             Py_InitializeEx(0)
             atexit() do
                 CTX.is_initialized = false
-                if current_tstate() == C_NULL
+                if !tstate_attached()
                     ts = THREAD_STATE()
                     ts.tstate == C_NULL && (ts.tstate = PyThreadState_New(CTX.interp))
                     PyEval_RestoreThread(ts.tstate)

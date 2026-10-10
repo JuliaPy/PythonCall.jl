@@ -5,6 +5,8 @@ mutable struct TaskState
     tstate::PyThreadStatePtr
     # Semaphore protecting `tstate`; `nothing` when the task is outside a session.
     sem::Union{Nothing,Base.Semaphore}
+    # Whether `tstate` belongs to the Python thread which called into Julia.
+    borrowed::Bool
     # Whether `tstate` is currently attached to the task's pinned OS thread.
     attached::Bool
     # Julia thread to which the task is pinned while its session is active.
@@ -12,7 +14,7 @@ mutable struct TaskState
     # Stickiness to restore when the task's outermost region or break finishes.
     oldsticky::Bool
 end
-TaskState() = TaskState(C_NULL, nothing, false, 0, false)
+TaskState() = TaskState(C_NULL, nothing, false, false, 0, false)
 
 mutable struct ThreadState
     # Serializes tasks which use the persistent CPython state on this Julia thread.
@@ -47,14 +49,20 @@ const TASK_STATE = Utils.OncePerTask{TaskState}(TaskState)
 # semaphore with Python attached. This invariant makes its lock-free fast path safe.
 #
 # An attached CPython state is also a still cheaper fast path for @pyregion itself.
-# Given that PythonCall is the only Julia-side entry to Python, an attached state
+# Given that PythonCall is the only Julia-side entry to Python, confirmed ownership
 # means either that an enclosing region already did the bookkeeping or that Python
 # called into Julia and lent us its state. In either case a nested region has no
 # transition to perform. Conversely, a region inside a break observes no attached
 # state and takes the full path below, reacquiring and restoring its task state.
 
 current_tstate() = PyThreadState_GetUnchecked()
-has_tstate() = CTX.is_initialized && current_tstate() != C_NULL
+function tstate_attached()
+    # Before Python 3.12, _PyThreadState_UncheckedGet can return the thread's
+    # registered state even after PyEval_SaveThread released the GIL. On a GIL
+    # build, PyGILState_Check is the API which proves that using Python is safe.
+    return CTX.is_free_threaded ? current_tstate() != C_NULL : !iszero(PyGILState_Check())
+end
+has_tstate() = CTX.is_initialized && tstate_attached()
 
 # An attached task is pinned to this Julia thread and owns its semaphore, so the
 # thread-local cache cannot change underneath it.  This makes nested regions avoid
@@ -82,6 +90,7 @@ function reset!(s::TaskState)
     # the TaskState becomes observable as an active session again.
     s.tstate = C_NULL
     s.sem = nothing
+    s.borrowed = false
     s.attached = false
     s.tid = 0
     return
@@ -111,6 +120,11 @@ function enter_region(task::Task, s::TaskState)
         if s.attached
             return :noop
         end
+        if s.borrowed
+            PyEval_RestoreThread(s.tstate)
+            s.attached = true
+            return :detach_borrowed
+        end
         Base.acquire(s.sem::Base.Semaphore)
         try
             PyEval_RestoreThread(s.tstate)
@@ -130,29 +144,33 @@ function enter_region(task::Task, s::TaskState)
         reset!(s)
         rethrow()
     end
-    acquired = false
     try
-        Base.acquire(ts.sem)
-        acquired = true
-        current = current_tstate()
-        if current != C_NULL
-            # Calls originating in Python must return with its state still attached.
-            s.tstate = current
+        if has_tstate()
+            # Calls originating in Python borrow that thread's state without taking
+            # the Julia-thread semaphore. The GIL already protects the state here.
+            s.tstate = current_tstate()
+            s.borrowed = true
             s.attached = true
-            set_task!(ts, task, s)
             return :root_borrowed
         end
-        if ts.tstate == C_NULL
-            ts.tstate = PyThreadState_New(CTX.interp)
-            ts.tstate == C_NULL && error("PyThreadState_New failed")
+        acquired = false
+        Base.acquire(ts.sem)
+        acquired = true
+        try
+            if ts.tstate == C_NULL
+                ts.tstate = PyThreadState_New(CTX.interp)
+                ts.tstate == C_NULL && error("PyThreadState_New failed")
+            end
+            s.tstate = ts.tstate
+            PyEval_RestoreThread(s.tstate)
+            s.attached = true
+            set_task!(ts, task, s)
+            return :root_owned
+        catch
+            acquired && Base.release(ts.sem)
+            rethrow()
         end
-        s.tstate = ts.tstate
-        PyEval_RestoreThread(s.tstate)
-        s.attached = true
-        set_task!(ts, task, s)
-        return :root_owned
     catch
-        acquired && Base.release(ts.sem)
         task.sticky = s.oldsticky
         reset!(s)
         rethrow()
@@ -164,7 +182,11 @@ function exit_region(task::Task, s::TaskState, token)
     # reverses only its own transition and nested :noop regions do no attach work.
     token === :noop && return
     check_thread(task, s)
-    if token === :detach
+    if token === :detach_borrowed
+        saved = PyEval_SaveThread()
+        @assert saved == s.tstate
+        s.attached = false
+    elseif token === :detach
         saved = PyEval_SaveThread()
         @assert saved == s.tstate
         s.attached = false
@@ -180,10 +202,8 @@ function exit_region(task::Task, s::TaskState, token)
         task.sticky = oldsticky
     elseif token === :root_borrowed
         @assert current_tstate() == s.tstate
-        sem, oldsticky = s.sem::Base.Semaphore, s.oldsticky
-        clear_task!(THREAD_STATE())
+        oldsticky = s.oldsticky
         reset!(s)
-        Base.release(sem)
         task.sticky = oldsticky
     else
         error("invalid Python region token")
@@ -199,13 +219,14 @@ function enter_break(task::Task, s::TaskState)
         saved = PyEval_SaveThread()
         @assert saved == s.tstate
         s.attached = false
+        s.borrowed && return :restore_borrowed
         clear_task!(THREAD_STATE())
         Base.release(s.sem::Base.Semaphore)
         return :restore
     end
     # Outside a region, a break matters only in a Python-originated callback. It
     # borrows and detaches that state so yielding Julia code cannot retain Python.
-    current_tstate() == C_NULL && return :noop
+    !has_tstate() && return :noop
 
     try
         start_session!(task, s)
@@ -215,13 +236,14 @@ function enter_break(task::Task, s::TaskState)
         rethrow()
     end
     try
-        current = current_tstate()
-        if current == C_NULL
+        if !has_tstate()
             task.sticky = s.oldsticky
             reset!(s)
             return :noop
         end
+        current = current_tstate()
         s.tstate = current
+        s.borrowed = true
         saved = PyEval_SaveThread()
         @assert saved == current
         s.attached = false
@@ -244,6 +266,10 @@ function exit_break(task::Task, s::TaskState, token)
         reset!(s)
         task.sticky = oldsticky
         return
+    elseif token === :restore_borrowed
+        PyEval_RestoreThread(s.tstate)
+        s.attached = true
+        return
     elseif token !== :restore
         error("invalid Python region-break token")
     end
@@ -264,9 +290,9 @@ blocks cooperatively in [`@pyregionbreak`](@ref).
 """
 macro pyregion(ex)
     quote
-        if $current_tstate() != C_NULL
-            # The CPython TLS lookup is enough to prove that this region is nested
-            # or Python-originated; avoid both Julia task- and thread-local lookups.
+        if $has_tstate()
+            # The ownership check proves that this region is nested or
+            # Python-originated; avoid both Julia task- and thread-local lookups.
             $(esc(ex))
         else
             local task = current_task()

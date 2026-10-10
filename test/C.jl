@@ -20,9 +20,9 @@ end
 @testitem "Python regions and task-safe thread states" setup = [Setup] begin
     using Base.Threads
 
-    @test PythonCall.C.PyThreadState_GetUnchecked() == C_NULL
+    @test !PythonCall.C.has_tstate()
     @test @pyregion pyconvert(Int, pyint(12)) == 12
-    @test PythonCall.C.PyThreadState_GetUnchecked() == C_NULL
+    @test !PythonCall.C.has_tstate()
 
     # Nested regions reuse the state cached by the owning Julia thread. A break
     # must relinquish that cache while yielding, keep the task on the same Julia
@@ -84,7 +84,7 @@ end
     @test values[] == (6, 15)
 
     @test_throws ErrorException @pyregion @pyregionbreak error("region exception")
-    @test PythonCall.C.PyThreadState_GetUnchecked() == C_NULL
+    @test !PythonCall.C.has_tstate()
     @test_throws PyException @pyregion pybuiltins.int("not an integer")
     @test pyconvert(Int, pyint(5)) == 5
 

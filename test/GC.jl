@@ -30,7 +30,7 @@ end
         @test !isempty(PythonCall.GC.QUEUE.items)
     GC.gc()
     # A Julia finalizer must never attach a Python thread state merely to decref.
-    @test PythonCall.C.PyThreadState_GetUnchecked() == C_NULL
+    @test !PythonCall.C.has_tstate()
     Threads.nthreads() > 1 && @test !isempty(PythonCall.GC.QUEUE.items)
     PythonCall.GC.gc()
     @test isempty(PythonCall.GC.QUEUE.items)

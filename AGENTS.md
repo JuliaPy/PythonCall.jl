@@ -8,7 +8,10 @@
 - Sometimes `juliapkg` requires Julia 1.10–1.11. Juliaup provides Julia 1.11.9
   through the `1.11` channel. JuliaPkg selecting Julia 1.13.1 under
   uv's downloaded Python 3.10 fails to load `libjulia-codegen` because the Python
-  process has loaded a `libstdc++.so.6` that lacks `GLIBCXX_3.4.30`.
+  process has loaded a `libstdc++.so.6` that lacks `GLIBCXX_3.4.30`. Set
+  `PYTHON_JULIAPKG_EXE` to the absolute path of the Julia 1.11 executable when
+  running this combination; `JULIAUP_CHANNEL=1.11` does not affect JuliaPkg's
+  executable discovery here.
 - `julia --project=docs docs/make.jl` requires a valid Git `origin` so Documenter can infer
   source links; it fails during `makedocs` in checkouts without one.
 

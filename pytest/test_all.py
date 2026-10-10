@@ -173,6 +173,7 @@ def test_concurrent_callback_roundtrips():
             total = 0
             for value in start:(start + 19)
                 yield()
+                @assert !PythonCall.C.has_tstate()
                 total += pyconvert(Int, callback(python_tid, value))
             end
             return total
@@ -183,6 +184,13 @@ def test_concurrent_callback_roundtrips():
     def callback(expected_tid, value):
         assert get_ident() == expected_tid
         return 2 * int(jl.identity(value))
+
+    # Compile every Julia/Python/Julia path before entering Julia concurrently from
+    # foreign Python threads. This keeps the test focused on runtime state handoff.
+    warmup_start = 100
+    assert jl._callback_roundtrip(callback, get_ident(), warmup_start) == 2 * sum(
+        range(warmup_start, warmup_start + 20)
+    )
 
     participants = 2
     start_barrier = Barrier(participants)

@@ -171,6 +171,17 @@ PythonCall operations nested inside Julia callbacks are safe without explicit re
 
 You can also use [multi-threading from Julia](@ref jl-multi-threading).
 
+### Caveat: First-time compilation on Julia 1.11
+
+On Julia 1.11, simultaneously entering a Julia call path which has not yet been compiled
+from multiple Python-created threads can deadlock in Julia's compiler and garbage collector.
+When supporting Julia 1.11, call the function once with representative argument types on a
+single thread before submitting it to a Python thread pool. This limitation does not apply to
+Julia 1.12 or later.
+
+Python-created threads are adopted by Julia automatically when they enter JuliaCall. Do not
+call `jl_adopt_thread()` yourself.
+
 ### Caveat: Julia's task scheduler
 
 If you use a Julia function which yields to the task scheduler, such as `sleep` instead of

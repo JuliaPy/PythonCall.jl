@@ -11,7 +11,9 @@
   process has loaded a `libstdc++.so.6` that lacks `GLIBCXX_3.4.30`. Set
   `PYTHON_JULIAPKG_EXE` to the absolute path of the Julia 1.11 executable when
   running this combination; `JULIAUP_CHANNEL=1.11` does not affect JuliaPkg's
-  executable discovery here.
+  executable discovery here. To test Julia 1.12 or 1.13 instead, also prepend the
+  repository's `.CondaPkg/.pixi/envs/default/lib` directory to `LD_LIBRARY_PATH` so
+  the process uses its newer `libstdc++`.
 - `julia --project=docs docs/make.jl` requires a valid Git `origin` so Documenter can infer
   source links; it fails during `makedocs` in checkouts without one.
 

@@ -34,15 +34,17 @@ const TASK_STATE = Utils.OncePerTask{TaskState}(TaskState)
 # thread states must be restored on the same OS thread on which they were saved.
 # The corresponding ThreadState semaphore gives the task exclusive use of that
 # thread's persistent PyThreadState. A Python-originated call already has a CPython
-# state attached; that state is borrowed instead, but is protected by the same
-# semaphore so PythonCall's accounting remains identical.
+# state attached; that state is borrowed instead. Borrowed states must not acquire
+# the semaphore while holding the GIL: another task can own the semaphore while
+# waiting for the GIL, so doing so would invert the lock order and deadlock.
 #
-# Nested regions merely return `:noop`. A break saves/detaches the CPython state,
-# clears the thread cache, and releases the semaphore, allowing other sticky tasks
-# to use this Julia thread while the original task yields. On return it reacquires
-# the semaphore before restoring both the CPython state and cache. Consequently the
-# cache is populated exactly while a task owns the semaphore with Python attached.
-# This invariant is what makes its lock-free fast path safe.
+# Nested regions merely return `:noop`. For a PythonCall-owned state, a break saves
+# and detaches the state, clears the thread cache, and releases the semaphore so
+# other sticky tasks can use this Julia thread while the original task yields. On
+# return it reacquires the semaphore before restoring both the state and cache. A
+# borrowed callback state instead detaches and restores without touching the cache
+# or semaphore. Consequently the cache is populated exactly while a task owns the
+# semaphore with Python attached. This invariant makes its lock-free fast path safe.
 #
 # An attached CPython state is also a still cheaper fast path for @pyregion itself.
 # Given that PythonCall is the only Julia-side entry to Python, an attached state
@@ -205,20 +207,16 @@ function enter_break(task::Task, s::TaskState)
     # borrows and detaches that state so yielding Julia code cannot retain Python.
     current_tstate() == C_NULL && return :noop
 
-    ts = try
+    try
         start_session!(task, s)
     catch
         task.sticky = s.oldsticky
         reset!(s)
         rethrow()
     end
-    acquired = false
     try
-        Base.acquire(ts.sem)
-        acquired = true
         current = current_tstate()
         if current == C_NULL
-            Base.release(ts.sem)
             task.sticky = s.oldsticky
             reset!(s)
             return :noop
@@ -227,10 +225,8 @@ function enter_break(task::Task, s::TaskState)
         saved = PyEval_SaveThread()
         @assert saved == current
         s.attached = false
-        Base.release(ts.sem)
         return :root_restore
     catch
-        acquired && Base.release(ts.sem)
         task.sticky = s.oldsticky
         reset!(s)
         rethrow()
@@ -240,21 +236,21 @@ end
 function exit_break(task::Task, s::TaskState, token)
     token === :noop && return
     check_thread(task, s)
+    if token === :root_restore
+        # Restore a state borrowed from a Python callback directly. Acquiring the
+        # Julia-thread semaphore here would invert its lock order with the GIL.
+        PyEval_RestoreThread(s.tstate)
+        oldsticky = s.oldsticky
+        reset!(s)
+        task.sticky = oldsticky
+        return
+    elseif token !== :restore
+        error("invalid Python region-break token")
+    end
     Base.acquire(s.sem::Base.Semaphore)
     PyEval_RestoreThread(s.tstate)
     s.attached = true
     set_task!(THREAD_STATE(), task, s)
-    if token === :root_restore
-        # The borrowed Python state stays attached for the caller, but the temporary
-        # Julia session and its cache ownership end here.
-        sem, oldsticky = s.sem::Base.Semaphore, s.oldsticky
-        clear_task!(THREAD_STATE())
-        reset!(s)
-        Base.release(sem)
-        task.sticky = oldsticky
-    elseif token !== :restore
-        error("invalid Python region-break token")
-    end
     return
 end
 

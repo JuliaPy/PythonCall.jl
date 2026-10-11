@@ -12,6 +12,8 @@ end
 function pyjlmodule_seval(self::Module, expr::Py)
     Py(Base.eval(self, Meta.parseall(strip(pyconvert(String, expr)))))
 end
+# `jl.seval(...)` is often the first call of a JuliaCall session.
+precompile(pyjlmodule_seval, (Module, Py))
 
 function init_module()
     jl = pyjuliacallmodule

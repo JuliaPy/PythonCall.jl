@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+* The first call from Python in a new JuliaCall session no longer compiles
+  `jl.<name>` lookup on a module or `jl.seval`, saving about a second.
 * Bug fixes.
 
 ## 0.9.36 (2026-09-18)

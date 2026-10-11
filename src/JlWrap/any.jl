@@ -21,6 +21,8 @@ function pyjlany_getattr(self, k_::Py)
     Py(getproperty(self, k))
 end
 pyjl_handle_error_type(::typeof(pyjlany_getattr), self, exc) = pybuiltins.AttributeError
+# `jl.<name>` on `juliacall.Main` is often the first call of a JuliaCall session.
+precompile(pyjlany_getattr, (Module, Py))
 
 function pyjlany_setattr(self, k_::Py, v_::Py)
     k = Symbol(pyjl_attr_py2jl(pyconvert(String, k_)))

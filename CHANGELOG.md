@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.9.37 (2026-10-12)
 * Compatibility fix with Python 3.15 from conda-forge, which no longer bundles libpython.
 * Bug fixes.
 

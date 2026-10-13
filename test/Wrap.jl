@@ -1,3 +1,26 @@
+@testitem "PyString" begin
+    py_s = pystr("héllo 🌍")
+    y = PyString(py_s)
+
+    @test y isa PyString
+    @test PythonCall.ispy(y)
+    @test Py(y) === py_s
+
+    ptr, n = PythonCall.Core.pystr_utf8_pointer(py_s)
+    @test y.ptr == ptr
+    @test y.nbytes == n
+
+    expected = "héllo 🌍"
+    @test String(y) == expected
+    @test length(y) == length(expected)
+    @test collect(y) == collect(expected)
+    @test collect(codeunits(y)) == collect(codeunits(expected))
+
+    z = PyString("abc")
+    @test String(z) == "abc"
+    @test ncodeunits(z) == 3
+end
+
 @testitem "PyArray" begin
     x = pyimport("array").array("i", pylist([1, 2, 3]))
     y = PyArray(x)

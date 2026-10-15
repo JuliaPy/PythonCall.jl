@@ -14,7 +14,7 @@ using ..Convert
 using ..PyMacro
 
 import ..PythonCall:
-    PyArray, PyDict, PyIO, PyIterable, PyList, PyPandasDataFrame, PySet, PyTable
+    PyArray, PyDenseArray, PyDict, PyIO, PyIterable, PyList, PyPandasDataFrame, PySet, PyTable
 
 using Base: @propagate_inbounds
 using Tables: Tables
@@ -81,6 +81,10 @@ function __init__()
     pyconvert_add_rule("<arrayinterface>", AbstractArray, pyconvert_rule_array, priority)
     pyconvert_add_rule("<array>", AbstractArray, pyconvert_rule_array, priority)
     pyconvert_add_rule("<buffer>", AbstractArray, pyconvert_rule_array, priority)
+    pyconvert_add_rule("<arraystruct>", PyDenseArray, pyconvert_rule_densearray_nocopy, priority)
+    pyconvert_add_rule("<arrayinterface>", PyDenseArray, pyconvert_rule_densearray_nocopy, priority)
+    pyconvert_add_rule("<array>", PyDenseArray, pyconvert_rule_densearray_nocopy, priority)
+    pyconvert_add_rule("<buffer>", PyDenseArray, pyconvert_rule_densearray_nocopy, priority)
 end
 
 end

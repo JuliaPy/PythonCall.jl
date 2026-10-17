@@ -672,10 +672,16 @@ end
 end
 
 pyarray_offset(x::PyArray{T,N,M,true}, i::Int) where {T,N,M} =
-    N == 0 ? 0 : (i - 1) * x.strides[1]
-pyarray_offset(x::PyArray{T,1,M,true}, i::Int) where {T,M} = (i - 1) .* x.strides[1]
-pyarray_offset(x::PyArray{T,N}, i::Vararg{Int,N}) where {T,N} = sum((i .- 1) .* x.strides)
+    N == 0 ? 0 : pyarray_offset1(x, i)
+pyarray_offset(x::PyArray{T,1,M,true}, i::Int) where {T,M} = pyarray_offset1(x, i)
+pyarray_offset(x::PyArray{T,N}, i::Vararg{Int,N}) where {T,N} =
+    pyarray_offset1(x, i[1]) + sum((Base.tail(i) .- 1) .* Base.tail(x.strides); init = 0)
 pyarray_offset(x::PyArray{T,0}) where {T} = 0
+
+# The type can't say the first stride is the element size (strided arrays can be linear too).
+# Branching on it lets LLVM version loops on the contiguous case and vectorise them.
+pyarray_offset1(x::PyArray{T,N,M,L,R}, i::Int) where {T,N,M,L,R} =
+    x.strides[1] == sizeof(R) ? (i - 1) * sizeof(R) : (i - 1) * x.strides[1]
 
 function pyarray_load(::Type{T}, p::Ptr{R}) where {T,R}
     if R == T

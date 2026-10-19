@@ -64,10 +64,6 @@ jobs:
         if: ${{ matrix.pythonexe == 'python' }}
         with:
           python-version: ${{ matrix.pyversion }}
-      
-      # Cached Conda build metadata can outlive its uncached root environment.
-      - name: Rebuild Conda
-        run: julia --project=test -e 'import Pkg; Pkg.build("Conda")'
 
       - name: Build PyCall
         if: ${{ matrix.pythonexe == 'python' }}

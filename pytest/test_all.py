@@ -21,8 +21,8 @@ print(pyconvert(String, output.decode()))
 '''
     result = subprocess.run(
         [
-            str(jl.seval("first(Base.julia_cmd().exec)")),
-            "--project=" + str(jl.seval("dirname(Base.active_project())")),
+            str(jl.jl_eval("first(Base.julia_cmd().exec)")),
+            "--project=" + str(jl.jl_eval("dirname(Base.active_project())")),
             "--startup-file=no",
             "-e",
             code,

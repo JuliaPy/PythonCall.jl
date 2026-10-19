@@ -42,7 +42,7 @@ juliapkg.executable = lambda: str(launcher)
 
 from juliacall import Main
 
-assert Main.seval("1 + 1") == 2
+assert Main.jl_eval("1 + 1") == 2
 """
 
 

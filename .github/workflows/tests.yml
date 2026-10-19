@@ -41,6 +41,17 @@ jobs:
 
       - uses: julia-actions/cache@v3
 
+      # The package cache includes Conda's build configuration, but not its root environment.
+      - name: Rebuild Conda configuration
+        shell: julia --color=yes {0}
+        env:
+          JULIA_PKG_PRECOMPILE_AUTO: '0'
+        run: |
+          using Pkg
+          Pkg.activate(; temp=true)
+          Pkg.add("Conda")
+          Pkg.build("Conda")
+
       - name: Build package
         uses: julia-actions/julia-buildpkg@v1
         env:

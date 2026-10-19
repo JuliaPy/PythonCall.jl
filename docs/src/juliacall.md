@@ -182,7 +182,7 @@ then the above code will take 20 seconds because the sleeps run one after anothe
 
 It is very important that any function called with `_jl_call_nogil` does not interact
 with Python at all unless it re-locks the GIL first, such as by using
-[PythonCall.GIL.@lock](@ref).
+[`PythonCall.GIL.@lock`](@ref).
 
 You can also use [multi-threading from Julia](@ref jl-multi-threading).
 

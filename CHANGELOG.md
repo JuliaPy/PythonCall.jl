@@ -32,8 +32,12 @@
   * `pyjltype(x)` removed.
   * New functions: `pyjlarray`, `pyjldict`, `pyjlset`.
 
-## Unreleased
-* Bug fix: avoid precompilation cache miss when `check_bounds` option set.
+## 0.9.37 (2026-10-12)
+* Compatibility fix with Python 3.15 from conda-forge, which no longer bundles libpython.
+* Bug fixes.
+
+## 0.9.36 (2026-09-18)
+* Bug fixes.
 
 ## 0.9.35 (2026-06-08)
 * Add option `lib` to JuliaCall. Setting this will skip the discovery subprocess.

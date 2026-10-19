@@ -1,4 +1,3 @@
-
 [deps.openssl]
 version = "<=julia"
 
@@ -12,8 +11,12 @@ version = "<=julia"
 build = "**cpython**"
 version = ">=3.10,!=3.14.0,!=3.14.1,<4"
 
+[deps.libpython]
+build = "**bundled-or-separate**"
+channel = "conda-forge"
+
 [dev.deps]
-matplotlib = ""
 numpy = ""
-pyside6 = ""
 pandas = ""
+pyside6 = ""
+matplotlib = ""

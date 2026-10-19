@@ -1,7 +1,7 @@
 # This module gets modified by PythonCall when it is loaded, e.g. to include Core, Base
 # and Main modules.
 
-__version__ = '0.9.35'
+__version__ = '0.9.37'
 
 _newmodule = None
 
@@ -206,21 +206,22 @@ def init():
         CONFIG['project'] = project = juliapkg.project()
         if libpath is None:
             CONFIG['libpath'] = libpath = juliapkg.libjulia()
+        if bindir is None:
+            CONFIG['bindir'] = bindir = juliapkg.bindir()
     else:
         raise Exception("Both PYTHON_JULIACALL_PROJECT and PYTHON_JULIACALL_EXE must be set together, not only one of them.")
     if (libpath is not None) and (exepath is None):
         raise Exception("PYTHON_JULIACALL_EXE is required if PYTHON_JULIACALL_LIB is set.")
 
-    # Find the Julia library, if not specified.
-    if libpath is None:
+    # Discover the Julia library and binary directory if either is missing.
+    if libpath is None or bindir is None:
         cmd = [exepath, '--project='+project, '--startup-file=no', '-O0', '--compile=min',
                '-e', 'import Libdl; print(abspath(Libdl.dlpath("libjulia")), "\\0", Sys.BINDIR)']
-        libpath, found_bindir = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout.split('\0')
-        CONFIG['libpath'] = libpath
+        found_libpath, found_bindir = subprocess.run(cmd, check=True, capture_output=True, encoding='utf8').stdout.split('\0')
+        if libpath is None:
+            CONFIG['libpath'] = libpath = found_libpath
         if bindir is None:
             CONFIG['bindir'] = bindir = found_bindir
-    if bindir is None:
-        bindir = os.path.dirname(exepath)
     assert os.path.exists(libpath)
     assert os.path.exists(bindir)
 
@@ -247,7 +248,7 @@ def init():
 
     # override some environment variables
     # we do this here because PythonCall is initialised during jl_init if it is in a sysimg
-    os.environ['JULIA_PYTHONCALL_EXECUTABLE'] = sys.executable or ''
+    os.environ['JULIA_PYTHONCALL_EXE'] = sys.executable or ''
     os.environ['__JULIA_PYTHONCALL_EMBEDDED_LIBPTR__'] = hex(c.pythonapi._handle)
 
     # initialise julia

@@ -9,5 +9,8 @@
 
 The majority of tests live in the Julia package; Python tests cover functionality that cannot be exercised from Julia (e.g., JuliaCall-specific behavior). Run both suites—typically Julia first—in whichever order makes sense.
 
+- In restricted sandboxes, both suites need approval to write to the shared caches (`~/.julia` and `~/.cache/uv`).
+- `pysrc/juliacall/juliapkg.json` is tracked; restore its original contents after using the development copy for Python tests.
+
 ## Meta instructions
 - When you discover environment quirks, false assumptions, process fixes, or any other generally useful info, update this AGENTS.md so future coding agents have the information.

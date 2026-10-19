@@ -5,6 +5,15 @@ using PythonCall: pyimport, pydict, pystr, pyrange
 # The same suite runs against main and v1, which use different names.
 const benchmark_pydel = isdefined(PythonCall, :pydel!) ? PythonCall.pydel! : PythonCall.unsafe_pydel
 
+# main has no regions: run the same body without the outer region there.
+# Select before macro expansion so an unavailable @pyregion is never expanded.
+macro benchmark_pyregion(ex)
+    if isdefined(PythonCall, Symbol("@pyregion"))
+        return esc(:(PythonCall.@pyregion $ex))
+    end
+    return esc(ex)
+end
+
 const SUITE = BenchmarkGroup()
 
 function test_pydict_init()
@@ -62,7 +71,7 @@ function test_region_pythoncall(x, n)
 end
 
 function test_region_pythoncall_outer(x, n)
-    @pyregion begin
+    @benchmark_pyregion begin
         ans = 0
         for _ = 1:n
             ans += pylen(x)
@@ -72,7 +81,7 @@ function test_region_pythoncall_outer(x, n)
 end
 
 function test_region_capi(x, n)
-    @pyregion begin
+    @benchmark_pyregion begin
         ans = 0
         for _ = 1:n
             ans += PythonCall.C.PyObject_Length(x)

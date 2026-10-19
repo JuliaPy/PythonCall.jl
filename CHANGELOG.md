@@ -1,8 +1,11 @@
 # Changelog
 
 ## Unreleased
-* The first call from Python in a new JuliaCall session no longer compiles
-  `jl.<name>` lookup on a module or `jl.seval`, saving about a second.
+* Improved TTFX in JuliaCall.
+* Minimum supported Python version is now 3.11.
+
+## 0.9.37 (2026-10-12)
+* Compatibility fix with Python 3.15 from conda-forge, which no longer bundles libpython.
 * Bug fixes.
 
 ## 0.9.36 (2026-09-18)

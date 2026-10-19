@@ -90,24 +90,6 @@ end
 pyjl_handle_error_type(::typeof(pyjlany_callback), self, exc::MethodError) =
     exc.f === self ? pybuiltins.TypeError : PyNULL
 
-function pyjlany_call_nogil(self, args_::Py, kwargs_::Py)
-    if pylen(kwargs_) > 0
-        args = pyconvert(Vector{Any}, args_)
-        kwargs = pyconvert(Dict{Symbol,Any}, kwargs_)
-        ans = pyjl(GIL.@unlock self(args...; kwargs...))
-    elseif pylen(args_) > 0
-        args = pyconvert(Vector{Any}, args_)
-        ans = pyjl(GIL.@unlock self(args...))
-    else
-        ans = pyjl(GIL.@unlock self())
-    end
-    unsafe_pydel(args_)
-    unsafe_pydel(kwargs_)
-    ans
-end
-pyjl_handle_error_type(::typeof(pyjlany_call_nogil), self, exc::MethodError) =
-    exc.f === self ? pybuiltins.TypeError : PyNULL
-
 function pyjlany_getitem(self, k_::Py)
     if self isa Type
         if pyistuple(k_)
@@ -298,7 +280,7 @@ function pyjlany_index(self)
     if self isa Integer
         pyint(self)
     else
-        errset(
+        @pyregion errset(
             pybuiltins.TypeError,
             "Only Julia 'Integer' values can be used as Python indices, not '$(typeof(self))'",
         )
@@ -310,7 +292,7 @@ function pyjlany_bool(self)
     if self isa Bool
         pybool(self)
     else
-        errset(
+        @pyregion errset(
             pybuiltins.TypeError,
             "Only Julia 'Bool' values can be tested for truthyness, not '$(typeof(self))'",
         )
@@ -370,7 +352,7 @@ end
 function pyjlany_next(self)
     s = iterate(self)
     if s === nothing
-        errset(pybuiltins.StopIteration)
+        @pyregion errset(pybuiltins.StopIteration)
         PyNULL
     else
         pyjl(s[1])
@@ -380,7 +362,7 @@ end
 function pyjliter_next(self)
     s = iterate(self)
     if s === nothing
-        errset(pybuiltins.StopIteration)
+        @pyregion errset(pybuiltins.StopIteration)
         PyNULL
     else
         Py(s[1])
@@ -427,7 +409,7 @@ function pyjlany_numpy_dtype(self::Type)
         )
     end
     if pyisnull(ans)
-        errset(pybuiltins.AttributeError, "__numpy_dtype__")
+        @pyregion errset(pybuiltins.AttributeError, "__numpy_dtype__")
     end
     return ans
 end
@@ -607,13 +589,6 @@ class Jl(JlBase2):
         return self._jl_callmethod($(pyjl_methodnum(Py)))
     def jl_callback(self, *args, **kwargs):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_callback)), args, kwargs)
-    def jl_call_nogil(self, *args, **kwargs):
-        '''Call this with the given arguments but with the GIL disabled.
-        
-        WARNING: This function must not interact with Python at all without re-acquiring
-        the GIL.
-        '''
-        return self._jl_callmethod($(pyjl_methodnum(pyjlany_call_nogil)), args, kwargs)
     def _repr_mimebundle_(self, include=None, exclude=None):
         return self._jl_callmethod($(pyjl_methodnum(pyjlany_mimebundle)), include, exclude)
     @property

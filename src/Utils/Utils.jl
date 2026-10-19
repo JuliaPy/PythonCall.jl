@@ -2,6 +2,45 @@ module Utils
 
 using Preferences: @load_preference
 
+@static if isdefined(Base, :OncePerThread)
+    const OncePerThread = Base.OncePerThread
+    const OncePerTask = Base.OncePerTask
+else
+    # Minimal package-local equivalents for Julia versions where Base does not provide them.
+    mutable struct OncePerThread{T,F}
+        initializer::F
+        values::Dict{Int,T}
+        lock::ReentrantLock
+    end
+
+    OncePerThread{T}(initializer::F) where {T,F} =
+        OncePerThread{T,F}(initializer, Dict{Int,T}(), ReentrantLock())
+
+    function (once::OncePerThread{T})() where {T}
+        tid = Threads.threadid()
+        lock(once.lock)
+        try
+            return get!(once.values, tid) do
+                once.initializer()::T
+            end
+        finally
+            unlock(once.lock)
+        end
+    end
+
+    mutable struct OncePerTask{T,F}
+        initializer::F
+    end
+
+    OncePerTask{T}(initializer::F) where {T,F} = OncePerTask{T,F}(initializer)
+
+    function (once::OncePerTask{T})() where {T}
+        get!(task_local_storage(), once) do
+            once.initializer()::T
+        end::T
+    end
+end
+
 function getpref(::Type{T}, prefname, envname, default = nothing) where {T}
     ans = @load_preference(prefname, nothing)
     ans === nothing || return checkpref(T, ans)::T

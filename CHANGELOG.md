@@ -12,6 +12,19 @@
   * Python errors no longer automatically set `sys.last_traceback` etc. when displayed from Julia.
   * Added [`fix_qt_plugin_path` preference](@ref pythoncall-config), replacing `CONFIG.auto_fix_qt_plugin_path`.
   * Removed `PythonCall.CONFIG`.
+* Changes to multi-threading:
+  * PythonCall APIs now manage CPython thread states automatically and can be called from
+    any Julia task or thread without manually locking the GIL.
+  * Added the optional, nestable `@pyregion` and `@pyregionbreak` macros. These are
+    performance and concurrency hints rather than correctness requirements.
+  * Removed the `PythonCall.GIL` module. Ordinary PythonCall operations replace
+    `GIL.lock`, and `@pyregionbreak` replaces `GIL.unlock` when an enclosing region needs
+    to relinquish Python resources around yielding or blocking Julia code.
+  * JuliaCall now relinquishes and restores Python resources automatically while running
+    Julia code, including Python-to-Julia callbacks.
+  * Removed JuliaCall's `jl_call_nogil` method; ordinary calls now provide its behavior.
+  * Python-object finalizers no longer attach a Python thread state. Pending decrefs are
+    queued until a state is already attached or `PythonCall.GC.gc()` drains the queue.
 * Changes to `PythonCall.GC` (now more like `Base.GC`):
   * `enable(true)` replaces `enable()`.
   * `enable(false)` replaces `disable()`.

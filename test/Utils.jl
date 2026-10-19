@@ -22,3 +22,26 @@ end
     @test s[1:2] == "ab"
     @test s[1:2:end] == "aaaab"
 end
+
+@testitem "OncePerThread and OncePerTask" begin
+    thread_count = Threads.Atomic{Int}(0)
+    per_thread = PythonCall.Utils.OncePerThread{Int}() do
+        Threads.atomic_add!(thread_count, 1)
+        Threads.threadid()
+    end
+    @test per_thread() == Threads.threadid()
+    @test per_thread() == Threads.threadid()
+    @test thread_count[] == 1
+
+    task_count = Threads.Atomic{Int}(0)
+    per_task = PythonCall.Utils.OncePerTask{UInt}() do
+        Threads.atomic_add!(task_count, 1)
+        objectid(current_task())
+    end
+    @test per_task() == per_task()
+    other_per_task = PythonCall.Utils.OncePerTask{UInt}(() -> typemax(UInt))
+    @test other_per_task() == typemax(UInt)
+    other = fetch(Threads.@spawn (per_task(), per_task()))
+    @test other[1] == other[2]
+    @test task_count[] == 2
+end

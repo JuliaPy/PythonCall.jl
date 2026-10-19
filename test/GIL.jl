@@ -1,10 +1,10 @@
-@testitem "unlock and lock" begin
+@testitem "region break and region" begin
     # This calls Python's time.sleep(1) twice concurrently. Since sleep() unlocks the
     # GIL, these can happen in parallel if Julia has at least 2 threads.
     function threaded_sleep()
-        PythonCall.GIL.unlock() do
+        @pyregionbreak begin
             Threads.@threads :static for i = 1:2
-                PythonCall.GIL.lock() do
+                @pyregion begin
                     pyimport("time").sleep(1)
                 end
             end
@@ -20,12 +20,12 @@
     end
 end
 
-@testitem "@unlock and @lock" begin
+@testitem "@pyregionbreak and @pyregion" begin
     # This calls Python's time.sleep(1) twice concurrently. Since sleep() unlocks the
     # GIL, these can happen in parallel if Julia has at least 2 threads.
     function threaded_sleep()
-        PythonCall.GIL.@unlock Threads.@threads :static for i = 1:2
-            PythonCall.GIL.@lock pyimport("time").sleep(1)
+        @pyregionbreak Threads.@threads :static for i = 1:2
+            @pyregion pyimport("time").sleep(1)
         end
     end
     # one run to ensure it's compiled

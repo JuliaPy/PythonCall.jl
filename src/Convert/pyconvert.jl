@@ -353,7 +353,8 @@ function pytryconvert(::Type{T}, x_) where {T}
 
     # apply the rules
     for rule in rules
-        ans2 = rule(x)::pyconvert_returntype(T)
+        # Conversion rules are user-extensible Julia code and may yield.
+        ans2 = @pyregionbreak(rule(x))::pyconvert_returntype(T)
         pyconvert_isunconverted(ans2) || return ans2
     end
 
@@ -369,13 +370,15 @@ On failure, evaluates to `onfail`, which defaults to `return pyconvert_unconvert
 """
 macro pyconvert(T, x, onfail = :(return $pyconvert_unconverted()))
     quote
-        T = $(esc(T))
-        x = $(esc(x))
-        ans = pytryconvert(T, x)
-        if pyconvert_isunconverted(ans)
-            $(esc(onfail))
-        else
-            pyconvert_result(T, ans)
+        @pyregion begin
+            T = $(esc(T))
+            x = $(esc(x))
+            ans = pytryconvert(T, x)
+            if pyconvert_isunconverted(ans)
+                $(esc(onfail))
+            else
+                pyconvert_result(T, ans)
+            end
         end
     end
 end

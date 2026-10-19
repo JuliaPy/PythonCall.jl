@@ -77,6 +77,52 @@ The `PythonCall.CONFIG.auto_fix_qt_plugin_path` config has been replaced with th
   `pkg> preference add PythonCall fix_qt_plugin_path=false` or the env var
   `JULIA_PYTHONCALL_FIX_QT_PLUGIN_PATH=0`.
 
+## Multi-threading
+
+PythonCall now manages CPython thread states automatically. PythonCall operations can be
+used from any Julia task or thread, including Julia code entered through JuliaCall, without
+manually locking or unlocking the GIL.
+
+The `PythonCall.GIL` module has been removed:
+
+* Remove `PythonCall.GIL.lock` and `PythonCall.GIL.@lock` around individual PythonCall
+  operations; each operation establishes the Python state it needs automatically.
+* For a sequence of straight-line, Python-heavy operations, `@pyregion` is an optional
+  optimization which amortizes thread-state transitions.
+* Instead of `PythonCall.GIL.unlock(f)` or `PythonCall.GIL.@unlock expr` inside such a
+  region, use `@pyregionbreak f()` or `@pyregionbreak expr`. A region break is useful
+  around Julia code which may yield, wait, or block cooperatively.
+
+For example, code which previously managed the GIL explicitly:
+
+```julia
+PythonCall.GIL.@lock begin
+    x = pyimport("example").make_value()
+    PythonCall.GIL.@unlock wait(event)
+    x.finish()
+end
+```
+
+can be written as:
+
+```julia
+@pyregion begin
+    x = pyimport("example").make_value()
+    @pyregionbreak wait(event)
+    x.finish()
+end
+```
+
+The outer `@pyregion` can also be omitted; the PythonCall operations remain correct, and
+`wait(event)` then needs no annotation. Both macros nest safely.
+
+JuliaCall similarly relinquishes Python resources automatically while arbitrary Julia code
+runs. The `_jl_call_nogil` and `jl_call_nogil` methods have been removed; use an ordinary
+call instead.
+
+Finalizers no longer attach a Python thread state and block waiting for Python. If prompt
+cleanup matters, call `PythonCall.GC.gc()` at a suitable point to drain queued decrefs.
+
 ## `PythonCall.GC`
 
 This submodule has been changed to closer mimic the `Base.GC` API.

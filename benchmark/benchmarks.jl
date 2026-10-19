@@ -5,6 +5,15 @@ using PythonCall: pyimport, pydict, pystr, pyrange
 # The same suite runs against main and v1, which use different names.
 const benchmark_pydel = isdefined(PythonCall, :pydel!) ? PythonCall.pydel! : PythonCall.unsafe_pydel
 
+# main has no regions: run the same body without the outer region there.
+# Select before macro expansion so an unavailable @pyregion is never expanded.
+macro benchmark_pyregion(ex)
+    if isdefined(PythonCall, Symbol("@pyregion"))
+        return esc(:(PythonCall.@pyregion $ex))
+    end
+    return esc(ex)
+end
+
 const SUITE = BenchmarkGroup()
 
 function test_pydict_init()
@@ -52,6 +61,49 @@ end
 
 SUITE["basic"]["@py"]["pydict"]["init"] = @benchmarkable test_atpy(Val(false))
 SUITE["basic"]["@py"]["pydict"]["pydel"] = @benchmarkable test_atpy(Val(true))
+
+function test_region_pythoncall(x, n)
+    ans = 0
+    for _ = 1:n
+        ans += pylen(x)
+    end
+    return ans
+end
+
+function test_region_pythoncall_outer(x, n)
+    @benchmark_pyregion begin
+        ans = 0
+        for _ = 1:n
+            ans += pylen(x)
+        end
+        return ans
+    end
+end
+
+function test_region_capi(x, n)
+    @benchmark_pyregion begin
+        ans = 0
+        for _ = 1:n
+            ans += PythonCall.C.PyObject_Length(x)
+        end
+        return ans
+    end
+end
+
+const REGION_BENCHMARK_LENGTH = 1000
+
+SUITE["region"]["pythoncall"] = @benchmarkable(
+    test_region_pythoncall(x, REGION_BENCHMARK_LENGTH),
+    setup=(x = pytuple((1, 2, 3))),
+)
+SUITE["region"]["pythoncall_outer"] = @benchmarkable(
+    test_region_pythoncall_outer(x, REGION_BENCHMARK_LENGTH),
+    setup=(x = pytuple((1, 2, 3))),
+)
+SUITE["region"]["capi_outer"] = @benchmarkable(
+    test_region_capi(x, REGION_BENCHMARK_LENGTH),
+    setup=(x = pytuple((1, 2, 3))),
+)
 
 
 include("gcbench.jl")

@@ -88,11 +88,13 @@ conversion to Python, unless the value is immutable and has a corresponding Pyth
 
 ```@docs
 pyjl
-pyjlraw
 pyisjl
 pyjlvalue
 pybinaryio
 pytextio
+pyjlarray
+pyjlset
+pyjldict
 ```
 
 ## Arithmetic
@@ -248,12 +250,7 @@ The functions here are not exported. They are mostly unsafe in the sense that yo
 crash Julia by using them incorrectly.
 
 ```@docs
-PythonCall.pynew
-PythonCall.pyisnull
-PythonCall.pycopy!
-PythonCall.getptr
-PythonCall.pydel!
-PythonCall.unsafe_pynext
+PythonCall.unsafe_pydel
 ```
 
 ## NumpyDates

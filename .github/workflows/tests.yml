@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
     - main
+    - v1
   push:
     branches:
     - main
@@ -63,7 +64,7 @@ jobs:
         if: ${{ matrix.pythonexe == 'python' }}
         with:
           python-version: ${{ matrix.pyversion }}
-      
+
       - name: Build PyCall
         if: ${{ matrix.pythonexe == 'python' }}
         run: |

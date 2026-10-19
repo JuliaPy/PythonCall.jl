@@ -9,6 +9,10 @@
 
 The majority of tests live in the Julia package; Python tests cover functionality that cannot be exercised from Julia (e.g., JuliaCall-specific behavior). Run both suites—typically Julia first—in whichever order makes sense.
 
+## Branch and CI compatibility
+- On `v1`, JuliaCall uses `jl_eval` (returning a Julia wrapper), whereas `main` uses `seval`. Adapt tests brought over from `main` accordingly.
+- The benchmark suite is shared across the compared revisions: `main` uses `pydel!`, while `v1` uses `unsafe_pydel`.
+- Julia CI caches can preserve Conda's build metadata without its root environment. Rebuild `Conda` before building `PyCall` or running tests to recreate that directory.
 - In restricted sandboxes, both suites need approval to write to the shared caches (`~/.julia` and `~/.cache/uv`).
 - `pysrc/juliacall/juliapkg.json` is tracked; restore its original contents after using the development copy for Python tests.
 

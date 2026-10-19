@@ -289,6 +289,7 @@ variables.
 | `exe` | `JULIA_PYTHONCALL_EXE` | Path to the Python executable, or special values (see below). |
 | `lib` | `JULIA_PYTHONCALL_LIB` | Path to the Python library (usually inferred automatically). |
 | `pickle` | `JULIA_PYTHONCALL_PICKLE` | Pickle module to use for serialization (`pickle` or `dill`). |
+| `fix_qt_plugin_path=<true\|false>` | `JULIA_PYTHONCALL_FIX_QT_PLUGIN_PATH=<false\|true\|0\|1\|no\|yes>` | When true (the default), automatically [fix the Qt plugin path](@ref PythonCall.fix_qt_plugin_path) when activating a Qt-based event loop. |
 
 The easiest way to set these preferences is with the
 [`PreferenceTools`](https://github.com/cjdoris/PreferenceTools.jl)

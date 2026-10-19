@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+* Improved TTFX in JuliaCall.
 * Minimum supported Python version is now 3.11.
 
 ## 0.9.37 (2026-10-12)

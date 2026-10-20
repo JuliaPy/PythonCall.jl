@@ -639,7 +639,8 @@ function pyarray_offset(x::PyArray{T,N,F}, i::Int) where {T,N,F}
 end
 
 function pyarray_offset(x::PyArray{T,N,F}, i::Vararg{Int,N}) where {T,N,F}
-    sum((i .- 1) .* x.strides)
+    # `init` covers 0-d arrays indexed as `x[]`, where `i` is empty
+    sum((i .- 1) .* x.strides; init=0)
 end
 
 function pyarray_load(::Type{T}, p::Ptr{R}) where {T,R}

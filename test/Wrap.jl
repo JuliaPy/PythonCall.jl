@@ -100,6 +100,16 @@
         )
         @test_throws Exception PyArray(nd; array = false, buffer = true)
     end
+    @testset "0-d" begin
+        tb = pyimport("_testbuffer")
+        nd = tb.ndarray(5, shape = pylist(), flags = tb.ND_WRITABLE)
+        a = PyArray(nd; array = false, buffer = true)
+        @test ndims(a) == 0
+        @test a[] == 5
+        a[] = 6
+        @test a[] == 6
+        @test pyconvert(Int, nd.tolist()) == 6
+    end
 end
 
 @testitem "PyDict" begin

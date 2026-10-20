@@ -646,9 +646,11 @@ function pyarray_load(::Type{T}, p::Ptr{R}) where {T,R}
     if R == T
         unsafe_load(p)
     elseif R == C.PyPtr
-        u = unsafe_load(p)
-        o = u == C_NULL ? pynew(Py(nothing)) : pynew(incref(u))
-        T == Py ? o : pyconvert(T, o)
+        @pyregion begin
+            u = unsafe_load(p)
+            o = u == C_NULL ? pynew(Py(nothing)) : pynew(incref(u))
+            T == Py ? o : pyconvert(T, o)
+        end
     else
         convert(T, unsafe_load(p))
     end

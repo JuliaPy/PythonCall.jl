@@ -91,10 +91,14 @@ file_to_pymodule(fname::String) = begin
     end
 end
 
-Base.showerror(io::IO, e::PyException) = _showerror(io, e, nothing, backtrace = false)
+# We take a single region here so that formatting doesn't re-acquire the GIL for
+# every operation, which otherwise can be very slow with multiple threads trying
+# to take the GIL.
+Base.showerror(io::IO, e::PyException) =
+    @pyregion _showerror(io, e, nothing, backtrace = false)
 
 Base.showerror(io::IO, e::PyException, bt; backtrace = true) =
-    _showerror(io, e, bt; backtrace = backtrace)
+    @pyregion _showerror(io, e, bt; backtrace = backtrace)
 
 function _showerror(io::IO, e::PyException, bt; backtrace = true)
     print(io, "Python: ")

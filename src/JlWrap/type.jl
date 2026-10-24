@@ -56,27 +56,10 @@ end
 
 function init_type()
     jl = pyjuliacallmodule
-    pybuiltins.exec(
-        pybuiltins.compile(
-            """
-$("\n"^(@__LINE__()-1))
-class TypeValue(AnyValue):
-    __slots__ = ()
-    def __getitem__(self, k):
-        return self._jl_callmethod($(pyjl_methodnum(pyjltype_getitem)), k)
-    def __setitem__(self, k, v):
-        raise TypeError("not supported")
-    def __delitem__(self, k):
-        raise TypeError("not supported")
-    @property
-    def __numpy_dtype__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjltype_numpy_dtype)))
-""",
-            @__FILE__(),
-            "exec",
-        ),
-        jl.__dict__,
-    )
+    m = pyimport("juliacall._jlwrap.type")
+    methods = m._jl_methods
+    methods["__getitem__"] = pyjl_methodnum(pyjltype_getitem)
+    methods["__numpy_dtype__"] = pyjl_methodnum(pyjltype_numpy_dtype)
     pycopy!(pyjltypetype, jl.TypeValue)
 end
 

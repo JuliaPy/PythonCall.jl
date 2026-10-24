@@ -46,6 +46,35 @@ class JuliaError(Exception):
     def backtrace(self):
         return self.args[1]
 
+def _init_jlwrap():
+    # Called by PythonCall once the native ValueBase type is available.
+    global RawValue, AnyValue, IteratorValue, TypeValue
+    global ModuleValue, IOValueBase, BinaryIOValue, TextIOValue
+    global NumberValue, ComplexValue, RealValue, RationalValue
+    global IntegerValue, ArrayValue, VectorValue, DictValue
+    global SetValue, CallbackValue
+    from ._jlwrap import (
+        RawValue,
+        AnyValue,
+        IteratorValue,
+        TypeValue,
+        ModuleValue,
+        IOValueBase,
+        BinaryIOValue,
+        TextIOValue,
+        NumberValue,
+        ComplexValue,
+        RealValue,
+        RationalValue,
+        IntegerValue,
+        ArrayValue,
+        VectorValue,
+        DictValue,
+        SetValue,
+        CallbackValue,
+    )
+
+
 CONFIG = {'inited': False}
 
 def init():

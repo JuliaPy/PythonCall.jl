@@ -639,17 +639,25 @@ function pyarray_offset(x::PyArray{T,N,F}, i::Int) where {T,N,F}
 end
 
 function pyarray_offset(x::PyArray{T,N,F}, i::Vararg{Int,N}) where {T,N,F}
-    # `init` covers 0-d arrays indexed as `x[]`, where `i` is empty
-    sum((i .- 1) .* x.strides; init=0)
+    # Make the unit first stride a compile-time constant, so loops vectorise.
+    # Also matters for N == 1, where this method is picked over `pyarray_offset(x, i::Int)`.
+    if N >= 1 && (:contiguous in F)
+        sum((i .- 1) .* (sizeof(pyarray_get_R(T)), x.strides[2:end]...))
+    else
+        # `init` covers 0-d arrays indexed as `x[]`, where `i` is empty
+        sum((i .- 1) .* x.strides; init=0)
+    end
 end
 
 function pyarray_load(::Type{T}, p::Ptr{R}) where {T,R}
     if R == T
         unsafe_load(p)
     elseif R == C.PyPtr
-        u = unsafe_load(p)
-        o = u == C_NULL ? pynew(Py(nothing)) : pynew(incref(u))
-        T == Py ? o : pyconvert(T, o)
+        @pyregion begin
+            u = unsafe_load(p)
+            o = u == C_NULL ? pynew(Py(nothing)) : pynew(incref(u))
+            T == Py ? o : pyconvert(T, o)
+        end
     else
         convert(T, unsafe_load(p))
     end

@@ -644,7 +644,8 @@ function pyarray_offset(x::PyArray{T,N,F}, i::Vararg{Int,N}) where {T,N,F}
     if N >= 1 && (:contiguous in F)
         sum((i .- 1) .* (sizeof(pyarray_get_R(T)), x.strides[2:end]...))
     else
-        sum((i .- 1) .* x.strides)
+        # `init` covers 0-d arrays indexed as `x[]`, where `i` is empty
+        sum((i .- 1) .* x.strides; init=0)
     end
 end
 

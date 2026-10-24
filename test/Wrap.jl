@@ -100,6 +100,18 @@
         )
         @test_throws Exception PyArray(nd; array = false, buffer = true)
     end
+    @testset "contiguous 2D" begin
+        tb = pyimport("_testbuffer")
+        nd = tb.ndarray(
+            pylist(1:6),
+            shape = pylist([2, 3]),
+            format = "i",
+            flags = tb.ND_FORTRAN,
+        )
+        a = PyArray(nd; array = false)
+        @test a isa PyArray{Cint,2,(:linear,:contiguous)}
+        @test [a[i, j] for i = 1:2, j = 1:3] == reshape(1:6, 2, 3)
+    end
 end
 
 @testitem "PyDict" begin

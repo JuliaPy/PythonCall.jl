@@ -639,10 +639,10 @@ function pyarray_offset(x::PyArray{T,N,F}, i::Int) where {T,N,F}
 end
 
 function pyarray_offset(x::PyArray{T,N,F}, i::Vararg{Int,N}) where {T,N,F}
-    # Strides from the size make the unit first stride a compile-time constant, so loops vectorise.
+    # Make the unit first stride a compile-time constant, so loops vectorise.
     # Also matters for N == 1, where this method is picked over `pyarray_offset(x, i::Int)`.
-    if (:contiguous in F)
-        sum((i .- 1) .* Utils.size_to_fstrides(sizeof(pyarray_get_R(T)), x.size))
+    if N >= 1 && (:contiguous in F)
+        sum((i .- 1) .* (sizeof(pyarray_get_R(T)), x.strides[2:end]...))
     else
         sum((i .- 1) .* x.strides)
     end

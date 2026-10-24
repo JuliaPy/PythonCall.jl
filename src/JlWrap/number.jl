@@ -91,147 +91,53 @@ pyjl_handle_error_type(::typeof(pyjlreal_round), self, exc::MethodError) =
 
 function init_number()
     jl = pyjuliacallmodule
-    pybuiltins.exec(
-        pybuiltins.compile(
-            """
-$("\n"^(@__LINE__()-1))
-class NumberValue(AnyValue):
-    __slots__ = ()
-    def __bool__(self):
-        return not self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(iszero))))
-    def __add__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(+))), other)
-    def __sub__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(-))), other)
-    def __mul__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(*))), other)
-    def __truediv__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(/))), other)
-    def __floordiv__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(÷))), other)
-    def __mod__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(%))), other)
-    def __pow__(self, other, modulo=None):
-        if modulo is None:
-            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(^))), other)
-        else:
-            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(powermod))), other, modulo)
-    def __lshift__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(<<))), other)
-    def __rshift__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(>>))), other)
-    def __and__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(&))), other)
-    def __xor__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(⊻))), other)
-    def __or__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(|))), other)
-    def __radd__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(+))), other)
-    def __rsub__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(-))), other)
-    def __rmul__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(*))), other)
-    def __rtruediv__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(/))), other)
-    def __rfloordiv__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(÷))), other)
-    def __rmod__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(%))), other)
-    def __rpow__(self, other, modulo=None):
-        if modulo is None:
-            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(^))), other)
-        else:
-            return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(powermod))), other, modulo)
-    def __rlshift__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(<<))), other)
-    def __rrshift__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(>>))), other)
-    def __rand__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(&))), other)
-    def __rxor__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(⊻))), other)
-    def __ror__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_rev_op(|))), other)
-    def __eq__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(==))), other)
-    def __ne__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(!=))), other)
-    def __le__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(≤))), other)
-    def __lt__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(<))), other)
-    def __ge__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(≥))), other)
-    def __gt__(self, other):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(>))), other)
-class ComplexValue(NumberValue):
-    __slots__ = ()
-    def __complex__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pycomplex)))
-    @property
-    def real(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(real))))
-    @property
-    def imag(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(imag))))
-    def conjugate(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(conj))))
-class RealValue(ComplexValue):
-    __slots__ = ()
-    def __float__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyfloat)))
-    @property
-    def real(self):
-        return self
-    @property
-    def imag(self):
-        return 0
-    def conjugate(self):
-        return self
-    def __complex__(self):
-        return complex(float(self))
-    def __trunc__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlreal_trunc)))
-    def __floor__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlreal_floor)))
-    def __ceil__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlreal_ceil)))
-    def __round__(self, ndigits=None):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlreal_round)), ndigits)
-class RationalValue(RealValue):
-    __slots__ = ()
-    @property
-    def numerator(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(numerator))))
-    @property
-    def denominator(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlnumber_op(denominator))))
-class IntegerValue(RationalValue):
-    __slots__ = ()
-    def __int__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyint)))
-    def __index__(self):
-        return self.__int__()
-    @property
-    def numerator(self):
-        return self
-    @property
-    def denominator(self):
-        return 1
-import numbers
-numbers.Number.register(NumberValue)
-numbers.Complex.register(ComplexValue)
-numbers.Real.register(RealValue)
-numbers.Rational.register(RationalValue)
-numbers.Integral.register(IntegerValue)
-del numbers
-""",
-            @__FILE__(),
-            "exec",
-        ),
-        jl.__dict__,
-    )
+    m = pyimport("juliacall._jlwrap.number")
+    methods = m._jl_methods
+    methods["__bool__"] = pyjl_methodnum(pyjlnumber_op(iszero))
+    methods["__add__"] = pyjl_methodnum(pyjlnumber_op(+))
+    methods["__sub__"] = pyjl_methodnum(pyjlnumber_op(-))
+    methods["__mul__"] = pyjl_methodnum(pyjlnumber_op(*))
+    methods["__truediv__"] = pyjl_methodnum(pyjlnumber_op(/))
+    methods["__floordiv__"] = pyjl_methodnum(pyjlnumber_op(÷))
+    methods["__mod__"] = pyjl_methodnum(pyjlnumber_op(%))
+    methods["__pow__"] = pyjl_methodnum(pyjlnumber_op(^))
+    methods["__pow_modulo__"] = pyjl_methodnum(pyjlnumber_op(powermod))
+    methods["__lshift__"] = pyjl_methodnum(pyjlnumber_op(<<))
+    methods["__rshift__"] = pyjl_methodnum(pyjlnumber_op(>>))
+    methods["__and__"] = pyjl_methodnum(pyjlnumber_op(&))
+    methods["__xor__"] = pyjl_methodnum(pyjlnumber_op(⊻))
+    methods["__or__"] = pyjl_methodnum(pyjlnumber_op(|))
+    methods["__radd__"] = pyjl_methodnum(pyjlnumber_rev_op(+))
+    methods["__rsub__"] = pyjl_methodnum(pyjlnumber_rev_op(-))
+    methods["__rmul__"] = pyjl_methodnum(pyjlnumber_rev_op(*))
+    methods["__rtruediv__"] = pyjl_methodnum(pyjlnumber_rev_op(/))
+    methods["__rfloordiv__"] = pyjl_methodnum(pyjlnumber_rev_op(÷))
+    methods["__rmod__"] = pyjl_methodnum(pyjlnumber_rev_op(%))
+    methods["__rpow__"] = pyjl_methodnum(pyjlnumber_rev_op(^))
+    methods["__rpow_modulo__"] = pyjl_methodnum(pyjlnumber_rev_op(powermod))
+    methods["__rlshift__"] = pyjl_methodnum(pyjlnumber_rev_op(<<))
+    methods["__rrshift__"] = pyjl_methodnum(pyjlnumber_rev_op(>>))
+    methods["__rand__"] = pyjl_methodnum(pyjlnumber_rev_op(&))
+    methods["__rxor__"] = pyjl_methodnum(pyjlnumber_rev_op(⊻))
+    methods["__ror__"] = pyjl_methodnum(pyjlnumber_rev_op(|))
+    methods["__eq__"] = pyjl_methodnum(pyjlnumber_op(==))
+    methods["__ne__"] = pyjl_methodnum(pyjlnumber_op(!=))
+    methods["__le__"] = pyjl_methodnum(pyjlnumber_op(≤))
+    methods["__lt__"] = pyjl_methodnum(pyjlnumber_op(<))
+    methods["__ge__"] = pyjl_methodnum(pyjlnumber_op(≥))
+    methods["__gt__"] = pyjl_methodnum(pyjlnumber_op(>))
+    methods["__complex__"] = pyjl_methodnum(pycomplex)
+    methods["real"] = pyjl_methodnum(pyjlnumber_op(real))
+    methods["imag"] = pyjl_methodnum(pyjlnumber_op(imag))
+    methods["conjugate"] = pyjl_methodnum(pyjlnumber_op(conj))
+    methods["__float__"] = pyjl_methodnum(pyfloat)
+    methods["__trunc__"] = pyjl_methodnum(pyjlreal_trunc)
+    methods["__floor__"] = pyjl_methodnum(pyjlreal_floor)
+    methods["__ceil__"] = pyjl_methodnum(pyjlreal_ceil)
+    methods["__round__"] = pyjl_methodnum(pyjlreal_round)
+    methods["numerator"] = pyjl_methodnum(pyjlnumber_op(numerator))
+    methods["denominator"] = pyjl_methodnum(pyjlnumber_op(denominator))
+    methods["__int__"] = pyjl_methodnum(pyint)
     pycopy!(pyjlnumbertype, jl.NumberValue)
     pycopy!(pyjlcomplextype, jl.ComplexValue)
     pycopy!(pyjlrealtype, jl.RealValue)

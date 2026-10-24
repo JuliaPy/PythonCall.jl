@@ -100,66 +100,21 @@ pyjlraw_bool(self) =
 
 function init_raw()
     jl = pyjuliacallmodule
-    pybuiltins.exec(
-        pybuiltins.compile(
-            """
-$("\n"^(@__LINE__()-1))
-class RawValue(ValueBase):
-    __slots__ = ()
-    def __repr__(self):
-        if self._jl_isnull():
-            return "<jl NULL>"
-        else:
-            return self._jl_callmethod($(pyjl_methodnum(pyjlraw_repr)))
-    def __str__(self):
-        if self._jl_isnull():
-            return "NULL"
-        else:
-            return self._jl_callmethod($(pyjl_methodnum(pyjlraw_str)))
-    def __getattr__(self, k):
-        if k.startswith("__") and k.endswith("__"):
-            raise AttributeError(k)
-        else:
-            return self._jl_callmethod($(pyjl_methodnum(pyjlraw_getattr)), k)
-    def __setattr__(self, k, v):
-        try:
-            ValueBase.__setattr__(self, k, v)
-        except AttributeError:
-            if k.startswith("__") and k.endswith("__"):
-                raise
-        else:
-            return
-        self._jl_callmethod($(pyjl_methodnum(pyjlraw_setattr)), k, v)
-    def __dir__(self):
-        return ValueBase.__dir__(self) + self._jl_callmethod($(pyjl_methodnum(pyjlraw_dir)))
-    def __call__(self, *args, **kwargs):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlraw_call)), args, kwargs)
-    def __len__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlraw_len)))
-    def __getitem__(self, k):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlraw_getitem)), k)
-    def __setitem__(self, k, v):
-        self._jl_callmethod($(pyjl_methodnum(pyjlraw_setitem)), k, v)
-    def __delitem__(self, k):
-        self._jl_callmethod($(pyjl_methodnum(pyjlraw_delitem)), k)
-    def __bool__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlraw_bool)))
-    def _jl_any(self):
-        '''Convert this to a juliacall.AnyValue.'''
-        return self._jl_callmethod($(pyjl_methodnum(pyjl)))
-    def _jl_call_nogil(self, *args, **kwargs):
-        '''Call this with the given arguments but with the GIL disabled.
-        
-        WARNING: This function must not interact with Python at all without re-acquiring
-        the GIL.
-        '''
-        return self._jl_callmethod($(pyjl_methodnum(pyjlraw_call_nogil)), args, kwargs)
-""",
-            @__FILE__(),
-            "exec",
-        ),
-        jl.__dict__,
-    )
+    m = pyimport("juliacall._jlwrap.raw")
+    methods = m._jl_methods
+    methods["__repr__"] = pyjl_methodnum(pyjlraw_repr)
+    methods["__str__"] = pyjl_methodnum(pyjlraw_str)
+    methods["__getattr__"] = pyjl_methodnum(pyjlraw_getattr)
+    methods["__setattr__"] = pyjl_methodnum(pyjlraw_setattr)
+    methods["__dir__"] = pyjl_methodnum(pyjlraw_dir)
+    methods["__call__"] = pyjl_methodnum(pyjlraw_call)
+    methods["__len__"] = pyjl_methodnum(pyjlraw_len)
+    methods["__getitem__"] = pyjl_methodnum(pyjlraw_getitem)
+    methods["__setitem__"] = pyjl_methodnum(pyjlraw_setitem)
+    methods["__delitem__"] = pyjl_methodnum(pyjlraw_delitem)
+    methods["__bool__"] = pyjl_methodnum(pyjlraw_bool)
+    methods["_jl_any"] = pyjl_methodnum(pyjl)
+    methods["_jl_call_nogil"] = pyjl_methodnum(pyjlraw_call_nogil)
     pycopy!(pyjlrawtype, jl.RawValue)
 end
 

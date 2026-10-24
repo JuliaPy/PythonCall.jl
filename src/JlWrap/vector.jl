@@ -119,45 +119,20 @@ end
 
 function init_vector()
     jl = pyjuliacallmodule
-    pybuiltins.exec(
-        pybuiltins.compile(
-            """
-$("\n"^(@__LINE__()-1))
-class VectorValue(ArrayValue):
-    __slots__ = ()
-    def resize(self, size):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_resize)), size)
-    def sort(self, reverse=False, key=None):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_sort)), reverse, key)
-    def reverse(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_reverse)))
-    def clear(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_clear)))
-    def __reversed__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_reversed)))
-    def insert(self, index, value):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_insert)), index, value)
-    def append(self, value):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_append)), value)
-    def extend(self, values):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_extend)), values)
-    def pop(self, index=-1):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_pop)), index)
-    def remove(self, value):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_remove)), value)
-    def index(self, value):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_index)), value)
-    def count(self, value):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlvector_count)), value)
-import collections.abc
-collections.abc.MutableSequence.register(VectorValue)
-del collections
-""",
-            @__FILE__(),
-            "exec",
-        ),
-        jl.__dict__,
-    )
+    m = pyimport("juliacall._jlwrap.vector")
+    methods = m._jl_methods
+    methods["resize"] = pyjl_methodnum(pyjlvector_resize)
+    methods["sort"] = pyjl_methodnum(pyjlvector_sort)
+    methods["reverse"] = pyjl_methodnum(pyjlvector_reverse)
+    methods["clear"] = pyjl_methodnum(pyjlvector_clear)
+    methods["__reversed__"] = pyjl_methodnum(pyjlvector_reversed)
+    methods["insert"] = pyjl_methodnum(pyjlvector_insert)
+    methods["append"] = pyjl_methodnum(pyjlvector_append)
+    methods["extend"] = pyjl_methodnum(pyjlvector_extend)
+    methods["pop"] = pyjl_methodnum(pyjlvector_pop)
+    methods["remove"] = pyjl_methodnum(pyjlvector_remove)
+    methods["index"] = pyjl_methodnum(pyjlvector_index)
+    methods["count"] = pyjl_methodnum(pyjlvector_count)
     pycopy!(pyjlvectortype, jl.VectorValue)
 end
 

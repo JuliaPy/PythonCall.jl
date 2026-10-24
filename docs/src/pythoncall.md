@@ -309,15 +309,9 @@ special values:
 - `@CondaPkg`: Use Python from CondaPkg (the default).
 - `@PyCall`: Use the same Python as PyCall. [See here](@ref faq-pycall).
 - `@venv`: Use Python from a `.venv` virtual environment in the current active project.
-- `@ENV`: This value should only be set as the `exe` preference. When set,
-  PythonCall will look up the `exe` value explicitly from the
-  `JULIA_PYTHONCALL_EXE` environment variable, which _must_ be a valid path or
-  command name (see below). The advantage of setting `@ENV` as a preference is
-  that CondaPkg.jl will not be loaded, which saves on load time, while you still
-  keep the ability to change Python environments based on environment
-  variables. This can be helpful when using shared Julia environments on a
-  cluster so that users can easily switch Python environments without modifying
-  the depot preferences.
+- `@ENV` (preference only): Use `JULIA_PYTHONCALL_EXE`, which must be set to a Python
+  executable path or command name (see below). Avoids loading CondaPkg while allowing
+  Python environments to be changed via the environment variable.
 
 Otherwise, the value is interpreted as:
 - An absolute path to a Python executable.

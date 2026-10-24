@@ -33,82 +33,19 @@ const pyjldicttype = pynew()
 
 function init_dict()
     jl = pyjuliacallmodule
-    pybuiltins.exec(
-        pybuiltins.compile(
-            """
-            $("\n"^(@__LINE__()-1))
-            class JlDict(JlCollection):
-                __slots__ = ()
-                _jl_undefined_ = object()
-                def __init__(self, value=None):
-                    if value is None:
-                        value = Base.Dict()
-                    JlBase.__init__(self, value, Base.AbstractDict)
-                def __iter__(self):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjliter ∘ Iterator ∘ keys)))
-                def __contains__(self, key):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjldict_contains)), key)
-                def __getitem__(self, key):
-                    if key in self:
-                        return self._jl_callmethod($(pyjl_methodnum(pyjldict_getitem)), key)
-                    else:
-                        raise KeyError(key)
-                def __setitem__(self, key, value):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjldict_setitem)), key, value)
-                def __delitem__(self, key):
-                    if key in self:
-                        return self._jl_callmethod($(pyjl_methodnum(pyjldict_delitem)), key)
-                    else:
-                        raise KeyError(key)
-                def keys(self):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlset ∘ keys)))
-                def values(self):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlcollection ∘ values)))
-                def items(self):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlset ∘ DictPairSet)))
-                def get(self, key, default=None):
-                    if key in self:
-                        return self[key]
-                    else:
-                        return default
-                def setdefault(self, key, default=None):
-                    if key not in self:
-                        self[key] = default
-                    return self[key]
-                def pop(self, key, default=_jl_undefined_):
-                    if key in self:
-                        ans = self[key]
-                        del self[key]
-                        return ans
-                    elif default is self._jl_undefined_:
-                        raise KeyError(key)
-                    else:
-                        return default
-                def popitem(self):
-                    if len(self):
-                        return self._jl_callmethod($(pyjl_methodnum(Py ∘ pop!)))
-                    else:
-                        raise KeyError()
-                def update(self, other=_jl_undefined_, **kwargs):
-                    if other is self._jl_undefined_:
-                        pass
-                    else:
-                        if hasattr(other, "keys"):
-                            items = ((k, other[k]) for k in other.keys())
-                        else:
-                            items = other
-                        self._jl_callmethod($(pyjl_methodnum(pyjldict_update)), items)
-                    if kwargs:
-                        self.update(kwargs)
-            import collections.abc
-            collections.abc.MutableMapping.register(JlDict)
-            del collections
-            """,
-            @__FILE__(),
-            "exec",
-        ),
-        jl.__dict__,
-    )
+    m = pyimport("juliacall._jlwrap.dict")
+    methods = m._jl_methods
+    methods["__iter__"] = pyjl_methodnum(pyjliter ∘ Iterator ∘ keys)
+    methods["__contains__"] = pyjl_methodnum(pyjldict_contains)
+    methods["__getitem__"] = pyjl_methodnum(pyjldict_getitem)
+    methods["__setitem__"] = pyjl_methodnum(pyjldict_setitem)
+    methods["__delitem__"] = pyjl_methodnum(pyjldict_delitem)
+    methods["keys"] = pyjl_methodnum(pyjlset ∘ keys)
+    methods["values"] = pyjl_methodnum(pyjlcollection ∘ values)
+    methods["items"] = pyjl_methodnum(pyjlset ∘ DictPairSet)
+    methods["popitem"] = pyjl_methodnum(Py ∘ pop!)
+    methods["update"] = pyjl_methodnum(pyjldict_update)
+
     pycopy!(pyjldicttype, jl.JlDict)
 end
 

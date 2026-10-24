@@ -37,6 +37,24 @@ class JuliaError(Exception):
     def backtrace(self):
         return self.args[1]
 
+def _init_jlwrap():
+    # Called by PythonCall once the native JlBase type is available.
+    global JlBase2, JlIter, Jl, JlCollection, JlArray, JlVector, JlDict, JlSet, JlIOBase, JlBinaryIO, JlTextIO
+    from ._jlwrap import (
+        JlBase2,
+        JlIter,
+        Jl,
+        JlCollection,
+        JlArray,
+        JlVector,
+        JlDict,
+        JlSet,
+        JlIOBase,
+        JlBinaryIO,
+        JlTextIO,
+    )
+
+
 CONFIG = {'inited': False}
 
 def init():

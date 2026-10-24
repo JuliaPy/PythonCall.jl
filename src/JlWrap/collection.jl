@@ -9,40 +9,17 @@ pyjlcollection_eq(self, other) = pybool((self == pyjlvalue(other))::Bool)
 
 function init_collection()
     jl = pyjuliacallmodule
-    pybuiltins.exec(
-        pybuiltins.compile(
-            """
-$("\n"^(@__LINE__()-1))
-class JlCollection(JlBase2):
-    __slots__ = ()
-    def __len__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyint ∘ length)))
-    def __bool__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pybool ∘ !isempty)))
-    def __iter__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjliter ∘ Iterator)))
-    def __hash__(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlany_hash)))
-    def __eq__(self, other):
-        if isinstance(self, type(other)) or isinstance(other, type(self)):
-            return self._jl_callmethod($(pyjl_methodnum(pyjlcollection_eq)), other)
-        else:
-            return NotImplemented
-    def __contains__(self, v):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlcollection_contains)), v)
-    def copy(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlcollection ∘ copy)))
-    def clear(self):
-        return self._jl_callmethod($(pyjl_methodnum(pyjlcollection_clear)))
-import collections.abc
-collections.abc.Collection.register(JlCollection)
-del collections
-""",
-            @__FILE__(),
-            "exec",
-        ),
-        jl.__dict__,
-    )
+    m = pyimport("juliacall._jlwrap.collection")
+    methods = m._jl_methods
+    methods["__len__"] = pyjl_methodnum(pyint ∘ length)
+    methods["__bool__"] = pyjl_methodnum(pybool ∘ !isempty)
+    methods["__iter__"] = pyjl_methodnum(pyjliter ∘ Iterator)
+    methods["__hash__"] = pyjl_methodnum(pyjlany_hash)
+    methods["__eq__"] = pyjl_methodnum(pyjlcollection_eq)
+    methods["__contains__"] = pyjl_methodnum(pyjlcollection_contains)
+    methods["copy"] = pyjl_methodnum(pyjlcollection ∘ copy)
+    methods["clear"] = pyjl_methodnum(pyjlcollection_clear)
+
     pycopy!(pyjlcollectiontype, jl.JlCollection)
 end
 

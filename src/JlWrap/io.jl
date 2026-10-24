@@ -224,108 +224,27 @@ pyjl_handle_error_type(::typeof(pyjltextio_write), io, exc) =
 
 function init_io()
     jl = pyjuliacallmodule
-    pybuiltins.exec(
-        pybuiltins.compile(
-            """
-            $("\n"^(@__LINE__()-1))
-            class JlIOBase(JlBase2):
-                __slots__ = ()
-                def __init__(self, value):
-                    JlBase.__init__(self, value, Base.IO)
-                def __hash__(self):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlany_hash)))
-                def close(self):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlio_close)))
-                @property
-                def closed(self):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlio_closed)))
-                def fileno(self):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlio_fileno)))
-                def flush(self):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlio_flush)))
-                def isatty(self):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlio_isatty)))
-                def readable(self):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlio_readable)))
-                def readlines(self, hint=-1):
-                    lines = []
-                    total = 0
-                    while hint < 0 or total < hint:
-                        line = self.readline()
-                        if line:
-                            lines.append(line)
-                            total += len(line)
-                        else:
-                            break
-                    return lines
-                def seek(self, offset, whence=0):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlio_seek)), offset, whence)
-                def seekable(self):
-                    return True
-                def tell(self):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlio_tell)))
-                def truncate(self, size=None):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlio_truncate)), size)
-                def writable(self):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlio_writable)))
-                def writelines(self, lines):
-                    for line in lines:
-                        self.write(line)
-                def __enter__(self):
-                    return self
-                def __exit__(self, t, v, b):
-                    self.close()
-                def __iter__(self):
-                    return self
-                def __next__(self):
-                    line = self.readline()
-                    if line:
-                        return line
-                    else:
-                        raise StopIteration
-            class JlBinaryIO(JlIOBase):
-                __slots__ = ()
-                def detach(self):
-                    raise ValueError("Cannot detach '{}'.".format(type(self)))
-                def read(self, size=-1):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlbinaryio_read)), size)
-                def read1(self, size=-1):
-                    return self.read(size)
-                def readline(self, size=-1):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlbinaryio_readline)), size)
-                def readinto(self, b):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlbinaryio_readinto)), b)
-                def readinto1(self, b):
-                    return self.readinto(b)
-                def write(self, b):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjlbinaryio_write)), b)
-            class JlTextIO(JlIOBase):
-                __slots__ = ()
-                @property
-                def encoding(self):
-                    return "UTF-8"
-                @property
-                def errors(self):
-                    return "strict"
-                def detach(self):
-                    raise ValueError("Cannot detach '{}'.".format(type(self)))
-                def read(self, size=-1):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjltextio_read)), size)
-                def readline(self, size=-1):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjltextio_readline)), size)
-                def write(self, s):
-                    return self._jl_callmethod($(pyjl_methodnum(pyjltextio_write)), s)
-            import io
-            io.IOBase.register(JlIOBase)
-            io.BufferedIOBase.register(JlBinaryIO)
-            io.TextIOBase.register(JlTextIO)
-            del io
-            """,
-            @__FILE__(),
-            "exec",
-        ),
-        jl.__dict__,
-    )
+    m = pyimport("juliacall._jlwrap.io")
+    methods = m._jl_methods
+    methods["__hash__"] = pyjl_methodnum(pyjlany_hash)
+    methods["close"] = pyjl_methodnum(pyjlio_close)
+    methods["closed"] = pyjl_methodnum(pyjlio_closed)
+    methods["fileno"] = pyjl_methodnum(pyjlio_fileno)
+    methods["flush"] = pyjl_methodnum(pyjlio_flush)
+    methods["isatty"] = pyjl_methodnum(pyjlio_isatty)
+    methods["readable"] = pyjl_methodnum(pyjlio_readable)
+    methods["seek"] = pyjl_methodnum(pyjlio_seek)
+    methods["tell"] = pyjl_methodnum(pyjlio_tell)
+    methods["truncate"] = pyjl_methodnum(pyjlio_truncate)
+    methods["writable"] = pyjl_methodnum(pyjlio_writable)
+    methods["read"] = pyjl_methodnum(pyjlbinaryio_read)
+    methods["readline"] = pyjl_methodnum(pyjlbinaryio_readline)
+    methods["readinto"] = pyjl_methodnum(pyjlbinaryio_readinto)
+    methods["write"] = pyjl_methodnum(pyjlbinaryio_write)
+    methods["read_2"] = pyjl_methodnum(pyjltextio_read)
+    methods["readline_2"] = pyjl_methodnum(pyjltextio_readline)
+    methods["write_2"] = pyjl_methodnum(pyjltextio_write)
+
     pycopy!(pyjliobasetype, jl.JlIOBase)
     pycopy!(pyjlbinaryiotype, jl.JlBinaryIO)
     pycopy!(pyjltextiotype, jl.JlTextIO)

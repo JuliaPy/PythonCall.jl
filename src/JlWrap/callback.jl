@@ -30,10 +30,7 @@ function pyfunc(
     if wrapfunc === pywrapcallback && pyisnull(pywrapcallback)
         pycopy!(
             pywrapcallback,
-            pybuiltins.eval(
-                "lambda f: lambda *args, **kwargs: f(*args, **kwargs)",
-                pydict(),
-            ),
+            pyimport("juliacall._jlwrap.callback").wrap_callback,
         )
     end
     if wrapfunc isa AbstractString

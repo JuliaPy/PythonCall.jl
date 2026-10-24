@@ -309,6 +309,9 @@ special values:
 - `@CondaPkg`: Use Python from CondaPkg (the default).
 - `@PyCall`: Use the same Python as PyCall. [See here](@ref faq-pycall).
 - `@venv`: Use Python from a `.venv` virtual environment in the current active project.
+- `@ENV` (preference only): Use `JULIA_PYTHONCALL_EXE`, which must be set to a Python
+  executable path or command name (see below). Avoids loading CondaPkg while allowing
+  Python environments to be changed via the environment variable.
 
 Otherwise, the value is interpreted as:
 - An absolute path to a Python executable.

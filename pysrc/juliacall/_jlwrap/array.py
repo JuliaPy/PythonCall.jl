@@ -1,29 +1,27 @@
-"""Julia value wrappers from src/JlWrap/array.jl."""
+"""Julia wrappers initialized by PythonCall."""
 
-from .any import AnyValue
+import juliacall as jl
+from juliacall import JlBase
+from .collection import JlCollection
 
-# Populated by Julia during PythonCall initialization.
+# Populated by Julia during initialization.
 _jl_methods = {}
 
 
-class ArrayValue(AnyValue):
+class JlArray(JlCollection):
     __module__ = "juliacall"
     __slots__ = ()
-    @property
-    def _jl_buffer_info(self):
-        return _jl_methods["_jl_buffer_info"]
+    _jl_buffer_info = None
+    def __init__(self, value):
+        JlBase.__init__(self, value, jl.Base.AbstractArray)
     @property
     def ndim(self):
         return self._jl_callmethod(_jl_methods["ndim"])
     @property
     def shape(self):
         return self._jl_callmethod(_jl_methods["shape"])
-    def copy(self):
-        return self._jl_callmethod(_jl_methods["copy"])
     def reshape(self, shape):
         return self._jl_callmethod(_jl_methods["reshape"], shape)
-    def __bool__(self):
-        return bool(len(self))
     def __getitem__(self, k):
         return self._jl_callmethod(_jl_methods["__getitem__"], k)
     def __setitem__(self, k, v):
@@ -44,7 +42,7 @@ class ArrayValue(AnyValue):
             arr = self._jl_callmethod(_jl_methods["__array__"])
             if not (hasattr(arr, "__array_interface__") or hasattr(arr, "__array_struct__")):
                 # the second attempt collects into a PyObjectArray
-                arr = self._jl_callmethod(_jl_methods["__array_pyobjectarray__"])
+                arr = self._jl_callmethod(_jl_methods["__array___2"])
         # convert to a numpy array if numpy is available
         return numpy.array(arr, dtype=dtype, copy=copy)
     def to_numpy(self, dtype=None, copy=True, order="K"):

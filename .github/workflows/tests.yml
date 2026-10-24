@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
     - main
+    - v1
   push:
     branches:
     - main
@@ -56,21 +57,21 @@ jobs:
         uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: python
-      
+
       - name: Install Python
         id: setup-python
         uses: actions/setup-python@v7
         if: ${{ matrix.pythonexe == 'python' }}
         with:
           python-version: ${{ matrix.pyversion }}
-      
+
       # Always build PyCall (and hence Conda) so that Conda's root env directory exists;
       # otherwise Conda fails to precompile on cached runners, which can cause errors.
       # Use a temporary environment because `--project=test` has no manifest on Julia
       # versions without workspace support (< 1.12).
       - name: Build PyCall
         run: |
-          julia -e 'import Pkg; Pkg.activate(temp=true); Pkg.add("PyCall"); Pkg.build("PyCall")'
+          julia -e 'import Pkg; Pkg.activate(temp=true); Pkg.add("PyCall"); Pkg.build("Conda"); Pkg.build("PyCall")'
         env:
           PYTHON: ${{ case(matrix.pythonexe == 'python', steps.setup-python.outputs.python-path, 'python') }}
 
@@ -118,7 +119,7 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.pyversion }}
-      
+
       # - name: Check Python OpenSSL version (see setup_julia)
       #   shell: python
       #   run: |

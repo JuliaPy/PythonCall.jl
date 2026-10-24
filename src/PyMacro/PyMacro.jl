@@ -151,7 +151,7 @@ py_macro_assign(body, ans, ex) = push!(body, :($ans = $ex))
 
 py_macro_del(body, var, tmp) =
     if tmp
-        push!(body, :($pydel!($var)))
+        push!(body, :($unsafe_pydel($var)))
     end
 
 ismacroexpr(ex, name) =
@@ -366,7 +366,7 @@ function py_macro_lower(st, body, ans, ex; flavour = :expr)
         end
         if af === :print
             # treat print as a special case since it is variadic
-            push!(body, :($pydel!($ans)))
+            push!(body, :($unsafe_pydel($ans)))
             py_macro_assign(body, ans, nothing)
             return false
         else
@@ -649,7 +649,7 @@ function py_macro_lower(st, body, ans, ex; flavour = :expr)
         tx = py_macro_lower(st, body, ans, ax)
         body2 = []
         body3 = []
-        tx && push!(body2, :($pydel!($ans)))
+        tx && push!(body2, :($unsafe_pydel($ans)))
         ty = py_macro_lower(st, body2, ans, ay)
         t = tx || ty
         if t
@@ -668,7 +668,7 @@ function py_macro_lower(st, body, ans, ex; flavour = :expr)
         tx = py_macro_lower(st, body, ans, ax)
         body2 = []
         body3 = []
-        tx && push!(body3, :($pydel!($ans)))
+        tx && push!(body3, :($unsafe_pydel($ans)))
         ty = py_macro_lower(st, body3, ans, ay)
         t = tx || ty
         if t
@@ -704,7 +704,7 @@ function py_macro_lower(st, body, ans, ex; flavour = :expr)
         py_macro_del(body, y, ty)
         body2 = []
         push!(body2, :($v = $unsafe_pynext($i)))
-        push!(body2, Expr(:if, :($pyisnull($v)), Expr(:block, :($pydel!($v)), :(break))))
+        push!(body2, Expr(:if, :($pyisnull($v)), Expr(:block, :($unsafe_pydel($v)), :(break))))
         py_macro_lower_assign(st, body2, ax, v)
         py_macro_del(body2, v, true)
         tz = py_macro_lower(st, body2, z, az)

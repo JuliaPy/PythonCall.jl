@@ -1,24 +1,35 @@
-"""Julia value wrappers from src/JlWrap/any.jl."""
+"""Julia wrappers initialized by PythonCall."""
 
-from juliacall import ValueBase
+from juliacall import JlBase
 
-# Populated by Julia during PythonCall initialization.
+# Populated by Julia during initialization.
 _jl_methods = {}
 
 
-class AnyValue(ValueBase):
+class JlBase2(JlBase):
     __module__ = "juliacall"
     __slots__ = ()
     def __repr__(self):
-        if self._jl_isnull():
-            return "<jl NULL>"
+        t = type(self)
+        if t is Jl:
+            name = "Julia"
         else:
-            return self._jl_callmethod(_jl_methods["__repr__"])
+            name = t.__name__
+        return name + ":" + self._jl_callmethod(_jl_methods["__repr__"])
+class JlIter(JlBase2):
+    __module__ = "juliacall"
+    __slots__ = ()
+    def __iter__(self):
+        return self
+    def __hash__(self):
+        return self._jl_callmethod(_jl_methods["__hash__"])
+    def __next__(self):
+        return self._jl_callmethod(_jl_methods["iterator_next"])
+class Jl(JlBase2):
+    __module__ = "juliacall"
+    __slots__ = ()
     def __str__(self):
-        if self._jl_isnull():
-            return "NULL"
-        else:
-            return self._jl_callmethod(_jl_methods["__str__"])
+        return self._jl_callmethod(_jl_methods["__str__"])
     def __getattr__(self, k):
         if k.startswith("__") and k.endswith("__"):
             raise AttributeError(k)
@@ -26,7 +37,7 @@ class AnyValue(ValueBase):
             return self._jl_callmethod(_jl_methods["__getattr__"], k)
     def __setattr__(self, k, v):
         try:
-            ValueBase.__setattr__(self, k, v)
+            JlBase.__setattr__(self, k, v)
         except AttributeError:
             if k.startswith("__") and k.endswith("__"):
                 raise
@@ -34,11 +45,11 @@ class AnyValue(ValueBase):
             return
         self._jl_callmethod(_jl_methods["__setattr__"], k, v)
     def __dir__(self):
-        return ValueBase.__dir__(self) + self._jl_callmethod(_jl_methods["__dir__"])
+        return JlBase.__dir__(self) + self._jl_callmethod(_jl_methods["__dir__"])
     def __call__(self, *args, **kwargs):
         return self._jl_callmethod(_jl_methods["__call__"], args, kwargs)
     def __bool__(self):
-        return True
+        return self._jl_callmethod(_jl_methods["__bool__"])
     def __len__(self):
         return self._jl_callmethod(_jl_methods["__len__"])
     def __getitem__(self, k):
@@ -49,6 +60,8 @@ class AnyValue(ValueBase):
         self._jl_callmethod(_jl_methods["__delitem__"], k)
     def __iter__(self):
         return self._jl_callmethod(_jl_methods["__iter__"])
+    def __next__(self):
+        return self._jl_callmethod(_jl_methods["__next__"])
     def __reversed__(self):
         return self._jl_callmethod(_jl_methods["__reversed__"])
     def __contains__(self, v):
@@ -58,6 +71,8 @@ class AnyValue(ValueBase):
     def __neg__(self):
         return self._jl_callmethod(_jl_methods["__neg__"])
     def __abs__(self):
+        return self._jl_callmethod(_jl_methods["__abs__"])
+    def abs(self):
         return self._jl_callmethod(_jl_methods["__abs__"])
     def __invert__(self):
         return self._jl_callmethod(_jl_methods["__invert__"])
@@ -115,6 +130,8 @@ class AnyValue(ValueBase):
         return self._jl_callmethod(_jl_methods["__rxor__"], other)
     def __ror__(self, other):
         return self._jl_callmethod(_jl_methods["__ror__"], other)
+    def __hash__(self):
+        return self._jl_callmethod(_jl_methods["__hash__"])
     def __eq__(self, other):
         return self._jl_callmethod(_jl_methods["__eq__"], other)
     def __ne__(self, other):
@@ -127,26 +144,42 @@ class AnyValue(ValueBase):
         return self._jl_callmethod(_jl_methods["__ge__"], other)
     def __gt__(self, other):
         return self._jl_callmethod(_jl_methods["__gt__"], other)
-    def __hash__(self):
-        return self._jl_callmethod(_jl_methods["__hash__"])
+    def __int__(self):
+        return self._jl_callmethod(_jl_methods["__int__"])
+    def __float__(self):
+        return self._jl_callmethod(_jl_methods["__float__"])
+    def __complex__(self):
+        return self._jl_callmethod(_jl_methods["__complex__"])
+    def __index__(self):
+        return self._jl_callmethod(_jl_methods["__index__"])
+    def __trunc__(self):
+        return self._jl_callmethod(_jl_methods["__trunc__"])
+    def __floor__(self):
+        return self._jl_callmethod(_jl_methods["__floor__"])
+    def __ceil__(self):
+        return self._jl_callmethod(_jl_methods["__ceil__"])
+    def __round__(self, ndigits=None):
+        if ndigits is None:
+            return self._jl_callmethod(_jl_methods["__round__"])
+        else:
+            return self._jl_callmethod(_jl_methods["__round__"], ndigits)
     @property
     def __name__(self):
         return self._jl_callmethod(_jl_methods["__name__"])
-    def _jl_raw(self):
-        '''Convert this to a juliacall.RawValue.'''
-        return self._jl_callmethod(_jl_methods["_jl_raw"])
-    def _jl_display(self, mime=None):
+    def jl_display(self, mime=None):
         '''Display this, optionally specifying the MIME type.'''
-        return self._jl_callmethod(_jl_methods["_jl_display"], mime)
-    def _jl_help(self, mime=None):
+        return self._jl_callmethod(_jl_methods["jl_display"], mime)
+    def jl_help(self, mime=None):
         '''Show help for this Julia object.'''
-        return self._jl_callmethod(_jl_methods["_jl_help"], mime)
-    def _jl_call_nogil(self, *args, **kwargs):
-        '''Call this with the given arguments but with the GIL disabled.
-
-        WARNING: This function must not interact with Python at all without re-acquiring
-        the GIL.
-        '''
-        return self._jl_callmethod(_jl_methods["_jl_call_nogil"], args, kwargs)
+        return self._jl_callmethod(_jl_methods["jl_help"], mime)
+    def jl_eval(self, expr):
+        return self._jl_callmethod(_jl_methods["jl_eval"], expr)
+    def jl_to_py(self):
+        return self._jl_callmethod(_jl_methods["jl_to_py"])
+    def jl_callback(self, *args, **kwargs):
+        return self._jl_callmethod(_jl_methods["jl_callback"], args, kwargs)
     def _repr_mimebundle_(self, include=None, exclude=None):
         return self._jl_callmethod(_jl_methods["_repr_mimebundle_"], include, exclude)
+    @property
+    def __numpy_dtype__(self):
+        return self._jl_callmethod(_jl_methods["__numpy_dtype__"])

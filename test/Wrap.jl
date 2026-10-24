@@ -1,10 +1,10 @@
 @testitem "PyArray" begin
     x = pyimport("array").array("i", pylist([1, 2, 3]))
     y = PyArray(x)
-    z = PyArray{Cint,1,false,false,Cint}(x)
+    z = PyArray{Cint,1,()}(x)
     @testset "construct" begin
-        @test y isa PyArray{Cint,1,true,true,Cint}
-        @test z isa PyArray{Cint,1,false,false,Cint}
+        @test y isa PyArray{Cint,1,(:mutable,:linear,:contiguous)}
+        @test z isa PyArray{Cint,1,()}
         @test PythonCall.ispy(y)
         @test PythonCall.ispy(z)
         @test Py(y) === x
@@ -29,9 +29,10 @@
     @testset "elsize" begin
         @test Base.elsize(y) === sizeof(Cint)
         @test Base.elsize(z) === sizeof(Cint)
-        @test Base.elsize(PyArray{Cint,1,true,true,Cint}) === sizeof(Cint)
-        @test Base.elsize(PyArray{Cint,1,false,false,Cint}) === sizeof(Cint)
-        @test_throws Exception elsize(PyArray{Cint,1,true,false,Cchar})
+        @test Base.elsize(PyArray{UInt8}) === sizeof(UInt8)
+        @test Base.elsize(PyArray{UInt16,2}) === sizeof(UInt16)
+        @test Base.elsize(PyArray{UInt32,3,(:mutable,)}) === sizeof(UInt32)
+        @test_throws Exception elsize(PyArray{Py,1,()})
     end
     @testset "getindex" begin
         @test_throws BoundsError y[0]
@@ -98,6 +99,28 @@
             flags = tb.ND_PIL | tb.ND_WRITABLE,
         )
         @test_throws Exception PyArray(nd; array = false, buffer = true)
+    end
+    @testset "0-d" begin
+        tb = pyimport("_testbuffer")
+        nd = tb.ndarray(5, shape = pylist(), flags = tb.ND_WRITABLE)
+        a = PyArray(nd; array = false, buffer = true)
+        @test ndims(a) == 0
+        @test a[] == 5
+        a[] = 6
+        @test a[] == 6
+        @test pyconvert(Int, nd.tolist()) == 6
+    end
+    @testset "contiguous 2D" begin
+        tb = pyimport("_testbuffer")
+        nd = tb.ndarray(
+            pylist(1:6),
+            shape = pylist([2, 3]),
+            format = "i",
+            flags = tb.ND_FORTRAN,
+        )
+        a = PyArray(nd; array = false)
+        @test a isa PyArray{Cint,2,(:linear,:contiguous)}
+        @test [a[i, j] for i = 1:2, j = 1:3] == reshape(1:6, 2, 3)
     end
 end
 

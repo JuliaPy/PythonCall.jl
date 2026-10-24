@@ -3,6 +3,8 @@ export @py
 export @pyconst
 export @pyeval
 export @pyexec
+export @pyregion
+export @pyregionbreak
 export ispy
 export Py
 export pyabs
@@ -98,6 +100,7 @@ export pytuple
 export pytype
 export pywith
 export pyxor
+export unsafe_pydel
 
 # Convert
 export @pyconvert
@@ -127,6 +130,10 @@ export pyclassmethod
 export pyfunc
 export pyisjl
 export pyjl
+export pyjlcollection
+export pyjlarray
+export pyjldict
+export pyjlset
 export pyjlraw
 export pyjltype
 export pyjlvalue

@@ -1,14 +1,33 @@
 # Repository Instructions
 
 ## Running tests
-- **Julia tests**: Run from the project root with `julia --project -e 'using Pkg; Pkg.test()'`. Expect a warning about the General registry being unreachable in locked-down environments; the suite still finishes (PyCall tests are marked broken/Skipped).
+- **Julia tests**: Run from the project root with `julia --project -e 'using Pkg; Pkg.test()'`. Expect a warning about the General registry being unreachable in locked-down environments; PyCall tests are marked broken/skipped. With the currently installed Julia 1.13.1, the functional tests pass but Aqua's persistent-task subprocess check may fail because its `done.log` is not created.
 - **Python tests**:
   - Copy `pysrc/juliacall/juliapkg-dev.json` to `pysrc/juliacall/juliapkg.json` before running (do **not** commit this copy).
   - Execute with `uv run pytest -s --nbval ./pytest` (add `--cov=pysrc` when coverage is needed).
-  - Sometimes `juliapkg` requires Julia 1.10–1.11; `juliaup` already provides 1.11.7 in this environment.
+- Sometimes `juliapkg` requires Julia 1.10–1.11. Juliaup provides Julia 1.11.9
+  through the `1.11` channel. JuliaPkg selecting Julia 1.13.1 under
+  uv's downloaded Python 3.10 fails to load `libjulia-codegen` because the Python
+  process has loaded a `libstdc++.so.6` that lacks `GLIBCXX_3.4.30`. Set
+  `PYTHON_JULIAPKG_EXE` to the absolute path of the Julia 1.11 executable when
+  running this combination; `JULIAUP_CHANNEL=1.11` does not affect JuliaPkg's
+  executable discovery here. To test Julia 1.12 or 1.13 instead, also prepend the
+  repository's `.CondaPkg/.pixi/envs/default/lib` directory to `LD_LIBRARY_PATH` so
+  the process uses its newer `libstdc++`.
+- `julia --project=docs docs/make.jl` requires a valid Git `origin` so Documenter can infer
+  source links; it fails during `makedocs` in checkouts without one.
 
 The majority of tests live in the Julia package; Python tests cover functionality that cannot be exercised from Julia (e.g., JuliaCall-specific behavior). Run both suites—typically Julia first—in whichever order makes sense.
 
+## Branch and CI compatibility
+- On `v1`, JuliaCall uses `jl_eval` (returning a Julia wrapper), whereas `main` uses `seval`. Adapt tests brought over from `main` accordingly.
+- The `v1` Python wrapper hierarchy uses `JlBase`, `Jl`, and `JlCollection`, unlike
+  `main`'s `ValueBase`/`AnyValue` hierarchy. Keep the collection wrapper when porting
+  `_jlwrap` changes. Wrapper modules load before `juliacall.Base` is assigned, so
+  constructors must look it up through `juliacall` when called.
+- The benchmark suite is shared across the compared revisions: `main` uses `pydel!`, while `v1` uses `unsafe_pydel`.
+- `main` does not have `@pyregion`. Benchmark region wrappers must select a plain-body fallback before macro expansion; a runtime conditional around an unavailable macro still fails when loading the suite.
+- Julia CI caches can preserve Conda's build metadata without its root environment. Rebuild `Conda` before building `PyCall` or running tests to recreate that directory.
 - In restricted sandboxes, both suites need approval to write to the shared caches (`~/.julia` and `~/.cache/uv`).
 - `pysrc/juliacall/juliapkg.json` is tracked; restore its original contents after using the development copy for Python tests.
 

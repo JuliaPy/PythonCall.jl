@@ -71,7 +71,7 @@ Assumes `dst` is NULL, otherwise a memory leak will occur.
 pycopy!(dst::Py, src) = Base.GC.@preserve src setptr!(dst, incref(getptr(src)))
 
 """
-    pydel!(x::Py)
+    unsafe_pydel(x::Py)
 
 Delete the Python object `x`.
 
@@ -84,10 +84,10 @@ This decrements the reference count and sets the pointer to NULL.
 Use this to eagerly free a Python object, rather than waiting for Julia's GC to finalize
 it at some indeterminate point in the future.
 """
-function pydel!(x::Py)
+function unsafe_pydel(x::Py)
     ptr = getptr(x)
     if ptr != C.PyNULL
-        C.Py_DecRef(ptr)
+        @pyregion C.Py_DecRef(ptr)
         setptr!(x, C.PyNULL)
     end
     return
@@ -99,12 +99,14 @@ macro autopy(args...)
     body = args[end]
     # ans = gensym("ans")
     esc(quote
+        @pyregion begin
         # $([:($t = $ispy($v) ? $v : $Py($v)) for (t, v) in zip(ts, vs)]...)
         # $ans = $body
-        # $([:($ispy($v) || $pydel!($t)) for (t, v) in zip(ts, vs)]...)
+        # $([:($ispy($v) || $unsafe_pydel($t)) for (t, v) in zip(ts, vs)]...)
         # $ans
         $([:($t = $Py($v)) for (t, v) in zip(ts, vs)]...)
         $body
+        end
     end)
 end
 
@@ -270,7 +272,7 @@ Base.hasproperty(x::Py, k::String) = pyhasattr(x, k)
 Base.setproperty!(x::Py, k::Symbol, v) = pysetattr(x, string(k), v)
 Base.setproperty!(x::Py, k::String, v) = pysetattr(x, k, v)
 
-function _propertynames(x::Py, private::Bool)
+function Base.propertynames(x::Py, private::Bool = false)
     # this follows the logic of rlcompleter.py
     function classmembers(c)
         r = pydir(c)
@@ -289,16 +291,6 @@ function _propertynames(x::Py, private::Bool)
         words.update(classmembers(x.__class__))
     end
     return Symbol[Symbol(pystr_asstring(word)) for word in words]
-end
-
-function Base.propertynames(x::Py, private::Bool = false)
-    if C.PyGILState_Check() == 1
-        _propertynames(x, private)
-    else
-        C.on_main_thread() do
-            _propertynames(x, private)
-        end::Vector{Symbol}
-    end
 end
 
 Base.Bool(x::Py) = pytruth(x)
@@ -341,7 +333,7 @@ Base.IteratorSize(::Type{Py}) = Base.SizeUnknown()
 function Base.iterate(x::Py, it::Py = pyiter(x))
     v = unsafe_pynext(it)
     if pyisnull(v)
-        pydel!(it)
+        unsafe_pydel(it)
         nothing
     else
         (v, it)
@@ -357,33 +349,14 @@ Base.broadcastable(x::Py) = Ref(x)
 (f::Py)(args...; kwargs...) = pycall(f, args...; kwargs...)
 
 # comparisons
-Base.:(==)(x::Py, y::Py) = pyeq(x, y)
-Base.:(!=)(x::Py, y::Py) = pyne(x, y)
-Base.:(<=)(x::Py, y::Py) = pyle(x, y)
-Base.:(<)(x::Py, y::Py) = pylt(x, y)
-Base.:(>=)(x::Py, y::Py) = pyge(x, y)
-Base.:(>)(x::Py, y::Py) = pygt(x, y)
+Base.:(==)(x::Py, y::Py) = pyeq(Bool, x, y)
+Base.:(!=)(x::Py, y::Py) = pyne(Bool, x, y)
+Base.:(<=)(x::Py, y::Py) = pyle(Bool, x, y)
+Base.:(>=)(x::Py, y::Py) = pyge(Bool, x, y)
+Base.:(<)(x::Py, y::Py) = pylt(Bool, x, y)
+Base.:(>)(x::Py, y::Py) = pygt(Bool, x, y)
 Base.isless(x::Py, y::Py) = pylt(Bool, x, y)
 Base.isequal(x::Py, y::Py) = pyeq(Bool, x, y)
-
-# we also allow comparison with numbers
-Base.:(==)(x::Py, y::Number) = pyeq(x, y)
-Base.:(!=)(x::Py, y::Number) = pyne(x, y)
-Base.:(<=)(x::Py, y::Number) = pyle(x, y)
-Base.:(<)(x::Py, y::Number) = pylt(x, y)
-Base.:(>=)(x::Py, y::Number) = pyge(x, y)
-Base.:(>)(x::Py, y::Number) = pygt(x, y)
-Base.isless(x::Py, y::Number) = pylt(Bool, x, y)
-Base.isequal(x::Py, y::Number) = pyeq(Bool, x, y)
-
-Base.:(==)(x::Number, y::Py) = pyeq(x, y)
-Base.:(!=)(x::Number, y::Py) = pyne(x, y)
-Base.:(<=)(x::Number, y::Py) = pyle(x, y)
-Base.:(<)(x::Number, y::Py) = pylt(x, y)
-Base.:(>=)(x::Number, y::Py) = pyge(x, y)
-Base.:(>)(x::Number, y::Py) = pygt(x, y)
-Base.isless(x::Number, y::Py) = pylt(Bool, x, y)
-Base.isequal(x::Number, y::Py) = pyeq(Bool, x, y)
 
 Base.zero(::Type{Py}) = pyint(0)
 Base.one(::Type{Py}) = pyint(1)
@@ -398,11 +371,9 @@ Base.:(~)(x::Py) = pyinv(x)
 Base.:(+)(x::Py, y::Py) = pyadd(x, y)
 Base.:(-)(x::Py, y::Py) = pysub(x, y)
 Base.:(*)(x::Py, y::Py) = pymul(x, y)
-# Base.:(+)(x::Py, y::Py) = pymatmul(x, y)
 Base.div(x::Py, y::Py) = pyfloordiv(x, y)
 Base.:(/)(x::Py, y::Py) = pytruediv(x, y)
 Base.rem(x::Py, y::Py) = pymod(x, y)
-# Base.:(+)(x::Py, y::Py) = pydivmod(x, y)
 Base.:(<<)(x::Py, y::Py) = pylshift(x, y)
 Base.:(>>)(x::Py, y::Py) = pyrshift(x, y)
 Base.:(&)(x::Py, y::Py) = pyand(x, y)
@@ -410,44 +381,7 @@ Base.xor(x::Py, y::Py) = pyxor(x, y)
 Base.:(|)(x::Py, y::Py) = pyor(x, y)
 Base.:(^)(x::Py, y::Py) = pypow(x, y)
 
-# also allow binary arithmetic with numbers
-Base.:(+)(x::Number, y::Py) = pyadd(x, y)
-Base.:(-)(x::Number, y::Py) = pysub(x, y)
-Base.:(*)(x::Number, y::Py) = pymul(x, y)
-# Base.:(+)(x::Number, y::Py) = pymatmul(x, y)
-Base.div(x::Number, y::Py) = pyfloordiv(x, y)
-Base.:(/)(x::Number, y::Py) = pytruediv(x, y)
-Base.rem(x::Number, y::Py) = pymod(x, y)
-# Base.:(+)(x::Number, y::Py) = pydivmod(x, y)
-Base.:(<<)(x::Number, y::Py) = pylshift(x, y)
-Base.:(>>)(x::Number, y::Py) = pyrshift(x, y)
-Base.:(&)(x::Number, y::Py) = pyand(x, y)
-Base.xor(x::Number, y::Py) = pyxor(x, y)
-Base.:(|)(x::Number, y::Py) = pyor(x, y)
-Base.:(^)(x::Number, y::Py) = pypow(x, y)
-
-Base.:(+)(x::Py, y::Number) = pyadd(x, y)
-Base.:(-)(x::Py, y::Number) = pysub(x, y)
-Base.:(*)(x::Py, y::Number) = pymul(x, y)
-# Base.:(+)(x::Py, y::Number) = pymatmul(x, y)
-Base.div(x::Py, y::Number) = pyfloordiv(x, y)
-Base.:(/)(x::Py, y::Number) = pytruediv(x, y)
-Base.rem(x::Py, y::Number) = pymod(x, y)
-# Base.:(+)(x::Py, y::Number) = pydivmod(x, y)
-Base.:(<<)(x::Py, y::Number) = pylshift(x, y)
-Base.:(>>)(x::Py, y::Number) = pyrshift(x, y)
-Base.:(&)(x::Py, y::Number) = pyand(x, y)
-Base.xor(x::Py, y::Number) = pyxor(x, y)
-Base.:(|)(x::Py, y::Number) = pyor(x, y)
-Base.:(^)(x::Py, y::Number) = pypow(x, y)
-
 Base.powermod(x::Py, y::Py, z::Py) = pypow(x, y, z)
-Base.powermod(x::Number, y::Py, z::Py) = pypow(x, y, z)
-Base.powermod(x::Py, y::Number, z::Py) = pypow(x, y, z)
-Base.powermod(x::Py, y::Py, z::Number) = pypow(x, y, z)
-Base.powermod(x::Number, y::Number, z::Py) = pypow(x, y, z)
-Base.powermod(x::Number, y::Py, z::Number) = pypow(x, y, z)
-Base.powermod(x::Py, y::Number, z::Number) = pypow(x, y, z)
 
 # documentation
 function Base.Docs.getdoc(x::Py, @nospecialize(sig) = Union{})

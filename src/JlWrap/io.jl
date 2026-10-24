@@ -10,7 +10,7 @@ pyjlio_closed(io::IO) = Py(!isopen(io))
 pyjl_handle_error_type(::typeof(pyjlio_closed), io, exc) =
     exc isa MethodError && exc.f === isopen ? pybuiltins.ValueError : PyNULL
 
-pyjlio_fileno(io::IO) = Py(fd(io))
+pyjlio_fileno(io::IO) = Py(Base.cconvert(Cint, fd(io))::Cint)
 pyjl_handle_error_type(::typeof(pyjlio_fileno), io, exc) =
     exc isa MethodError && exc.f === fd ? pybuiltins.ValueError : PyNULL
 
@@ -35,7 +35,7 @@ function pyjlio_seek(io::IO, offset_::Py, whence_::Py)
         seekend(io)
         pos = position(io) + offset
     else
-        errset(pybuiltins.ValueError, "Argument 'whence' must be 0, 1 or 2")
+        @pyregion errset(pybuiltins.ValueError, "Argument 'whence' must be 0, 1 or 2")
         return PyNULL
     end
     seek(io, pos)
@@ -97,20 +97,20 @@ function pyjlbinaryio_readinto(io::IO, b::Py)
     m = pybuiltins.memoryview(b)
     c = m.c_contiguous
     if !pytruth(c)
-        pydel!(c)
-        errset(pybuiltins.ValueError, "input buffer is not contiguous")
+        unsafe_pydel(c)
+        @pyregion errset(pybuiltins.ValueError, "input buffer is not contiguous")
         return PyNULL
     end
-    pydel!(c)
+    unsafe_pydel(c)
     buf = unsafe_load(C.PyMemoryView_GET_BUFFER(m))
     if buf.readonly != 0
-        pydel!(m)
-        errset(pybuiltins.ValueError, "output buffer is read-only")
+        unsafe_pydel(m)
+        @pyregion errset(pybuiltins.ValueError, "output buffer is read-only")
         return PyNULL
     end
     data = unsafe_wrap(Array, Ptr{UInt8}(buf.buf), buf.len)
     nb = readbytes!(io, data)
-    pydel!(m)
+    unsafe_pydel(m)
     return Py(nb)
 end
 pyjl_handle_error_type(::typeof(pyjlbinaryio_readinto), io, exc) =
@@ -120,15 +120,15 @@ function pyjlbinaryio_write(io::IO, b::Py)
     m = pybuiltins.memoryview(b)
     c = m.c_contiguous
     if !pytruth(c)
-        pydel!(c)
-        errset(pybuiltins.ValueError, "input buffer is not contiguous")
+        unsafe_pydel(c)
+        @pyregion errset(pybuiltins.ValueError, "input buffer is not contiguous")
         return PyNULL
     end
-    pydel!(c)
+    unsafe_pydel(c)
     buf = unsafe_load(C.PyMemoryView_GET_BUFFER(m))
     data = unsafe_wrap(Array, Ptr{UInt8}(buf.buf), buf.len)
     write(io, data)
-    pydel!(m)
+    unsafe_pydel(m)
     return Py(buf.len)
 end
 pyjl_handle_error_type(::typeof(pyjlbinaryio_write), io, exc) =
@@ -192,7 +192,7 @@ function pyjltextio_write(io::IO, s_::Py)
         # get the line separator
         linesep_ = pyosmodule.linesep
         linesep = pystr_asstring(linesep_)
-        pydel!(linesep_)
+        unsafe_pydel(linesep_)
         # write the string
         # translating '\n' to os.linesep
         i = firstindex(s)
@@ -212,7 +212,7 @@ function pyjltextio_write(io::IO, s_::Py)
         # TODO: is this the number of source characters, or the number of output characters?
         Py(length(s))
     else
-        errset(
+        @pyregion errset(
             pybuiltins.TypeError,
             "Argument 's' must be a 'str', got a '$(pytype(s_).__name__)'",
         )
@@ -226,6 +226,7 @@ function init_io()
     jl = pyjuliacallmodule
     m = pyimport("juliacall._jlwrap.io")
     methods = m._jl_methods
+    methods["__hash__"] = pyjl_methodnum(pyjlany_hash)
     methods["close"] = pyjl_methodnum(pyjlio_close)
     methods["closed"] = pyjl_methodnum(pyjlio_closed)
     methods["fileno"] = pyjl_methodnum(pyjlio_fileno)
@@ -236,16 +237,17 @@ function init_io()
     methods["tell"] = pyjl_methodnum(pyjlio_tell)
     methods["truncate"] = pyjl_methodnum(pyjlio_truncate)
     methods["writable"] = pyjl_methodnum(pyjlio_writable)
-    methods["binary_read"] = pyjl_methodnum(pyjlbinaryio_read)
-    methods["binary_readline"] = pyjl_methodnum(pyjlbinaryio_readline)
+    methods["read"] = pyjl_methodnum(pyjlbinaryio_read)
+    methods["readline"] = pyjl_methodnum(pyjlbinaryio_readline)
     methods["readinto"] = pyjl_methodnum(pyjlbinaryio_readinto)
-    methods["binary_write"] = pyjl_methodnum(pyjlbinaryio_write)
-    methods["text_read"] = pyjl_methodnum(pyjltextio_read)
-    methods["text_readline"] = pyjl_methodnum(pyjltextio_readline)
-    methods["text_write"] = pyjl_methodnum(pyjltextio_write)
-    pycopy!(pyjliobasetype, jl.IOValueBase)
-    pycopy!(pyjlbinaryiotype, jl.BinaryIOValue)
-    pycopy!(pyjltextiotype, jl.TextIOValue)
+    methods["write"] = pyjl_methodnum(pyjlbinaryio_write)
+    methods["read_2"] = pyjl_methodnum(pyjltextio_read)
+    methods["readline_2"] = pyjl_methodnum(pyjltextio_readline)
+    methods["write_2"] = pyjl_methodnum(pyjltextio_write)
+
+    pycopy!(pyjliobasetype, jl.JlIOBase)
+    pycopy!(pyjlbinaryiotype, jl.JlBinaryIO)
+    pycopy!(pyjltextiotype, jl.JlTextIO)
 end
 
 pyiobase(v::IO) = pyjl(pyjliobasetype, v)
@@ -266,4 +268,4 @@ Wrap `io` as a Python text IO object.
 """
 pytextio(v::IO) = pyjl(pyjltextiotype, v)
 
-pyjltype(::IO) = pyjlbinaryiotype
+Py(x::IO) = pybinaryio(x)

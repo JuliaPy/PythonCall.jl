@@ -9,12 +9,8 @@ Base.iterate(x::DictPairSet, st) =
 Base.in(v::Pair, x::DictPairSet) = v in x.dict
 Base.in(v::Tuple{Any,Any}, x::DictPairSet) = Pair(v[1], v[2]) in x.dict
 
-pyjldict_iter(x::AbstractDict) = Py(Iterator(keys(x)))
-
 pyjldict_contains(x::AbstractDict, k::Py) =
     Py(haskey(x, @pyconvert(keytype(x), k, return Py(false))))
-
-pyjldict_clear(x::AbstractDict) = (empty!(x); Py(nothing))
 
 pyjldict_getitem(x::AbstractDict, k::Py) = Py(x[pyconvert(keytype(x), k)])
 
@@ -39,19 +35,25 @@ function init_dict()
     jl = pyjuliacallmodule
     m = pyimport("juliacall._jlwrap.dict")
     methods = m._jl_methods
-    methods["__iter__"] = pyjl_methodnum(pyjldict_iter)
+    methods["__iter__"] = pyjl_methodnum(pyjliter ∘ Iterator ∘ keys)
     methods["__contains__"] = pyjl_methodnum(pyjldict_contains)
     methods["__getitem__"] = pyjl_methodnum(pyjldict_getitem)
     methods["__setitem__"] = pyjl_methodnum(pyjldict_setitem)
     methods["__delitem__"] = pyjl_methodnum(pyjldict_delitem)
-    methods["keys"] = pyjl_methodnum(Py ∘ keys)
-    methods["values"] = pyjl_methodnum(Py ∘ values)
-    methods["items"] = pyjl_methodnum(Py ∘ DictPairSet)
-    methods["clear"] = pyjl_methodnum(pyjldict_clear)
+    methods["keys"] = pyjl_methodnum(pyjlset ∘ keys)
+    methods["values"] = pyjl_methodnum(pyjlcollection ∘ values)
+    methods["items"] = pyjl_methodnum(pyjlset ∘ DictPairSet)
     methods["popitem"] = pyjl_methodnum(Py ∘ pop!)
     methods["update"] = pyjl_methodnum(pyjldict_update)
-    methods["copy"] = pyjl_methodnum(Py ∘ copy)
-    pycopy!(pyjldicttype, jl.DictValue)
+
+    pycopy!(pyjldicttype, jl.JlDict)
 end
 
-pyjltype(::AbstractDict) = pyjldicttype
+"""
+    pyjldict(x::AbstractDict)
+
+Wrap `x` as a Python `dict`-like object.
+"""
+pyjldict(x::AbstractDict) = pyjl(pyjldicttype, x)
+
+Py(x::AbstractDict) = pyjldict(x)

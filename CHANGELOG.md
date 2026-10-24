@@ -1,5 +1,50 @@
 # Changelog
 
+## Unreleased (v1)
+* The vast majority of these changes are breaking, see the [v1 Migration Guide](@ref) for how to upgrade.
+* Changes to core functionality:
+  * Comparisons like `==`, `<` and `isless` between `Py`s now return `Bool` instead of `Py`.
+  * Removed comparisons between `Py` and `Number` (like `Py(3) < 5`).
+  * Removed arithmetic between `Py` and `Number` (like `Py(2) * 10`).
+  * Removed unsafe API: `getptr`, `pycopy!`, `pyisnull`, `pynew`, `PyNULL`, `unsafe_pynext`.
+  * Renamed `pydel!` to `unsafe_pydel` and exported.
+    A `Py` is now always a valid, fixed, non-NULL Python object in the documented API.
+  * Python errors no longer automatically set `sys.last_traceback` etc. when displayed from Julia.
+  * Added [`fix_qt_plugin_path` preference](@ref pythoncall-config), replacing `CONFIG.auto_fix_qt_plugin_path`.
+  * Removed `PythonCall.CONFIG`.
+* Changes to multi-threading:
+  * PythonCall APIs now manage CPython thread states automatically and can be called from
+    any Julia task or thread without manually locking the GIL.
+  * Added the optional, nestable `@pyregion` and `@pyregionbreak` macros. These are
+    performance and concurrency hints rather than correctness requirements.
+  * Removed the `PythonCall.GIL` module. Ordinary PythonCall operations replace
+    `GIL.lock`, and `@pyregionbreak` replaces `GIL.unlock` when an enclosing region needs
+    to relinquish Python resources around yielding or blocking Julia code.
+  * JuliaCall now relinquishes and restores Python resources automatically while running
+    Julia code, including Python-to-Julia callbacks.
+  * Removed JuliaCall's `jl_call_nogil` method; ordinary calls now provide its behavior.
+  * Python-object finalizers no longer attach a Python thread state. Pending decrefs are
+    queued until a state is already attached or `PythonCall.GC.gc()` drains the queue.
+* Changes to `PythonCall.GC` (now more like `Base.GC`):
+  * `enable(true)` replaces `enable()`.
+  * `enable(false)` replaces `disable()`.
+  * `gc()` added.
+* Changes to Python wrapper types:
+  * `PyArray` has been reparametrised from `PyArray{T,N,M,L,R}` to `PyArray{T,N,F}`:
+    * `F` is a tuple of symbols representing flags, with `:linear` replacing `L` and `:mutable` replacing `M`.
+    * `R` is removed and is now implied by `T`, which currently must be either a bits type (equal to `R`) or `Py`, or a tuple of these.
+* Changes to Julia wrapper types:
+  * Classes renamed: `ValueBase` to `JlBase`, `AnyValue` to `Jl`, `ArrayValue` to `JlArray`, etc.
+  * Classes removed: `RawValue`, `ModuleValue`, `TypeValue`, `NumberValue`, `ComplexValue`, `RealValue`, `RationalValue`, `IntegerValue`.
+  * `Jl` now behaves similar to how `RawValue` behaved before. In particular, most methods on `Jl` now return a `Jl` instead of an arbitrary Python object.
+  * `juliacall.Pkg` removed (you can import it yourself).
+  * `juliacall.convert` removed (use `juliacall.Jl` instead).
+  * Methods renamed: `_jl_display()` to `jl_display()`, `_jl_help()` to `jl_help()`, etc.
+  * Methods removed: `_jl_raw()`.
+  * `pyjl(x)` now always returns a `juliacall.Jl` (it used to select a wrapper type if possible).
+  * `pyjltype(x)` removed.
+  * New functions: `pyjlarray`, `pyjldict`, `pyjlset`.
+
 ## Unreleased
 * Add `exe=@ENV` preference to read `JULIA_PYTHONCALL_EXE` without loading CondaPkg.
 * Improved TTFX in JuliaCall.

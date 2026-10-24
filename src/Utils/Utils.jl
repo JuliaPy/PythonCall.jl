@@ -2,6 +2,45 @@ module Utils
 
 using Preferences: @load_preference
 
+@static if isdefined(Base, :OncePerThread)
+    const OncePerThread = Base.OncePerThread
+    const OncePerTask = Base.OncePerTask
+else
+    # Minimal package-local equivalents for Julia versions where Base does not provide them.
+    mutable struct OncePerThread{T,F}
+        initializer::F
+        values::Dict{Int,T}
+        lock::ReentrantLock
+    end
+
+    OncePerThread{T}(initializer::F) where {T,F} =
+        OncePerThread{T,F}(initializer, Dict{Int,T}(), ReentrantLock())
+
+    function (once::OncePerThread{T})() where {T}
+        tid = Threads.threadid()
+        lock(once.lock)
+        try
+            return get!(once.values, tid) do
+                once.initializer()::T
+            end
+        finally
+            unlock(once.lock)
+        end
+    end
+
+    mutable struct OncePerTask{T,F}
+        initializer::F
+    end
+
+    OncePerTask{T}(initializer::F) where {T,F} = OncePerTask{T,F}(initializer)
+
+    function (once::OncePerTask{T})() where {T}
+        get!(task_local_storage(), once) do
+            once.initializer()::T
+        end::T
+    end
+end
+
 function getpref(::Type{T}, prefname, envname, default = nothing) where {T}
     ans = @load_preference(prefname, nothing)
     ans === nothing || return checkpref(T, ans)::T
@@ -12,11 +51,14 @@ end
 
 checkpref(::Type{String}, x) = error("invalid preference of type $(type(x)), expecting a string")
 checkpref(::Type{String}, x::AbstractString) = convert(String, x)
+checkpref(::Type{Bool}, x::Bool) = x
+checkpref(::Type{Bool}, x::AbstractString) = x in ("1", "yes", "true") ? true : x in ("0", "no", "false") ? false : error("expecting '0', 'no', 'false', '1', 'yes' or 'true'")
 
 # Specific preference functions
 getpref_exe() = getpref(String, "exe", "JULIA_PYTHONCALL_EXE", "")
 getpref_lib() = getpref(String, "lib", "JULIA_PYTHONCALL_LIB", nothing)
 getpref_pickle() = getpref(String, "pickle", "JULIA_PYTHONCALL_PICKLE", "pickle")
+getpref_fix_qt_plugin_path() = getpref(Bool, "fix_qt_plugin_path", "JULIA_PYTHONCALL_FIX_QT_PLUGIN_PATH", true)
 
 function explode_union(T)
     @nospecialize T

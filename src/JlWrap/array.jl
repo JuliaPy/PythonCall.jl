@@ -3,16 +3,22 @@ const pyjlarraytype = pynew()
 function pyjl_getaxisindex(x::AbstractUnitRange{<:Integer}, k::Py)
     if pyisslice(k)
         a = @pyconvert Union{Int,Nothing} k.start begin
-            errset(pybuiltins.TypeError, "slice components must be integers")
-            pythrow()
+            @pyregion begin
+                errset(pybuiltins.TypeError, "slice components must be integers")
+                pythrow()
+            end
         end
         b = @pyconvert Union{Int,Nothing} k.step begin
-            errset(pybuiltins.TypeError, "slice components must be integers")
-            pythrow()
+            @pyregion begin
+                errset(pybuiltins.TypeError, "slice components must be integers")
+                pythrow()
+            end
         end
         c = @pyconvert Union{Int,Nothing} k.stop begin
-            errset(pybuiltins.TypeError, "slice components must be integers")
-            pythrow()
+            @pyregion begin
+                errset(pybuiltins.TypeError, "slice components must be integers")
+                pythrow()
+            end
         end
         # step defaults to 1
         b′ = b === nothing ? 1 : b
@@ -26,8 +32,10 @@ function pyjl_getaxisindex(x::AbstractUnitRange{<:Integer}, k::Py)
                 a′ = Int(last(x))
                 c′ = Int(first(x))
             else
-                errset(pybuiltins.ValueError, "step must be non-zero")
-                pythrow()
+                @pyregion begin
+                    errset(pybuiltins.ValueError, "step must be non-zero")
+                    pythrow()
+                end
             end
         else
             # start defaults
@@ -41,23 +49,29 @@ function pyjl_getaxisindex(x::AbstractUnitRange{<:Integer}, k::Py)
         if checkbounds(Bool, x, r)
             return r
         else
-            errset(pybuiltins.IndexError, "array index out of bounds")
-            pythrow()
+            @pyregion begin
+                errset(pybuiltins.IndexError, "array index out of bounds")
+                pythrow()
+            end
         end
     else
         j = @pyconvert Int k begin
-            errset(
-                pybuiltins.TypeError,
-                "index must be slice or integer, got '$(pytype(k).__name__)'",
-            )
-            pythrow()
+            @pyregion begin
+                errset(
+                    pybuiltins.TypeError,
+                    "index must be slice or integer, got '$(pytype(k).__name__)'",
+                )
+                pythrow()
+            end
         end
         r = Int(j < 0 ? (last(x) + j + 1) : (first(x) + j))
         if checkbounds(Bool, x, r)
             return r
         else
-            errset(pybuiltins.IndexError, "array index out of bounds")
-            pythrow()
+            @pyregion begin
+                errset(pybuiltins.IndexError, "array index out of bounds")
+                pythrow()
+            end
         end
     end
 end
@@ -68,23 +82,25 @@ function pyjl_getarrayindices(x::AbstractArray{T,N}, ks::Py) where {T,N}
             return ntuple(N) do i
                 k = pytuple_getitem(ks, i - 1)
                 ans = pyjl_getaxisindex(axes(x, i), k)
-                pydel!(k)
+                unsafe_pydel(k)
                 return ans
             end
         else
-            errset(pybuiltins.TypeError, "expecting $N indices, got $(pylen(ks))")
-            pythrow()
+            @pyregion begin
+                errset(pybuiltins.TypeError, "expecting $N indices, got $(pylen(ks))")
+                pythrow()
+            end
         end
     elseif N == 1
         return (pyjl_getaxisindex(axes(x, 1), ks),)
     else
-        errset(pybuiltins.TypeError, "expecting $N indices, got 1")
+        @pyregion errset(pybuiltins.TypeError, "expecting $N indices, got 1")
     end
 end
 
 function pyjlarray_getitem(x::AbstractArray{T,N}, k_::Py) where {T,N}
     k = pyjl_getarrayindices(x, k_)
-    pydel!(k_)
+    unsafe_pydel(k_)
     if k isa NTuple{N,Int}
         return Py(x[k...])
     else
@@ -94,7 +110,7 @@ end
 
 function pyjlarray_setitem(x::AbstractArray{T,N}, k_::Py, v_::Py) where {T,N}
     k = pyjl_getarrayindices(x, k_)
-    pydel!(k_)
+    unsafe_pydel(k_)
     if k isa NTuple{N,Int}
         v = pyconvertarg(T, v_, "value")
         x[k...] = v
@@ -108,11 +124,13 @@ end
 function pyjlarray_delitem(x::AbstractArray{T,N}, k_::Py) where {T,N}
     if N == 1
         k = pyjl_getarrayindices(x, k_)
-        pydel!(k_)
+        unsafe_pydel(k_)
         deleteat!(x, k...)
     else
-        errset(pybuiltins.TypeError, "can only delete from 1D arrays")
-        pythrow()
+        @pyregion begin
+            errset(pybuiltins.TypeError, "can only delete from 1D arrays")
+            pythrow()
+        end
     end
     return Py(nothing)
 end
@@ -121,7 +139,7 @@ pyjl_handle_error_type(::typeof(pyjlarray_delitem), x, exc::MethodError) =
 
 function pyjlarray_reshape(x::AbstractArray, shape_::Py)
     shape = pyconvertarg(Union{Int,Vector{Int}}, shape_, "shape")
-    pydel!(shape_)
+    unsafe_pydel(shape_)
     return Py(reshape(x, shape...))
 end
 
@@ -300,8 +318,8 @@ function pytypestrdescr(::Type{T}) where {T}
     end
 end
 
-pyjlarray_array__array(x::AbstractArray) = x isa Array ? Py(nothing) : pyjl(Array(x))
-pyjlarray_array__pyobjectarray(x::AbstractArray) = pyjl(PyObjectArray(x))
+pyjlarray_array__array(x::AbstractArray) = x isa Array ? Py(nothing) : pyjlarray(Array(x))
+pyjlarray_array__pyobjectarray(x::AbstractArray) = pyjlarray(PyObjectArray(x))
 
 function pyjlarray_array_interface(x::AbstractArray{T,N}) where {T,N}
     if pyjlarray_isarrayabletype(eltype(x))
@@ -320,7 +338,7 @@ function pyjlarray_array_interface(x::AbstractArray{T,N}) where {T,N}
             return d
         end
     end
-    errset(pybuiltins.AttributeError, "__array_interface__")
+    @pyregion errset(pybuiltins.AttributeError, "__array_interface__")
     return PyNULL
 end
 pyjl_handle_error_type(::typeof(pyjlarray_array_interface), x, exc) =
@@ -333,15 +351,28 @@ function init_array()
     methods["_jl_buffer_info"] = pyjl_methodnum(pyjlarray_buffer_info)
     methods["ndim"] = pyjl_methodnum(Py ∘ ndims)
     methods["shape"] = pyjl_methodnum(Py ∘ size)
-    methods["copy"] = pyjl_methodnum(Py ∘ copy)
     methods["reshape"] = pyjl_methodnum(pyjlarray_reshape)
     methods["__getitem__"] = pyjl_methodnum(pyjlarray_getitem)
     methods["__setitem__"] = pyjl_methodnum(pyjlarray_setitem)
     methods["__delitem__"] = pyjl_methodnum(pyjlarray_delitem)
     methods["__array_interface__"] = pyjl_methodnum(pyjlarray_array_interface)
     methods["__array__"] = pyjl_methodnum(pyjlarray_array__array)
-    methods["__array_pyobjectarray__"] = pyjl_methodnum(pyjlarray_array__pyobjectarray)
-    pycopy!(pyjlarraytype, jl.ArrayValue)
+    methods["__array___2"] = pyjl_methodnum(pyjlarray_array__pyobjectarray)
+    m.JlArray._jl_buffer_info = methods["_jl_buffer_info"]
+
+    pycopy!(pyjlarraytype, jl.JlArray)
 end
 
-pyjltype(::AbstractArray) = pyjlarraytype
+"""
+    pyjlarray(x::AbstractArray)
+
+Wrap `x` as a Python array-like object.
+
+This object can be converted to a Numpy array with `numpy.array(v)`, `v.to_numpy()` or
+`v.__array__()` and supports these Numpy attributes: `ndim`, `shape`, `copy`, `reshape`.
+
+If `x` is one-dimensional (an `AbstractVector`) then it also behaves as a `list`.
+"""
+pyjlarray(x::AbstractArray) = pyjl(pyjlarraytype, x)
+
+Py(x::AbstractArray) = pyjlarray(x)

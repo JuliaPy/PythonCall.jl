@@ -88,11 +88,13 @@ conversion to Python, unless the value is immutable and has a corresponding Pyth
 
 ```@docs
 pyjl
-pyjlraw
 pyisjl
 pyjlvalue
 pybinaryio
 pytextio
+pyjlarray
+pyjlset
+pyjldict
 ```
 
 ## Arithmetic
@@ -220,14 +222,15 @@ Py(x::MyType) = x.py
 
 ## Multi-threading
 
-These functions are not exported. They support multi-threading of Python and/or Julia.
-See also [`juliacall.AnyValue._jl_call_nogil`](@ref julia-wrappers).
+PythonCall manages Python thread state automatically. These exported macros are optional
+performance and concurrency hints; users normally do not need them for correctness.
 
 ```@docs
-PythonCall.GIL.lock
-PythonCall.GIL.@lock
-PythonCall.GIL.unlock
-PythonCall.GIL.@unlock
+@pyregion
+@pyregionbreak
+```
+
+```@docs
 PythonCall.GC.gc
 ```
 
@@ -248,12 +251,7 @@ The functions here are not exported. They are mostly unsafe in the sense that yo
 crash Julia by using them incorrectly.
 
 ```@docs
-PythonCall.pynew
-PythonCall.pyisnull
-PythonCall.pycopy!
-PythonCall.getptr
-PythonCall.pydel!
-PythonCall.unsafe_pynext
+PythonCall.unsafe_pydel
 ```
 
 ## NumpyDates

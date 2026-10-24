@@ -1,17 +1,21 @@
-"""Julia value wrappers from src/JlWrap/dict.jl."""
+"""Julia wrappers initialized by PythonCall."""
 
-from .any import AnyValue
+import juliacall as jl
+from juliacall import JlBase
+from .collection import JlCollection
 
-# Populated by Julia during PythonCall initialization.
+# Populated by Julia during initialization.
 _jl_methods = {}
 
 
-class DictValue(AnyValue):
+class JlDict(JlCollection):
     __module__ = "juliacall"
     __slots__ = ()
     _jl_undefined_ = object()
-    def __bool__(self):
-        return bool(len(self))
+    def __init__(self, value=None):
+        if value is None:
+            value = jl.Base.Dict()
+        JlBase.__init__(self, value, jl.Base.AbstractDict)
     def __iter__(self):
         return self._jl_callmethod(_jl_methods["__iter__"])
     def __contains__(self, key):
@@ -43,8 +47,6 @@ class DictValue(AnyValue):
         if key not in self:
             self[key] = default
         return self[key]
-    def clear(self):
-        return self._jl_callmethod(_jl_methods["clear"])
     def pop(self, key, default=_jl_undefined_):
         if key in self:
             ans = self[key]
@@ -70,8 +72,6 @@ class DictValue(AnyValue):
             self._jl_callmethod(_jl_methods["update"], items)
         if kwargs:
             self.update(kwargs)
-    def copy(self):
-        return self._jl_callmethod(_jl_methods["copy"])
 import collections.abc
-collections.abc.MutableMapping.register(DictValue)
+collections.abc.MutableMapping.register(JlDict)
 del collections

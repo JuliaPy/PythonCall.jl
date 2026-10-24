@@ -83,7 +83,7 @@ def gen_file(jl, py):
 def exec_module(name, code):
     pymod = sys.modules[name]
     jlmod = newmodule(name)
-    jlmod.seval('begin\n' + code + '\nend')
+    jlmod.jl_eval('begin\n' + code + '\nend')
     delattr(pymod, 'juliacall')
     setattr(pymod, '__jl_code__', code)
     setattr(pymod, '__jl_module__', jlmod)

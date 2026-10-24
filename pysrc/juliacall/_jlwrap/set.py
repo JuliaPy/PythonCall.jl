@@ -1,24 +1,22 @@
-"""Julia value wrappers from src/JlWrap/set.jl."""
+"""Julia wrappers initialized by PythonCall."""
 
-from .any import AnyValue
+import juliacall as jl
+from juliacall import JlBase
+from .collection import JlCollection
 
-# Populated by Julia during PythonCall initialization.
+# Populated by Julia during initialization.
 _jl_methods = {}
 
 
-class SetValue(AnyValue):
+class JlSet(JlCollection):
     __module__ = "juliacall"
     __slots__ = ()
-    def __bool__(self):
-        return bool(len(self))
+    def __init__(self, value=None):
+        JlBase.__init__(self, value, jl.Base.AbstractSet)
     def add(self, value):
         return self._jl_callmethod(_jl_methods["add"], value)
     def discard(self, value):
         return self._jl_callmethod(_jl_methods["discard"], value)
-    def clear(self):
-        return self._jl_callmethod(_jl_methods["clear"])
-    def copy(self):
-        return self._jl_callmethod(_jl_methods["copy"])
     def pop(self):
         return self._jl_callmethod(_jl_methods["pop"])
     def remove(self, value):
@@ -46,5 +44,5 @@ class SetValue(AnyValue):
     def update(self, other):
         return self._jl_callmethod(_jl_methods["update"], other)
 import collections.abc
-collections.abc.MutableSet.register(SetValue)
+collections.abc.MutableSet.register(JlSet)
 del collections

@@ -15,7 +15,7 @@ errcheck_ambig(val) = iserrset_ambig(val) ? pythrow() : val
 
 errclear() = C.PyErr_Clear()
 
-errmatches(t) = (@autopy t C.PyErr_ExceptionMatches(t_)) == 1
+errmatches(t) = C.PyErr_ExceptionMatches(Py(t)) == 1
 
 function errget()
     t = Ref(C.PyNULL)
@@ -64,12 +64,14 @@ end
 
 function Base.getproperty(exc::PyException, k::Symbol)
     if k in (:t, :v, :b) && !exc._isnormalized
-        errnormalize!(exc._t, exc._v, exc._b)
-        pyisnull(exc._t) && pycopy!(exc._t, pybuiltins.None)
-        pyisnull(exc._v) && pycopy!(exc._v, pybuiltins.None)
-        pyisnull(exc._b) && pycopy!(exc._b, pybuiltins.None)
-        pyisnone(exc._v) || (exc._v.__traceback__ = exc._b)
-        exc._isnormalized = true
+        @pyregion begin
+            errnormalize!(exc._t, exc._v, exc._b)
+            pyisnull(exc._t) && pycopy!(exc._t, pybuiltins.None)
+            pyisnull(exc._v) && pycopy!(exc._v, pybuiltins.None)
+            pyisnull(exc._b) && pycopy!(exc._b, pybuiltins.None)
+            pyisnone(exc._v) || (exc._v.__traceback__ = exc._b)
+            exc._isnormalized = true
+        end
     end
     k == :t ? exc._t : k == :v ? exc._v : k == :b ? exc._b : getfield(exc, k)
 end
@@ -89,10 +91,14 @@ file_to_pymodule(fname::String) = begin
     end
 end
 
-Base.showerror(io::IO, e::PyException) = _showerror(io, e, nothing, backtrace = false)
+# We take a single region here so that formatting doesn't re-acquire the GIL for
+# every operation, which otherwise can be very slow with multiple threads trying
+# to take the GIL.
+Base.showerror(io::IO, e::PyException) =
+    @pyregion _showerror(io, e, nothing, backtrace = false)
 
 Base.showerror(io::IO, e::PyException, bt; backtrace = true) =
-    _showerror(io, e, bt; backtrace = backtrace)
+    @pyregion _showerror(io, e, bt; backtrace = backtrace)
 
 function _showerror(io::IO, e::PyException, bt; backtrace = true)
     print(io, "Python: ")
@@ -103,17 +109,6 @@ function _showerror(io::IO, e::PyException, bt; backtrace = true)
             Base.show_backtrace(io, bt)
         end
         return
-    end
-
-    if CONFIG.auto_sys_last_traceback
-        try
-            sys = pyimport("sys")
-            sys.last_type = e.t
-            sys.last_value = e.v
-            sys.last_traceback = e.b
-        catch err
-            print(io, "<error while setting 'sys.last_traceback': $err>")
-        end
     end
 
     if !pyisnull(pyJuliaError) && pyissubclass(e.t, pyJuliaError)

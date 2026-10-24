@@ -2,18 +2,18 @@ const pyjlvectortype = pynew()
 
 function pyjlvector_resize(x::AbstractVector, size_::Py)
     size = pyconvertarg(Int, size_, "size")
-    pydel!(size_)
+    unsafe_pydel(size_)
     resize!(x, size)
     Py(nothing)
 end
 
 function pyjlvector_sort(x::AbstractVector, reverse_::Py, key_::Py)
     reverse = pyconvertarg(Bool, reverse_, "reverse")
-    pydel!(reverse_)
+    unsafe_pydel(reverse_)
     key = pyconvertarg(Any, key_, "size")
     if key === nothing
         sort!(x, rev = reverse)
-        pydel!(key_)
+        unsafe_pydel(key_)
     else
         sort!(x, rev = reverse, by = key)
     end
@@ -25,18 +25,13 @@ function pyjlvector_reverse(x::AbstractVector)
     Py(nothing)
 end
 
-function pyjlvector_clear(x::AbstractVector)
-    empty!(x)
-    Py(nothing)
-end
-
 function pyjlvector_reversed(x::AbstractVector)
     Py(reverse(x))
 end
 
 function pyjlvector_insert(x::AbstractVector, k_::Py, v_::Py)
     k = pyconvertarg(Int, k_, "index")
-    pydel!(k_)
+    unsafe_pydel(k_)
     a = axes(x, 1)
     k′ = k < 0 ? (last(a) + 1 + k) : (first(a) + k)
     if checkbounds(Bool, x, k′) || k′ == last(a) + 1
@@ -44,7 +39,7 @@ function pyjlvector_insert(x::AbstractVector, k_::Py, v_::Py)
         insert!(x, k′, v)
         return Py(nothing)
     else
-        errset(pybuiltins.IndexError, "array index out of bounds")
+        @pyregion errset(pybuiltins.IndexError, "array index out of bounds")
         return PyNULL
     end
 end
@@ -60,13 +55,13 @@ function pyjlvector_extend(x::AbstractVector, vs_::Py)
         v = pyconvert(eltype(x), v_)
         push!(x, v)
     end
-    pydel!(vs_)
+    unsafe_pydel(vs_)
     Py(nothing)
 end
 
 function pyjlvector_pop(x::AbstractVector, k_::Py)
     k = pyconvertarg(Int, k_, "index")
-    pydel!(k_)
+    unsafe_pydel(k_)
     a = axes(x, 1)
     k′ = k < 0 ? (last(a) + 1 + k) : (first(a) + k)
     if checkbounds(Bool, x, k′)
@@ -80,19 +75,19 @@ function pyjlvector_pop(x::AbstractVector, k_::Py)
         end
         return Py(v)
     else
-        errset(pybuiltins.IndexError, "pop from empty array")
+        @pyregion errset(pybuiltins.IndexError, "pop from empty array")
         return PyNULL
     end
 end
 
 function pyjlvector_remove(x::AbstractVector, v_::Py)
     v = @pyconvert eltype(x) v_ begin
-        errset(pybuiltins.ValueError, "value not in array")
+        @pyregion errset(pybuiltins.ValueError, "value not in array")
         return PyNULL
     end
     k = findfirst(==(v), x)
     if k === nothing
-        errset(pybuiltins.ValueError, "value not in array")
+        @pyregion errset(pybuiltins.ValueError, "value not in array")
         return PyNULL
     end
     deleteat!(x, k)
@@ -101,12 +96,12 @@ end
 
 function pyjlvector_index(x::AbstractVector, v_::Py)
     v = @pyconvert eltype(x) v_ begin
-        errset(pybuiltins.ValueError, "value not in array")
+        @pyregion errset(pybuiltins.ValueError, "value not in array")
         return PyNULL
     end
     k = findfirst(==(v), x)
     if k === nothing
-        errset(pybuiltins.ValueError, "value not in array")
+        @pyregion errset(pybuiltins.ValueError, "value not in array")
         return PyNULL
     end
     Py(k - first(axes(x, 1)))
@@ -124,7 +119,6 @@ function init_vector()
     methods["resize"] = pyjl_methodnum(pyjlvector_resize)
     methods["sort"] = pyjl_methodnum(pyjlvector_sort)
     methods["reverse"] = pyjl_methodnum(pyjlvector_reverse)
-    methods["clear"] = pyjl_methodnum(pyjlvector_clear)
     methods["__reversed__"] = pyjl_methodnum(pyjlvector_reversed)
     methods["insert"] = pyjl_methodnum(pyjlvector_insert)
     methods["append"] = pyjl_methodnum(pyjlvector_append)
@@ -133,7 +127,8 @@ function init_vector()
     methods["remove"] = pyjl_methodnum(pyjlvector_remove)
     methods["index"] = pyjl_methodnum(pyjlvector_index)
     methods["count"] = pyjl_methodnum(pyjlvector_count)
-    pycopy!(pyjlvectortype, jl.VectorValue)
+
+    pycopy!(pyjlvectortype, jl.JlVector)
 end
 
-pyjltype(::AbstractVector) = pyjlvectortype
+pyjlarray(x::AbstractVector) = pyjl(pyjlvectortype, x)

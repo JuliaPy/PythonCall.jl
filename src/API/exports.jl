@@ -117,6 +117,7 @@ export PyDict
 export PyIO
 export PyIterable
 export PyList
+export PyString
 export PyPandasDataFrame
 export PySet
 export PyTable

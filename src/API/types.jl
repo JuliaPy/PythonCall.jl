@@ -170,6 +170,27 @@ struct PyIterable{T}
 end
 
 """
+    PyString(x)
+
+Wraps the Python `str` `x` as an `AbstractString` without copying.
+
+The UTF-8 data is stored as a pointer and byte length obtained from
+`PyUnicode_AsUTF8AndSize`, and remains valid as long as the underlying Python
+object is alive.
+"""
+struct PyString <: AbstractString
+    py::Py
+    ptr::Ptr{UInt8}
+    nbytes::Int
+    function PyString(x)
+        py = Py(x)
+        PythonCall.Core.pyisstr(py) || throw(ArgumentError("PyString expects a Python `str`"))
+        ptr, n = PythonCall.Core.pystr_utf8_pointer(py)
+        new(py, ptr, n)
+    end
+end
+
+"""
     PyList{T=Py}([x])
 
 Wraps the Python list `x` (or anything satisfying the sequence interface) as an `AbstractVector{T}`.

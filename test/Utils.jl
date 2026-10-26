@@ -22,3 +22,12 @@ end
     @test s[1:2] == "ab"
     @test s[1:2:end] == "aaaab"
 end
+
+@testitem "StaticString UTF-8" begin
+    S = PythonCall.Utils.StaticString
+    s = S{UInt8,10}("aβℵ🙂")
+    @test String(s) == "aβℵ🙂"
+    @test collect(s) == ['a', 'β', 'ℵ', '🙂']
+    @test !isvalid(S{UInt8,1}((0x80,)), 1)
+    @test !isvalid(S{UInt8,1}((0xf8,)), 1)
+end

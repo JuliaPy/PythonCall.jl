@@ -112,7 +112,13 @@ np = pyimport("numpy")
 ## What versions of Python and Julia do you support?
 
 Each release of PythonCall and JuliaCall will support and require:
-- Any currently supported version of Python, [see here](https://devguide.python.org/versions/). Currently 3.11+.
+- Any currently supported version of Python, [see here](https://devguide.python.org/versions/). Currently 3.11+, using a security-supported patch release: 3.11.18+, 3.12.16+, 3.13.18+, 3.14.10+ or 3.15.2+.
 - The current Julia LTS version and newer, [see here](https://julialang.org/downloads/#long_term_support_release). Currently 1.10+.
 
 Only the latest patch release within each minor version is supported.
+
+By default CondaPkg installs a Python satisfying this policy, so updating PythonCall
+will upgrade Python automatically. If you must use an older patch release, for example
+a system Python which you cannot upgrade, set `exe` (or `JULIA_PYTHONCALL_EXE`) to that
+interpreter or use the CondaPkg `Null` backend. PythonCall only rejects Python older
+than 3.11.

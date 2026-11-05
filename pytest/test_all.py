@@ -199,3 +199,33 @@ def test_call_nogil(yld, raw):
         t2 = time() - t0
     # executing the tasks should take about 1 second because they happen in parallel
     assert 0.9 < t2 < 1.5
+
+
+@pytest.mark.parametrize("mode,value", [("existing", 2), ("strict", 3)])
+def test_compiled_modules_option(mode, value):
+    import os
+    import subprocess
+    import sys
+
+    from juliacall import Main as jl
+
+    if jl.seval("VERSION < v\"1.11\""):
+        pytest.skip("--compiled-modules=existing/strict requires Julia 1.11")
+    # the parent process has loaded PythonCall, so its cache files exist for the
+    # same flags (the child inherits PYTHON_JULIACALL_*) and it can load them without compiling
+    env = os.environ.copy()
+    env["PYTHON_JULIACALL_COMPILED_MODULES"] = mode
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from juliacall import Main as jl;"
+            " print(jl.seval('Base.JLOptions().use_compiled_modules'), end='')",
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == str(value)

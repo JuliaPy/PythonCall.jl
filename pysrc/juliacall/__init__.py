@@ -195,7 +195,7 @@ def init():
     CONFIG['opt_compile'] = choice('compile', ['yes', 'no', 'all', 'min'])[0]
     CONFIG["opt_trace_compile"] = option('trace_compile')[0]
     CONFIG["opt_trace_compile_timing"] = flag('trace_compile_timing')[0]
-    CONFIG['opt_compiled_modules'] = choice('compiled_modules', ['yes', 'no'])[0]
+    CONFIG['opt_compiled_modules'] = choice('compiled_modules', ['yes', 'no', 'existing', 'strict'])[0]
     CONFIG['opt_depwarn'] = choice('depwarn', ['yes', 'no', 'error'])[0]
     CONFIG['opt_inline'] = choice('inline', ['yes', 'no'])[0]
     CONFIG['opt_min_optlevel'] = choice('min_optlevel', ['0', '1', '2', '3'])[0]

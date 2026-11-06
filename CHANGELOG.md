@@ -4,6 +4,7 @@
 * Add `exe=@ENV` preference to read `JULIA_PYTHONCALL_EXE` without loading CondaPkg.
 * Improved TTFX in JuliaCall.
 * Minimum supported Python version is now 3.11.
+* JuliaCall option `compiled_modules` now accepts `existing` and `strict` (Julia 1.11+).
 
 ## 0.9.37 (2026-10-12)
 * Compatibility fix with Python 3.15 from conda-forge, which no longer bundles libpython.

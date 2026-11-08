@@ -32,6 +32,10 @@ The majority of tests live in the Julia package; Python tests cover functionalit
 - For numeric Python fixtures, use `pycomplex(real, imag)` when a Python complex
   value is needed. Passing a Julia `Complex` directly to a Python constructor can
   produce a Julia wrapper, which NumPy may treat as a sequence rather than a scalar.
+- External-interpreter Julia CI jobs do not install NumPy/pandas development
+  dependencies. Keep synthetic conversion tests independent of them, and guard
+  library-specific checks with module availability (without hiding import errors
+  when a module is installed). Conda-backed jobs exercise those optional checks.
 - The benchmark suite is shared across the compared revisions: `main` uses `pydel!`, while `v1` uses `unsafe_pydel`.
 - `main` does not have `@pyregion`. Benchmark region wrappers must select a plain-body fallback before macro expansion; a runtime conditional around an unavailable macro still fails when loading the suite.
 - Julia CI caches can preserve Conda's build metadata without its root environment. Rebuild `Conda` before building `PyCall` or running tests to recreate that directory.

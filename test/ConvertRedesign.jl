@@ -115,14 +115,12 @@ end
     pyimport("sys").modules["convert_protocol_test"]=ns
     pyexec("""
 import abc
-import numpy
 class A(metaclass=abc.ABCMeta): pass
 class B: pass
 A.register(B)
 class C(B): pass
 class IntSubclass(int): pass
 class FloatSubclass(float): pass
-class Both(numpy.ndarray): pass
 """,ns.__dict__)
     ids=Int[]
     add(source,T,f;scope=Any)=(id=pyconvert_add_rule(source,T,f;scope);push!(ids,id);id)
@@ -146,19 +144,24 @@ class Both(numpy.ndarray): pass
         @test pyconvert(Float64,ns.FloatSubclass(2)) == 2.0
         add("convert_protocol_test:FloatSubclass",Float64,(_,_) -> 3.0)
         @test pyconvert(Float64,ns.FloatSubclass(2)) == 3.0
-        a=ns.numpy.arange(3).view(ns.Both)
-        @test pyconvert(Any,a) isa Vector{<:Integer}
-        rows=pyconvert_rules(Any,a)
-        protocols=unique(r.source for r in rows if startswith(r.source,"<"))
-        @test collect(protocols) == ["<arraystruct>","<arrayinterface>","<array>","<buffer>"]
-        i=add("numpy:ndarray",String,(_,_) -> "ndarray")
-        @test pyconvert(Any,a) == "ndarray"
-        rows=pyconvert_rules(Any,a)
-        @test first(rows).id==i
-        @test first(rows).priority==maximum(r.priority for r in rows)
         @test pyconvert(Any,pyjl([1,2])) == [1,2]
         @test first(pyconvert_rules(Any,pyjl([1,2]))).source=="juliacall:JlBase"
-        @test pyconvert(Any,ns.numpy.arange(2);prefer=("numpy:ndarray"=>PyArray,)) isa PyArray
+        if pyis(pyimport("importlib.util").find_spec("numpy"),pybuiltins.None)
+            @test_skip false # external interpreters need not have development dependencies
+        else
+            pyexec("import numpy\nclass Both(numpy.ndarray): pass",ns.__dict__)
+            a=ns.numpy.arange(3).view(ns.Both)
+            @test pyconvert(Any,a) isa Vector{<:Integer}
+            rows=pyconvert_rules(Any,a)
+            protocols=unique(r.source for r in rows if startswith(r.source,"<"))
+            @test collect(protocols) == ["<arraystruct>","<arrayinterface>","<array>","<buffer>"]
+            i=add("numpy:ndarray",String,(_,_) -> "ndarray")
+            @test pyconvert(Any,a) == "ndarray"
+            rows=pyconvert_rules(Any,a)
+            @test first(rows).id==i
+            @test first(rows).priority==maximum(r.priority for r in rows)
+            @test pyconvert(Any,ns.numpy.arange(2);prefer=("numpy:ndarray"=>PyArray,)) isa PyArray
+        end
     finally
         foreach(pyconvert_remove_rule,ids)
         pyimport("sys").modules.pop("convert_protocol_test")
@@ -374,11 +377,15 @@ numbers.Complex.register(ApproximateComplex)
             pyconvert_remove_rule(id)
         end
         # Supported NumPy scalars use their own representation-reading rules.
-        np = pyimport("numpy")
-        @test pyconvert(Int,np.int64(3)) === 3
-        @test pyconvert(Float64,np.float32(1.5)) === 1.5
-        @test pyconvert(ComplexF64,np.complex64(pycomplex(1,2))) === 1.0+2.0im
-        @test pytryconvert(Int,np.float64(3.5)) === nothing
+        if pyis(pyimport("importlib.util").find_spec("numpy"),pybuiltins.None)
+            @test_skip false # NumPy is optional for external-interpreter test jobs
+        else
+            np = pyimport("numpy")
+            @test pyconvert(Int,np.int64(3)) === 3
+            @test pyconvert(Float64,np.float32(1.5)) === 1.5
+            @test pyconvert(ComplexF64,np.complex64(pycomplex(1,2))) === 1.0+2.0im
+            @test pytryconvert(Int,np.float64(3.5)) === nothing
+        end
     finally
         pyimport("sys").modules.pop("convert_numeric_source_test")
     end

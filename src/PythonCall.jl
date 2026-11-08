@@ -9,6 +9,8 @@ include("C/C.jl")
 include("GC/GC.jl")
 include("Core/Core.jl")
 include("Convert/Convert.jl")
+using .Convert: PyConvertContext
+export PyConvertContext
 include("PyMacro/PyMacro.jl")
 include("Wrap/Wrap.jl")
 include("JlWrap/JlWrap.jl")

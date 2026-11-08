@@ -6,7 +6,7 @@ function init_pandas()
         "pandas._libs.missing:NAType",
         Missing,
         pyconvert_rule_pandas_na,
-        PYCONVERT_PRIORITY_CANONICAL,
+        ; scope=Any,
     )
     pyconvert_add_rule("pandas._libs.missing:NAType", Nothing, pyconvert_rule_pandas_na)
 end

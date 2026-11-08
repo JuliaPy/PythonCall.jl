@@ -106,13 +106,10 @@ export unsafe_pydel
 export @pyconvert
 export pyconvert
 export pyconvert_add_rule
-export PYCONVERT_PRIORITY_ARRAY
-export PYCONVERT_PRIORITY_CANONICAL
-export PYCONVERT_PRIORITY_FALLBACK
-export PYCONVERT_PRIORITY_NORMAL
-export PYCONVERT_PRIORITY_WRAP
-export pyconvert_return
-export pyconvert_unconverted
+export pytryconvert
+export pyconvert_remove_rule
+export pyconvert_replace_rule
+export pyconvert_rules
 
 # Wrap
 export PyArray

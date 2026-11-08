@@ -1,0 +1,139 @@
+
+int
+
+float
+Float64: 16 bytes
+  pytryconvert_plain(ctx::PyConvertContext{Tuple{}}, ::Type{Float64}, x::Py) at pyconvert.jl:296
+  pytryconvert_raw at pyconvert.jl:318 [inlined]
+  macro expansion at pyconvert.jl:394 [inlined]
+  macro expansion at regions.jl:302 [inlined]
+  pyconvert(ctx::PyConvertContext{Tuple{}}, ::Type{Float64}, x::Py, default::Nothing) at pyconvert.jl:393
+  #pyconvert#36 at pyconvert.jl:399 [inlined]
+  pyconvert at pyconvert.jl:399 [inlined]
+  scalar_convert(::Val{Float64}, x::Py) at convert-scalars.jl:5
+  (::var"#8#9")(io::IOStream) at convert-scalars.jl:52
+  eval(m::Module, e::Any) at boot.jl:489
+Float64: 16 bytes
+  (::var"#8#9")(io::IOStream) at convert-scalars.jl:52
+  eval(m::Module, e::Any) at boot.jl:489
+
+bigint
+Py: 16 bytes
+  Py at types.jl:17 [inlined]
+  pynew at Py.jl:51 [inlined]
+  pynew at Py.jl:55 [inlined]
+  macro expansion at Py.jl:108 [inlined]
+  macro expansion at regions.jl:296 [inlined]
+  macro expansion at Py.jl:102 [inlined]
+  macro expansion at regions.jl:296 [inlined]
+  pyint(x::Py) at builtins.jl:689
+  macro expansion at rules.jl:90 [inlined]
+  macro expansion at regions.jl:296 [inlined]
+  pyconvert_rule_int(::Type{BigInt}, x::Py) at rules.jl:61
+  pyconvert_first at pyconvert.jl:282 [inlined]
+  pytryconvert_plain(ctx::PyConvertContext{Tuple{}}, ::Type{BigInt}, x::Py) at pyconvert.jl:299
+  pytryconvert_raw at pyconvert.jl:318 [inlined]
+  macro expansion at pyconvert.jl:394 [inlined]
+  macro expansion at regions.jl:302 [inlined]
+  pyconvert(ctx::PyConvertContext{Tuple{}}, ::Type{BigInt}, x::Py, default::Nothing) at pyconvert.jl:393
+  #pyconvert#36 at pyconvert.jl:399 [inlined]
+  pyconvert at pyconvert.jl:399 [inlined]
+  scalar_convert(::Val{BigInt}, x::Py) at convert-scalars.jl:5
+  (::var"#8#9")(io::IOStream) at convert-scalars.jl:52
+  eval(m::Module, e::Any) at boot.jl:489
+Py: 16 bytes
+  Py at types.jl:17 [inlined]
+  pynew at Py.jl:51 [inlined]
+  pynew at Py.jl:55 [inlined]
+  macro expansion at regions.jl:296 [inlined]
+  pystr(x::Py) at builtins.jl:592
+  pystr at builtins.jl:598 [inlined]
+  macro expansion at rules.jl:91 [inlined]
+  macro expansion at regions.jl:296 [inlined]
+  pyconvert_rule_int(::Type{BigInt}, x::Py) at rules.jl:61
+  pyconvert_first at pyconvert.jl:282 [inlined]
+  pytryconvert_plain(ctx::PyConvertContext{Tuple{}}, ::Type{BigInt}, x::Py) at pyconvert.jl:299
+  pytryconvert_raw at pyconvert.jl:318 [inlined]
+  macro expansion at pyconvert.jl:394 [inlined]
+  macro expansion at regions.jl:302 [inlined]
+  pyconvert(ctx::PyConvertContext{Tuple{}}, ::Type{BigInt}, x::Py, default::Nothing) at pyconvert.jl:393
+  #pyconvert#36 at pyconvert.jl:399 [inlined]
+  pyconvert at pyconvert.jl:399 [inlined]
+  scalar_convert(::Val{BigInt}, x::Py) at convert-scalars.jl:5
+  (::var"#8#9")(io::IOStream) at convert-scalars.jl:52
+  eval(m::Module, e::Any) at boot.jl:489
+Py: 16 bytes
+  Py at types.jl:17 [inlined]
+  pynew at Py.jl:51 [inlined]
+  pynew at Py.jl:55 [inlined]
+  macro expansion at regions.jl:296 [inlined]
+  pystr_asUTF8bytes(x::Py) at builtins.jl:600
+  pystr_asstring(x::Py) at builtins.jl:603
+  pystr at builtins.jl:598 [inlined]
+  macro expansion at rules.jl:91 [inlined]
+  macro expansion at regions.jl:296 [inlined]
+  pyconvert_rule_int(::Type{BigInt}, x::Py) at rules.jl:61
+  pyconvert_first at pyconvert.jl:282 [inlined]
+  pytryconvert_plain(ctx::PyConvertContext{Tuple{}}, ::Type{BigInt}, x::Py) at pyconvert.jl:299
+  pytryconvert_raw at pyconvert.jl:318 [inlined]
+  macro expansion at pyconvert.jl:394 [inlined]
+  macro expansion at regions.jl:302 [inlined]
+  pyconvert(ctx::PyConvertContext{Tuple{}}, ::Type{BigInt}, x::Py, default::Nothing) at pyconvert.jl:393
+  #pyconvert#36 at pyconvert.jl:399 [inlined]
+  pyconvert at pyconvert.jl:399 [inlined]
+  scalar_convert(::Val{BigInt}, x::Py) at convert-scalars.jl:5
+  (::var"#8#9")(io::IOStream) at convert-scalars.jl:52
+  eval(m::Module, e::Any) at boot.jl:489
+String: 70 bytes
+  pybytes_asUTF8string at builtins.jl:654 [inlined]
+  pystr_asstring(x::Py) at builtins.jl:604
+  pystr at builtins.jl:598 [inlined]
+  macro expansion at rules.jl:91 [inlined]
+  macro expansion at regions.jl:296 [inlined]
+  pyconvert_rule_int(::Type{BigInt}, x::Py) at rules.jl:61
+  pyconvert_first at pyconvert.jl:282 [inlined]
+  pytryconvert_plain(ctx::PyConvertContext{Tuple{}}, ::Type{BigInt}, x::Py) at pyconvert.jl:299
+  pytryconvert_raw at pyconvert.jl:318 [inlined]
+  macro expansion at pyconvert.jl:394 [inlined]
+  macro expansion at regions.jl:302 [inlined]
+  pyconvert(ctx::PyConvertContext{Tuple{}}, ::Type{BigInt}, x::Py, default::Nothing) at pyconvert.jl:393
+  #pyconvert#36 at pyconvert.jl:399 [inlined]
+  pyconvert at pyconvert.jl:399 [inlined]
+  scalar_convert(::Val{BigInt}, x::Py) at convert-scalars.jl:5
+  (::var"#8#9")(io::IOStream) at convert-scalars.jl:52
+  eval(m::Module, e::Any) at boot.jl:489
+BigInt: 32 bytes
+  _ at gmp.jl:70 [inlined]
+  BigInt at gmp.jl:69 [inlined]
+  tryparse_internal(::Type{BigInt}, s::String, startpos::Int64, endpos::Int64, base_::Int64, raise::Bool) at gmp.jl:302
+  macro expansion at rules.jl:93 [inlined]
+  macro expansion at regions.jl:296 [inlined]
+  pyconvert_rule_int(::Type{BigInt}, x::Py) at rules.jl:61
+  pyconvert_first at pyconvert.jl:282 [inlined]
+  pytryconvert_plain(ctx::PyConvertContext{Tuple{}}, ::Type{BigInt}, x::Py) at pyconvert.jl:299
+  pytryconvert_raw at pyconvert.jl:318 [inlined]
+  macro expansion at pyconvert.jl:394 [inlined]
+  macro expansion at regions.jl:302 [inlined]
+  pyconvert(ctx::PyConvertContext{Tuple{}}, ::Type{BigInt}, x::Py, default::Nothing) at pyconvert.jl:393
+  #pyconvert#36 at pyconvert.jl:399 [inlined]
+  pyconvert at pyconvert.jl:399 [inlined]
+  scalar_convert(::Val{BigInt}, x::Py) at convert-scalars.jl:5
+  (::var"#8#9")(io::IOStream) at convert-scalars.jl:52
+  eval(m::Module, e::Any) at boot.jl:489
+Some{BigInt}: 16 bytes
+  macro expansion at rules.jl:94 [inlined]
+  macro expansion at regions.jl:296 [inlined]
+  pyconvert_rule_int(::Type{BigInt}, x::Py) at rules.jl:61
+  pyconvert_first at pyconvert.jl:282 [inlined]
+  pytryconvert_plain(ctx::PyConvertContext{Tuple{}}, ::Type{BigInt}, x::Py) at pyconvert.jl:299
+  pytryconvert_raw at pyconvert.jl:318 [inlined]
+  macro expansion at pyconvert.jl:394 [inlined]
+  macro expansion at regions.jl:302 [inlined]
+  pyconvert(ctx::PyConvertContext{Tuple{}}, ::Type{BigInt}, x::Py, default::Nothing) at pyconvert.jl:393
+  #pyconvert#36 at pyconvert.jl:399 [inlined]
+  pyconvert at pyconvert.jl:399 [inlined]
+  scalar_convert(::Val{BigInt}, x::Py) at convert-scalars.jl:5
+  (::var"#8#9")(io::IOStream) at convert-scalars.jl:52
+  eval(m::Module, e::Any) at boot.jl:489
+
+none

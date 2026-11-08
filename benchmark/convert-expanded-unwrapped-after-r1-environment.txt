@@ -1,0 +1,10 @@
+Julia: 1.13.2
+Python: 3.15.0 | packaged by conda-forge | (main, Oct 12 2026, 17:49:39) [GCC 15.3.0]
+Python executable: /home/doris/.julia/dev/PythonCall/benchmark/.CondaPkg/.pixi/envs/default/bin/python
+NumPy: 2.5.4
+BenchmarkTools: 1.8.0
+PythonCall source: /home/doris/.julia/dev/PythonCall/src/PythonCall.jl
+New API: true
+Convert/pyconvert.jl SHA256: b9ff0cdfadc7561bd9725c0862cdcd0b08ba38958faab6e24053a42241b244ea
+Convert/rules.jl SHA256: 2a064304ea9cd4edc2143621ffd0309d5b2a660326e38a6033b7b0ca2a8afc43
+Wrap/PyArray.jl SHA256: ad549c18d502b12aad07329001ee0ec1a83ea907b5d8f2153bd23ce6e0b08c4a

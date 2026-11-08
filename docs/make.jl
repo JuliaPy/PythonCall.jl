@@ -10,7 +10,7 @@ write("docs/src/releasenotes.md", changelog)
 makedocs(
     sitename = "PythonCall & JuliaCall",
     modules = [PythonCall],
-    format = Documenter.HTML(assets = ["assets/favicon.ico"]),
+    format = Documenter.HTML(assets = ["assets/favicon.ico"], edit_link = "v1"),
     warnonly = [:missing_docs], # avoid raising error when docs are missing
     pages = [
         "Home" => "index.md",

@@ -11,6 +11,7 @@ using ..NumpyDates
 using ..C
 using ..Core
 using ..Convert
+using ..Convert: pyconvert_return
 using ..PyMacro
 
 import ..PythonCall:
@@ -32,55 +33,31 @@ include("PyTable.jl")
 include("PyPandasDataFrame.jl")
 
 function __init__()
-    priority = PYCONVERT_PRIORITY_ARRAY
-    pyconvert_add_rule("<arraystruct>", PyArray, pyconvert_rule_array_nocopy, priority)
-    pyconvert_add_rule("<arrayinterface>", PyArray, pyconvert_rule_array_nocopy, priority)
-    pyconvert_add_rule("<array>", PyArray, pyconvert_rule_array_nocopy, priority)
-    pyconvert_add_rule("<buffer>", PyArray, pyconvert_rule_array_nocopy, priority)
-
-    priority = PYCONVERT_PRIORITY_CANONICAL
-    pyconvert_add_rule(
-        "collections.abc:Iterable",
-        PyIterable,
-        pyconvert_rule_iterable,
-        priority,
-    )
-    pyconvert_add_rule(
-        "collections.abc:Sequence",
-        PyList,
-        pyconvert_rule_sequence,
-        priority,
-    )
-    pyconvert_add_rule("collections.abc:Set", PySet, pyconvert_rule_set, priority)
-    pyconvert_add_rule("collections.abc:Mapping", PyDict, pyconvert_rule_mapping, priority)
-    pyconvert_add_rule("io:IOBase", PyIO, pyconvert_rule_io, priority)
-    pyconvert_add_rule("_io:_IOBase", PyIO, pyconvert_rule_io, priority)
-    for typename in ["pandas.core.frame:DataFrame", "pandas:DataFrame"]
-        pyconvert_add_rule(
-            typename,
-            PyPandasDataFrame,
-            pyconvert_rule_pandasdataframe,
-            priority,
-        )
+    # Native materialized containers precede explicit wrappers on the same source.
+    pyconvert_add_rule("builtins:list", Vector, Convert.pyconvert_rule_iterable; scope=Any)
+    pyconvert_add_rule("builtins:dict", Dict, Convert.pyconvert_rule_mapping; scope=Any)
+    for source in ("builtins:set", "builtins:frozenset")
+        pyconvert_add_rule(source, Set, Convert.pyconvert_rule_iterable; scope=Any)
     end
-    for typename in ["pandas.core.arrays.base:ExtensionArray", "pandas.api.extensions:ExtensionArray"]
-        pyconvert_add_rule(
-            typename,
-            PyList,
-            pyconvert_rule_sequence,
-            priority,
-        )
+    # Definition order retains struct/interface/array/buffer precedence. Protocols
+    # are independent matchers; no protocol implies another protocol.
+    for source in ("<arraystruct>", "<arrayinterface>", "<array>", "<buffer>")
+        pyconvert_add_rule(source, Array, pyconvert_rule_array; scope=Any)
+        pyconvert_add_rule(source, PyArray, pyconvert_rule_array_nocopy)
+        pyconvert_add_rule(source, AbstractArray, pyconvert_rule_array)
     end
-
-    priority = PYCONVERT_PRIORITY_NORMAL
-    pyconvert_add_rule("<arraystruct>", Array, pyconvert_rule_array, priority)
-    pyconvert_add_rule("<arrayinterface>", Array, pyconvert_rule_array, priority)
-    pyconvert_add_rule("<array>", Array, pyconvert_rule_array, priority)
-    pyconvert_add_rule("<buffer>", Array, pyconvert_rule_array, priority)
-    pyconvert_add_rule("<arraystruct>", AbstractArray, pyconvert_rule_array, priority)
-    pyconvert_add_rule("<arrayinterface>", AbstractArray, pyconvert_rule_array, priority)
-    pyconvert_add_rule("<array>", AbstractArray, pyconvert_rule_array, priority)
-    pyconvert_add_rule("<buffer>", AbstractArray, pyconvert_rule_array, priority)
+    pyconvert_add_rule("collections.abc:Iterable", PyIterable, pyconvert_rule_iterable; scope=Any)
+    pyconvert_add_rule("collections.abc:Sequence", PyList, pyconvert_rule_sequence)
+    pyconvert_add_rule("collections.abc:Set", PySet, pyconvert_rule_set)
+    pyconvert_add_rule("collections.abc:Mapping", PyDict, pyconvert_rule_mapping)
+    pyconvert_add_rule("io:IOBase", PyIO, pyconvert_rule_io; scope=Any)
+    pyconvert_add_rule("_io:_IOBase", PyIO, pyconvert_rule_io; scope=Any)
+    for source in ("pandas.core.frame:DataFrame", "pandas:DataFrame")
+        pyconvert_add_rule(source, PyPandasDataFrame, pyconvert_rule_pandasdataframe; scope=Any)
+    end
+    for source in ("pandas.core.arrays.base:ExtensionArray", "pandas.api.extensions:ExtensionArray")
+        pyconvert_add_rule(source, PyList, pyconvert_rule_sequence; scope=Any)
+    end
 end
 
 end

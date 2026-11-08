@@ -11,6 +11,7 @@ using ..NumpyDates: NumpyDates
 using ..C
 using ..Core
 using ..Convert
+using ..Convert: pyconvert_return
 using ..GC: GC
 
 import ..PythonCall:

@@ -16,18 +16,19 @@ using Dates: Date, Time, DateTime, Second, Millisecond, Microsecond, Nanosecond
 import ..PythonCall:
     @pyconvert,
     pyconvert_add_rule,
-    pyconvert_return,
-    pyconvert_unconverted,
     pyconvert,
-    PyConvertPriority
+    pytryconvert,
+    pyconvert_remove_rule,
+    pyconvert_replace_rule,
+    pyconvert_rules
 
-export pyconvert_isunconverted,
-    pyconvert_result,
+export pyconvert_return,
+    PyConvertContext,
+    pyconvert_isunconverted,
     pyconvert_result,
     pyconvert_tryconvert,
     pyconvert_unconverted,
     pyconvertarg
-
 
 include("pyconvert.jl")
 include("rules.jl")

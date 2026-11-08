@@ -1,0 +1,15 @@
+case	mode	status	min_ns	median_ns	bytes	allocs
+single_rule	warm	measured	386.69950738916253	444.3349753694581	0	0
+decline_then_success	warm	measured	543.0904255319149	573.4095744680851	0	0
+three_declines_then_success	warm	measured	964.1509433962265	1028.3207547169811	0	0
+sixteen_scoped_decliners	warm	measured	377.27272727272725	379.2979797979798	0	0
+virtual_mapping_abc	warm	measured	379.3103448275862	410.8374384236453	0	0
+buffer_only_native	warm	measured	7150.0	7600.25	8712	23
+buffer_only_wrapper	warm	measured	5283.333333333333	5850.0	640	20
+interface_only_native	warm	measured	21700.0	24600.0	9224	52
+array_method_only_native	warm	measured	7633.333333333333	8300.0	8872	27
+ndarray_native	warm	measured	4685.714285714285	5214.285714285715	8744	20
+ndarray_wrapper	warm	measured	3200.125	3800.0	672	17
+two_matching_first_success	warm	measured	3500.0	4175.0	560	18
+two_matching_first_declines	warm	measured	4428.714285714285	5157.285714285715	720	24
+two_matching_decline_then_ordinary	warm	measured	5214.285714285715	5471.571428571428	752	25

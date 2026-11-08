@@ -334,6 +334,7 @@ end
         "$(t.__module__):$(t.__qualname__)",
         String,
         (_, _) -> "Hello!!",
+        ; scope=Any,
     )
     @test pyconvert(String, x) == "Hello!!"
     @test pyconvert(Any, x) == "Hello!!" # Broken before PR #365

@@ -1,0 +1,29 @@
+--- a/src/Convert/pyconvert.jl
++++ b/src/Convert/pyconvert.jl
+@@ -96,2 +96,4 @@
+-# Internal helpers use the same representation as public pytryconvert.
+-@inline pyconvert_return(x) = Some(x)
++# Rule results only need a wrapper when the successful value is ambiguous.
++# Public pytryconvert still wraps every success in Some.
++@inline pyconvert_return(x) = x
++@inline pyconvert_return(x::Union{Nothing,Some}) = Some(x)
+@@ -101,0 +104,2 @@
++@inline pyconvert_result(::Type{T}, x) where T = x::T
++@inline pyconvert_result(x) = x
+@@ -135 +139 @@
+-pyconvert_tryconvert(::Type{T}, x::T) where T = Some(x)
++pyconvert_tryconvert(::Type{T}, x::T) where T = pyconvert_return(x)
+@@ -138 +142 @@
+-        Some(convert(T, x)::T)
++        pyconvert_return(convert(T, x)::T)
+--- a/src/Convert/rules.jl
++++ b/src/Convert/rules.jl
+@@ -63 +63 @@
+-    result === PYCONVERT_FAILED ? nothing : Some(pyconvert_unpack(result))
++    result === PYCONVERT_FAILED ? nothing : pyconvert_return(pyconvert_unpack(result))
+@@ -215 +215 @@
+-        return Some(T0 === Union{} ? Vector{T1}() : ans)
++        return pyconvert_return(T0 === Union{} ? Vector{T1}() : ans)
+@@ -290 +290 @@
+-        return Some(isempty(ans) ? Dict{K0 === Union{} ? K1 : K0,V0 === Union{} ? V1 : V0}() : ans)
++        return pyconvert_return(isempty(ans) ? Dict{K0 === Union{} ? K1 : K0,V0 === Union{} ? V1 : V0}() : ans)

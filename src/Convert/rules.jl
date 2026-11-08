@@ -201,6 +201,17 @@ function pyconvert_rule_fraction(::Type{T}, x::Py) where {T<:Number}
     pyconvert_tryconvert(T, @pyconvert(Rational{<:Integer}, x))
 end
 
+### arrays
+
+function pyconvert_rule_array(::Type{A}, x::Py) where {A<:AbstractArray}
+    r = PythonCall.Wrap.pyarray_make(PyArray, x)
+    if pyconvert_isunconverted(r)
+        return pyconvert_unconverted()
+    else
+        return pyconvert_tryconvert(A, pyconvert_result(PyArray, r))
+    end
+end
+
 ### collections
 
 # Vector

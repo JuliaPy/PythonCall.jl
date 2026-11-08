@@ -1,3 +1,17 @@
+# Convert
+
+"""
+    PyConvertContext(; prefer=())
+
+Explicit conversion context. Preferences are ordered `"module:name" => JuliaType`
+pairs, resolved by attribute lookup in loaded modules. A bare name abbreviates
+`"builtins:name"`, except `"None"` abbreviates `"types:NoneType"`.
+Rules propagate preferences by calling `pyconvert(ctx, T, child)` explicitly.
+"""
+struct PyConvertContext{P}
+    prefer::P
+end
+
 # Core
 
 """

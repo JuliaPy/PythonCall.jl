@@ -103,6 +103,7 @@ export pyxor
 export unsafe_pydel
 
 # Convert
+export PyConvertContext
 export @pyconvert
 export pyconvert
 export pyconvert_add_rule

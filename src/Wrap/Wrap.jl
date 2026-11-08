@@ -11,7 +11,6 @@ using ..NumpyDates
 using ..C
 using ..Core
 using ..Convert
-using ..Convert: pyconvert_return
 using ..PyMacro
 
 import ..PythonCall:
@@ -33,19 +32,10 @@ include("PyTable.jl")
 include("PyPandasDataFrame.jl")
 
 function __init__()
-    # Native materialized containers precede explicit wrappers on the same source.
-    pyconvert_add_rule("builtins:list", Vector, Convert.pyconvert_rule_iterable; scope=Any)
-    pyconvert_add_rule("builtins:dict", Dict, Convert.pyconvert_rule_mapping; scope=Any)
-    for source in ("builtins:set", "builtins:frozenset")
-        pyconvert_add_rule(source, Set, Convert.pyconvert_rule_iterable; scope=Any)
-    end
-    # Definition order retains struct/interface/array/buffer precedence. Protocols
-    # are independent matchers; no protocol implies another protocol.
-    for source in ("<arraystruct>", "<arrayinterface>", "<array>", "<buffer>")
-        pyconvert_add_rule(source, Array, pyconvert_rule_array; scope=Any)
+    for source in Convert.PYCONVERT_PROTOCOLS
         pyconvert_add_rule(source, PyArray, pyconvert_rule_array_nocopy)
-        pyconvert_add_rule(source, AbstractArray, pyconvert_rule_array)
     end
+    Convert.init_pyconvert_array_fallbacks()
     pyconvert_add_rule("collections.abc:Iterable", PyIterable, pyconvert_rule_iterable; scope=Any)
     pyconvert_add_rule("collections.abc:Sequence", PyList, pyconvert_rule_sequence)
     pyconvert_add_rule("collections.abc:Set", PySet, pyconvert_rule_set)

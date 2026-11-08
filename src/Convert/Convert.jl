@@ -14,6 +14,7 @@ using ..NumpyDates
 using Dates: Date, Time, DateTime, Second, Millisecond, Microsecond, Nanosecond
 
 import ..PythonCall:
+    PyConvertContext,
     @pyconvert,
     pyconvert_add_rule,
     pyconvert,
@@ -23,7 +24,6 @@ import ..PythonCall:
     pyconvert_rules
 
 export pyconvert_return,
-    PyConvertContext,
     pyconvert_isunconverted,
     pyconvert_result,
     pyconvert_tryconvert,

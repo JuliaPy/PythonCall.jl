@@ -58,6 +58,15 @@ end
 
 @testitem "native containers and preferences" begin
     using PythonCall
+    @test parentmodule(PyConvertContext) === PythonCall
+    # Explicit wrappers must precede the generic native-array fallback even
+    # though the registrations are initialized by different modules.
+    CV = PythonCall.Convert
+    for source in CV.PYCONVERT_PROTOCOLS
+        rules = filter(r->r.source==source,CV.PYCONVERT_RULES)
+        @test [r.type for r in rules] == [Array,PyArray,AbstractArray]
+        @test first(filter(r->CV.pyconvert_eligible(r,PyArray),rules)).type === PyArray
+    end
     cases = [(Any[],Any), ([1,2],Int), (Any[1,2.5],Real),
              ([1,"two"],Any), ([nothing,1],Union{Nothing,Int})]
     for (values,T) in cases

@@ -28,18 +28,6 @@ function pyconvert_source_name(name::String)
     name in PYCONVERT_PROTOCOLS || ':' in name ? name : "builtins:" * name
 end
 
-"""
-    PyConvertContext(; prefer=())
-
-Explicit conversion context. Preferences are ordered `"module:name" => JuliaType`
-pairs, resolved by attribute lookup in loaded modules. A bare name abbreviates
-`"builtins:name"`, except `"None"` abbreviates `"types:NoneType"`.
-Rules propagate preferences by calling `pyconvert(ctx, T, child)`
-explicitly.
-"""
-struct PyConvertContext{P}
-    prefer::P
-end
 PyConvertContext(; prefer=()) = PyConvertContext(map(p -> pyconvert_source_name(first(p)) => Val(last(p)), prefer))
 const PYCONVERT_DEFAULT_CONTEXT = PyConvertContext()
 
@@ -536,4 +524,21 @@ function init_pyconvert()
     pyconvert_add_rule("datetime:timedelta", Second, pyconvert_rule_timedelta)
     pyconvert_add_rule("datetime:timedelta", Nanosecond, pyconvert_rule_timedelta)
 
+    pyconvert_add_rule("builtins:list", Vector, pyconvert_rule_iterable; scope=Any)
+    pyconvert_add_rule("builtins:dict", Dict, pyconvert_rule_mapping; scope=Any)
+    for source in ("builtins:set", "builtins:frozenset")
+        pyconvert_add_rule(source, Set, pyconvert_rule_iterable; scope=Any)
+    end
+    # Independent protocol matchers retain their definition-order precedence.
+    for source in PYCONVERT_PROTOCOLS
+        pyconvert_add_rule(source, Array, pyconvert_rule_array; scope=Any)
+    end
+end
+
+# Wrap calls this after registering explicit PyArray rules. Within each protocol
+# source, wrapper requests must try those before the generic AbstractArray rule.
+function init_pyconvert_array_fallbacks()
+    for source in PYCONVERT_PROTOCOLS
+        pyconvert_add_rule(source, AbstractArray, pyconvert_rule_array)
+    end
 end

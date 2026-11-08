@@ -18,15 +18,6 @@ end
 pyconvert_rule_array_nocopy(::Type{A}, x::Py) where {A<:PyArray} =
     pyarray_make(A, x, copy = false)
 
-function pyconvert_rule_array(::Type{A}, x::Py) where {A<:AbstractArray}
-    r = pyarray_make(PyArray, x)
-    if pyconvert_isunconverted(r)
-        return pyconvert_unconverted()
-    else
-        return pyconvert_tryconvert(A, pyconvert_result(PyArray, r))
-    end
-end
-
 # Expected unsupported representations may decline; arbitrary errors must propagate.
 struct PyArrayUnsupported <: Exception
     message::String

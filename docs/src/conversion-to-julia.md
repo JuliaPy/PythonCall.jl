@@ -139,6 +139,8 @@ match the type's `__module__` or `__qualname__`: a public re-export such as
 A bare name abbreviates a built-in: `"list"` means `"builtins:list"`, so
 `prefer=("list" => PyList,)` opts into list wrappers. Aliases resolving to the
 same Python type share source ordering; their rules retain creation order.
+The special shorthand `"None"` means `"types:NoneType"`; for example,
+`pyconvert(Any, x; prefer=("None" => Missing,))` converts Python None to missing.
 
 Optional modules are never imported merely to resolve rules or preferences.
 Pending rules enter the global order when their module is

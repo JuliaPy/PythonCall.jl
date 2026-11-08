@@ -508,6 +508,31 @@ end
     end
 end
 
+@testitem "None source shorthand" begin
+    using PythonCall
+    CV = PythonCall.Convert
+    x = pybuiltins.None
+    pref = ("None"=>Missing,)
+    @test pyis(CV.pyconvert_resolve("None"),pytype(x))
+    @test pyconvert(Any,x;prefer=pref) === missing
+    @test pytryconvert(Any,x;prefer=pref) === Some(missing)
+    @test pyconvert(Nothing,x;prefer=pref) === nothing
+    @test pyconvert(Any,pyint(1);prefer=pref) === 1
+    ctx = PyConvertContext(;prefer=pref)
+    @test pyconvert(ctx,Any,x) === missing
+    @test isequal(pyconvert(ctx,Vector,pylist([x])),[missing])
+    @test pyconvert(Any,x) === nothing
+    id = pyconvert_add_rule("None",String,(_,_) -> "none")
+    try
+        @test pyconvert(String,x) == "none"
+        @test only(r.source for r in pyconvert_rules(String,x) if r.id==id) == "types:NoneType"
+        @test pyconvert_replace_rule(id,"None",String,(_,_) -> "replaced") == id
+        @test pyconvert(String,x) == "replaced"
+    finally
+        pyconvert_remove_rule(id)
+    end
+end
+
 @testitem "priority topological sort agrees with grouped sorting" begin
     using PythonCall
     CV = PythonCall.Convert

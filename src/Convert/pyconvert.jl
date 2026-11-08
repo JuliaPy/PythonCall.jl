@@ -23,15 +23,18 @@ const PYCONVERT_MODULES = Set{String}()
 const PYCONVERT_PROTOCOLS = ("<arraystruct>", "<arrayinterface>", "<array>", "<buffer>")
 
 # Normalize at registration/context construction, rather than during dispatch.
-pyconvert_source_name(name::String) =
+function pyconvert_source_name(name::String)
+    name == "None" && return "types:NoneType"
     name in PYCONVERT_PROTOCOLS || ':' in name ? name : "builtins:" * name
+end
 
 """
     PyConvertContext(; prefer=())
 
 Explicit conversion context. Preferences are ordered `"module:name" => JuliaType`
 pairs, resolved by attribute lookup in loaded modules. A bare name abbreviates
-`"builtins:name"`. Rules propagate preferences by calling `pyconvert(ctx, T, child)`
+`"builtins:name"`, except `"None"` abbreviates `"types:NoneType"`.
+Rules propagate preferences by calling `pyconvert(ctx, T, child)`
 explicitly.
 """
 struct PyConvertContext{P}

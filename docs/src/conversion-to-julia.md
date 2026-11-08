@@ -101,8 +101,12 @@ return `nothing`, and `Some(Some(value))` to return an actual `Some`.
 Prefer returning ordinary values directly. An unnecessary `Some` can allocate
 when its concrete type crosses a dispatch boundary; built-in rules wrap only
 successful `nothing` and `Some` values.
-`pytryconvert([ctx,] T,x)` always returns `nothing` on failure and
-`Some(value)` on success. Both `f(ctx,T,x)` and `f(T,x)` rules are
+`pytryconvert([ctx,] T,x)` returns `nothing` on failure and normalizes successes
+to the same convention: ordinary values directly, `Some(nothing)` for a
+successful nothing, and `Some(Some(value))` for an actual Some value.
+Check `result === nothing` for failure; `something(result)` unwraps a success,
+and `something(result, default)` handles both outcomes with a default.
+Both `f(ctx,T,x)` and `f(T,x)` rules are
 supported; the context-aware form is preferred when applicable to that target.
 A rule receives a non-union target: each arm of the output/request
 intersection is tried before moving to the next rule. Union arm order is

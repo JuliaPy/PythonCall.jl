@@ -218,12 +218,17 @@ end
         @test pyconvert(Any,x) === nothing
         pyconvert_replace_rule(id,source,Any,(_,_) -> missing;scope=Any)
         @test pyconvert(Any,x) === missing
+        @test pytryconvert(Any,x) === missing
+        pyconvert_replace_rule(id,source,Any,(_,_) -> Some(42);scope=Any)
+        @test pytryconvert(Int,x) === 42
+        @test pytryconvert(Any,x) === 42
         pyconvert_replace_rule(id,source,Any,(_,_) -> Some(Some(2));scope=Any)
         @test pyconvert(Any,x) === Some(2)
         for value in (CV.PYCONVERT_FAILED, CV.PyConvertEscape(1), Some(nothing))
             pyconvert_replace_rule(id,source,Any,(_,_) -> Some(value);scope=Any)
             @test pyconvert(Any,x) === value
-            @test pytryconvert(Any,x) === Some(value)
+            expected = value isa Union{Nothing,Some} ? Some(value) : value
+            @test pytryconvert(Any,x) === expected
             @test pyconvert(typeof(value),x) === value
         end
         # Built-in result encoding must preserve ambiguous values exactly once.
@@ -231,15 +236,17 @@ end
                       [1,2], CV.PYCONVERT_FAILED, CV.PyConvertEscape(1))
             pyconvert_replace_rule(id,source,Any,(_,_) -> CV.pyconvert_return(value);scope=Any)
             @test pyconvert(Any,x) === value
-            @test pytryconvert(typeof(value),x) === Some(value)
+            expected = value isa Union{Nothing,Some} ? Some(value) : value
+            @test pytryconvert(typeof(value),x) === expected
             @test pyconvert(Any,pyjl(value)) === value
-            @test pytryconvert(typeof(value),pyjl(value)) === Some(value)
+            @test pytryconvert(typeof(value),pyjl(value)) === expected
         end
         @test pyconvert(Any,pylist([pyjl(Some(1)),pyjl(nothing)])) == [Some(1),nothing]
         @test pyconvert(Any,pydict("some"=>pyjl(Some(1)),"none"=>pyjl(nothing))) ==
               Dict("some"=>Some(1),"none"=>nothing)
         pyconvert_replace_rule(id,source,Any,(_,_) -> nothing;scope=Any)
         @test pyconvert(Any,x) === x # implicit fallback
+        @test pytryconvert(Any,x) === x
         @test pytryconvert(Int,x) === nothing
         pyconvert_replace_rule(id,source,Any,(_,_) -> error("rule error");scope=Any)
         @test_throws "rule error" pyconvert(Any,x)
@@ -266,12 +273,29 @@ end
         finally
             pyconvert_remove_rule(second)
         end
-        @test Some(1) isa CV.pyconvert_returntype(Integer)
+        @test 1 isa CV.pyconvert_returntype(Integer)
         @test Some(nothing) isa CV.pyconvert_returntype(Union{Int,Nothing})
         @test Some(1) isa CV.pyconvert_returntype(Any)
-        @test CV.pyconvert_returntype(Int) === Union{Nothing,Some{Int}}
-        @test CV.pyconvert_returntype(Union{Int,Nothing}) === Union{Nothing,Some{Int},Some{Nothing}}
+        @test CV.pyconvert_returntype(Int) === Union{Nothing,Int}
+        @test CV.pyconvert_returntype(Integer) === Union{Nothing,Integer}
+        @test CV.pyconvert_returntype(Any) === Any
+        @test CV.pyconvert_returntype(Union{}) === Nothing
+        @test CV.pyconvert_returntype(Union{Int,Nothing}) === Union{Nothing,Int,Some{Nothing}}
+        @test CV.pyconvert_returntype(Some{Int}) === Union{Nothing,Some{Some{Int}}}
+        @test CV.pyconvert_returntype(Union{Int,Some{Int}}) === Union{Nothing,Int,Some{Some{Int}}}
+        @test Some(Some(1)) isa CV.pyconvert_returntype(Some{<:Integer})
+        @test CV.pyconvert_returntype(Vector{<:Real}) == Union{Nothing,Vector{<:Real}}
         @test (@inferred pyconvert(Int,pyint(1))) === 1
+        @test (@inferred Nothing pytryconvert(Int,pyint(1))) === 1
+        @test (@inferred Nothing pytryconvert(Float64,pyfloat(1.5))) === 1.5
+        @test pytryconvert(Union{Nothing,Int},pyint(1)) === 1
+        @test pytryconvert(Union{Nothing,Int},pybuiltins.None) === Some(nothing)
+        @test pytryconvert(Some{Int},pyjl(Some(1))) === Some(Some(1))
+        @test pytryconvert(Union{Int,Some{Int}},pyjl(Some(1))) === Some(Some(1))
+        @test only(Base.return_types(pytryconvert,Tuple{Type{Integer},Py})) === Union{Nothing,Integer}
+        @test something(pytryconvert(Int,pystr("bad")),:default) === :default
+        @test something(pytryconvert(Nothing,pybuiltins.None),:default) === nothing
+        @test something(pytryconvert(Some{Int},pyjl(Some(1)))) === Some(1)
         @test pytryconvert(Nothing,pybuiltins.None) === Some(nothing)
     finally
         pyconvert_remove_rule(id)
@@ -522,7 +546,7 @@ end
     pref = ("None"=>Missing,)
     @test pyis(CV.pyconvert_resolve("None"),pytype(x))
     @test pyconvert(Any,x;prefer=pref) === missing
-    @test pytryconvert(Any,x;prefer=pref) === Some(missing)
+    @test pytryconvert(Any,x;prefer=pref) === missing
     @test pyconvert(Nothing,x;prefer=pref) === nothing
     @test pyconvert(Any,pyint(1);prefer=pref) === 1
     ctx = PyConvertContext(;prefer=pref)

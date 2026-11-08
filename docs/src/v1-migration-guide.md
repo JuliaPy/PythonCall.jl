@@ -25,7 +25,10 @@ to remove or update it.
 Rules now return `nothing` to decline, a value to succeed, or `Some(value)` for
 explicit success. Replace `pyconvert_unconverted()` with `nothing` and
 `pyconvert_return(x)` with `Some(x)` (or simply `x` when it is neither `nothing`
-nor a `Some`). `pytryconvert(T,x)` consistently returns `nothing` or `Some(value)`.
+nor a `Some`). `pytryconvert(T,x)` uses the same normalized convention: failure is
+`nothing`, ordinary successes are raw values, and successful `nothing`/`Some`
+values are wrapped once. Test `r === nothing` for failure and use `something(r)`
+to recover a success, or `something(r, default)` for a default on failure.
 Rule functions may accept `(ctx,T,x)` to propagate preferences explicitly with
 `pyconvert(ctx,T,child)`. See [conversion to Julia](@ref py2jl) for scope, ordering
 and context details.

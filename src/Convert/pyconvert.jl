@@ -97,7 +97,7 @@ function pyconvert_replace_rule(id::Integer, source::String, T::Type, f::Functio
 end
 
 # Rule results only need a wrapper when the successful value is ambiguous.
-# Public pytryconvert still wraps every success in Some.
+# The same encoding is used for normalized public pytryconvert results.
 @inline pyconvert_return(x) = x
 @inline pyconvert_return(x::Union{Nothing,Some}) = Some(x)
 @inline pyconvert_unconverted() = nothing
@@ -107,14 +107,18 @@ end
 @inline pyconvert_result(::Type{T}, x) where T = x::T
 @inline pyconvert_result(x) = x
 function _pyconvert_returntype(T::Type)
-    T === Any && return Union{Nothing,Some}
+    T === Any && return Any
+    T === Union{} && return Nothing
     T isa Union && return Union{_pyconvert_returntype(T.a),_pyconvert_returntype(T.b)}
-    isconcretetype(T) && return Union{Nothing,Some{T}}
-    Union{Nothing,Some{<:T}}
+    T <: Nothing && return Union{Nothing,Some{Nothing}}
+    if T <: Some
+        return isconcretetype(T) ? Union{Nothing,Some{T}} : Union{Nothing,Some{<:T}}
+    end
+    Union{Nothing,T}
 end
 @generated pyconvert_returntype(::Type{T}) where T = QuoteNode(_pyconvert_returntype(T))
 # Avoid allocating an escaping Some for every element of an inferred container.
-# The public/rule contract remains Some/nothing. Only dispatch uses this private
+# Public/rule results wrap only ambiguous successes. Dispatch uses this private
 # sentinel, with an escape for values that happen to use our internal types.
 struct PyConvertFailure end
 struct PyConvertEscape{T}
@@ -351,14 +355,16 @@ end
     pytryconvert(T, x; prefer=())
     pytryconvert(ctx::PyConvertContext, T, x)
 
-Return `Some(value)` on successful conversion and `nothing` on decline.
-The successful value is a `T`; exceptions from conversion rules propagate.
+Return `nothing` on decline and otherwise the converted value directly, except
+successful `nothing` and `Some` values are wrapped in `Some`. After checking for
+failure, `something(result)` recovers the successful value, which is a `T`.
+Exceptions from conversion rules propagate.
 """
 function pytryconvert(ctx::PyConvertContext, ::Type{T}, x) where T
     @pyregion begin
         ans = pytryconvert_raw(ctx,T,x)
         ans === PYCONVERT_FAILED && return nothing
-        Some(pyconvert_unpack(ans)::T)::pyconvert_returntype(T)
+        pyconvert_return(pyconvert_unpack(ans)::T)::pyconvert_returntype(T)
     end
 end
 pytryconvert(::Type{T}, x; prefer=()) where T = pytryconvert(PyConvertContext(;prefer),T,x)

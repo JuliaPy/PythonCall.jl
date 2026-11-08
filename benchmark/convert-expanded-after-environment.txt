@@ -1,7 +1,0 @@
-Julia: 1.13.2
-Python: 3.15.0 | packaged by conda-forge | (main, Oct 12 2026, 17:49:39) [GCC 15.3.0]
-Python executable: /home/doris/.julia/dev/PythonCall/benchmark/.CondaPkg/.pixi/envs/default/bin/python
-NumPy: 2.5.4
-BenchmarkTools: 1.8.0
-PythonCall source: /home/doris/.julia/dev/PythonCall/src/PythonCall.jl
-New API: true

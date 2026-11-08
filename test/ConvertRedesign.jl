@@ -279,7 +279,7 @@ end
 @testitem "scalar dispatch preserves singleton rules and overflow behavior" begin
     using PythonCall
     CV=PythonCall.Convert
-    original=only(r for r in CV.PYCONVERT_RULES if r.source=="builtins:NoneType" && r.type===Nothing)
+    original=only(r for r in CV.PYCONVERT_RULES if r.source=="types:NoneType" && r.type===Nothing)
     x=pybuiltins.None
     @test pyconvert(Nothing,x) === nothing
     calls=Ref(0)
@@ -477,6 +477,34 @@ class Child(Outer.Internal): pass
         foreach(pyconvert_remove_rule,ids)
         modules.pop("convert_names_public",nothing)
         modules.pop("convert_names_internal",nothing)
+    end
+end
+
+@testitem "built-in rules use public source locations" begin
+    using PythonCall
+    CV = PythonCall.Convert
+    @test pyconvert(Any,pybuiltins.None) === nothing
+    @test first(pyconvert_rules(Any,pybuiltins.None)).source == "types:NoneType"
+    @test pyis(CV.pyconvert_resolve("types:NoneType"),pytype(pybuiltins.None))
+    io = pyimport("io")
+    privatebase = pyimport("_io")._IOBase
+    @test !pyis(io.IOBase,privatebase)
+    @test pyconvert(Any,io.BytesIO()) isa PyIO
+    @test pyconvert(PyIO,privatebase()) isa PyIO
+    if pyis(pyimport("importlib.util").find_spec("pandas"),pybuiltins.None)
+        @test_skip false # pandas is an optional development dependency
+    else
+        pd = pyimport("pandas")
+        @test pyconvert(Any,pd.NA) === missing
+        @test pytryconvert(Nothing,pd.NA) === Some(nothing)
+        @test all(r.source=="pandas:NA.__class__" for r in pyconvert_rules(Any,pd.NA))
+        df = pd.DataFrame()
+        @test pyconvert(Any,df) isa PyPandasDataFrame
+        @test count(r->r.source=="pandas:DataFrame",pyconvert_rules(Any,df)) == 1
+        a = pd.array(pylist([1,2]);dtype="Int64")
+        @test pyconvert(PyList,a) isa PyList
+        @test count(r->r.source=="pandas.api.extensions:ExtensionArray",pyconvert_rules(PyList,a)) == 1
+        @test !any(r->startswith(r.source,"pandas.core.") || startswith(r.source,"pandas._libs."),CV.PYCONVERT_RULES)
     end
 end
 

@@ -432,11 +432,12 @@ function pyconvertarg(::Type{T}, x, name) where T
 end
 
 function init_pyconvert()
+    pyimport("types")
     pyimport("numbers")
     pyimport("collections.abc")
     pyimport("io")
     pyconvert_source!("builtins:object")
-    pyconvert_add_rule("builtins:NoneType", Nothing, pyconvert_rule_none; scope=Any)
+    pyconvert_add_rule("types:NoneType", Nothing, pyconvert_rule_none; scope=Any)
     pyconvert_add_rule("builtins:bool", Bool, pyconvert_rule_bool; scope=Any)
     pyconvert_add_rule("builtins:float", Float64, pyconvert_rule_float; scope=Any)
     pyconvert_add_rule(
@@ -483,7 +484,7 @@ function init_pyconvert()
         scope = Any,
     )
 
-    pyconvert_add_rule("builtins:NoneType", Missing, pyconvert_rule_none)
+    pyconvert_add_rule("types:NoneType", Missing, pyconvert_rule_none)
     pyconvert_add_rule("builtins:bool", Number, pyconvert_rule_bool)
     # Real/Complex ABC membership does not promise lossless __float__/__complex__.
     # Integral and Rational sources have their own exact representation rules.

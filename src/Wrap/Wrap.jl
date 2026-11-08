@@ -51,13 +51,10 @@ function __init__()
     pyconvert_add_rule("collections.abc:Set", PySet, pyconvert_rule_set)
     pyconvert_add_rule("collections.abc:Mapping", PyDict, pyconvert_rule_mapping)
     pyconvert_add_rule("io:IOBase", PyIO, pyconvert_rule_io; scope=Any)
+    # This private C base is distinct from the public io.IOBase ABC.
     pyconvert_add_rule("_io:_IOBase", PyIO, pyconvert_rule_io; scope=Any)
-    for source in ("pandas.core.frame:DataFrame", "pandas:DataFrame")
-        pyconvert_add_rule(source, PyPandasDataFrame, pyconvert_rule_pandasdataframe; scope=Any)
-    end
-    for source in ("pandas.core.arrays.base:ExtensionArray", "pandas.api.extensions:ExtensionArray")
-        pyconvert_add_rule(source, PyList, pyconvert_rule_sequence; scope=Any)
-    end
+    pyconvert_add_rule("pandas:DataFrame", PyPandasDataFrame, pyconvert_rule_pandasdataframe; scope=Any)
+    pyconvert_add_rule("pandas.api.extensions:ExtensionArray", PyList, pyconvert_rule_sequence; scope=Any)
 end
 
 end

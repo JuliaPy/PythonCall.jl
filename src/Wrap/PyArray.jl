@@ -729,3 +729,110 @@ function pyarray_check_T(::Type{T}, ::Type{R}) where {T,R}
         error("invalid eltype T=$T for raw eltype R=$R")
     end
 end
+
+# PyDenseArray
+
+ispy(::PyDenseArray) = true
+Py(x::PyDenseArray) = x.py
+Utils.ismutablearray(x::PyDenseArray{T,N,M}) where {T,N,M} = M
+
+function pydensearray_iscontiguous(strides, expected, size)
+    all(size[i] == 1 || strides[i] == expected[i] for i in eachindex(size))
+end
+
+# The size of the dense array if the data of x is contiguous, or nothing if it is not.
+# Dimensions are reversed if the data is row-major.
+function pydensearray_size(x::PyArray{T,N,M,L,T}) where {T,N,M,L}
+    if x.length == 0
+        x.size
+    elseif pydensearray_iscontiguous(x.strides,
+                                     Utils.size_to_fstrides(sizeof(T), x.size),
+                                     x.size)
+        x.size
+    elseif pydensearray_iscontiguous(x.strides,
+                                     Utils.size_to_cstrides(sizeof(T), x.size),
+                                     x.size)
+        reverse(x.size)
+    else
+        nothing
+    end
+end
+
+pydensearray_size(::PyArray) = nothing
+
+function PyDenseArray(x::PyArray{T,N,M,L,T}) where {T,N,M,L}
+    size = pydensearray_size(x)
+    if isnothing(size)
+        error("array data is not contiguous")
+    end
+
+    PyDenseArray{T,N,M}(Val(:new), x.ptr, size, x.py, x.handle)
+end
+
+function pydensearray_make(
+    ::Type{A},
+    x::Py;
+    array::Bool = true,
+    buffer::Bool = true,
+    copy::Bool = true,
+) where {A<:PyDenseArray}
+    r = pyarray_make(PyArray, x; array, buffer, copy)
+    if pyconvert_isunconverted(r)
+        return pyconvert_unconverted()
+    end
+
+    p = pyconvert_result(PyArray, r)
+    if pydensearray_size(p) === nothing
+        return pyconvert_unconverted()
+    end
+
+    d = PyDenseArray(p)
+    if d isa A
+        return pyconvert_return(d)
+    else
+        return pyconvert_unconverted()
+    end
+end
+
+(::Type{A})(
+    x;
+    array::Bool = true,
+    buffer::Bool = true,
+    copy::Bool = true,
+) where {A<:PyDenseArray} = @autopy x begin
+    r = pydensearray_make(A, x_; array, buffer, copy)
+    if pyconvert_isunconverted(r)
+        error("cannot convert this Python '$(pytype(x_).__name__)' to a '$A'")
+    else
+        return pyconvert_result(r)::A
+    end
+end
+
+pyconvert_rule_densearray_nocopy(::Type{A}, x::Py) where {A<:PyDenseArray} =
+    pydensearray_make(A, x; copy = false)
+
+Base.size(x::PyDenseArray) = x.size
+Base.IndexStyle(::Type{<:PyDenseArray}) = Base.IndexLinear()
+Base.unsafe_convert(::Type{Ptr{T}}, x::PyDenseArray{T}) where {T} = x.ptr
+Base.elsize(::Type{<:PyDenseArray{T}}) where {T} = sizeof(T)
+
+function Base.showarg(io::IO, x::PyDenseArray{T,N}, toplevel::Bool) where {T,N}
+    if !toplevel
+        print(io, "::")
+    end
+
+    print(io, "PyDenseArray{")
+    show(io, T)
+    print(io, ", ", N, "}")
+end
+
+@propagate_inbounds function Base.getindex(x::PyDenseArray, i::Int)
+    @boundscheck checkbounds(x, i)
+    unsafe_load(x.ptr, i)
+end
+
+@propagate_inbounds function Base.setindex!(x::PyDenseArray{T,N,true}, v, i::Int) where {T,N}
+    @boundscheck checkbounds(x, i)
+    unsafe_store!(x.ptr, convert(T, v), i)
+    return x
+end

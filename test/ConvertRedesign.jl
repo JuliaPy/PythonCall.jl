@@ -315,7 +315,7 @@ end
 @testitem "scalar dispatch preserves singleton rules and overflow behavior" begin
     using PythonCall
     CV=PythonCall.Convert
-    original=only(r for r in CV.PYCONVERT_RULES if r.source=="types:NoneType" && r.type===Nothing)
+    original=only(r for r in CV.PYCONVERT_RULES if r.source=="builtins:None" && r.type===Nothing)
     x=pybuiltins.None
     @test pyconvert(Nothing,x) === nothing
     calls=Ref(0)
@@ -506,7 +506,7 @@ class Child(Outer.Internal): pass
         @test pyconvert(String,pydict()) == "dict rule"
         @test only(r.source for r in pyconvert_rules(String,pydict()) if r.id==id) == "builtins:dict"
         @test pyis(CV.pyconvert_resolve("list"),pybuiltins.list)
-        @test pyis(CV.pyconvert_resolve("NoneType"),pytype(pybuiltins.None))
+        @test pyis(CV.pyconvert_resolve("None"),pytype(pybuiltins.None))
         # An API alias also retains priorities attached to special source types.
         api.JuliaValue = pyimport("juliacall").JlBase
         wrapid = add("convert_names_public:JuliaValue",String,(_,_) -> nothing)
@@ -524,7 +524,7 @@ end
     using PythonCall
     CV = PythonCall.Convert
     @test pyconvert(Any,pybuiltins.None) === nothing
-    @test first(pyconvert_rules(Any,pybuiltins.None)).source == "types:NoneType"
+    @test first(pyconvert_rules(Any,pybuiltins.None)).source == "builtins:None"
     @test pyis(CV.pyconvert_resolve("types:NoneType"),pytype(pybuiltins.None))
     io = pyimport("io")
     privatebase = pyimport("_io")._IOBase
@@ -537,7 +537,7 @@ end
         pd = pyimport("pandas")
         @test pyconvert(Any,pd.NA) === missing
         @test pytryconvert(Nothing,pd.NA) === Some(nothing)
-        @test all(r.source=="pandas:NA.__class__" for r in pyconvert_rules(Any,pd.NA))
+        @test all(r.source=="pandas:NA" for r in pyconvert_rules(Any,pd.NA))
         df = pd.DataFrame()
         @test pyconvert(Any,df) isa PyPandasDataFrame
         @test count(r->r.source=="pandas:DataFrame",pyconvert_rules(Any,df)) == 1
@@ -565,11 +565,72 @@ end
     id = pyconvert_add_rule("None",String,(_,_) -> "none")
     try
         @test pyconvert(String,x) == "none"
-        @test only(r.source for r in pyconvert_rules(String,x) if r.id==id) == "types:NoneType"
+        @test only(r.source for r in pyconvert_rules(String,x) if r.id==id) == "builtins:None"
         @test pyconvert_replace_rule(id,"None",String,(_,_) -> "replaced") == id
         @test pyconvert(String,x) == "replaced"
     finally
         pyconvert_remove_rule(id)
+    end
+end
+
+@testitem "singleton source locations resolve to types" begin
+    using PythonCall
+    CV = PythonCall.Convert
+    @test CV.pyconvert_source_name("None") == "builtins:None"
+    @test CV.pyconvert_source_name("Ellipsis") == "builtins:Ellipsis"
+    @test CV.pyconvert_source_name("NotImplemented") == "builtins:NotImplemented"
+    @test CV.pyconvert_source_name("pandas:NA") == "pandas:NA"
+    @test CV.pyconvert_source_name("pandas:NaT") == "pandas:NaT"
+    @test PythonCall.Core.pyisnull(CV.pyconvert_resolve("builtins:NoneType"))
+    @test_throws ArgumentError CV.pyconvert_resolve("builtins:True")
+    @test_throws ArgumentError CV.pyconvert_resolve("builtins:False")
+    for name in ("None","Ellipsis","NotImplemented")
+        x = getproperty(pybuiltins,Symbol(name))
+        @test pyis(CV.pyconvert_resolve(name),pytype(x))
+        @test pyis(CV.pyconvert_resolve("builtins:"*name),pytype(x))
+        @test pyconvert(Any,x;prefer=(name=>Nothing,)) === nothing
+        @test pytryconvert(Any,x;prefer=(name=>Nothing,)) === Some(nothing)
+        @test pyconvert(Any,x;prefer=(name=>Missing,)) === missing
+        @test pyconvert(Any,pyint(1);prefer=(name=>Nothing,)) === 1
+        @test pytryconvert(Int,x;prefer=(name=>Nothing,)) === nothing
+        id = pyconvert_add_rule(name,String,(_,_) -> name)
+        try
+            @test pyconvert(String,x) == name
+            @test only(r.source for r in pyconvert_rules(String,x) if r.id==id) == "builtins:"*name
+        finally
+            pyconvert_remove_rule(id)
+        end
+        if name != "None"
+            @test pyconvert(Any,x) === x
+        end
+    end
+    modules = pyimport("sys").modules
+    if !pycontains(modules,"pandas")
+        @test PythonCall.Core.pyisnull(CV.pyconvert_resolve("pandas:NA"))
+        @test PythonCall.Core.pyisnull(CV.pyconvert_resolve("pandas:NaT"))
+        @test !pycontains(modules,"pandas")
+    end
+    if pyis(pyimport("importlib.util").find_spec("pandas"),pybuiltins.None)
+        @test_skip false
+    else
+        pd = pyimport("pandas")
+        for name in ("NA","NaT")
+            source = "pandas:"*name
+            x = pygetattr(pd,name)
+            @test pyis(CV.pyconvert_resolve(source),pytype(x))
+            @test pyconvert(Any,x;prefer=(source=>Nothing,)) === nothing
+            @test pyconvert(Any,x;prefer=(source=>Missing,)) === missing
+            @test pytryconvert(Any,x;prefer=(source=>Nothing,)) === Some(nothing)
+            @test pytryconvert(String,x;prefer=(source=>Nothing,)) === nothing
+            @test pyconvert(String,pystr("text");prefer=(source=>Nothing,)) == "text"
+            id = pyconvert_add_rule(source,String,(_,_) -> name)
+            try
+                @test pyconvert(String,x) == name
+            finally
+                pyconvert_remove_rule(id)
+            end
+        end
+        @test pyconvert(Any,pd.NA) === missing
     end
 end
 

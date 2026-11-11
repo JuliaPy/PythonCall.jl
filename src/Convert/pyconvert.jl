@@ -21,10 +21,13 @@ const PYCONVERT_NEXT_ID = Ref(0)
 const PYCONVERT_DIRTY = Ref(true)
 const PYCONVERT_MODULES = Set{String}()
 const PYCONVERT_PROTOCOLS = ("<arraystruct>", "<arrayinterface>", "<array>", "<buffer>")
+const PYCONVERT_SINGLETONS = (
+    "builtins:None", "builtins:Ellipsis", "builtins:NotImplemented",
+    "pandas:NA", "pandas:NaT",
+)
 
 # Normalize at registration/context construction, rather than during dispatch.
 function pyconvert_source_name(name::String)
-    name == "None" && return "types:NoneType"
     name in PYCONVERT_PROTOCOLS || ':' in name ? name : "builtins:" * name
 end
 
@@ -155,7 +158,6 @@ end
 # Never import optional modules as a side effect of conversion.
 function pyconvert_resolve(name::String)
     name = pyconvert_source_name(name)
-    name == "builtins:NoneType" && return pytype(pybuiltins.None)
     parts = split(name, ':'; limit=2)
     length(parts) == 2 || throw(ArgumentError("invalid Python source name: $name"))
     m = pygetitem(pyimport("sys").modules, parts[1], PyNULL)
@@ -164,6 +166,7 @@ function pyconvert_resolve(name::String)
         m = pygetattr(m, part, PyNULL)
         pyisnull(m) && return PyNULL
     end
+    name in PYCONVERT_SINGLETONS && return pytype(m)
     pyisinstance(m, pybuiltins.type) || throw(ArgumentError("$name is not a Python type"))
     m
 end
@@ -429,12 +432,11 @@ function pyconvertarg(::Type{T}, x, name) where T
 end
 
 function init_pyconvert()
-    pyimport("types")
     pyimport("numbers")
     pyimport("collections.abc")
     pyimport("io")
     pyconvert_source!("builtins:object")
-    pyconvert_add_rule("types:NoneType", Nothing, pyconvert_rule_none; scope=Any)
+    pyconvert_add_rule("builtins:None", Nothing, pyconvert_rule_none; scope=Any)
     pyconvert_add_rule("builtins:bool", Bool, pyconvert_rule_bool; scope=Any)
     pyconvert_add_rule("builtins:float", Float64, pyconvert_rule_float; scope=Any)
     pyconvert_add_rule(
@@ -481,7 +483,11 @@ function init_pyconvert()
         scope = Any,
     )
 
-    pyconvert_add_rule("types:NoneType", Missing, pyconvert_rule_none)
+    pyconvert_add_rule("builtins:None", Missing, pyconvert_rule_none)
+    for source in ("builtins:Ellipsis", "builtins:NotImplemented")
+        pyconvert_add_rule(source, Nothing, pyconvert_rule_none)
+        pyconvert_add_rule(source, Missing, pyconvert_rule_none)
+    end
     pyconvert_add_rule("builtins:bool", Number, pyconvert_rule_bool)
     # Real/Complex ABC membership does not promise lossless __float__/__complex__.
     # Integral and Rational sources have their own exact representation rules.

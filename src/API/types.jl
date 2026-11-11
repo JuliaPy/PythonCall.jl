@@ -5,7 +5,8 @@
 
 Explicit conversion context. Preferences are ordered `"module:name" => JuliaType`
 pairs, resolved by attribute lookup in loaded modules. A bare name abbreviates
-`"builtins:name"`, except `"None"` abbreviates `"types:NoneType"`.
+`"builtins:name"`. The sources `builtins:None`, `builtins:Ellipsis`,
+`builtins:NotImplemented`, `pandas:NA` and `pandas:NaT` refer to singleton types.
 Rules propagate preferences by calling `pyconvert(ctx, T, child)` explicitly.
 """
 struct PyConvertContext{P}

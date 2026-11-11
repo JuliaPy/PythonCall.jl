@@ -143,8 +143,17 @@ match the type's `__module__` or `__qualname__`: a public re-export such as
 A bare name abbreviates a built-in: `"list"` means `"builtins:list"`, so
 `prefer=("list" => PyList,)` opts into list wrappers. Aliases resolving to the
 same Python type share source ordering; their rules retain creation order.
-The special shorthand `"None"` means `"types:NoneType"`; for example,
+The singleton locations `"builtins:None"`, `"builtins:Ellipsis"`,
+`"builtins:NotImplemented"`, `"pandas:NA"` and `"pandas:NaT"` resolve to their
+objects' types. This happens during type lookup, after ordinary string
+normalization: `"None"` means `"builtins:None"`, just as `"Ellipsis"` means
+`"builtins:Ellipsis"`. For example,
 `pyconvert(Any, x; prefer=("None" => Missing,))` converts Python None to missing.
+Ellipsis, NotImplemented and pandas NaT also have destination-scoped conversions
+to `Nothing` and `Missing`, so preferences such as `"Ellipsis" => Nothing`
+can select those representations explicitly.
+Other non-type source attributes are rejected; these five singleton locations
+are explicit exceptions. Looking up a pandas singleton never imports pandas.
 
 Optional modules are never imported merely to resolve rules or preferences.
 Pending rules enter the global order when their module is

@@ -58,13 +58,20 @@ pyconvert_rule_bytes(::Type{Base.CodeUnits{UInt8,String}}, x::Py) =
 
 ### int
 
-pyconvert_rule_int(::Type{T}, x::Py) where {T<:Number} = @pyregion begin
+@inline function pyconvert_rule_int(::Type{T}, x::Py) where {T<:Number}
+    result = pyconvert_rule_int_raw(T, x)
+    result === PYCONVERT_FAILED ? nothing : pyconvert_return(pyconvert_unpack(result))
+end
+
+# The dispatcher can use the same numeric conversion without making a Some
+# escape the kernel's return boundary (notably Some{BigInt}).
+pyconvert_rule_int_raw(::Type{T}, x::Py) where {T<:Number} = @pyregion begin
     # First try to convert to Clonglong (or Culonglong if unsigned). Conversion rules
     # run outside their caller's region because user-defined rules may yield.
     v = T <: Unsigned ? C.PyLong_AsUnsignedLongLong(x) : C.PyLong_AsLongLong(x)
     if !iserrset_ambig(v)
         # success
-        return pyconvert_tryconvert(T, v)
+        return pyconvert_raw(pyconvert_tryconvert(T, v))
     elseif errmatches(pybuiltins.OverflowError)
         # overflows Clonglong or Culonglong
         errclear()
@@ -84,14 +91,14 @@ pyconvert_rule_int(::Type{T}, x::Py) where {T<:Number} = @pyregion begin
            typemin(typeof(v)) ≤ typemin(T) &&
            typemax(T) ≤ typemax(typeof(v))
             # definitely overflows S, give up now
-            return pyconvert_unconverted()
+            return PYCONVERT_FAILED
         else
             # try converting -> int -> str -> BigInt -> T
             x_int = pyint(x)
             x_str = pystr(String, x_int)
             unsafe_pydel(x_int)
             v = parse(BigInt, x_str)
-            return pyconvert_tryconvert(T, v)
+            return pyconvert_raw(pyconvert_tryconvert(T, v))
         end
     else
         # other error
@@ -194,29 +201,45 @@ function pyconvert_rule_fraction(::Type{T}, x::Py) where {T<:Number}
     pyconvert_tryconvert(T, @pyconvert(Rational{<:Integer}, x))
 end
 
+### arrays
+
+function pyconvert_rule_array(::Type{A}, x::Py) where {A<:AbstractArray}
+    r = PythonCall.Wrap.pyarray_make(PyArray, x)
+    if pyconvert_isunconverted(r)
+        return pyconvert_unconverted()
+    else
+        return pyconvert_tryconvert(A, pyconvert_result(PyArray, r))
+    end
+end
+
 ### collections
 
 # Vector
 
-function _pyconvert_rule_iterable(ans::Vector{T0}, it::Py, ::Type{T1}) where {T0,T1}
+_pyconvert_join(A, B, bound) = typeintersect(Base.promote_typejoin(A, B), bound)
+
+function _pyconvert_rule_iterable(ctx, ans::Vector{T0}, it::Py, ::Type{T1}) where {T0,T1}
     @label again
     x_ = unsafe_pynext(it)
     if pyisnull(x_)
         unsafe_pydel(it)
-        return pyconvert_return(ans)
+        return pyconvert_return(T0 === Union{} ? Vector{T1}() : ans)
     end
-    x = @pyconvert(T1, x_)
+    result = pytryconvert_raw(ctx, T1, x_)
+    result === PYCONVERT_FAILED && return nothing
+    x = pyconvert_unpack(result)::T1
     if x isa T0
         push!(ans, x)
         @goto again
     end
-    T2 = Utils._promote_type_bounded(T0, typeof(x), T1)
+    T2 = _pyconvert_join(T0, typeof(x), T1)
     ans2 = Vector{T2}(ans)
     push!(ans2, x)
-    return _pyconvert_rule_iterable(ans2, it, T1)
+    return _pyconvert_rule_iterable(ctx, ans2, it, T1)
 end
 
 function pyconvert_rule_iterable(
+    ctx::PyConvertContext,
     ::Type{R},
     x::Py,
     ::Type{Vector{T0}} = Utils._type_lb(R),
@@ -224,8 +247,11 @@ function pyconvert_rule_iterable(
 ) where {R<:Vector,T0,T1}
     it = pyiter(x)
     ans = Vector{T0}()
-    return _pyconvert_rule_iterable(ans, it, T1)
+    return _pyconvert_rule_iterable(ctx, ans, it, T1)
 end
+
+pyconvert_rule_iterable(ctx::PyConvertContext, ::Type{R}, x::Py) where {R} =
+    pyconvert_rule_iterable(R, x)
 
 # Set
 
@@ -261,6 +287,7 @@ end
 # Dict
 
 function _pyconvert_rule_mapping(
+    ctx::PyConvertContext,
     ans::Dict{K0,V0},
     x::Py,
     it::Py,
@@ -271,23 +298,28 @@ function _pyconvert_rule_mapping(
     k_ = unsafe_pynext(it)
     if pyisnull(k_)
         unsafe_pydel(it)
-        return pyconvert_return(ans)
+        return pyconvert_return(isempty(ans) ? Dict{K0 === Union{} ? K1 : K0,V0 === Union{} ? V1 : V0}() : ans)
     end
     v_ = pygetitem(x, k_)
-    k = @pyconvert(K1, k_)
-    v = @pyconvert(V1, v_)
+    kr = pytryconvert_raw(ctx, K1, k_)
+    kr === PYCONVERT_FAILED && return nothing
+    vr = pytryconvert_raw(ctx, V1, v_)
+    vr === PYCONVERT_FAILED && return nothing
+    k = pyconvert_unpack(kr)::K1
+    v = pyconvert_unpack(vr)::V1
     if k isa K0 && v isa V0
         push!(ans, k => v)
         @goto again
     end
-    K2 = Utils._promote_type_bounded(K0, typeof(k), K1)
-    V2 = Utils._promote_type_bounded(V0, typeof(v), V1)
+    K2 = _pyconvert_join(K0, typeof(k), K1)
+    V2 = _pyconvert_join(V0, typeof(v), V1)
     ans2 = Dict{K2,V2}(ans)
     push!(ans2, k => v)
-    return _pyconvert_rule_mapping(ans2, x, it, K1, V1)
+    return _pyconvert_rule_mapping(ctx, ans2, x, it, K1, V1)
 end
 
 function pyconvert_rule_mapping(
+    ctx::PyConvertContext,
     ::Type{R},
     x::Py,
     ::Type{Dict{K0,V0}} = Utils._type_lb(R),
@@ -295,7 +327,7 @@ function pyconvert_rule_mapping(
 ) where {R<:Dict,K0,V0,K1,V1}
     it = pyiter(x)
     ans = Dict{K0,V0}()
-    return _pyconvert_rule_mapping(ans, x, it, K1, V1)
+    return _pyconvert_rule_mapping(ctx, ans, x, it, K1, V1)
 end
 
 # Tuple

@@ -28,6 +28,7 @@ py_finalizer(x::Py) = GC.enqueue(getptr(x))
 
 ispy(::Py) = true
 getptr(x::Py) = C.PyPtr(getfield(x, :ptr))
+# Py is the identity/fallback representation, not a Python-object transform.
 pyconvert(::Type{Py}, x::Py) = x
 
 setptr!(x::Py, ptr::C.PyPtr) = (setfield!(x, :ptr, Ptr{Cvoid}(ptr)); x)

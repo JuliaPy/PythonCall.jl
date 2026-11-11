@@ -1,11 +1,16 @@
 # Convert
 
-@enum PyConvertPriority begin
-    PYCONVERT_PRIORITY_WRAP = 400
-    PYCONVERT_PRIORITY_ARRAY = 300
-    PYCONVERT_PRIORITY_CANONICAL = 200
-    PYCONVERT_PRIORITY_NORMAL = 0
-    PYCONVERT_PRIORITY_FALLBACK = -100
+"""
+    PyConvertContext(; prefer=())
+
+Explicit conversion context. Preferences are ordered `"module:name" => JuliaType`
+pairs, resolved by attribute lookup in loaded modules. A bare name abbreviates
+`"builtins:name"`. The sources `builtins:None`, `builtins:Ellipsis`,
+`builtins:NotImplemented`, `pandas:NA` and `pandas:NaT` refer to singleton types.
+Rules propagate preferences by calling `pyconvert(ctx, T, child)` explicitly.
+"""
+struct PyConvertContext{P}
+    prefer::P
 end
 
 # Core

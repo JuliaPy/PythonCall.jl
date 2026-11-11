@@ -112,7 +112,7 @@ function init_numpy()
         rule = pyconvert_rule_numpysimplevalue{T,false}()
         saferule = pyconvert_rule_numpysimplevalue{T,true}()
 
-        pyconvert_add_rule(name, T, saferule, PYCONVERT_PRIORITY_ARRAY)
+        pyconvert_add_rule(name, T, saferule; scope=Any)
         isuint && pyconvert_add_rule(name, UInt, sizeof(T) ≤ sizeof(UInt) ? saferule : rule)
         isuint && pyconvert_add_rule(name, Int, sizeof(T) < sizeof(Int) ? saferule : rule)
         isint &&
@@ -131,7 +131,7 @@ function init_numpy()
         "numpy:datetime64",
         DateTime64,
         pyconvert_rule_datetime64,
-        PYCONVERT_PRIORITY_ARRAY,
+        ; scope=Any,
     )
     pyconvert_add_rule("numpy:datetime64", InlineDateTime64, pyconvert_rule_datetime64)
     pyconvert_add_rule(
@@ -147,7 +147,7 @@ function init_numpy()
         "numpy:timedelta64",
         TimeDelta64,
         pyconvert_rule_timedelta64,
-        PYCONVERT_PRIORITY_ARRAY,
+        ; scope=Any,
     )
     pyconvert_add_rule("numpy:timedelta64", InlineTimeDelta64, pyconvert_rule_timedelta64)
     pyconvert_add_rule(

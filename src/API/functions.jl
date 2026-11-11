@@ -102,8 +102,10 @@ function unsafe_pydel end
 # Convert
 function pyconvert end
 function pyconvert_add_rule end
-function pyconvert_return end
-function pyconvert_unconverted end
+function pytryconvert end
+function pyconvert_remove_rule end
+function pyconvert_replace_rule end
+function pyconvert_rules end
 
 # JlWrap
 function pybinaryio end

@@ -18,14 +18,12 @@ end
 pyconvert_rule_array_nocopy(::Type{A}, x::Py) where {A<:PyArray} =
     pyarray_make(A, x, copy = false)
 
-function pyconvert_rule_array(::Type{A}, x::Py) where {A<:AbstractArray}
-    r = pyarray_make(PyArray, x)
-    if pyconvert_isunconverted(r)
-        return pyconvert_unconverted()
-    else
-        return pyconvert_tryconvert(A, pyconvert_result(PyArray, r))
-    end
+# Expected unsupported representations may decline; arbitrary errors must propagate.
+struct PyArrayUnsupported <: Exception
+    message::String
 end
+Base.showerror(io::IO, exc::PyArrayUnsupported) = print(io, exc.message)
+pyarray_unsupported(message) = throw(PyArrayUnsupported(message))
 
 abstract type PyArraySource end
 
@@ -42,6 +40,7 @@ function pyarray_make(
         try
             return pyarray_make(A, x, PyArraySource_ArrayStruct(x, xa))
         catch exc
+            exc isa PyArrayUnsupported || rethrow()
             @debug "failed to make PyArray from __array_struct__" exc = exc
         end
     end
@@ -49,6 +48,7 @@ function pyarray_make(
         try
             return pyarray_make(A, x, PyArraySource_ArrayInterface(x, xi))
         catch exc
+            exc isa PyArrayUnsupported || rethrow()
             @debug "failed to make PyArray from __array_interface__" exc = exc
         end
     end
@@ -56,6 +56,7 @@ function pyarray_make(
         try
             return pyarray_make(A, x, PyArraySource_Buffer(x))
         catch exc
+            exc isa PyArrayUnsupported || rethrow()
             @debug "failed to make PyArray from buffer" exc = exc
         end
     end
@@ -65,6 +66,7 @@ function pyarray_make(
             try
                 return pyarray_make(A, y, PyArraySource_ArrayStruct(y, ya))
             catch exc
+            exc isa PyArrayUnsupported || rethrow()
                 @debug "failed to make PyArray from __array__().__array_interface__" exc =
                     exc
             end
@@ -73,6 +75,7 @@ function pyarray_make(
             try
                 return pyarray_make(A, y, PyArraySource_ArrayInterface(y, yi))
             catch exc
+            exc isa PyArrayUnsupported || rethrow()
                 @debug "failed to make PyArray from __array__().__array_interface__" exc =
                     exc
             end
@@ -93,13 +96,13 @@ function pyarray_make(
     if T0 == T1
         T = T1
         R = pyarray_get_R(T)
-        R′ == R || error("eltype $T is incompatible with array data of type $R′")
+        R′ == R || pyarray_unsupported("eltype $T is incompatible with array data of type $R′")
     else
         T = pyarray_get_T(R′, T0, T1)::DataType
-        T <: T1 || error("computed eltype $T out of bounds, should be <: $T1")
-        T >: T0 || error("computed eltype $T out of bounds, should be >: $T0")
+        T <: T1 || pyarray_unsupported("computed eltype $T out of bounds, should be <: $T1")
+        T >: T0 || pyarray_unsupported("computed eltype $T out of bounds, should be >: $T0")
         R = pyarray_get_R(T)
-        R′ == R || error("computed eltype $T is incompatible with array data of type $R′")
+        R′ == R || pyarray_unsupported("computed eltype $T is incompatible with array data of type $R′")
     end
     # ptr
     ptr = pyarray_get_ptr(info)::Ptr{Cvoid}
@@ -107,7 +110,7 @@ function pyarray_make(
     N′ = pyarray_get_N(info)::Int
     if N0 == N1
         N = N1 isa Int ? N1 : Int(N1)
-        N == N′ || error("number of dimensions $N incorrect, expecting $N′")
+        N == N′ || pyarray_unsupported("number of dimensions $N incorrect, expecting $N′")
     else
         N = N′
     end
@@ -122,11 +125,11 @@ function pyarray_make(
     Flist = Symbol[]
     if F0 == F1
         F = F1::Tuple{Vararg{Symbol}}
-        (:mutable in F) && (!M) && error(":mutable flag given but array is not mutable")
-        (:linear in F) && (!L) && error(":linear flag given but array is not evenly spaced")
+        (:mutable in F) && (!M) && pyarray_unsupported(":mutable flag given but array is not mutable")
+        (:linear in F) && (!L) && pyarray_unsupported(":linear flag given but array is not evenly spaced")
         (:contiguous in F) &&
             (!C) &&
-            error(":contiguous flag given but array is not contiguous")
+            pyarray_unsupported(":contiguous flag given but array is not contiguous")
     else
         M && push!(Flist, :mutable)
         L && push!(Flist, :linear)
@@ -153,9 +156,9 @@ function PyArraySource_ArrayInterface(x::Py, d::Py = x.__array_interface__)
     # offset
     # TODO: how is the offset measured?
     offset = pyconvert(Int, @py d.get("offset", 0))
-    offset == 0 || error("not supported: non-zero offset")
+    offset == 0 || pyarray_unsupported("not supported: non-zero offset")
     # mask
-    @py("mask" in d) && error("not supported: mask")
+    @py("mask" in d) && pyarray_unsupported("not supported: mask")
     # data
     data = @py d.get("data")
     if pyistuple(data)
@@ -180,14 +183,14 @@ pyarray_typestrdescr_to_type(ts::String, descr::Py) = begin
     bs =
         bsc == '<' ? !Utils.islittleendian() :
         bsc == '>' ? Utils.islittleendian() :
-        bsc == '|' ? false : error("endianness character not supported: $ts")
-    bs && error("byte-swapping not supported: $ts")
+        bsc == '|' ? false : pyarray_unsupported("endianness character not supported: $ts")
+    bs && pyarray_unsupported("byte-swapping not supported: $ts")
     # element type
     etc = ts[2]
     if etc == 'b'
         sz = parse(Int, ts[3:end])
         sz == sizeof(Bool) && return Bool
-        error("bool of this size not supported: $ts")
+        pyarray_unsupported("bool of this size not supported: $ts")
     elseif etc == 'i'
         sz = parse(Int, ts[3:end])
         sz == 1 && return Int8
@@ -195,7 +198,7 @@ pyarray_typestrdescr_to_type(ts::String, descr::Py) = begin
         sz == 4 && return Int32
         sz == 8 && return Int64
         sz == 16 && return Int128
-        error("signed int of this size not supported: $ts")
+        pyarray_unsupported("signed int of this size not supported: $ts")
     elseif etc == 'u'
         sz = parse(Int, ts[3:end])
         sz == 1 && return UInt8
@@ -203,36 +206,36 @@ pyarray_typestrdescr_to_type(ts::String, descr::Py) = begin
         sz == 4 && return UInt32
         sz == 8 && return UInt64
         sz == 16 && return UInt128
-        error("unsigned int of this size not supported: $ts")
+        pyarray_unsupported("unsigned int of this size not supported: $ts")
     elseif etc == 'f'
         sz = parse(Int, ts[3:end])
         sz == 2 && return Float16
         sz == 4 && return Float32
         sz == 8 && return Float64
-        error("float of this size not supported: $ts")
+        pyarray_unsupported("float of this size not supported: $ts")
     elseif etc == 'c'
         sz = parse(Int, ts[3:end])
         sz == 4 && return Complex{Float16}
         sz == 8 && return Complex{Float32}
         sz == 16 && return Complex{Float64}
-        error("complex of this size not supported: $ts")
+        pyarray_unsupported("complex of this size not supported: $ts")
     elseif etc == 'U'
         sz = parse(Int, ts[3:end])
         return Utils.StaticString{UInt32,sz}
     elseif etc == 'O'
         return UnsafePyObject
     elseif etc == 'V'
-        pyisnull(descr) && error("not supported: void dtype with null descr")
+        pyisnull(descr) && pyarray_unsupported("not supported: void dtype with null descr")
         sz = parse(Int, ts[3:end])
         T = pyarray_descr_to_type(descr)
         sizeof(T) == sz ||
-            error("size mismatch: itemsize=$sz but sizeof(descr)=$(sizeof(T))")
+            pyarray_unsupported("size mismatch: itemsize=$sz but sizeof(descr)=$(sizeof(T))")
         return T
     elseif etc == 'M' || etc == 'm'
         m = match(r"^([0-9]+)(\[([0-9]+)?([a-zA-Z]+)\])?$", ts[3:end])
-        m === nothing && error("could not parse type: $ts")
+        m === nothing && pyarray_unsupported("could not parse type: $ts")
         sz = parse(Int, m[1])
-        sz == sizeof(Int64) || error(
+        sz == sizeof(Int64) || pyarray_unsupported(
             "$(etc == 'M' ? "datetime" : "timedelta") of this size not supported: $sz",
         )
         s = m[3] === nothing ? 1 : parse(Int, m[3])
@@ -252,14 +255,14 @@ pyarray_typestrdescr_to_type(ts::String, descr::Py) = begin
             us == "ps" ? NumpyDates.PICOSECONDS :
             us == "fs" ? NumpyDates.FEMTOSECONDS :
             us == "as" ? NumpyDates.ATTOSECONDS :
-            error("not supported: $(etc == 'M' ? "datetime" : "timedelta") unit: $us")
+            pyarray_unsupported("not supported: $(etc == 'M' ? "datetime" : "timedelta") unit: $us")
         if etc == 'M'
             return NumpyDates.InlineDateTime64{s == 1 ? u : (u, s)}
         else
             return NumpyDates.InlineTimeDelta64{s == 1 ? u : (u, s)}
         end
     else
-        error("not supported: dtype of kind: $(repr(etc))")
+        pyarray_unsupported("not supported: dtype of kind: $(repr(etc))")
     end
 end
 
@@ -308,9 +311,9 @@ function pyarray_descr_to_type(descr::Py)
     # TODO: support non-aligned dtypes by packing them into a custom type and reinterpreting
     T = Tuple{ftypes...}
     for (i, o) in pairs(foffsets)
-        fieldoffset(T, i) == o || error("not supported: dtype that is not aligned: $descr")
+        fieldoffset(T, i) == o || pyarray_unsupported("not supported: dtype that is not aligned: $descr")
     end
-    sizeof(T) == curoffset || error("not supported: dtype with end padding: $descr")
+    sizeof(T) == curoffset || pyarray_unsupported("not supported: dtype with end padding: $descr")
     # return the tuple type if the field names are f0, f1, ..., else return a named tuple
     if fnames == [Symbol(:f, i - 1) for i = 1:length(fnames)]
         return T
@@ -371,14 +374,14 @@ end
 function pyarray_get_R(src::PyArraySource_ArrayStruct)
     swapped = !Utils.isflagset(src.info.flags, C.NPY_ARRAY_NOTSWAPPED)
     hasdescr = Utils.isflagset(src.info.flags, C.NPY_ARR_HAS_DESCR)
-    swapped && error("byte-swapping not supported")
+    swapped && pyarray_unsupported("byte-swapping not supported")
     kind = src.info.typekind
     size = src.info.itemsize
     if kind == 98  # b = bool
         if size == sizeof(Bool)
             return Bool
         else
-            error("bool of this size not supported: $size")
+            pyarray_unsupported("bool of this size not supported: $size")
         end
     elseif kind == 105  # i = int
         if size == 1
@@ -390,7 +393,7 @@ function pyarray_get_R(src::PyArraySource_ArrayStruct)
         elseif size == 8
             return Int64
         else
-            error("int of this size not supported: $size")
+            pyarray_unsupported("int of this size not supported: $size")
         end
     elseif kind == 117  # u = uint
         if size == 1
@@ -402,7 +405,7 @@ function pyarray_get_R(src::PyArraySource_ArrayStruct)
         elseif size == 8
             return UInt64
         else
-            error("uint of this size not supported: $size")
+            pyarray_unsupported("uint of this size not supported: $size")
         end
     elseif kind == 102  # f = float
         if size == 2
@@ -412,7 +415,7 @@ function pyarray_get_R(src::PyArraySource_ArrayStruct)
         elseif size == 8
             return Float64
         else
-            error("float of this size not supported: $size")
+            pyarray_unsupported("float of this size not supported: $size")
         end
     elseif kind == 99  # c = complex
         if size == 4
@@ -423,29 +426,29 @@ function pyarray_get_R(src::PyArraySource_ArrayStruct)
             return ComplexF64
         end
     elseif kind == 109  # m = timedelta
-        error("timedelta not supported")
+        pyarray_unsupported("timedelta not supported")
     elseif kind == 77  # M = datetime
-        error("datetime not supported")
+        pyarray_unsupported("datetime not supported")
     elseif kind == 79  # O = object
         if size == sizeof(C.PyPtr)
             return UnsafePyObject
         else
-            error("object pointer of this size not supported: $size")
+            pyarray_unsupported("object pointer of this size not supported: $size")
         end
     elseif kind == 83  # S = byte string
-        error("byte strings not supported")
+        pyarray_unsupported("byte strings not supported")
     elseif kind == 85  # U = unicode string
-        mod(size, 4) == 0 || error("unicode size must be a multiple of 4: $size")
+        mod(size, 4) == 0 || pyarray_unsupported("unicode size must be a multiple of 4: $size")
         return Utils.StaticString{UInt32,div(size, 4)}
     elseif kind == 86  # V = void (should have descr)
-        hasdescr || error("not supported: void dtype with no descr")
+        hasdescr || pyarray_unsupported("not supported: void dtype with no descr")
         descr = pynew(incref(src.info.descr))
         T = pyarray_descr_to_type(descr)
         sizeof(T) == size ||
-            error("size mismatch: itemsize=$size but sizeof(descr)=$(sizeof(T))")
+            pyarray_unsupported("size mismatch: itemsize=$size but sizeof(descr)=$(sizeof(T))")
         return T
     else
-        error("not supported: dtype of kind: $(Char(kind))")
+        pyarray_unsupported("not supported: dtype of kind: $(Char(kind))")
     end
     @assert false
 end
@@ -492,7 +495,7 @@ function PyArraySource_Buffer(x::Py)
     memview = pybuiltins.memoryview(x)
     buf = C.UnsafePtr(C.PyMemoryView_GET_BUFFER(memview))
     buf.suboffsets[] == C_NULL ||
-        error("PyArray does not support buffers with non-trivial suboffsets (PIL-style indirect layout)")
+        pyarray_unsupported("PyArray does not support buffers with non-trivial suboffsets (PIL-style indirect layout)")
     PyArraySource_Buffer(x, memview, buf)
 end
 
@@ -534,7 +537,7 @@ const PYARRAY_BUFFERFORMAT_TO_TYPE = let c = Utils.islittleendian() ? '<' : '>'
 end
 
 pyarray_bufferformat_to_type(fmt::String) = get(
-    () -> error("not implemented: buffer format $(repr(fmt))"),
+    () -> pyarray_unsupported("not implemented: buffer format $(repr(fmt))"),
     PYARRAY_BUFFERFORMAT_TO_TYPE,
     fmt,
 )
@@ -681,14 +684,14 @@ end
         if T0 <: Py <: T1
             Py
         else
-            error("impossible")
+            pyarray_unsupported("incompatible object element type")
         end
     elseif R <: Tuple
-        error("not implemented")
+        pyarray_unsupported("tuple array element types are not implemented")
     elseif T0 <: R <: T1
         R
     else
-        error("impossible")
+        pyarray_unsupported("incompatible array element type")
     end
 end
 
@@ -724,6 +727,6 @@ end
     elseif T <: Tuple
         Tuple{map(pyarray_get_R, T.parameters)...}
     else
-        error("unsupported eltype $T")
+        pyarray_unsupported("unsupported eltype $T")
     end
 end

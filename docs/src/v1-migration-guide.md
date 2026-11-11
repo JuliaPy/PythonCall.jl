@@ -2,6 +2,37 @@
 
 Use this guide to help with migrating code from v0.9 to v1.
 
+## Conversion rules
+
+`pyconvert(Any, x)` now prefers native vectors, dictionaries, sets and arrays for
+materialized Python containers. Generic iterators remain lazy `PyIterable`
+wrappers. Request `PyList`, `PyDict` or `PyArray` explicitly, or use source-specific
+preferences such as `prefer=("builtins:list" => PyList,)` to select wrappers.
+
+Generic `numbers.Real` and `numbers.Complex` conversions through `__float__` and
+`__complex__` have been removed: those methods can lose information before the
+requested Julia conversion is attempted. Integral and rational sources keep
+their exact representation rules; Python `float`, `complex` and supported NumPy
+scalars keep dedicated rules. Other numeric types must register their own rules.
+
+Rule priorities have been removed. Register rules with
+`pyconvert_add_rule(source, T, f; scope=T)`. Use `scope=Any` for canonical rules
+only when you own the Python source type. Otherwise scope the rule to a Julia
+destination type you own. Each registration returns a unique ID; use
+`pyconvert_remove_rule(id)` or `pyconvert_replace_rule(id, source, T, f; scope=T)`
+to remove or update it.
+
+Rules now return `nothing` to decline, a value to succeed, or `Some(value)` for
+explicit success. Replace `pyconvert_unconverted()` with `nothing` and
+`pyconvert_return(x)` with `Some(x)` (or simply `x` when it is neither `nothing`
+nor a `Some`). `pytryconvert(T,x)` uses the same normalized convention: failure is
+`nothing`, ordinary successes are raw values, and successful `nothing`/`Some`
+values are wrapped once. Test `r === nothing` for failure and use `something(r)`
+to recover a success, or `something(r, default)` for a default on failure.
+Rule functions may accept `(ctx,T,x)` to propagate preferences explicitly with
+`pyconvert(ctx,T,child)`. See [conversion to Julia](@ref py2jl) for scope, ordering
+and context details.
+
 ## Core functionality
 
 Comparisons (`==`, `<`, etc.) between Python objects `Py`,

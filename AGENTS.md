@@ -16,6 +16,10 @@
   the process uses its newer `libstdc++`.
 - `julia --project=docs docs/make.jl` requires a valid Git `origin` so Documenter can infer
   source links; it fails during `makedocs` in checkouts without one.
+- `Documenter.HTML` discovers its default edit-link branch with `git remote show
+  origin`, which contacts the remote. Set `edit_link` explicitly for a local build
+  without that network lookup; v1's docs use `edit_link="v1"`. Disabling source
+  remotes alone does not prevent the HTML constructor's branch lookup.
 
 The majority of tests live in the Julia package; Python tests cover functionality that cannot be exercised from Julia (e.g., JuliaCall-specific behavior). Run both suites—typically Julia first—in whichever order makes sense.
 
@@ -25,10 +29,43 @@ The majority of tests live in the Julia package; Python tests cover functionalit
   `main`'s `ValueBase`/`AnyValue` hierarchy. Keep the collection wrapper when porting
   `_jlwrap` changes. Wrapper modules load before `juliacall.Base` is assigned, so
   constructors must look it up through `juliacall` when called.
+- For numeric Python fixtures, use `pycomplex(real, imag)` when a Python complex
+  value is needed. Passing a Julia `Complex` directly to a Python constructor can
+  produce a Julia wrapper, which NumPy may treat as a sequence rather than a scalar.
+- External-interpreter Julia CI jobs do not install NumPy/pandas development
+  dependencies. Keep synthetic conversion tests independent of them, and guard
+  library-specific checks with module availability (without hiding import errors
+  when a module is installed). Conda-backed jobs exercise those optional checks.
 - The benchmark suite is shared across the compared revisions: `main` uses `pydel!`, while `v1` uses `unsafe_pydel`.
 - `main` does not have `@pyregion`. Benchmark region wrappers must select a plain-body fallback before macro expansion; a runtime conditional around an unavailable macro still fails when loading the suite.
 - Julia CI caches can preserve Conda's build metadata without its root environment. Rebuild `Conda` before building `PyCall` or running tests to recreate that directory.
 - In restricted sandboxes, both suites need approval to write to the shared caches (`~/.julia` and `~/.cache/uv`).
+- Julia also writes `~/.julia/logs/manifest_usage.toml` during dependency discovery,
+  including PythonCall startup through CondaPkg. Cache permissions must include
+  `~/.julia/logs`, in addition to compiled packages, artifacts and registries.
+- Notebook tests start a Jupyter kernel using local sockets. A sandbox that blocks
+  sockets can run the ordinary Python tests but cannot run `--nbval` successfully.
+- Loopback TCP permission alone may be insufficient for notebook tests: ZeroMQ
+  queries network interfaces via `getifaddrs`, which on Linux needs
+  `AF_NETLINK`/`NETLINK_ROUTE` sockets. In the tested sandbox, loopback binding
+  succeeded but creating a route Netlink socket failed with `EPERM`.
+- Use the absolute installed Julia executable in a restricted sandbox to avoid
+  Juliaup's configuration lock. Installed channels may differ from those listed above.
+- `JULIA_PKG_OFFLINE=true` lets JuliaPkg resolve the development Python test
+  environment using installed packages without refreshing registries or cloning
+  uncached package versions.
+- `JULIA_CONDAPKG_ENV` must not point at an existing `.CondaPkg` directory.
+  To run Aqua against an installed interpreter without creating a fresh Conda
+  environment, use `JULIA_CONDAPKG_BACKEND=Null` and set `JULIA_PYTHONCALL_EXE`
+  to that interpreter's absolute path.
+- `test/runtests.jl` infers optional development dependencies from the CondaPkg
+  backend. With the Null backend and an explicit Conda interpreter, PySide6 may
+  be installed even though `Setup.devdeps` is false, causing the GUI test to
+  incorrectly expect an import failure. Focused conversion tests are unaffected.
+- Interrupted sandbox runs can leave a CondaPkg lock containing a PID from a
+  different PID namespace. A reused small PID can make later runs wait for that
+  lock indefinitely. Prefer an explicit installed Python/Null backend for
+  focused conversion tests; do not remove a lock without checking its owner.
 - `pysrc/juliacall/juliapkg.json` is tracked; restore its original contents after using the development copy for Python tests.
 
 ## Meta instructions

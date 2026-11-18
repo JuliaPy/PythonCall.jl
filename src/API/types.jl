@@ -103,6 +103,21 @@ struct PyDict{K,V} <: AbstractDict{K,V}
 end
 
 """
+    PyString(x)
+
+Wrap the Python `str` object `x` as an `AbstractString` without copying its UTF-8 data.
+
+If `x` is not a Python object, it is first converted to a Python `str`.
+"""
+struct PyString <: AbstractString
+    py::Py
+    ptr::Ptr{UInt8}
+    length::Int
+    PyString(::Val{:new}, py::Py, ptr::Ptr{UInt8}, length::Int) =
+        new(py, ptr, length)
+end
+
+"""
     PyIO(x; own=false, text=missing, line_buffering=false, buflen=4096)
 
 Wrap the Python IO stream `x` as a Julia IO stream.

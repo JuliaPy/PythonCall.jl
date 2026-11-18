@@ -196,6 +196,15 @@ end
     @test x2 == [1, 2, 3]
 end
 
+@testitem "sequence → PyTuple" begin
+    x1 = pyconvert(PyTuple, pylist([1, 2, 3]))
+    @test x1 isa PyTuple{Tuple}
+    @test Tuple(x1) == (1, 2, 3)
+    x2 = pyconvert(PyTuple{Tuple{Int,Float64}}, pytuple([1, 2]))
+    @test x2 isa PyTuple{Tuple{Int,Float64}}
+    @test Tuple(x2) === (1, 2.0)
+end
+
 @testitem "set → PySet" begin
     x1 = pyconvert(PySet, pyset([1, 2, 3]))
     @test x1 isa PySet{Any}

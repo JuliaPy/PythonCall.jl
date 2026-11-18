@@ -14,7 +14,7 @@ using ..Convert
 using ..PyMacro
 
 import ..PythonCall:
-    PyArray, PyDict, PyIO, PyIterable, PyList, PyPandasDataFrame, PySet, PyTable
+    PyArray, PyDict, PyIO, PyIterable, PyList, PyPandasDataFrame, PySet, PyTable, PyTuple
 
 using Base: @propagate_inbounds
 using Tables: Tables
@@ -25,6 +25,7 @@ import ..Core: Py, ispy
 include("PyIterable.jl")
 include("PyDict.jl")
 include("PyList.jl")
+include("PyTuple.jl")
 include("PySet.jl")
 include("PyArray.jl")
 include("PyIO.jl")
@@ -81,6 +82,12 @@ function __init__()
     pyconvert_add_rule("<arrayinterface>", AbstractArray, pyconvert_rule_array, priority)
     pyconvert_add_rule("<array>", AbstractArray, pyconvert_rule_array, priority)
     pyconvert_add_rule("<buffer>", AbstractArray, pyconvert_rule_array, priority)
+    pyconvert_add_rule(
+        "collections.abc:Sequence",
+        PyTuple,
+        pyconvert_rule_pytuple,
+        priority,
+    )
 end
 
 end

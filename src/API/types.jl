@@ -182,6 +182,18 @@ struct PyList{T} <: AbstractVector{T}
 end
 
 """
+    PyTuple{T<:Tuple=Tuple}([x])
+
+Wraps the Python tuple or sequence `x`, with its elements described by the tuple type `T`.
+
+If `x` is not a Python object, it is converted to a Python tuple using [`pytuple`](@ref).
+"""
+struct PyTuple{T<:Tuple}
+    py::Py
+    PyTuple{T}(x = pytuple()) where {T<:Tuple} = new{T}(ispy(x) ? Py(x) : pytuple(x))
+end
+
+"""
     PyTable(x)
 
 Wrap `x` as a Tables.jl-compatible table.

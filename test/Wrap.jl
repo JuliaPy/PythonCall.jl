@@ -468,6 +468,35 @@ end
     end
 end
 
+@testitem "PyTuple" begin
+    x = pytuple([1, "two", 3])
+    y = PyTuple(x)
+    z = PyTuple{Tuple{Int,String,Float64}}(x)
+    @test y isa PyTuple{Tuple}
+    @test z isa PyTuple{Tuple{Int,String,Float64}}
+    @test PythonCall.ispy(z)
+    @test Py(z) === x
+    @test length(z) == 3
+    @test size(z) == (3,)
+    @test eltype(z) === Any
+    @test z[1] === 1
+    @test z[2] == "two"
+    @test z[3] === 3.0
+    @test_throws BoundsError z[0]
+    @test_throws BoundsError z[4]
+    @test collect(z) == Any[1, "two", 3.0]
+    @test Tuple(z) === (1, "two", 3.0)
+
+    v = PyTuple{Tuple{Int,Vararg{String}}}(pylist([1, "two", "three"]))
+    @test length(v) == 3
+    @test v[3] == "three"
+    @test Tuple(v) === (1, "two", "three")
+
+    fixed = PyTuple{Tuple{Vararg{Int,2}}}([4, 5])
+    @test length(fixed) == 2
+    @test Tuple(fixed) === (4, 5)
+end
+
 @testitem "PyPandasDataFrame" setup=[Setup] begin
     using Tables
     @test PyPandasDataFrame isa Type

@@ -14,7 +14,7 @@ using ..Convert
 using ..PyMacro
 
 import ..PythonCall:
-    PyArray, PyDict, PyIO, PyIterable, PyList, PyPandasDataFrame, PySet, PyTable
+    PyArray, PyDict, PyIO, PyIterable, PyList, PyPandasDataFrame, PySet, PyString, PyTable
 
 using Base: @propagate_inbounds
 using Tables: Tables
@@ -23,6 +23,7 @@ using UnsafePointers: UnsafePtr
 import ..Core: Py, ispy
 
 include("PyIterable.jl")
+include("PyString.jl")
 include("PyDict.jl")
 include("PyList.jl")
 include("PySet.jl")

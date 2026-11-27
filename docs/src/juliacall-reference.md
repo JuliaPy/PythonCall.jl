@@ -184,7 +184,10 @@ This wraps any Julia `Module` value.
 
 It is the same as [`AnyValue`](#juliacall.AnyValue) except for one additional convenience
 method:
-- `seval([module=self], code)`: Evaluates the given code (a string) in the given module.
+- `seval(code, *, nogil=False)`: Evaluates the given code (a string) in this module.
+  With `nogil=True`, the GIL is released while the code runs (see
+  [Multi-threading in the JuliaCall guide](@ref py-multi-threading)). The code must not
+  interact with Python.
 `````
 
 `````@customdoc

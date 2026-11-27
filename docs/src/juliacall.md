@@ -180,6 +180,20 @@ parallel, taking about 5 seconds in total.
 If we did not use `_jl_call_nogil` (i.e. if we did `pool.submit(jl.Libc.systemsleep, 5)`)
 then the above code will take 20 seconds because the sleeps run one after another.
 
+A Python package that loads Julia packages at import time can use `seval(..., nogil=True)`
+to load them while another Python thread imports Python modules. This is only safe if
+none of the Julia code interacts with Python, including the `__init__` functions of all
+the packages it loads. Packages built on PythonCall often call Python in `__init__`.
+
+```python
+import threading
+from juliacall import Main as jl
+t = threading.Thread(target=lambda: __import__("pandas"))
+t.start()
+jl.seval("using Statistics", nogil=True)
+t.join()
+```
+
 It is very important that any function called with `_jl_call_nogil` does not interact
 with Python at all unless it re-locks the GIL first, such as by using
 [`PythonCall.GIL.@lock`](@ref).

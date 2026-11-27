@@ -201,6 +201,29 @@ def test_call_nogil(yld, raw):
     assert 0.9 < t2 < 1.5
 
 
+def test_seval_nogil():
+    """Tests that seval(..., nogil=True) evaluates code with the GIL released."""
+    from concurrent.futures import ThreadPoolExecutor
+    from time import time
+    from juliacall import Main as jl, JuliaError
+
+    assert jl.seval("1 + 1", nogil=True) == 2
+    # precompile
+    jl.seval("Libc.systemsleep(0.01)", nogil=True)
+    # the two sleeps only overlap if the GIL is released while they run
+    pool = ThreadPoolExecutor(2)
+    t0 = time()
+    fs = [pool.submit(jl.seval, "Libc.systemsleep(1)", nogil=True) for _ in range(2)]
+    for f in fs:
+        f.result()
+    t1 = time() - t0
+    assert 0.9 < t1 < 1.5
+    # errors propagate and the GIL is locked again afterwards
+    with pytest.raises(JuliaError):
+        jl.seval('error("boom")', nogil=True)
+    assert jl.seval("2 + 2", nogil=True) == 4
+
+
 @pytest.mark.parametrize("mode,value", [("existing", 2), ("strict", 3)])
 def test_compiled_modules_option(mode, value):
     import os

@@ -5,6 +5,8 @@
 * Improved TTFX in JuliaCall.
 * Minimum supported Python version is now 3.11.
 * JuliaCall option `compiled_modules` now accepts `existing` and `strict` (Julia 1.11+).
+* Fixed a crash when Julia prints while the GIL is unlocked (such as in `_jl_call_nogil`)
+  with the JuliaCall IPython extension loaded in Jupyter.
 
 ## 0.9.37 (2026-10-12)
 * Compatibility fix with Python 3.15 from conda-forge, which no longer bundles libpython.

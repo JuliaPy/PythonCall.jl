@@ -83,8 +83,15 @@ def load_ipython_extension(ip):
             const _redirected_stderr = redirect_stderr()
             const _py_stdout = PyIO(pyimport("sys" => "stdout"); line_buffering=true)
             const _py_stderr = PyIO(pyimport("sys" => "stderr"); line_buffering=true)
-            const _redirect_stdout_task = @async write($_py_stdout, $_redirected_stdout[1])
-            const _redirect_stderr_task = @async write($_py_stderr, $_redirected_stderr[1])
+            # These tasks can run while the GIL is unlocked, such as during _jl_call_nogil.
+            function _copy_to_python(py, pipe)
+                while !eof(pipe)
+                    data = readavailable(pipe)
+                    PythonCall.GIL.@lock write(py, data)
+                end
+            end
+            const _redirect_stdout_task = @async _copy_to_python(_py_stdout, _redirected_stdout[1])
+            const _redirect_stderr_task = @async _copy_to_python(_py_stderr, _redirected_stderr[1])
             function _flush_stdio()
                 flush(stderr)
                 flush(stdout)

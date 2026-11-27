@@ -201,6 +201,39 @@ def test_call_nogil(yld, raw):
     assert 0.9 < t2 < 1.5
 
 
+def test_ipython_output_nogil():
+    """Tests that Julia output under the IPython extension is safe while the GIL is unlocked."""
+    import subprocess
+    import sys
+
+    pytest.importorskip("IPython")
+    code = """
+import io, os, sys
+from IPython.core.interactiveshell import InteractiveShell
+from juliacall import Main as jl, PythonCall
+import juliacall.ipython
+# Julia redirects file descriptors 1 and 2, so keep copies to report through.
+out = os.fdopen(os.dup(1), "w")
+err = os.fdopen(os.dup(2), "w")
+# Like ipykernel, sys.stdout and sys.stderr are not file descriptors 1 and 2.
+sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
+class KernelShell(InteractiveShell):
+    pass
+juliacall.ipython.load_ipython_extension(KernelShell.instance())
+try:
+    jl.seval('() -> (println("hello"); sleep(0.1))')._jl_call_nogil()
+    PythonCall._ipython._flush_stdio()
+finally:
+    err.write(sys.stderr.getvalue())
+out.write(sys.stdout.getvalue())
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, timeout=180
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "hello\n"
+
+
 @pytest.mark.parametrize("mode,value", [("existing", 2), ("strict", 3)])
 def test_compiled_modules_option(mode, value):
     import os
